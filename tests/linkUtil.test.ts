@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRelativePath, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath } from '../src/renderer/linkUtil';
+import { getRelativePath, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath, splitHeadingFragment, appendLinkFragment } from '../src/renderer/linkUtil';
 
 describe('getRelativePath', () => {
   it('returns just the file name when target is in the same directory', () => {
@@ -124,5 +124,46 @@ describe('resolveLinkPath', () => {
 
   it('returns an absolute destination as-is', () => {
     expect(resolveLinkPath('/a/b/note.md', '/x/y.md')).toBe('/x/y.md');
+  });
+});
+
+describe('splitHeadingFragment', () => {
+  it('splits a heading fragment off a .md destination', () => {
+    expect(splitHeadingFragment('../a/README.md#requirements')).toEqual({ path: '../a/README.md', fragment: 'requirements' });
+  });
+
+  it('is case-insensitive about the .md extension', () => {
+    expect(splitHeadingFragment('NOTES.MD#x')).toEqual({ path: 'NOTES.MD', fragment: 'x' });
+  });
+
+  it('returns no fragment when there is none', () => {
+    expect(splitHeadingFragment('../a/README.md')).toEqual({ path: '../a/README.md', fragment: null });
+  });
+
+  it('treats an empty fragment as none', () => {
+    expect(splitHeadingFragment('README.md#')).toEqual({ path: 'README.md', fragment: null });
+  });
+
+  it('leaves a # inside a file name alone', () => {
+    expect(splitHeadingFragment('C#notes.md')).toEqual({ path: 'C#notes.md', fragment: null });
+    expect(splitHeadingFragment('C#notes.md#intro')).toEqual({ path: 'C#notes.md', fragment: 'intro' });
+  });
+
+  it('ignores a # after a non-markdown file', () => {
+    expect(splitHeadingFragment('photo.png#x')).toEqual({ path: 'photo.png#x', fragment: null });
+  });
+});
+
+describe('appendLinkFragment', () => {
+  it('appends to a bare destination', () => {
+    expect(appendLinkFragment('../a/README.md', 'requirements')).toBe('../a/README.md#requirements');
+  });
+
+  it('appends inside angle brackets', () => {
+    expect(appendLinkFragment('<my notes/README.md>', 'my-heading')).toBe('<my notes/README.md#my-heading>');
+  });
+
+  it('returns the destination unchanged for an empty fragment', () => {
+    expect(appendLinkFragment('README.md', '')).toBe('README.md');
   });
 });

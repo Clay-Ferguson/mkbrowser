@@ -6,9 +6,10 @@
  * found by its id, opened, and the link's destination is silently rewritten.
  */
 import { api } from './api';
-import { decodeMarkdownUrl, formatLinkDestination, getRelativePath, resolveLinkPath } from './linkUtil';
-import { getFileName, getParentPath } from './pathUtil';
-import { getItem, setBrowseFile, setHighlightItem, setItemContent, setLinkIdMismatch, useAS } from '../store';
+import { appendLinkFragment, decodeMarkdownUrl, formatLinkDestination, getRelativePath, resolveLinkPath, splitHeadingFragment } from './linkUtil';
+import { getFileName, getParentPath, joinPath } from './pathUtil';
+import { getVisibleElementById, scrollElementIntoView } from './entryDom';
+import { getItem, setBrowseFile, setHighlightItem, setItemContent, setLinkIdMismatch, setPendingScrollToHeadingSlug, useAS } from '../store';
 import { logger } from '../shared/logUtil';
 import { parseFrontMatter } from '../shared/frontMatterUtil';
 
@@ -19,17 +20,35 @@ import { parseFrontMatter } from '../shared/frontMatterUtil';
  */
 const LINK_WITH_TITLE_RE = /\]\(\s*(<[^<>\n]*>|[^\s<]\S*?)\s+"((?:[^"\\\n]|\\.)*)"\s*\)/g;
 
-/** Opens a file on its own in BrowseView (single-file mode), as from the index tree. */
-export function openFileSingle(path: string): void {
+/**
+ * Opens a file on its own in BrowseView (single-file mode), as from the index tree.
+ *
+ * With `headingSlug` (the rendered heading's id — see tocUtil's extractHeadingTree)
+ * it also scrolls to that heading: in place when this file is already the one on
+ * screen and the heading is rendered, so hopping between a document's headings
+ * doesn't remount it; otherwise by queueing `pendingScrollToHeadingSlug`, which
+ * BrowseFile consumes once the file renders. browseFileName has to be checked as
+ * well as the slug, because two documents can yield the same slug.
+ */
+export function openFileSingle(path: string, headingSlug?: string): void {
   setHighlightItem(path);
+  if (headingSlug) {
+    const { currentPath, browseFileName } = useAS.getState();
+    const showingThisFile = browseFileName !== null && joinPath(currentPath, browseFileName) === path;
+    if (showingThisFile && getVisibleElementById(headingSlug)) {
+      scrollElementIntoView(headingSlug, true);
+      return;
+    }
+    setPendingScrollToHeadingSlug(headingSlug);
+  }
   setBrowseFile(getParentPath(path), getFileName(path));
 }
 
 /**
  * Returns `content` with the destination of every link titled `"id:<id>"` that
  * resolves (relative to `sourcePath`) to `brokenTarget` rewritten to point at
- * `newTarget`, relative to `sourcePath`. The label and title are left untouched,
- * as is any link pointing elsewhere. Pure, for testability.
+ * `newTarget`, relative to `sourcePath`. The label, title and any heading fragment
+ * (`#slug`) are left untouched, as is any link pointing elsewhere. Pure, for testability.
  */
 export function replaceIdLinkDestinations(
   content: string,
@@ -42,9 +61,10 @@ export function replaceIdLinkDestinations(
   return content.replace(LINK_WITH_TITLE_RE, (match: string, rawDest: string, rawTitle: string) => {
     if (rawTitle.replace(/\\(.)/g, '$1').trim() !== `id:${id}`) return match;
     const dest = rawDest.startsWith('<') ? rawDest.slice(1, -1) : rawDest;
-    if (resolveLinkPath(sourcePath, decodeMarkdownUrl(dest)) !== brokenTarget) return match;
+    const { path, fragment } = splitHeadingFragment(dest);
+    if (resolveLinkPath(sourcePath, decodeMarkdownUrl(path)) !== brokenTarget) return match;
     // A function replacement, so a `$` in the new path is never read as a pattern.
-    return match.replace(rawDest, () => newDest);
+    return match.replace(rawDest, () => (fragment ? appendLinkFragment(newDest, fragment) : newDest));
   });
 }
 
@@ -132,18 +152,19 @@ function checkOpenedFileId(openedPath: string, id: string): Promise<void> {
  * Otherwise the file carrying that id is looked up — first in the target's folder,
  * then across the whole root folder — and, when found, opened while the link in
  * `sourcePath` is repaired in the background. When nothing is found, `targetPath` is
- * opened anyway so the usual not-found handling applies.
+ * opened anyway so the usual not-found handling applies. `headingSlug` (from a
+ * `file.md#slug` link) scrolls to that heading in whichever file is opened.
  */
-export function openIdLink(sourcePath: string, targetPath: string, id: string): void {
+export function openIdLink(sourcePath: string, targetPath: string, id: string, headingSlug?: string): void {
   void api.pathExists(targetPath)
     .catch(() => false)
     .then((exists) => {
       if (exists) {
-        openFileSingle(targetPath);
+        openFileSingle(targetPath, headingSlug);
         return checkOpenedFileId(targetPath, id);
       }
       return findById(id, getParentPath(targetPath)).then((found) => {
-        openFileSingle(found ?? targetPath);
+        openFileSingle(found ?? targetPath, headingSlug);
         if (found) {
           repairLinkInFile(sourcePath, targetPath, id, found).catch((err: unknown) => {
             logger.warn(`[linkRepair] Failed to repair link in ${sourcePath}:`, err);

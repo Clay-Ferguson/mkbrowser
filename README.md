@@ -37,7 +37,7 @@ A comprehensive list of what MkBrowser can do. See the [User Guide](docs/USER_GU
 | Automatic Table of Contents | A `<!-- TOC -->` placeholder is regenerated from headings on every save. |
 | Tag Picker | Add/remove front-matter hashtags via checkboxes while editing (Obsidian-compatible). |
 | Tags Editor | Define and organize your hashtag library into categories (with radio-style and multi-select categories). |
-| Insert links to files | Right-click a file or folder in the tree → **Paste Link into Editor** to insert a relative Markdown link (images inline) at the cursor. |
+| Insert links to files | Right-click a file or folder in the tree → **Paste Link into Editor** to insert a relative Markdown link (images inline) at the cursor. Right-click a Markdown heading in the tree to link straight to that heading (`file.md#heading`). |
 
 ### File Management
 

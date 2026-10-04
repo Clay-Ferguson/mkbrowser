@@ -75,6 +75,14 @@ describe('replaceIdLinkDestinations', () => {
       .toBe('[x]($&cost.md "id:ABC")');
   });
 
+  it('keeps a heading fragment on a repaired link', () => {
+    const content = '[HUMAN](<../Job Interview Thread/HUMAN.md#next-steps> "id:ABC")';
+    expect(replaceIdLinkDestinations(content, SRC, BROKEN, 'ABC', '/notes/thread/sub/human.md'))
+      .toBe('[HUMAN](sub/human.md#next-steps "id:ABC")');
+    expect(replaceIdLinkDestinations('[x](old.md#a-b "id:ABC")', SRC, '/notes/thread/old.md', 'ABC', '/notes/thread/new name.md'))
+      .toBe('[x](<new name.md#a-b> "id:ABC")');
+  });
+
   it('matches an id title containing escaped quotes', () => {
     const content = '[x](old.md "id:A\\"B")';
     expect(replaceIdLinkDestinations(content, SRC, '/notes/thread/old.md', 'A"B', '/notes/thread/new.md'))
@@ -125,6 +133,16 @@ describe('openIdLink when the link target exists', () => {
     expect(useAS.getState().linkIdMismatch).toEqual({
       linkId: 'ABC', openedPath: TARGET, openedId: null, otherPath: null,
     });
+  });
+
+  it('opens the file in single-file mode and queues the heading scroll', async () => {
+    useAS.setState({ pendingScrollToHeadingSlug: null, browseFileName: null });
+    vi.mocked(api.readFile).mockResolvedValue({ ok: true, content: '---\nid: ABC\n---\nBody' });
+    openIdLink('/notes/index.md', TARGET, 'ABC', 'requirements');
+    await settle();
+    expect(useAS.getState().browseFileName).toBe('HUMAN.md');
+    expect(useAS.getState().currentPath).toBe('/notes/a');
+    expect(useAS.getState().pendingScrollToHeadingSlug).toBe('requirements');
   });
 
   it('does not warn when the opened file cannot be read', async () => {

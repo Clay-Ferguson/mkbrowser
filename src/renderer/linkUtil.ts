@@ -157,3 +157,30 @@ export function formatLinkDestination(relPath: string): string {
 export function formatLinkTitle(text: string): string {
   return `"${text.replace(/["\\]/g, '\\$&')}"`;
 }
+
+/**
+ * Split a (still encoded) Markdown link destination into the file part and a
+ * heading fragment: `../a/README.md#requirements` → `{ path: '../a/README.md',
+ * fragment: 'requirements' }`. Only a `#` directly after a `.md` file name counts —
+ * file names may themselves contain `#` (`formatLinkDestination` leaves a non-leading
+ * one literal), so splitting on any `#` would break links to such files. The fragment
+ * is a heading slug (see `appendLinkFragment`); null when there is none.
+ */
+export function splitHeadingFragment(dest: string): { path: string; fragment: string | null } {
+  const match = /^(.*?\.md)#([^#/]*)$/i.exec(dest);
+  if (!match) return { path: dest, fragment: null };
+  return { path: match[1]!, fragment: match[2] || null };
+}
+
+/**
+ * Append a heading fragment to a destination produced by `formatLinkDestination`,
+ * inside the angle brackets when it has them. The fragment is a GitHub-style heading
+ * slug — the same id rehype-slug gives the rendered heading — so it is already free
+ * of whitespace and Markdown punctuation and needs no escaping of its own.
+ */
+export function appendLinkFragment(formattedDest: string, fragment: string): string {
+  if (!fragment) return formattedDest;
+  return formattedDest.endsWith('>')
+    ? `${formattedDest.slice(0, -1)}#${fragment}>`
+    : `${formattedDest}#${fragment}`;
+}

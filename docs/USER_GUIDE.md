@@ -254,6 +254,14 @@ Because the id is part of the link itself, the link can be resolved by id even i
 
 If the link's target *does* exist but its front matter `id` doesn't match the id in the link (for example, the original file was renamed and a different file later took its name), MkBrowser still opens it but shows a warning that you may be viewing a different file than the one originally linked. If the file carrying the link's id can be found, the warning names it and offers an **Open Linked File** button. The link is not changed in this case.
 
+You can also link to a specific **heading** inside a Markdown file. Expand the file in the Index Tree to show its headings, right-click a heading, and choose **Paste Link into Editor** (the only item on a heading's menu). The link text is the file name, an em dash, and the heading, and the link points at the file with the heading appended after a `#`:
+
+```
+[notes — Getting Started](../reference/notes.md#getting-started "id:abc123")
+```
+
+The part after `#` is the heading converted to a link-safe form, the same way GitHub does it: lowercased, spaces turned into hyphens, and most punctuation dropped (so `## Getting Started!` becomes `getting-started`). When a file has two headings with the same text, the second gets `-1`, the third `-2`, and so on. Clicking such a link opens the file on its own (single-file mode) and scrolls to that heading, exactly as clicking the heading in the Index Tree does. If you later rename the heading, the link still opens the file but no longer scrolls to it.
+
 Image files are inserted as inline images (`![diagram](../images/diagram.png)`), so they display directly in the rendered document.
 
 You can also link to a **folder**. Clicking a folder link in the rendered Markdown opens that folder in the browser view:

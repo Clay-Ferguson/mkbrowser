@@ -34,7 +34,6 @@ import {
   setBrowseFile,
   setHighlightItem,
   setIndexTreeWidth,
-  setPendingScrollToHeadingSlug,
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
 import type { FileEntry } from '../../shared/shared';
@@ -57,11 +56,10 @@ import { injectCalendarFrontMatter } from '../../shared/calendarUtil';
 import { insertTagIntoText } from '../../shared/tagUtil';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { extractHeadingTree } from '../../shared/tocUtil';
-import { getVisibleElementById, scrollElementIntoView } from '../../renderer/entryDom';
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
-import { formatLinkDestination, formatLinkTitle } from '../../renderer/linkUtil';
+import { appendLinkFragment, formatLinkDestination, formatLinkTitle } from '../../renderer/linkUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
-import { getOrAddLinkTargetId } from '../../renderer/linkRepair';
+import { getOrAddLinkTargetId, openFileSingle } from '../../renderer/linkRepair';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 const INDENT_SIZE = 20;
@@ -89,6 +87,11 @@ function isFileNode(node: TreeNode): node is FileNode {
 
 function isMarkdownHeadingNode(node: TreeNode): node is MarkdownHeadingNode {
   return 'heading' in node;
+}
+
+/** The Markdown file a heading node belongs to (its synthetic path is `file#index`). */
+function headingFilePath(node: MarkdownHeadingNode): string {
+  return node.path.substring(0, node.path.lastIndexOf('#'));
 }
 
 function isMarkdownFile(node: FileNode): node is MarkdownFileNode {
@@ -175,6 +178,33 @@ function isEditingMarkdown(): boolean {
   return false;
 }
 
+/**
+ * Inserts a relative link to the Markdown file `targetPath` at `editor`'s cursor —
+ * `[README](../a/README.md "id:36F7385CA")`, or with `heading` (a heading row's
+ * "Paste Link into Editor") `[README — Requirements](../a/README.md#requirements "id:36F7385CA")`,
+ * labelled with the file name, an em dash and the heading text.
+ * The target's front-matter id rides in the link title, so any Markdown parser
+ * returns it with the link and a broken link can be auto-repaired (linkRepair.ts).
+ * A target without an id gets one first; with no id at all (unreadable or malformed
+ * front matter) this falls back to a plain link.
+ *
+ * The fragment is the heading's GitHub-style slug (lowercased, spaces → hyphens,
+ * punctuation dropped, `-1`/`-2` suffixes on repeats) — the id rehype-slug gives the
+ * rendered heading, so it is what the link click scrolls to (see CustomAnchor).
+ *
+ * Square brackets and backslashes in the label are backslash-escaped, since heading
+ * text (and file names) may contain them and an unescaped `]` would end the label.
+ */
+function insertMarkdownFileLink(editor: NonNullable<ReturnType<typeof getActiveMarkdownEditor>>, targetPath: string, heading?: MarkdownHeadingNode): void {
+  const dest = formatLinkDestination(computeRelativePath(getParentPath(editor.path), targetPath));
+  const fileLabel = getFileName(targetPath).replace(/\.md$/, '');
+  const label = (heading ? `${fileLabel} — ${heading.heading}` : fileLabel).replace(/[[\]\\]/g, '\\$&');
+  void getOrAddLinkTargetId(targetPath).then((id) => {
+    const title = id ? ` ${formatLinkTitle(`id:${id}`)}` : '';
+    editor.handle.insertAtCursor(`[${label}](${appendLinkFragment(dest, heading?.slug ?? '')}${title})`);
+  });
+}
+
 
 // ── Rows ─────────────────────────────────────────────────────────────────────
 //
@@ -193,9 +223,10 @@ interface TreeHeadingRowProps {
   node: MarkdownHeadingNode;
   depth: number;
   onClick: (node: MarkdownHeadingNode) => void;
+  onContextMenu: (node: MarkdownHeadingNode, e: React.MouseEvent) => void;
 }
 
-function TreeHeadingRow({ node, depth, onClick }: TreeHeadingRowProps) {
+function TreeHeadingRow({ node, depth, onClick, onContextMenu }: TreeHeadingRowProps) {
   const hasChildren = node.children && node.children.length > 0;
   return (
     <div
@@ -204,6 +235,7 @@ function TreeHeadingRow({ node, depth, onClick }: TreeHeadingRowProps) {
         text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700"
       style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px` }}
       onClick={() => onClick(node)}
+      onContextMenu={e => onContextMenu(node, e)}
     >
       <span className="shrink-0 w-3 text-center mr-1 text-slate-500">
         {hasChildren
@@ -384,7 +416,7 @@ function IndexTreeView() {
     y: number;
     path: string;
     isDirectory: boolean;
-    onBrowse: () => void;
+    onBrowse?: () => void;
     onRun?: () => void;
     onNewFile?: () => void;
     onNewTodo?: () => void;
@@ -893,38 +925,40 @@ function IndexTreeView() {
   };
 
   /**
-   * Handles a click on a heading row: browses to the heading in single-file
-   * mode — scrolling the already-rendered heading into view when its document
-   * is already the one file on screen, otherwise opening the file on its own
-   * (setBrowseFile) and queueing a heading scroll via
-   * `pendingScrollToHeadingSlug`, which BrowseFile consumes — and toggles the
-   * heading's child headings. (Headings have no context menu; this click is the
-   * whole interaction.) Single-file rather than the folder listing because a
-   * user jumping to a heading is interested in that one document.
+   * Handles a click on a heading row: opens the heading's file in single-file
+   * mode scrolled to the heading (openFileSingle — the same thing clicking a
+   * `file.md#heading` link does) and toggles the heading's child headings.
+   * Single-file rather than the folder listing because a user jumping to a
+   * heading is interested in that one document. openFileSingle reads the
+   * browse state at call time rather than this handler subscribing to it: the
+   * handler is passed to every heading row, so closing over that state would
+   * re-render all of those rows on each navigation.
    */
   const handleHeadingClick = (node: MarkdownHeadingNode) => {
-    // Read at call time, not subscribed: this handler is passed to every
-    // heading row, so closing over them would re-render all of those rows on
-    // each navigation.
-    const { currentPath, browseFileName } = useAS.getState();
-    const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
-    const folderPath = getParentPath(filePath);
-    setHighlightItem(filePath);
-    // Scrolling in place only when this file is already open in single-file
-    // mode, so hopping between a document's headings doesn't remount it. From
-    // the folder listing (or another single file) we always switch to this one
-    // file, even if the heading is visible in the listing. browseFileName has
-    // to be checked as well as the slug: two documents can yield the same slug.
-    const showingThisFile = browseFileName !== null && joinPath(currentPath, browseFileName) === filePath;
-    if (showingThisFile && getVisibleElementById(node.slug)) {
-      scrollElementIntoView(node.slug, true);
-    } else {
-      setPendingScrollToHeadingSlug(node.slug);
-      setBrowseFile(folderPath, getFileName(filePath));
-    }
+    openFileSingle(headingFilePath(node), node.slug);
 
     const hasChildren = node.children && node.children.length > 0;
     if (hasChildren) void handleNodeClick(node);
+  };
+
+  /**
+   * Shows the context menu for a heading row. Its one item is "Paste Link into
+   * Editor" (disabled unless a markdown file is being edited), which inserts a
+   * link to the heading's file with the heading's slug as the fragment — see
+   * insertMarkdownFileLink.
+   */
+  const handleHeadingContextMenu = (node: MarkdownHeadingNode, e: React.MouseEvent) => {
+    e.preventDefault();
+    const activeEditor = isEditingMarkdown() ? getActiveMarkdownEditor() : null;
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      path: node.path,
+      isDirectory: false,
+      ...(activeEditor ? {
+        onPasteLink: () => insertMarkdownFileLink(activeEditor, headingFilePath(node), node),
+      } : {}),
+    });
   };
 
   /**
@@ -978,14 +1012,7 @@ function IndexTreeView() {
           const name = getFileName(node.path);
           const label = node.isDirectory ? name : name.replace(/\.md$/, '');
           if (!node.isDirectory && node.path.endsWith('.md')) {
-            // A target without an id gets one first; with no id at all (unreadable or
-            // malformed front matter) this falls back to a plain link.
-            void getOrAddLinkTargetId(node.path).then((id) => {
-              // The id rides in the link's title, so any Markdown parser returns it
-              // with the link, and a broken link can be auto-repaired (linkRepair.ts).
-              const title = id ? ` ${formatLinkTitle(`id:${id}`)}` : '';
-              activeEditor.handle.insertAtCursor(`[${label}](${relPath}${title})`);
-            });
+            insertMarkdownFileLink(activeEditor, node.path);
           } else if (!node.isDirectory && isImageFile(node.name)) {
             activeEditor.handle.insertAtCursor(`![${label}](${relPath})`);
           } else {
@@ -1127,7 +1154,7 @@ function IndexTreeView() {
       <div className="py-1 min-w-max">
         {rows.map(({ node, depth }) => {
           if (isMarkdownHeadingNode(node)) {
-            return <MemoTreeHeadingRow key={node.path} node={node} depth={depth} onClick={handleHeadingClick} />;
+            return <MemoTreeHeadingRow key={node.path} node={node} depth={depth} onClick={handleHeadingClick} onContextMenu={handleHeadingContextMenu} />;
           }
           if (!isFileNode(node)) return null;
           return (

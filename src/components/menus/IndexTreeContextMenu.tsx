@@ -6,7 +6,8 @@ interface IndexTreeContextMenuProps {
   /** True when the right-clicked node is a directory (reserved for future use). */
   isDirectory: boolean;
   onClose: () => void;
-  onBrowse: () => void;
+  /** When provided, a "Browse" item is shown (every file/folder row; not headings). */
+  onBrowse?: () => void;
   /** When provided (shell scripts only), a "Run" item is shown. */
   onRun?: () => void;
   /** When provided, a "New File" item is shown. */
@@ -41,15 +42,18 @@ interface IndexTreeContextMenuProps {
  * "Paste Link into Editor", which is always shown and disabled instead. The
  * three create items are fenced off in their own divider section, since they add
  * to the folder's *contents* rather than acting on the clicked node itself.
+ * A markdown heading row passes only `onPasteLink`, so its menu is that one item.
  */
 export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewTodo, onNewFolder, onRename, onDelete, onCut, onPaste, onPasteLink, onCopyPath, onCopyRelativePath }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
-      <PopupMenuItem
-        label="Browse"
-        onClick={() => { onBrowse(); onClose(); }}
-        data-testid="browse-to-folder"
-      />
+      {onBrowse && (
+        <PopupMenuItem
+          label="Browse"
+          onClick={() => { onBrowse(); onClose(); }}
+          data-testid="browse-to-folder"
+        />
+      )}
       {onRun && (
         <PopupMenuItem
           label="Run"
