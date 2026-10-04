@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { showTab, hideTab, setCurrentView, useAS, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, clearSearchResults, type AppView } from '../store';
+import { ArrowLeftIcon, ArrowRightIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { showTab, hideTab, setCurrentView, useAS, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, clearSearchResults, goBack, goForward, canGoBack, canGoForward, type AppView } from '../store';
 import { isAiThreadByEntries } from '../shared/ai/aiPatterns';
 import { getParentPath, isPathInside } from '../renderer/pathUtil';
 import appLogo from '../../public/icon-256.png';
@@ -35,7 +35,8 @@ const allTabs: TabConfig[] = [
 
 /**
  * Top navigation bar showing the app logo (file menu), view tabs, system menu,
- * and an "Up Level" button when browsing below the root folder.
+ * Back/Forward buttons for the session's file-view history, and an "Up Level"
+ * button when browsing below the root folder.
  *
  * Tab visibility is driven by store state: tabs appear when their corresponding
  * data is available (search results, analysis, graph, AI thread) and disappear
@@ -50,6 +51,8 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
   const hasSearched = useAS(s => s.lastSearchDefinition !== null);
   const currentPath = useAS(s => s.currentPath);
   const rootPath = useAS(s => s.rootPath);
+  const backEnabled = useAS(canGoBack);
+  const forwardEnabled = useAS(canGoForward);
   const logoRef = useRef<HTMLButtonElement>(null);
   const systemMenuRef = useRef<HTMLButtonElement>(null);
   const [showFileMenu, setShowFileMenu] = useState(false);
@@ -61,7 +64,8 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
     const parent = getParentPath(currentPath);
     if (isPathInside(rootPath, parent)) {
       setCurrentPath(parent);
-      setHighlightItem(currentPath);
+      // A folder isn't a file view, so it stays out of Back/Forward history.
+      setHighlightItem(currentPath, { history: false });
       setPendingScrollToFile(currentPath);
     }
   };
@@ -179,6 +183,28 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
           data-testid="system-menu-button"
         >
           <Bars3Icon className="w-5 h-5" />
+        </button>
+        <button
+          type="button"
+          onClick={goBack}
+          disabled={!backEnabled}
+          className={BUTTON_CLASS_TB_NORMAL}
+          aria-label="Back"
+          title="Back"
+          data-testid="nav-back-button"
+        >
+          <ArrowLeftIcon className="w-5 h-5" />
+        </button>
+        <button
+          type="button"
+          onClick={goForward}
+          disabled={!forwardEnabled}
+          className={BUTTON_CLASS_TB_NORMAL}
+          aria-label="Forward"
+          title="Forward"
+          data-testid="nav-forward-button"
+        >
+          <ArrowRightIcon className="w-5 h-5" />
         </button>
         {(currentView === 'browser' || currentView === 'thread') && currentPath !== rootPath && (
           <button

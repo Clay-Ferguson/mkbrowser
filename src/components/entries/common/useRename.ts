@@ -43,7 +43,7 @@ async function performRename(
       if (renameItem(path, newPath, trimmedName)) {
         saveSettings();
       }
-      setHighlightItem(newPath);
+      setHighlightItem(newPath, { history: false });
       onRename();
     } else {
       setAppError(`Could not rename "${getFileName(path)}" to "${trimmedName}". An item with that name may already exist.`);

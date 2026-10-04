@@ -1,6 +1,7 @@
 import type { AppState, TreeNode, FileNode } from '../shared/types';
 import { getState } from './core';
 import type { StoreSet, StoreGet } from './core';
+import { withHistoryPush } from './history';
 
 // ============================================================================
 // IndexTree - the hierarchical .INDEX.yaml navigation tree
@@ -136,6 +137,7 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
       highlightItem: path,
       currentView: 'browser',
       pendingIndexTreeReveal: path,
+      ...withHistoryPush(get(), path),
     }),
 
     /** Clear the pending reveal signal (called by IndexTree when it picks it up). */

@@ -7,6 +7,7 @@ import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
 import { removeTOC } from '../shared/tocUtil';
 import { getParentPath, isPathInside, isSamePath, joinPath, remapMovedPath } from '../renderer/pathUtil';
 import { enterExpandedEditPatch, isExpandedEditOf } from './expandedEdit';
+import { withHistoryPruned, withHistoryPush, withHistoryRemapped } from './history';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
 
@@ -277,6 +278,16 @@ function remapEntry(entry: FileEntry, oldRoot: string, newRoot: string, newName:
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
  */
+/** Options for `setHighlightItem`. */
+export interface HighlightOptions {
+  /**
+   * Record the item as a Back/Forward history visit (default true). Pass false
+   * when the highlight only marks something the user didn't open — e.g. the
+   * folder just left by Up Level, or an item just renamed.
+   */
+  history?: boolean;
+}
+
 export interface ItemsSlice {
   upsertItems: (items: IncomingItem[]) => void;
   syncDirectoryItems: (dirPath: string, items: IncomingItem[]) => void;
@@ -303,7 +314,7 @@ export interface ItemsSlice {
   setItemEditContent: (path: string, editContent: string) => void;
   clearItemGoToLine: (path: string) => void;
   setItemRenaming: (path: string, renaming: boolean) => void;
-  setHighlightItem: (path: string | null) => void;
+  setHighlightItem: (path: string | null, opts?: HighlightOptions) => void;
 }
 
 /**
@@ -644,6 +655,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * - calendar events keyed by `filePath` (calendar slice)
      * - `currentPath` (so renaming the browsed folder or an ancestor follows
      *   it), `browseFileName`, `highlightItem`, and the `pending*` path fields
+     * - Back/Forward `navHistory` entries (history slice)
      *
      * The items Map is global and long-lived — it holds entries from every
      * folder visited this session — so renaming a folder must also re-key every
@@ -761,6 +773,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       remapField('pendingEditFile');
       remapField('pendingExpandFile');
       remapField('pendingIndexTreeReveal');
+      Object.assign(patch, withHistoryRemapped(state, oldRoot, newRoot));
 
       if (Object.keys(patch).length > 0) {
         set(patch);
@@ -806,6 +819,8 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       if (remainingEntries.length !== state.currentEntries.length) {
         patch.currentEntries = remainingEntries;
       }
+
+      Object.assign(patch, withHistoryPruned(state, roots));
 
       if (Object.keys(patch).length === 0) return;
 
@@ -909,10 +924,16 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       });
     },
 
-    /** Set the currently highlighted item (by full path). */
-    setHighlightItem: (path) => {
-      if (get().highlightItem === path) return;
-      set({ highlightItem: path });
+    /**
+     * Set the currently highlighted item (by full path). Unless
+     * `opts.history` is false, this also records the item as a Back/Forward
+     * history visit, in the same update (see `history.ts`).
+     */
+    setHighlightItem: (path, opts) => {
+      const state = get();
+      const historyPatch = opts?.history === false ? null : withHistoryPush(state, path);
+      if (state.highlightItem === path && !historyPatch) return;
+      set({ highlightItem: path, ...historyPatch });
     },
   };
 }
@@ -1039,8 +1060,8 @@ export function setItemRenaming(path: string, renaming: boolean): void {
   getState().setItemRenaming(path, renaming);
 }
 
-export function setHighlightItem(path: string | null): void {
-  getState().setHighlightItem(path);
+export function setHighlightItem(path: string | null, opts?: HighlightOptions): void {
+  getState().setHighlightItem(path, opts);
 }
 
 // ============================================================================

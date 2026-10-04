@@ -590,6 +590,17 @@ export interface AppState {
    */
   thesaurusWord: string | null;
 
+  /**
+   * Back/Forward navigation history: absolute paths of the files the user has
+   * viewed this session (each time one became `highlightItem`), oldest first.
+   * In memory only — never persisted, so it starts empty on every launch.
+   * See `src/store/history.ts`.
+   */
+  navHistory: string[];
+
+  /** Index into `navHistory` of the current entry, or -1 when it is empty. */
+  navHistoryIndex: number;
+
 }
 
 /**

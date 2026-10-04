@@ -17,13 +17,15 @@ import { createItemsSlice } from './items';
 import type { ItemsSlice } from './items';
 import { createThesaurusSlice } from './thesaurus';
 import type { ThesaurusSlice } from './thesaurus';
+import { createHistorySlice } from './history';
+import type { HistorySlice } from './history';
 
 /**
  * Full store state: the plain `AppState` fields plus the actions contributed
  * by each slice.
  */
 export type StoreState = AppState & AiConfigSlice & SearchSlice & CalendarSlice &
-  IndexTreeSlice & SettingsSlice & ViewSlice & ItemsSlice & ThesaurusSlice;
+  IndexTreeSlice & SettingsSlice & ViewSlice & ItemsSlice & ThesaurusSlice & HistorySlice;
 
 /**
  * The `set` signature handed to slice creators: a shallow-merging partial
@@ -125,6 +127,8 @@ const initialState: AppState = {
   calendarWatcherWarning: null,
   aiConfig: defaultAiConfig,
   thesaurusWord: null,
+  navHistory: [],
+  navHistoryIndex: -1,
 };
 
 /**
@@ -149,6 +153,7 @@ export const useAS = create<StoreState>()((set, get) => ({
   ...createViewSlice(set, get),
   ...createItemsSlice(set, get),
   ...createThesaurusSlice(set),
+  ...createHistorySlice(set, get),
 }));
 
 /**
