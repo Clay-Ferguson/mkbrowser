@@ -291,6 +291,15 @@ export const ENTRY_HIGHLIGHTED = 'border-2 border-purple-500 relative z-10';
 const ENTRY_HEADER_ROW_LAYOUT = 'flex items-center gap-3 px-2 py-0.5 transition-colors';
 export const ENTRY_HEADER_ROW = `${ENTRY_HEADER_ROW_LAYOUT} bg-blue-800/50 group-hover:bg-blue-700/70`;
 export const ENTRY_HEADER_EXPANDED = 'border border-slate-500';
+/**
+ * Frame for an expanded entry's body, continuing ENTRY_HEADER_EXPANDED's border down
+ * the sides. No top edge: the header's bottom border already draws that line. The
+ * bottom edge never doubles up with a following row either — in the plain listing
+ * BrowseEntryList overlaps siblings by 1px (`[&>div+div]:-mt-px`), so the next row
+ * covers it (or its own expanded header's top border lands on the same line), leaving
+ * it visible only under the last entry; in Document Mode an IndexInsertBar separates rows.
+ */
+export const ENTRY_BODY_BORDER = 'border border-t-0 border-slate-500';
 export const ENTRY_NAME_SPAN = 'text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline';
 /**
  * Highlight for a row that a drag is hovering and can be dropped on.
@@ -312,7 +321,7 @@ export const ENTRY_NAME_SPAN = 'text-slate-300 font-medium truncate flex-1 curso
 export const ENTRY_DROP_TARGET = 'relative z-10 bg-blue-600/60 outline outline-2 -outline-offset-2 outline-green-400';
 /** Entry header row while an acceptable drag hovers it. */
 export const ENTRY_HEADER_ROW_DROP = `${ENTRY_HEADER_ROW_LAYOUT} ${ENTRY_DROP_TARGET}`;
-export const ENTRY_CONTENT_AREA = 'px-6 py-4';
+export const ENTRY_CONTENT_AREA = `px-6 py-4 ${ENTRY_BODY_BORDER}`;
 export const ENTRY_LOADING = 'text-slate-400 text-sm';
 // Editor-toolbar icon buttons. The "on" state of a toggle keeps a visible border at
 // rest instead of the hover frame, so a toggle never carries two competing

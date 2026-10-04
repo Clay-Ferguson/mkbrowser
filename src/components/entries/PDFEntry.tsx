@@ -9,6 +9,7 @@ import {
   type AttachMenuProps,
 } from './common';
 import { toggleItemExpanded } from '../../store';
+import { ENTRY_BODY_BORDER } from '../../renderer/styles';
 
 type PDFEntryProps = BaseEntryProps & AttachMenuProps;
 
@@ -57,7 +58,7 @@ function PDFEntry(props: PDFEntryProps) {
         />
       }
     >
-      <div className="px-4 pb-4">
+      <div className={`px-4 pb-4 ${ENTRY_BODY_BORDER}`}>
         <PdfViewer path={entry.path} />
       </div>
     </EntryShell>

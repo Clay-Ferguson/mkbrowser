@@ -16,7 +16,7 @@ import {
   type BaseEntryProps,
   type AttachMenuProps,
 } from './common';
-import { BUTTON_CLASS_SCRIM } from '../../renderer/styles';
+import { BUTTON_CLASS_SCRIM, ENTRY_BODY_BORDER } from '../../renderer/styles';
 
 interface ImageEntryProps extends BaseEntryProps, AttachMenuProps {
   allImages: FileEntryType[];
@@ -112,7 +112,7 @@ function ImageEntry(props: ImageEntryProps) {
         }
       >
         {/* Expanded image content */}
-        <div className="p-2">
+        <div className={`p-2 ${ENTRY_BODY_BORDER}`}>
           <div className="bg-slate-900 rounded-lg flex items-center justify-center">
             <div className="relative inline-block">
               <img
