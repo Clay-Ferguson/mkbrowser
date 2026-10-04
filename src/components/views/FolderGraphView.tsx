@@ -22,7 +22,7 @@ import {
   setHighlightItem,
 } from '../../store';
 import { parseFrontMatter } from '../../shared/frontMatterUtil';
-import { getParentPath } from '../../renderer/pathUtil';
+import { getParentPath, ensureTrailingSep } from '../../renderer/pathUtil';
 import { logger } from '../../shared/logUtil';
 
 // Node colors by type, tuned for a dark slate-900 background.
@@ -42,6 +42,16 @@ function colorForNode(d: SimNode, highlighted: boolean): string {
   const lower = d.name.toLowerCase();
   if (lower.endsWith('.md') || lower.endsWith('.markdown')) return COLOR_MARKDOWN;
   return COLOR_OTHER;
+}
+
+/**
+ * Returns a node's path relative to the graph's root folder (e.g. 'sub/notes'),
+ * for the hover tooltip. The root node itself shows just its name.
+ */
+function graphRelativePath(d: SimNode, rootPath: string): string {
+  if (d.id === rootPath) return d.name;
+  const prefix = ensureTrailingSep(rootPath);
+  return d.id.startsWith(prefix) ? d.id.slice(prefix.length) : d.id;
 }
 
 const PREVIEW_MAX_CHARS = 500;
@@ -275,8 +285,8 @@ function FolderGraphView() {
       .attr('stroke', '#0f172a')
       .attr('stroke-width', 1.5);
 
-    // Native SVG tooltip with the full path on hover.
-    nodeSel.append('title').text(d => d.id);
+    // Native SVG tooltip with the path relative to the graph root on hover.
+    nodeSel.append('title').text(d => graphRelativePath(d, folderGraph.folderPath));
 
     // Label: paint-order=stroke gives a dark outline so text reads against
     // any background (graph edges, other nodes).
@@ -328,7 +338,7 @@ function FolderGraphView() {
     });
 
     // Hover → load a content preview into the tooltip. The native <title>
-    // starts as the full path; once the file is read we swap in a richer
+    // starts as the root-relative path; once the file is read we swap in a richer
     // preview (name + first body lines). We mutate the live <title> DOM node
     // directly so it updates without rebuilding the graph (see
     // loadPreviewIntoTooltip for the mtime-keyed caching).
