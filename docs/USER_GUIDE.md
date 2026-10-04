@@ -250,7 +250,7 @@ If the target file is a Markdown file that contains a front matter `id` property
 [notes](../reference/notes.md "id:abc123")
 ```
 
-Because the id is part of the link itself, other tools (and future MkBrowser features) can resolve the link by id even if the file is later renamed or moved.
+Because the id is part of the link itself, the link can be resolved by id even if the file is later renamed or moved. MkBrowser repairs such links automatically: when you click a link whose target no longer exists, it looks for the Markdown file carrying that id, first in the folder the link pointed to and then across the whole root folder, skipping hidden folders and your Ignored Paths. If it finds the file, it opens it and quietly rewrites the link to the file's new location (relative to the document containing the link). If that document is open in the editor at the time, the link is left as-is and repaired on a later click.
 
 Image files are inserted as inline images (`![diagram](../images/diagram.png)`), so they display directly in the rendered document.
 

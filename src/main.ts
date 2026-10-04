@@ -13,6 +13,7 @@ import { frontMatterFileSaved } from './main/frontMatterHandler';
 import { writeFileAtomic } from './main/atomicWrite';
 import { processTOC } from './shared/tocUtil';
 import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
+import { findMarkdownById } from './main/findById';
 import { parseIgnoredPaths } from './shared/searchHelpers';
 import { searchFolderWithTotal } from './main/search';
 import { createExclusiveSearchRunner, SearchCancelledError } from './main/searchRunner';
@@ -630,6 +631,17 @@ function setupIpcHandlers(): void {
     } catch (error) {
       logger.error('Error in search and replace:', error);
       return [];
+    }
+  });
+
+  // Find the .md file whose front-matter id matches (Markdown link auto-repair)
+  ipcMain.handle('find-markdown-by-id', async (_event, id: string, likelyDir: string, rootDir: string): Promise<string | null> => {
+    try {
+      const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
+      return await findMarkdownById(id, likelyDir, rootDir, ignoredPaths);
+    } catch (error) {
+      logger.error('Error finding markdown file by id:', error);
+      return null;
     }
   });
 

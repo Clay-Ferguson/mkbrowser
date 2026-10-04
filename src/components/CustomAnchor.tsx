@@ -1,9 +1,9 @@
 import React, { useContext } from 'react';
 import type { ExtraProps } from 'react-markdown';
 import { api } from '../renderer/api';
-import { setHighlightItem, navigateToBrowserPath, setBrowseFile } from '../store';
-import { decodeMarkdownUrl } from '../renderer/linkUtil';
-import { getFileName, getParentPath, isAbsolutePath, pathSep, splitPath } from '../renderer/pathUtil';
+import { navigateToBrowserPath } from '../store';
+import { decodeMarkdownUrl, resolveLinkPath } from '../renderer/linkUtil';
+import { openFileSingle, openIdLink } from '../renderer/linkRepair';
 import { MarkdownEntryContext } from './markdownEntryContext';
 import { getVisibleElementById } from '../renderer/entryDom';
 
@@ -18,7 +18,9 @@ interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement
  *     SPAs don't use window-level scrolling.
  *   - Relative file paths — resolved against the markdown file's location and used
  *     to navigate the BrowseView: into the folder itself when the target is a folder,
- *     otherwise to the file on its own (single-file mode).
+ *     otherwise to the file on its own (single-file mode). A `.md` link whose title is
+ *     `"id:…"` (the target's front-matter id) repairs itself when its target has been
+ *     renamed or moved — see linkRepair.ts.
  *
  * Also stops mouseup propagation so link clicks don't trigger the parent's edit-mode handler.
  */
@@ -56,28 +58,15 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
       // to the literal filesystem path before resolving.
       const decodedHref = decodeMarkdownUrl(href);
 
-      // Get the directory containing this markdown file
-      const currentDir = getParentPath(entryPath);
+      // Resolve relative paths against the markdown file's own directory.
+      const targetPath = resolveLinkPath(entryPath, decodedHref);
 
-      // Resolve the relative path
-      let targetPath: string;
-      if (isAbsolutePath(decodedHref)) {
-        // Absolute path from root - use as-is
-        targetPath = decodedHref;
-      } else {
-        // Relative path - resolve from current directory. Markdown hrefs use
-        // '/' regardless of platform; the base directory uses the native sep.
-        const parts = splitPath(currentDir);
-        const hrefParts = decodedHref.split('/');
-
-        for (const part of hrefParts) {
-          if (part === '..') {
-            parts.pop();
-          } else if (part !== '.' && part !== '') {
-            parts.push(part);
-          }
-        }
-        targetPath = parts.join(pathSep());
+      // A Markdown link carrying its target's front-matter id in the title can be
+      // auto-repaired if the target has been renamed or moved.
+      const id = /^id:(.+)$/.exec(props.title?.trim() ?? '')?.[1]?.trim();
+      if (id && /\.md$/i.test(targetPath)) {
+        openIdLink(entryPath, targetPath, id);
+        return;
       }
 
       // A folder link browses into that folder; anything else (including a
@@ -88,8 +77,7 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
           if (isDir) {
             navigateToBrowserPath(targetPath);
           } else {
-            setHighlightItem(targetPath);
-            setBrowseFile(getParentPath(targetPath), getFileName(targetPath));
+            openFileSingle(targetPath);
           }
         });
       return;

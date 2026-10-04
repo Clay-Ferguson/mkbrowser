@@ -409,6 +409,12 @@ export interface ElectronAPI {
   pathExists: (checkPath: string) => Promise<boolean>;
   /** True when the path exists and is a directory; false otherwise (including when missing). */
   isDirectory: (checkPath: string) => Promise<boolean>;
+  /**
+   * Finds the .md file whose front-matter `id` is `id`: first among the direct children
+   * of `likelyDir`, then anywhere under `rootDir` (honoring ignored paths). The first
+   * match wins; resolves to null when none is found.
+   */
+  findMarkdownById: (id: string, likelyDir: string, rootDir: string) => Promise<string | null>;
   writeFile: (filePath: string, content: string) => Promise<FileWriteResult>;
   getFileSize: (filePath: string) => Promise<number>;
   getFileMtime: (filePath: string) => Promise<number>;

@@ -1,4 +1,4 @@
-import { getParentPath, splitPathSegments } from './pathUtil';
+import { getParentPath, isAbsolutePath, pathSep, splitPath, splitPathSegments } from './pathUtil';
 
 /**
  * Decode a percent-encoded markdown URL back into a filesystem path.
@@ -13,6 +13,25 @@ export function decodeMarkdownUrl(url: string): string {
   } catch {
     return url;
   }
+}
+
+/**
+ * Resolve a decoded markdown link destination to a filesystem path. An absolute
+ * destination is returned as-is; a relative one is resolved against the directory
+ * containing `sourceFilePath` (the markdown file the link appears in). Markdown
+ * destinations use '/' regardless of platform; the result uses the native separator.
+ */
+export function resolveLinkPath(sourceFilePath: string, decodedHref: string): string {
+  if (isAbsolutePath(decodedHref)) return decodedHref;
+  const parts = splitPath(getParentPath(sourceFilePath));
+  for (const part of decodedHref.split('/')) {
+    if (part === '..') {
+      parts.pop();
+    } else if (part !== '.' && part !== '') {
+      parts.push(part);
+    }
+  }
+  return parts.join(pathSep());
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRelativePath, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle } from '../src/renderer/linkUtil';
+import { getRelativePath, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath } from '../src/renderer/linkUtil';
 
 describe('getRelativePath', () => {
   it('returns just the file name when target is in the same directory', () => {
@@ -110,5 +110,19 @@ describe('formatLinkTitle', () => {
 
   it('backslash-escapes double quotes and backslashes', () => {
     expect(formatLinkTitle('id:a"b\\c')).toBe('"id:a\\"b\\\\c"');
+  });
+});
+
+describe('resolveLinkPath', () => {
+  it('resolves a sibling file', () => {
+    expect(resolveLinkPath('/a/b/note.md', 'other.md')).toBe('/a/b/other.md');
+  });
+
+  it('climbs with ../ and skips ./', () => {
+    expect(resolveLinkPath('/a/b/note.md', './../c/./x.md')).toBe('/a/c/x.md');
+  });
+
+  it('returns an absolute destination as-is', () => {
+    expect(resolveLinkPath('/a/b/note.md', '/x/y.md')).toBe('/x/y.md');
   });
 });
