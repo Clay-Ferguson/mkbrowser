@@ -2,6 +2,7 @@ import { api } from './api';
 import type { FileNode, TreeNode } from '../shared/types';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
+import { extractHeadingTree } from '../shared/tocUtil';
 import { logger } from '../shared/logUtil';
 
 // ============================================================================
@@ -10,11 +11,15 @@ import { logger } from '../shared/logUtil';
 // full refresh in directoryLoader).
 // ============================================================================
 
+/** A directory listing entry, as far as the tree builders need it. */
+type TreeEntry = { path: string; name: string; isDirectory: boolean; indexOrder?: number; hasAttachFolder?: boolean };
+
 /**
- * Whether a directory entry may appear in the IndexTreeView at all. Attachment
- * (*.attach) folders never show there. Local by design: `makeTreeNodes` is the
- * only way tree children are built, so every caller gets this filter for free
- * and no other module needs to remember to apply it.
+ * Whether a directory entry may appear as a folder's child in the IndexTreeView.
+ * Attachment (*.attach) folders never do: they appear under their owning file
+ * instead (see makeFileChildren), so an orphaned one with no owner is not shown.
+ * Local by design: `makeTreeNodes` is the only way folder children are built, so
+ * every caller gets this filter for free and no other module needs to remember it.
  */
 function isTreeVisibleEntry(entry: { name: string; isDirectory: boolean }): boolean {
   return !(entry.isDirectory && entry.name.endsWith(ATTACH_SUFFIX));
@@ -22,11 +27,11 @@ function isTreeVisibleEntry(entry: { name: string; isDirectory: boolean }): bool
 
 /**
  * Builds the IndexTreeView's lazily-loaded child nodes from a directory listing, omitting
- * Attachment (*.attach) folders, which are never shown in the tree.
+ * Attachment (*.attach) folders, which show under their owning file rather than here.
+ * Which files own one comes straight from `hasAttachFolder`, which `readDirectory` already
+ * computes in one pass over the listing, so the tree needs no lookup or I/O of its own.
  */
-export function makeTreeNodes(
-  entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>
-): FileNode[] {
+export function makeTreeNodes(entries: TreeEntry[]): FileNode[] {
   return entries.filter(isTreeVisibleEntry).map(e => ({
     path: e.path,
     name: e.name,
@@ -35,7 +40,62 @@ export function makeTreeNodes(
     isLoading: false,
     children: null,
     ...(e.indexOrder !== undefined ? { indexOrder: e.indexOrder } : {}),
+    ...(!e.isDirectory && e.hasAttachFolder ? { hasAttachFolder: true } : {}),
   }));
+}
+
+/**
+ * The tree node for `file`'s attachment folder. It keeps the folder's real name and
+ * path (drag, rename, cut and paste all need them); only the row's label shows `*.attach`.
+ */
+function makeAttachNode(file: FileNode): FileNode {
+  return {
+    path: `${file.path}${ATTACH_SUFFIX}`,
+    name: `${file.name}${ATTACH_SUFFIX}`,
+    isDirectory: true,
+    isExpanded: false,
+    isLoading: false,
+    children: null,
+  };
+}
+
+/**
+ * The children of an expanded file node: its attachment folder (when it has one)
+ * first, then `headings` (a markdown file's heading tree; empty for other files).
+ * The one place a file's child list is assembled.
+ */
+export function makeFileChildren(file: FileNode, headings: TreeNode[]): TreeNode[] {
+  return file.hasAttachFolder ? [makeAttachNode(file), ...headings] : headings;
+}
+
+/**
+ * Re-syncs an already-loaded file's children after its `hasAttachFolder` flag flipped
+ * on disk: drops the old attachment-folder node and, when the folder now exists, puts a
+ * fresh one first. Heading children are kept. Unloaded children (null) stay unloaded —
+ * the first expand builds them with makeFileChildren.
+ */
+function syncAttachChild(children: TreeNode[] | null, file: FileNode): TreeNode[] | null {
+  if (!children) return children;
+  return makeFileChildren(file, children.filter(c => !('isDirectory' in c)));
+}
+
+/**
+ * Expands a file node in the tree. Children already loaded are simply shown again;
+ * otherwise they are built — a markdown file's headings read from disk, plus the
+ * attachment folder node. A markdown file that can't be read is left collapsed.
+ */
+export async function expandFileNode(node: FileNode): Promise<void> {
+  if (node.children !== null) {
+    expandIndexTreeNode(node.path, node.children);
+    return;
+  }
+  let headings: TreeNode[] = [];
+  if (node.name.toLowerCase().endsWith('.md')) {
+    const result = await api.readFile(node.path).catch(() => null);
+    if (!result?.ok) return;
+    headings = extractHeadingTree(node.path, result.content);
+  }
+  expandIndexTreeNode(node.path, makeFileChildren(node, headings));
 }
 
 /**
@@ -52,7 +112,7 @@ export function makeTreeNodes(
  * @param previousChildren - The node's current children, or null if it had none loaded.
  */
 export function mergeTreeNodes(
-  entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>,
+  entries: TreeEntry[],
   previousChildren: TreeNode[] | null | undefined
 ): FileNode[] {
   const fresh = makeTreeNodes(entries);
@@ -69,15 +129,21 @@ export function mergeTreeNodes(
     const existing = oldByPath.get(node.path);
     // A path that changed kind (file <-> folder) must not inherit the old children.
     if (!existing || existing.isDirectory !== node.isDirectory) return node;
+    const attachChanged = existing.hasAttachFolder !== node.hasAttachFolder;
     // Unchanged on disk: reuse the old node so the memo()'d tree row skips its re-render.
-    if (existing.name === node.name && existing.indexOrder === node.indexOrder && !existing.isLoading) return existing;
-    return { ...node, isExpanded: existing.isExpanded, children: existing.children };
+    if (existing.name === node.name && existing.indexOrder === node.indexOrder && !attachChanged && !existing.isLoading) return existing;
+    // A file whose attachment folder appeared or vanished gets that child added or removed.
+    const children = attachChanged ? syncAttachChild(existing.children, node) : existing.children;
+    return { ...node, isExpanded: existing.isExpanded, children };
   });
   const unchanged = merged.length === previousChildren.length && merged.every((n, i) => n === previousChildren[i]);
   return unchanged ? (previousChildren as FileNode[]) : merged;
 }
 
-/** Depth-first search for a directory/file node by absolute path within the tree. */
+/**
+ * Depth-first search for a directory/file node by absolute path within the tree,
+ * including attachment-folder nodes under (loaded) file nodes.
+ */
 export function findTreeNodeByPath(root: FileNode, path: string): FileNode | null {
   if (root.path === path) return root;
   if (!root.children) return null;
@@ -122,13 +188,15 @@ export async function reloadExpandedTreeFolder(folderPath: string): Promise<void
  * rename, until the next refresh through a builder swept it back out.
  *
  * Recursion is the one thing this adds over `mergeTreeNodes`: each merged child
- * is refreshed too, so an expanded subtree is reloaded all the way down. Row
+ * is refreshed too, so an expanded subtree is reloaded all the way down —
+ * including an expanded attachment folder under an expanded file. Row
  * order is not decided here — `flattenVisible` in IndexTreeView orders rows at
  * render time, so builder order only survives for index-ordered (Document Mode)
  * siblings, which it passes through from the listing.
  */
 export async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
-  if (!node.isDirectory || !node.isExpanded) return node;
+  if (!node.isExpanded) return node;
+  if (!node.isDirectory) return refreshFileChildren(node);
   try {
     const entries = await api.readDirectory(node.path);
     const merged = mergeTreeNodes(entries, node.children);
@@ -139,4 +207,16 @@ export async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   } catch {
     return node;
   }
+}
+
+/**
+ * The file-node half of refreshExpandedNodes: an expanded file's only directory
+ * child is its attachment folder, which is refreshed like any folder; heading
+ * children pass through. Returns `file` itself when nothing under it changed.
+ */
+async function refreshFileChildren(file: FileNode): Promise<FileNode> {
+  const old = file.children;
+  if (!old) return file;
+  const children = await Promise.all(old.map(c => ('isDirectory' in c ? refreshExpandedNodes(c as FileNode) : c)));
+  return children.every((c, i) => c === old[i]) ? file : { ...file, children };
 }

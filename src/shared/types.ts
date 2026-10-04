@@ -268,11 +268,14 @@ export interface FileNode extends TreeNode {
   isDirectory: boolean;
   children: TreeNode[] | null;
   indexOrder?: number;
+  /** File nodes only: a sibling `<name>.attach` folder exists (from FileEntry.hasAttachFolder). */
+  hasAttachFolder?: boolean;
 }
 
 /**
- * A markdown file node. Structurally identical to FileNode; when expanded,
- * its children are MarkdownHeadingNode[] rather than FileNode[].
+ * A markdown file node. Structurally identical to FileNode. When expanded, any
+ * file node's children are its attachment-folder FileNode (if it has one) followed,
+ * for markdown, by its MarkdownHeadingNode[] — see makeFileChildren in treeNodes.ts.
  */
 export interface MarkdownFileNode extends FileNode {
   isDirectory: false;

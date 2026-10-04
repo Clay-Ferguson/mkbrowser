@@ -35,7 +35,7 @@ import {
   setHighlightItem,
   setIndexTreeWidth,
 } from '../../store';
-import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
+import type { TreeNode, FileNode, MarkdownHeadingNode } from '../../store';
 import type { FileEntry } from '../../shared/shared';
 import { pasteCutItems, runCutPasteExclusive } from '../../renderer/edit';
 import {
@@ -43,10 +43,12 @@ import {
   parseDragPayload,
   canDropInto,
   completeEntryDrop,
+  affectsBrowseListing,
   makeEntryDragStartHandler,
 } from '../../renderer/dragAndDrop';
 import {
   reloadExpandedTreeFolder,
+  expandFileNode,
   makeTreeNodes as makeNodes,
   mergeTreeNodes as mergeNodes,
   findTreeNodeByPath as findNodeByPath,
@@ -55,7 +57,6 @@ import { createFileOp } from '../../renderer/fileOpsUtil';
 import { injectCalendarFrontMatter } from '../../shared/calendarUtil';
 import { insertTagIntoText } from '../../shared/tagUtil';
 import { generateTimestampFileName } from '../../shared/timeUtil';
-import { extractHeadingTree } from '../../shared/tocUtil';
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
 import { appendLinkFragment, formatLinkDestination, formatLinkTitle } from '../../renderer/linkUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
@@ -94,12 +95,13 @@ function headingFilePath(node: MarkdownHeadingNode): string {
   return node.path.substring(0, node.path.lastIndexOf('#'));
 }
 
-function isMarkdownFile(node: FileNode): node is MarkdownFileNode {
-  return !node.isDirectory && node.name.toLowerCase().endsWith('.md');
-}
-
 function isShellScript(node: FileNode): boolean {
   return !node.isDirectory && node.name.toLowerCase().endsWith('.sh');
+}
+
+/** A file's attachment folder, which the tree shows as a child of that file. */
+function isAttachFolderNode(node: FileNode): boolean {
+  return node.isDirectory && node.name.endsWith(ATTACH_SUFFIX);
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -127,7 +129,8 @@ function buildTodoContent(): string {
 /**
  * Flattens the visible portion of the tree into a flat array of `{node, depth}`
  * pairs for virtual list rendering. Collapsed nodes are included but their
- * children are omitted; cut nodes are skipped entirely. Heading sub-trees and
+ * children are omitted; cut nodes are skipped entirely. A file's children (its
+ * attachment folder first, then any headings), heading sub-trees and
  * index-ordered (document mode) nodes preserve their existing order; all other
  * nodes are sorted alphabetically with optional folders-on-top.
  */
@@ -137,8 +140,9 @@ function flattenVisible(
   foldersOnTop: boolean,
   depth = 0
 ): Array<{ node: TreeNode; depth: number }> {
-  // Heading nodes and Document Mode (indexed) nodes must preserve their existing order.
-  const isHeadings = nodes.length > 0 && isMarkdownHeadingNode(nodes[0]!); 
+  // A file's children (attach folder + headings), heading nodes and Document Mode
+  // (indexed) nodes must preserve their existing order.
+  const isHeadings = nodes.some(isMarkdownHeadingNode);
   const hasIndexOrder = !isHeadings && nodes.some(n => isFileNode(n) && (n as FileNode).indexOrder !== undefined);
   const sorted = (isHeadings || hasIndexOrder) ? nodes : [...nodes].sort((a, b) => {
     const aIsDir = isFileNode(a) && a.isDirectory;
@@ -367,7 +371,7 @@ function TreeFileRow({
           : <FileTypeIcon fileName={node.name} />
         }
       </span>
-      <span className={nameClassName}>{node.name}</span>
+      <span className={nameClassName}>{isAttachFolderNode(node) ? `*${ATTACH_SUFFIX}` : node.name}</span>
     </div>
   );
 }
@@ -504,6 +508,16 @@ function IndexTreeView() {
           }
         }
 
+        // An attachment folder lives under its owning file, so open that file first.
+        if (segment.endsWith(ATTACH_SUFFIX)) {
+          const latest = getIndexTreeRoot();
+          const owner = latest && findNodeByPath(latest, joinPath(ancestorPath, segment.slice(0, -ATTACH_SUFFIX.length)));
+          if (owner && !owner.isDirectory && !owner.isExpanded) {
+            await expandFileNode(owner);
+            if (token !== revealTokenRef.current) return;
+          }
+        }
+
         ancestorPath = joinPath(ancestorPath, segment);
       }
 
@@ -535,11 +549,12 @@ function IndexTreeView() {
   /**
    * Handles a click on any tree row. Behavior depends on node type:
    * - Heading node: toggles expansion of the heading's child headings.
-   * - Any file: opens it on its own in the right-hand pane (see BrowseFile).
-   * - Markdown file: additionally toggles its heading children in the tree,
-   *   loading them from disk on first expand — so one click both opens the
-   *   document and reveals its structure.
-   * - Directory: toggles expansion; reads directory contents on first expand.
+   * - Any file: opens it on its own in the right-hand pane (see BrowseFile),
+   *   and toggles its children in the tree — its attachment folder, plus a
+   *   markdown file's headings (read from disk on first expand) — so one click
+   *   both opens the document and reveals its structure.
+   * - Directory (including an attachment folder): toggles expansion; reads
+   *   directory contents on first expand.
    */
   const handleNodeClick = async (node: TreeNode) => {
     if (isMarkdownHeadingNode(node)) {
@@ -554,38 +569,18 @@ function IndexTreeView() {
 
     if (!isFileNode(node)) return;
 
-    // Every file — markdown or not — opens in single-file browsing. For
-    // markdown this runs alongside the heading toggle below.
+    // Every file — markdown or not — opens in single-file browsing, alongside
+    // toggling its children (attachment folder, headings) in the tree.
     if (!node.isDirectory) {
       setHighlightItem(node.path);
       setBrowseFile(getParentPath(node.path), node.name);
-    }
-
-    if (isMarkdownFile(node)) {
-      // Toggle markdown file expansion — load headings on first expand
       if (node.isExpanded) {
         collapseIndexTreeNode(node.path);
-        return;
-      }
-      if (node.children !== null) {
-        // Already loaded — just re-expand
-        expandIndexTreeNode(node.path, node.children);
-        return;
-      }
-      try {
-        const result = await api.readFile(node.path);
-        if (result.ok) {
-          const headings = extractHeadingTree(node.path, result.content);
-          expandIndexTreeNode(node.path, headings);
-        }
-        // leave node collapsed if the file couldn't be read
-      } catch {
-        // leave node collapsed on error
+      } else {
+        await expandFileNode(node);
       }
       return;
     }
-
-    if (!node.isDirectory) return;
 
     if (node.isExpanded) {
       collapseIndexTreeNode(node.path);
@@ -640,7 +635,7 @@ function IndexTreeView() {
         // If the browse view is currently showing this folder, refresh it. Read the
         // path now, not from the render that built the menu: the user can navigate
         // while the moves above are in flight.
-        if (node.path === useAS.getState().currentPath) {
+        if (affectsBrowseListing(node.path, useAS.getState().currentPath)) {
           refreshDirectory();
         }
 
@@ -672,8 +667,9 @@ function IndexTreeView() {
    * mtime/birthtime (a placeholder would look like a different file to the next
    * directory load, which would drop the pending cut), and the tree node may not
    * be in the items Map at all when its folder was never browsed. The same
-   * listing also reveals an attachments folder — never shown in the tree — that a
-   * cut would leave behind, which the user confirms first, as BrowseView does.
+   * listing also reveals an attachments folder (the file's tree child may not be
+   * loaded yet) that a cut would leave behind, which the user confirms first, as
+   * BrowseView does.
    */
   // Fire-and-forget UI handler: sync signature with the async body run through
   // runOp so failures are reported instead of leaking an unhandled
@@ -781,7 +777,7 @@ function IndexTreeView() {
 
       // If the browse view is currently showing this folder, refresh it (read after the
       // awaits: the user may have navigated meanwhile).
-      if (parentPath === useAS.getState().currentPath) {
+      if (affectsBrowseListing(parentPath, useAS.getState().currentPath)) {
         refreshDirectory();
       }
 
@@ -814,7 +810,7 @@ function IndexTreeView() {
       // If the browse view is showing the renamed item's parent, refresh it. When
       // it is showing the renamed folder itself (or something inside it),
       // renameItem already moved currentPath, and App reloads the new path.
-      if (parentPath === useAS.getState().currentPath) {
+      if (affectsBrowseListing(parentPath, useAS.getState().currentPath)) {
         refreshDirectory();
       }
 
@@ -842,7 +838,7 @@ function IndexTreeView() {
       // If the browse view is showing the deleted item or its parent, refresh it
       // (read after the awaits: the user may have navigated meanwhile).
       const viewedPath = useAS.getState().currentPath;
-      if (target.path === viewedPath || parentPath === viewedPath || isParentOf(target.path, viewedPath)) {
+      if (target.path === viewedPath || affectsBrowseListing(parentPath, viewedPath) || isParentOf(target.path, viewedPath)) {
         refreshDirectory();
       }
 
@@ -1141,7 +1137,7 @@ function IndexTreeView() {
       )}
       {cutOrphanAttachTarget && (
         <ConfirmDialog
-          message={`"${cutOrphanAttachTarget.name}" has an attachments folder, which the tree does not show and a cut leaves behind. Cut the file without its attachments?`}
+          message={`"${cutOrphanAttachTarget.name}" has an attachments folder, which a cut leaves behind. Cut the file without its attachments?`}
           onConfirm={() => {
             const entry = cutOrphanAttachTarget;
             setCutOrphanAttachTarget(null);

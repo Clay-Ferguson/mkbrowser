@@ -32,12 +32,14 @@ function updateNodeByPath<T extends TreeNode>(
 }
 
 /**
- * Collapse `node` and every directory beneath it. Nodes that are already fully
+ * Collapse `node` and every file/folder node beneath it — files too, so an
+ * expanded file's headings and its attachment folder (a child of the file) fold
+ * away. Heading nodes are left as they are. Nodes that are already fully
  * collapsed keep their identity, so the memoized tree rows for them (and the
  * store write itself, when nothing was expanded) are skipped.
  */
 function collapseAllNodes(node: TreeNode): TreeNode {
-  if (!('isDirectory' in node) || !(node as FileNode).isDirectory) return node;
+  if (!('isDirectory' in node)) return node;
   const collapsedChildren = collapseAllChildren(node.children);
   if (!node.isExpanded && collapsedChildren === node.children) return node;
   return { ...node, isExpanded: false, children: collapsedChildren };
@@ -104,7 +106,7 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
       set({ indexTreeRoot: newRoot });
     },
 
-    /** Collapse all expanded directory nodes in the tree (preserves root expansion). */
+    /** Collapse all expanded file and directory nodes in the tree (preserves root expansion). */
     collapseAllIndexTreeNodes: () => {
       const root = get().indexTreeRoot;
       if (!root) return;

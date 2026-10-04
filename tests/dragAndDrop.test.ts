@@ -11,9 +11,11 @@ import {
   parseDragPayload,
   type DragPayload,
 } from '../src/renderer/dragAndDrop';
-import { mergeTreeNodes, refreshExpandedNodes } from '../src/renderer/treeNodes';
+import { makeTreeNodes, makeFileChildren, mergeTreeNodes, refreshExpandedNodes } from '../src/renderer/treeNodes';
+import { useAS } from '../src/store/core';
+import { collapseAllIndexTreeNodes } from '../src/store/indexTree';
 import { api } from '../src/renderer/api';
-import type { FileNode } from '../src/shared/types';
+import type { FileNode, MarkdownHeadingNode, TreeNode } from '../src/shared/types';
 
 vi.mock('../src/renderer/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../src/renderer/api')>()),
@@ -167,16 +169,17 @@ describe('parseDragPayload', () => {
 // mergeTreeNodes — refreshing a folder's children without collapsing the tree
 // ---------------------------------------------------------------------------
 
-function entry(path: string, isDirectory: boolean, indexOrder?: number) {
+function entry(path: string, isDirectory: boolean, indexOrder?: number, hasAttachFolder?: boolean) {
   return {
     path,
     name: path.slice(path.lastIndexOf('/') + 1),
     isDirectory,
     ...(indexOrder !== undefined ? { indexOrder } : {}),
+    ...(hasAttachFolder ? { hasAttachFolder } : {}),
   };
 }
 
-function node(path: string, isDirectory: boolean, isExpanded: boolean, children: FileNode[] | null): FileNode {
+function node(path: string, isDirectory: boolean, isExpanded: boolean, children: TreeNode[] | null): FileNode {
   return {
     path,
     name: path.slice(path.lastIndexOf('/') + 1),
@@ -270,5 +273,117 @@ describe('refreshExpandedNodes — structural sharing', () => {
     } finally {
       listings['/root/a'] = [entry('/root/a/deep.md', false)];
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Attachment folders — shown as the first child of their owning file
+// ---------------------------------------------------------------------------
+
+function heading(path: string): MarkdownHeadingNode {
+  return { path, heading: 'H', slug: 'h', depth: 1, isExpanded: false, isLoading: false, children: null };
+}
+
+/** A file node that owns an attach folder. */
+function owner(path: string, isExpanded: boolean, children: TreeNode[] | null): FileNode {
+  return { ...node(path, false, isExpanded, children), hasAttachFolder: true };
+}
+
+describe('makeTreeNodes / makeFileChildren — attachment folders', () => {
+  it('flags owning files and keeps .attach folders out of the folder listing', () => {
+    const nodes = makeTreeNodes([
+      entry('/root/a.md', false, undefined, true),
+      entry('/root/a.md.attach', true),
+      entry('/root/b.md', false),
+    ]);
+    expect(nodes.map(n => n.path)).toEqual(['/root/a.md', '/root/b.md']);
+    expect(nodes[0]!.hasAttachFolder).toBe(true);
+    expect(nodes[1]).not.toHaveProperty('hasAttachFolder');
+  });
+
+  it('puts the attach folder first, before headings, keeping its real name', () => {
+    const h = heading('/root/a.md#0');
+    const [attach, ...rest] = makeFileChildren(owner('/root/a.md', false, null), [h]) as FileNode[];
+    expect(attach).toEqual(node('/root/a.md.attach', true, false, null));
+    expect(rest).toEqual([h]);
+  });
+
+  it('adds nothing for a file without an attach folder', () => {
+    const h = heading('/root/b.md#0');
+    expect(makeFileChildren(node('/root/b.md', false, false, null), [h])).toEqual([h]);
+  });
+});
+
+describe('mergeTreeNodes — attachment folder appearing / disappearing', () => {
+  it('prepends the attach node to an expanded file when its folder appears, keeping headings', () => {
+    const h = heading('/root/a.md#0');
+    const [merged] = mergeTreeNodes([entry('/root/a.md', false, undefined, true)], [node('/root/a.md', false, true, [h])]);
+    expect(merged!.isExpanded).toBe(true);
+    expect(merged!.children!.map(c => c.path)).toEqual(['/root/a.md.attach', '/root/a.md#0']);
+  });
+
+  it('removes the attach node when its folder is gone', () => {
+    const h = heading('/root/a.md#0');
+    const previous = [owner('/root/a.md', true, [node('/root/a.md.attach', true, true, []), h])];
+    const [merged] = mergeTreeNodes([entry('/root/a.md', false)], previous);
+    expect(merged!.hasAttachFolder).toBeUndefined();
+    expect(merged!.children).toEqual([h]);
+  });
+
+  it('reuses the node (and its expanded attach child) when nothing changed', () => {
+    const previous = [owner('/root/a.md', true, [node('/root/a.md.attach', true, true, [])])];
+    const merged = mergeTreeNodes([entry('/root/a.md', false, undefined, true)], previous);
+    expect(merged).toBe(previous);
+  });
+
+  it('leaves a never-expanded file unloaded', () => {
+    const [merged] = mergeTreeNodes([entry('/root/a.md', false, undefined, true)], [node('/root/a.md', false, false, null)]);
+    expect(merged!.hasAttachFolder).toBe(true);
+    expect(merged!.children).toBeNull();
+  });
+});
+
+describe('refreshExpandedNodes — attach folder under an expanded file', () => {
+  const listings: Record<string, ReturnType<typeof entry>[]> = {
+    '/r': [entry('/r/a.md', false, undefined, true), entry('/r/a.md.attach', true)],
+    '/r/a.md.attach': [entry('/r/a.md.attach/img.png', false)],
+  };
+  function tree(): FileNode {
+    return node('/r', true, true, [
+      owner('/r/a.md', true, [node('/r/a.md.attach', true, true, [node('/r/a.md.attach/img.png', false, false, null)])]),
+    ]);
+  }
+
+  it('returns the same root when nothing changed', async () => {
+    vi.mocked(api.readDirectory).mockImplementation(async (p: string) => (listings[p] ?? []) as never);
+    const root = tree();
+    expect(await refreshExpandedNodes(root)).toBe(root);
+  });
+
+  it('re-reads the expanded attach folder', async () => {
+    vi.mocked(api.readDirectory).mockImplementation(async (p: string) => (
+      p === '/r/a.md.attach' ? [...listings[p]!, entry('/r/a.md.attach/new.pdf', false)] : listings[p] ?? []
+    ) as never);
+    const refreshed = await refreshExpandedNodes(tree());
+    const attach = (refreshed.children![0] as FileNode).children![0] as FileNode;
+    expect(attach.children!.map(c => c.path)).toEqual(['/r/a.md.attach/img.png', '/r/a.md.attach/new.pdf']);
+  });
+});
+
+describe('collapseAllIndexTreeNodes', () => {
+  it('collapses expanded files and the attach folders under them', () => {
+    const h = heading('/r/a.md#0');
+    useAS.setState({
+      indexTreeRoot: node('/r', true, true, [
+        owner('/r/a.md', true, [node('/r/a.md.attach', true, true, []), h]),
+      ]),
+    });
+    collapseAllIndexTreeNodes();
+    const root = useAS.getState().indexTreeRoot!;
+    expect(root.isExpanded).toBe(true);
+    const file = root.children![0] as FileNode;
+    expect(file.isExpanded).toBe(false);
+    expect((file.children![0] as FileNode).isExpanded).toBe(false);
+    expect(file.children![1]).toBe(h);
   });
 });
