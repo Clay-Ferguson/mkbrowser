@@ -7,7 +7,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { buildObjectTemplate, parseObjectBlock } from '../src/shared/objects/objectBlock';
-import { resolveObjectBlock } from '../src/components/objects/objectRegistry';
+import { resolveObjectBlock } from '../src/shared/objects/genericObject';
 import { objectTypeOptions, userObjectTemplate } from '../src/shared/objects/userTypes';
 import type { TypeDefinitions } from '../src/shared/shared';
 import { objectInsertion } from '../src/renderer/editor/editorObjectUtil';
@@ -103,9 +103,9 @@ describe('userObjectTemplate', () => {
 
   it('becomes a valid object as soon as one field is filled in', () => {
     // Untouched, every value is blank: recognized as a person, but with nothing to show yet.
-    expect(resolveObjectBlock('yaml', bodyOf(PERSON_BLOCK))?.kind).toBe('invalid');
+    expect(resolveObjectBlock('yaml', bodyOf(PERSON_BLOCK), TYPE_DEFS)?.kind).toBe('invalid');
     const filled = bodyOf(PERSON_BLOCK).replace('name: ', 'name: Clay');
-    expect(resolveObjectBlock('yaml', filled)?.kind).toBe('object');
+    expect(resolveObjectBlock('yaml', filled, TYPE_DEFS)?.kind).toBe('object');
   });
 });
 

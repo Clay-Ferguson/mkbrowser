@@ -2,12 +2,14 @@ import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@
 import { RangeSetBuilder, type EditorState } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import type { SyntaxNode } from '@lezer/common';
-import { unknownObjectKeys, type UnknownObjectKey } from '../objects/objectRegistry';
+import { unknownObjectKeys, type UnknownObjectKey } from '../../shared/objects/genericObject';
+import type { TypeDefinitions } from '../../shared/shared';
+import { getTypeDefs } from '../../store';
 
 /**
  * Flags unknown properties in typed object blocks (DEVELOPER_GUIDE § "Typed Object Blocks"):
- * inside a fenced `yaml` block whose `type` is a registered object type, any key the type
- * doesn't define gets a wavy underline — the same idea as a spelling underline, for a typo
+ * inside a fenced `yaml` block whose `type` is a user-defined object type (Types Editor), any
+ * key the type doesn't define gets a wavy underline — the same idea as a spelling underline, for a typo
  * like `nmae` that the rendered card would otherwise silently drop.
  */
 
@@ -61,10 +63,10 @@ function readFencedBlock(state: EditorState, node: SyntaxNode): { info: string; 
 
 /**
  * Finds the unknown object properties in the fenced blocks that intersect `from`–`to`, as
- * document positions in ascending order. Relies on the Markdown syntax tree, so it sees what
- * has been parsed so far (the plugin below re-runs as parsing progresses).
+ * document positions in ascending order, checked against `defs`. Relies on the Markdown syntax
+ * tree, so it sees what has been parsed so far (the plugin below re-runs as parsing progresses).
  */
-export function unknownObjectKeysInRange(state: EditorState, from: number, to: number): UnknownObjectKey[] {
+export function unknownObjectKeysInRange(state: EditorState, from: number, to: number, defs: TypeDefinitions): UnknownObjectKey[] {
   const found: UnknownObjectKey[] = [];
   syntaxTree(state).iterate({
     from,
@@ -73,7 +75,7 @@ export function unknownObjectKeysInRange(state: EditorState, from: number, to: n
       if (node.name !== 'FencedCode') return undefined;
       const block = readFencedBlock(state, node.node);
       if (block) {
-        for (const key of unknownObjectKeys(block.info, block.code)) {
+        for (const key of unknownObjectKeys(block.info, block.code, defs)) {
           found.push({ ...key, from: block.toDocPos(key.from), to: block.toDocPos(key.to) });
         }
       }
@@ -85,13 +87,13 @@ export function unknownObjectKeysInRange(state: EditorState, from: number, to: n
 }
 
 /** Underlines the unknown object properties in the visible part of the document. */
-function createObjectKeyDecorations(view: EditorView): DecorationSet {
+function createObjectKeyDecorations(view: EditorView, defs: TypeDefinitions): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   // Visible ranges are ascending and disjoint, but one block can straddle two of them; skip
   // anything already added so the builder's ascending-position contract holds.
   let lastEnd = -1;
   for (const { from, to } of view.visibleRanges) {
-    for (const key of unknownObjectKeysInRange(view.state, from, to)) {
+    for (const key of unknownObjectKeysInRange(view.state, from, to, defs)) {
       if (key.from < lastEnd) continue;
       lastEnd = key.to;
       builder.add(key.from, key.to, Decoration.mark({
@@ -106,19 +108,24 @@ function createObjectKeyDecorations(view: EditorView): DecorationSet {
 /**
  * CodeMirror `ViewPlugin` that keeps the unknown-property underlines current. Rebuilds when
  * the document or viewport changes, and when the syntax tree does — parsing can finish after
- * the edit that triggered it, and the fenced blocks are read from the tree.
+ * the edit that triggered it, and the fenced blocks are read from the tree. The type
+ * definitions are read from the store; a change to them is picked up on the next update.
  */
 export const objectKeyPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
+    defs: TypeDefinitions;
 
     constructor(view: EditorView) {
-      this.decorations = createObjectKeyDecorations(view);
+      this.defs = getTypeDefs();
+      this.decorations = createObjectKeyDecorations(view, this.defs);
     }
 
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) {
-        this.decorations = createObjectKeyDecorations(update.view);
+      const defs = getTypeDefs();
+      if (defs !== this.defs || update.docChanged || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) {
+        this.defs = defs;
+        this.decorations = createObjectKeyDecorations(update.view, defs);
       }
     }
   },

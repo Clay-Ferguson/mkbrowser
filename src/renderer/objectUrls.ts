@@ -1,4 +1,4 @@
-// URLs that object cards (e.g. a person's address or email) open in the system browser. Each
+// URLs that object cards (an `address`, `email`, or `url` property) open in the system browser. Each
 // template's placeholder is replaced with the URL-encoded value. Hard-coded for now; meant to
 // become user settings later.
 
@@ -27,4 +27,14 @@ export function buildMapUrl(address: string, template: string = MAP_URL_TEMPLATE
 /** The compose URL for a new email to `email`. */
 export function buildEmailUrl(email: string, template: string = EMAIL_URL_TEMPLATE): string {
   return template.replace('{email}', encodeURIComponent(email.trim()));
+}
+
+/**
+ * The URL to open for a `url` property. A value with no scheme (`example.com/page`) gets
+ * `https://`; a value with an explicit scheme is kept as is, so one the main process won't open
+ * (anything but http/https/file) simply does nothing when clicked.
+ */
+export function buildWebUrl(url: string): string {
+  const trimmed = url.trim();
+  return /^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
