@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseConfigYaml, defaultSettings, cloneDefaultSettings, coerceNonNegativeNumber } from '../src/main/configSchema';
+import { loadYaml } from '../src/shared/yamlUtil';
 
 // ---------------------------------------------------------------------------
 // coerceNonNegativeNumber — shared coercion used by schema preprocess + configMgr
@@ -393,5 +394,75 @@ describe('parseConfigYaml — imageCols', () => {
   it('preserves a valid imageCols', () => {
     const cfg = parseConfigYaml({ browseFolder: '/x', settings: { imageCols: 3 } });
     expect(cfg?.settings?.imageCols).toBe(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// types — user-defined object types (Types Editor)
+// ---------------------------------------------------------------------------
+
+describe('parseConfigYaml — types', () => {
+  it('round-trips a well-formed types map, keeping key order', () => {
+    const cfg = parseConfigYaml(loadYaml([
+      'browseFolder: /x',
+      'types:',
+      '  person:',
+      '    description: A contact',
+      '    properties:',
+      '      name:',
+      '        description: Full name',
+      '      cell_phone:',
+      '        description: Mobile number',
+    ].join('\n')));
+    expect(cfg?.types).toEqual({
+      person: {
+        description: 'A contact',
+        properties: {
+          name: { description: 'Full name' },
+          cell_phone: { description: 'Mobile number' },
+        },
+      },
+    });
+    expect(Object.keys(cfg?.types?.person?.properties ?? {})).toEqual(['name', 'cell_phone']);
+  });
+
+  it('accepts a bare property (YAML null) as an empty description', () => {
+    const cfg = parseConfigYaml(loadYaml('browseFolder: /x\ntypes:\n  person:\n    properties:\n      name:\n'));
+    expect(cfg?.types?.person?.properties).toEqual({ name: { description: '' } });
+  });
+
+  it('gives a bare type (YAML null) or one without properties an empty properties map', () => {
+    const cfg = parseConfigYaml({ browseFolder: '/x', types: { a: null, b: { description: 'B' } } });
+    expect(cfg?.types).toEqual({ a: { properties: {} }, b: { description: 'B', properties: {} } });
+  });
+
+  it('drops malformed entries and keeps the good ones', () => {
+    const cfg = parseConfigYaml({
+      browseFolder: '/x',
+      types: {
+        good: { properties: { ok: { description: 'fine' }, bad: 'not an object', num: { description: 5 } } },
+        broken: 'not an object',
+      },
+    });
+    expect(cfg?.types).toEqual({
+      good: { properties: { ok: { description: 'fine' }, num: { description: '' } } },
+    });
+  });
+
+  it('falls back to an empty map when types is not an object', () => {
+    expect(parseConfigYaml({ browseFolder: '/x', types: 'nope' })?.types).toEqual({});
+    expect(parseConfigYaml({ browseFolder: '/x', types: ['a'] })?.types).toEqual({});
+  });
+
+  it('leaves types undefined when absent', () => {
+    expect(parseConfigYaml({ browseFolder: '/x' })?.types).toBeUndefined();
+  });
+
+  it('preserves unknown keys at the type and property level', () => {
+    const cfg = parseConfigYaml({
+      browseFolder: '/x',
+      types: { t: { label: 'T', properties: { p: { description: 'd', domain: 'string' } } } },
+    });
+    expect(cfg?.types?.t).toEqual({ label: 'T', properties: { p: { description: 'd', domain: 'string' } } });
   });
 });

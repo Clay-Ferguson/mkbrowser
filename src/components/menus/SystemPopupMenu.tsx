@@ -6,17 +6,20 @@ interface SystemPopupMenuProps {
   onClose: () => void;
   onSettings: () => void;
   onAiSettings: () => void;
+  onTypesEditor: () => void;
 }
 
 /**
  * Popup menu for the system (gear/hamburger) toolbar button. Provides
- * navigation to the general Settings view and the AI Settings view.
+ * navigation to the general Settings view, the AI Settings view, and the
+ * Types Editor view.
  */
 export default function SystemPopupMenu({
   anchorRef,
   onClose,
   onSettings,
   onAiSettings,
+  onTypesEditor,
 }: SystemPopupMenuProps) {
   return (
     <PopupMenu data-testid="system-popup-menu" anchorRef={anchorRef} onClose={onClose}>
@@ -29,6 +32,11 @@ export default function SystemPopupMenu({
         label="AI Settings"
         data-testid="menu-ai-settings"
         onClick={() => { onAiSettings(); onClose(); }}
+      />
+      <PopupMenuItem
+        label="Types Editor"
+        data-testid="menu-types-editor"
+        onClick={() => { onTypesEditor(); onClose(); }}
       />
     </PopupMenu>
   );

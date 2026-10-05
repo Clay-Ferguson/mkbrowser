@@ -10,6 +10,7 @@ import FolderAnalysisView from './components/views/FolderAnalysisView';
 import FolderGraphView from './components/views/FolderGraphView';
 import CalendarView from './components/views/CalendarView';
 import AISettingsView from './components/views/AISettingsView';
+import TypesEditorView from './components/views/TypesEditorView';
 import ThreadView from './components/views/ThreadView';
 import BrowseView from './components/views/BrowseView';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -375,6 +376,14 @@ function App() {
           <div {...viewProps('ai-settings')}>
             <ErrorBoundary>
               <AISettingsView />
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {visitedViews.has('types-editor') && (
+          <div {...viewProps('types-editor')}>
+            <ErrorBoundary>
+              <TypesEditorView />
             </ErrorBoundary>
           </div>
         )}

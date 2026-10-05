@@ -183,6 +183,27 @@ export interface AIRewritePromptDef {
   prompt: string;
 }
 
+/**
+ * One property of a user-defined object type. Keyed by property name in
+ * `TypeDefinition.properties`; its attributes sit beneath the name so more
+ * (e.g. a future domain/range) can be added. Unknown keys are preserved.
+ */
+export interface PropertyDefinition {
+  description: string;
+  [extra: string]: unknown;
+}
+
+/** A user-defined object type, keyed by type name in `AppConfig.types`. Unknown keys are preserved. */
+export interface TypeDefinition {
+  description?: string;
+  /** Property definitions in display order (YAML key order). */
+  properties: Record<string, PropertyDefinition>;
+  [extra: string]: unknown;
+}
+
+/** All user-defined object types, keyed by type name. */
+export type TypeDefinitions = Record<string, TypeDefinition>;
+
 export interface AppConfig {
   browseFolder: string;
   curSubFolder?: string;
@@ -208,6 +229,8 @@ export interface AppConfig {
   calendarViewType?: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
   /** Recently browsed folders, most recent first, max 10. */
   recentFolders?: string[];
+  /** User-defined object types, managed in the Types Editor tab. */
+  types?: TypeDefinitions;
 }
 
 export interface FileEntry {

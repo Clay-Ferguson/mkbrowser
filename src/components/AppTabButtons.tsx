@@ -21,7 +21,7 @@ interface AppTabButtonsProps {
   onOpenRecentFolder: (folder: string) => void;
 }
 
-// Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings
+// Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings, AI Settings, Types, Calendar
 const allTabs: TabConfig[] = [
   { id: 'browser', label: 'Browse', hasCloseButton: false },
   { id: 'thread', label: 'AI Chat', hasCloseButton: false },
@@ -30,6 +30,7 @@ const allTabs: TabConfig[] = [
   { id: 'folder-graph', label: 'Graph' },
   { id: 'settings', label: 'Settings' },
   { id: 'ai-settings', label: 'AI Settings' },
+  { id: 'types-editor', label: 'Types' },
   { id: 'calendar', label: 'Calendar' },
 ];
 
@@ -85,6 +86,7 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
     'folder-graph': makeCloseHandler('folder-graph', () => setFolderGraph(null)),
     'settings': makeCloseHandler('settings', () => hideTab('settings')),
     'ai-settings': makeCloseHandler('ai-settings', () => hideTab('ai-settings')),
+    'types-editor': makeCloseHandler('types-editor', () => hideTab('types-editor')),
     'calendar': makeCloseHandler('calendar', () => hideTab('calendar')),
   };
 
@@ -139,6 +141,10 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
           onAiSettings={() => {
             showTab('ai-settings');
             setCurrentView('ai-settings');
+          }}
+          onTypesEditor={() => {
+            showTab('types-editor');
+            setCurrentView('types-editor');
           }}
         />
       )}

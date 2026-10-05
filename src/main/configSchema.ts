@@ -80,6 +80,26 @@ function tolerantArray<T extends z.ZodType>(elem: T) {
 }
 
 /**
+ * A string-keyed map whose values are validated independently: any entry whose
+ * value fails `elem` is dropped (the good ones are kept, in key order), and a
+ * value that isn't a plain object at all falls back to an empty map. The map
+ * counterpart of `tolerantArray`.
+ */
+function tolerantRecord<T extends z.ZodType>(elem: T) {
+  return z
+    .record(z.string(), z.unknown())
+    .transform((rec) => {
+      const out: Record<string, z.infer<T>> = {};
+      for (const [key, value] of Object.entries(rec)) {
+        const parsed = elem.safeParse(value);
+        if (parsed.success) out[key] = parsed.data as z.infer<T>;
+      }
+      return out;
+    })
+    .catch(() => ({}) as Record<string, z.infer<T>>);
+}
+
+/**
  * Coerce a value to a finite, non-negative number (accepting numeric strings).
  * Returns `undefined` on failure so callers can supply a fallback.
  */
@@ -173,6 +193,24 @@ const AIRewritePromptDefSchema = z
   })
   .loose();
 
+// User-defined object types (`types:` in config.yaml, edited in the Types Editor).
+// A bare `name:` with no children parses as YAML null; treat it as an empty
+// definition rather than dropping the property.
+const nullToEmpty = (v: unknown) => (v === null ? {} : v);
+
+const PropertyDefinitionSchema = z.preprocess(nullToEmpty, z
+  .object({
+    description: z.string().catch(''),
+  })
+  .loose());
+
+const TypeDefinitionSchema = z.preprocess(nullToEmpty, z
+  .object({
+    description: z.string().optional().catch(undefined),
+    properties: tolerantRecord(PropertyDefinitionSchema),
+  })
+  .loose());
+
 // ---------------------------------------------------------------------------
 // Settings + top-level config schemas
 // ---------------------------------------------------------------------------
@@ -223,6 +261,7 @@ const AppConfigSchema = z
     aiRewriteMode: z.boolean().optional().catch(undefined),
     calendarViewType: z.enum(['month', 'week', 'work_week', 'day', 'agenda']).optional().catch(undefined),
     recentFolders: tolerantArray(z.string()).optional(),
+    types: tolerantRecord(TypeDefinitionSchema).optional(),
   })
   .loose();
 

@@ -729,6 +729,17 @@ Before parsing, `MarkdownView` runs three text passes over the raw document (`st
 ### Deliberately not done (yet)
 
 - **HTML export** (`src/shared/exportMDtoHTML.ts`) is a separate string pipeline in the main process and cannot run React components. Exported files show object blocks as plain YAML code.
-- **User-defined types.** The intended direction is a user-configured template (a named field list) rendered by a built-in generic component — users never write code. `readTextFields` is already field-list-driven, so a template-backed type would be a new entry source for the registry, not a new mechanism.
+- **User-defined types.** The intended direction is a user-configured template (a named field list) rendered by a built-in generic component — users never write code. `readTextFields` is already field-list-driven, so a template-backed type would be a new entry source for the registry, not a new mechanism. **Phase 1 is in place:** the **Types Editor** tab (`TypesEditorView.tsx`, System menu → Types Editor) edits definitions stored under a top-level `types:` key in `config.yaml`, shaped like this:
+
+  ```yaml
+  types:
+    person:
+      description: A contact        # optional, type-level
+      properties:                   # display order = key order
+        name:
+          description: Full name
+  ```
+
+  A `properties:` level and per-property maps leave room for type-level metadata and per-property `domain`/`range` later; unknown keys at both levels survive a load→save round-trip (schema `.loose()` + the editor model's `extra` bag in `typesEditorModel.ts`). Names must match `TYPE_NAME_PATTERN` (`[A-Za-z_][A-Za-z0-9_]*`), and `type` is a reserved property name because it is the object-block discriminator. **Nothing reads these definitions yet** — the registry and the built-in Person type are unchanged.
 - **Lists of objects.** One object per block.
 - **A form editor.** Replacing the YAML with an inline form inside CodeMirror (block widgets) was considered and rejected as too complex for the gain: widget identity across keystrokes, focus and shortcut handling inside the widget, undo routing, and comment loss when rewriting the YAML. Locking the keys while leaving values editable was rejected too — it needs exception rules for every structural edit and still can't guarantee a valid object.
