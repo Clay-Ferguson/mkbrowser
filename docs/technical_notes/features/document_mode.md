@@ -123,7 +123,7 @@ Reconciliation keeps `.INDEX.yaml` consistent with the actual contents of the di
 
 1. **ID assignment** — every markdown file should have a unique `id` in its YAML front matter.
 2. **Rename detection** — if a markdown file is renamed on disk, its `id` (which persists in the front matter) lets the index entry's `name` be updated to match the new filename. Non-markdown files use the fingerprint path instead.
-3. **New-entry detection** — files or folders present on disk but absent from the index are appended to the end of the index.
+3. **New-entry detection** — files or folders present on disk but absent from the index are appended to the end of the index — except a `<file>.attach` folder, which is placed directly after its file (algorithm step 8 below).
 4. **Deletion** — entries whose file no longer exists on disk are dropped.
 5. **Orphan healing** — an entry whose `id` no longer matches any file, but whose name is still on disk and unclaimed, is re-bound to that file in place (adopting its current id) rather than being dropped and re-appended. This is what keeps a hand-edited front-matter `id` from producing two entries for one file.
 
@@ -143,7 +143,7 @@ Importantly, reconciliation does **not** run on every file-operation refresh (cr
 Located in `src/main/indexUtil.ts`.
 
 ```
-1. Read .INDEX.yaml from disk (raw text — the verbatim bytes are needed for step 8).
+1. Read .INDEX.yaml from disk (raw text — the verbatim bytes are needed for step 9).
    - If it does not exist and createIfMissing = false → return immediately.
    - If it does not exist and createIfMissing = true → start with an empty files list.
    - If it exists but is unreadable / malformed / declares a newer `version`
@@ -189,7 +189,13 @@ Located in `src/main/indexUtil.ts`.
 7. Append every visible entry not yet handled (`appendNewEntries`), with identity
    seeded, at the END of the list.
 
-8. Dump `{ version, files, options }` and write it back — but only if the result
+8. Restore attach-folder adjacency (`reorderAttachFolders`): every `<file>.attach`
+   entry is moved to sit directly after `<file>`. Without this, an attach folder
+   moved out of the document and back in (by the app or an external tool) would
+   be appended at the end in step 7 and render at the bottom of the document.
+   An orphaned attach folder (its file is gone) keeps its position.
+
+9. Dump `{ version, files, options }` and write it back — but only if the result
    differs from the verbatim text read in step 1, so an unchanged reconcile does
    no disk write at all.
 ```

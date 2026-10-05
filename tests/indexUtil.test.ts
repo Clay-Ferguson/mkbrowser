@@ -688,11 +688,11 @@ describe('moveToEdgeInIndexYaml', () => {
 });
 
 // ---------------------------------------------------------------------------
-// reorderAttachFolders (exercised through the move operations)
+// reorderAttachFolders (exercised through the operations that write the index)
 //
 // The invariant — every "<file>.attach" entry sits immediately after <file> —
-// is enforced inside the single write of each move operation rather than by a
-// separate pass, so it is tested through those operations.
+// is enforced inside the single write of each index mutator (moves, insert, and
+// reconcile) rather than by a separate pass, so it is tested through them.
 // ---------------------------------------------------------------------------
 
 describe('attach-folder ordering is repaired by move operations', () => {
@@ -714,6 +714,112 @@ describe('attach-folder ordering is repaired by move operations', () => {
     });
     const names = readIndex().files.map((f: IndexEntry) => f.name);
     expect(names.indexOf('a.md.attach')).toBe(names.indexOf('a.md') + 1);
+  });
+});
+
+describe('attach-folder ordering is repaired by reconcile', () => {
+  const names = () => readIndex().files.map((f: IndexEntry) => f.name);
+
+  it('places an attach folder that reappears on disk right after its file, not at the end', async () => {
+    // The reported bug: X.md.attach cut out of the document and pasted (or mv'd) back in.
+    touchFile('a.md', '---\nid: AAA000001\n---\n# A');
+    touchFile('b.md', '---\nid: BBB000002\n---\n# B');
+    touchFile('c.md', '---\nid: CCC000003\n---\n# C');
+    makeDir('b.md.attach');
+    writeIndex({
+      files: [
+        { name: 'a.md', id: 'AAA000001' },
+        { name: 'b.md', id: 'BBB000002' },
+        { name: 'c.md', id: 'CCC000003' },
+      ],
+    });
+    expect(await reconcileIndexedFiles(tmpDir)).toMatchObject({ success: true });
+    expect(names()).toEqual(['a.md', 'b.md', 'b.md.attach', 'c.md']);
+  });
+
+  it('heals an index that already has an attach folder out of place', async () => {
+    touchFile('a.md', '---\nid: AAA000001\n---\n# A');
+    touchFile('b.md', '---\nid: BBB000002\n---\n# B');
+    makeDir('a.md.attach');
+    writeIndex({
+      files: [
+        { name: 'a.md', id: 'AAA000001' },
+        { name: 'b.md', id: 'BBB000002' },
+        { name: 'a.md.attach' },
+      ],
+    });
+    await reconcileIndexedFiles(tmpDir);
+    expect(names()).toEqual(['a.md', 'a.md.attach', 'b.md']);
+  });
+
+  it('keeps a renamed attach folder with its renamed file (external rename of both)', async () => {
+    // On disk a.md → z.md and a.md.attach → z.md.attach; the index still says a.md.
+    touchFile('z.md', '---\nid: AAA000001\n---\n# A');
+    touchFile('b.md', '---\nid: BBB000002\n---\n# B');
+    makeDir('z.md.attach');
+    writeIndex({
+      files: [
+        { name: 'a.md', id: 'AAA000001' },
+        { name: 'a.md.attach' },
+        { name: 'b.md', id: 'BBB000002' },
+      ],
+    });
+    await reconcileIndexedFiles(tmpDir);
+    expect(names()).toEqual(['z.md', 'z.md.attach', 'b.md']);
+  });
+
+  it('leaves an orphaned attach folder (its file is gone) where it is', async () => {
+    touchFile('a.md', '---\nid: AAA000001\n---\n# A');
+    touchFile('b.md', '---\nid: BBB000002\n---\n# B');
+    makeDir('x.md.attach');
+    writeIndex({
+      files: [
+        { name: 'a.md', id: 'AAA000001' },
+        { name: 'x.md.attach' },
+        { name: 'b.md', id: 'BBB000002' },
+      ],
+    });
+    await reconcileIndexedFiles(tmpDir);
+    expect(names()).toEqual(['a.md', 'x.md.attach', 'b.md']);
+  });
+
+  it('keeps a nested attach-of-an-attach chain together behind its file', async () => {
+    touchFile('a.md', '---\nid: AAA000001\n---\n# A');
+    touchFile('b.md', '---\nid: BBB000002\n---\n# B');
+    makeDir('a.md.attach');
+    makeDir('a.md.attach.attach');
+    writeIndex({
+      files: [
+        { name: 'a.md.attach.attach' },
+        { name: 'b.md', id: 'BBB000002' },
+        { name: 'a.md', id: 'AAA000001' },
+        { name: 'a.md.attach' },
+      ],
+    });
+    await reconcileIndexedFiles(tmpDir);
+    expect(names()).toEqual(['b.md', 'a.md', 'a.md.attach', 'a.md.attach.attach']);
+  });
+
+  it('does not rewrite an index whose attach folders are already in place', async () => {
+    touchFile('a.md', '---\nid: AAA000001\n---\n# A');
+    touchFile('b.md', '---\nid: BBB000002\n---\n# B');
+    makeDir('a.md.attach');
+    writeIndex({
+      files: [
+        { name: 'a.md', id: 'AAA000001' },
+        { name: 'a.md.attach' },
+        { name: 'b.md', id: 'BBB000002' },
+      ],
+    });
+    // Normalize once (adds `version`, canonical dump), then confirm a second
+    // reconcile is a true no-op on disk.
+    await reconcileIndexedFiles(tmpDir);
+    const before = fs.readFileSync(indexPath(), 'utf8');
+    const writeSpy = vi.spyOn(fs.promises, 'rename');
+    await reconcileIndexedFiles(tmpDir);
+    expect(fs.readFileSync(indexPath(), 'utf8')).toBe(before);
+    expect(writeSpy).not.toHaveBeenCalled();
+    writeSpy.mockRestore();
   });
 });
 

@@ -299,13 +299,13 @@ This is done unconditionally in the main process so that the rename always stays
 
 ## Document Mode Ordering (`src/main/indexUtil.ts`)
 
-When entries are reordered via Move Up / Move Down in Document Mode, an attach folder can end up in the wrong position in `.INDEX.yaml`. The invariant — every `<file>.attach` entry sits immediately after `<file>` — is restored by `reorderAttachFolders`, which `moveInIndexYaml` and `moveToEdgeInIndexYaml` each fold into their own single write.
+An attach folder can end up in the wrong position in `.INDEX.yaml` when entries are reordered (Move Up / Down / Top / Bottom, positional paste), and also when the folder itself (re)appears on disk — e.g. it was cut out of the document and pasted back, or moved back in with a file manager — since reconciliation appends new entries at the end. The invariant — every `<file>.attach` entry sits immediately after `<file>` — is restored by `reorderAttachFolders`, which **every** index writer that can change order folds into its own single write: `moveInIndexYaml`, `moveToEdgeInIndexYaml`, `insertIntoIndexYaml`, and `reconcileIndexedFiles`. Because reconcile runs on every navigation, an index that was already out of order is healed the next time the folder is opened.
 
 **`reorderAttachFolders(files: IndexEntry[]): IndexEntry[]`** (private helper):
 
-1. Partitions the `IndexEntry[]` into a `Map<string, IndexEntry>` of attach entries (`attMap`) and a plain array of non-attach entries (`nonAttach`).
-2. Rebuilds the list by emitting each non-attach entry followed by its attach sibling (looked up from `attMap`) if one exists.
-3. Appends any orphaned attach entries (attach folders with no matching parent — edge case) at the end.
+1. Partitions the `IndexEntry[]` into a `Map<string, IndexEntry>` of *owned* attach entries (`attMap` — those whose owning file is also listed) and a plain array of everything else.
+2. Rebuilds the list by emitting each remaining entry followed by its attach sibling (looked up from `attMap`) if one exists, following the chain for an attach folder that itself has one (`x.md.attach.attach`).
+3. An **orphaned** attach entry (its owning file is not listed — e.g. the file was moved away) is treated as an ordinary entry and keeps its position, rather than jumping to the end of the document on the next reconcile.
 4. Detects whether any change occurred by comparing names position-by-position; returns the original array reference unchanged if nothing moved, so the caller can skip the file write.
 
 It is deliberately *not* a separate exported pass. An earlier `validateAttachFolderLocation(dirPath)` did the reorder as a follow-up read-modify-write, but since it also took the per-directory index lock, calling it from an already-locked move would deadlock (see `document_mode.md` § Atomic, Serialized Index Updates). Folding the reorder into the move's existing write removes both the deadlock and a gratuitous second disk write.

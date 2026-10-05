@@ -818,6 +818,7 @@ export function appendNewEntries(
  * - Creates .INDEX.yaml if it doesn't exist (when createIfMissing).
  * - Updates index entry names when an id match detects a rename.
  * - Appends any new files not yet listed in the index.
+ * - Keeps every "<file>.attach" entry directly after its file (reorderAttachFolders).
  * - If the index *exists* but can't be read or parsed, refuses to touch it and
  *   fails with `corruptIndex` (see IndexMutationResult) — it is never rebuilt
  *   over, because the ordering it holds can't be reconstructed and the user may
@@ -907,10 +908,16 @@ export async function reconcileIndexedFiles(
         nameToStat,
         visibleNames,
       });
-      const files = appendNewEntries(reconciledFiles, visibleEntries, handledNames, {
-        nameToId,
-        nameToStat,
-      });
+      // New entries are appended at the end, which would strand a "<file>.attach"
+      // folder that just (re)appeared — e.g. moved back in, by the app or by an
+      // external tool — at the bottom of the document. Restore attach adjacency
+      // in this same write, as every other index mutator does.
+      const files = reorderAttachFolders(
+        appendNewEntries(reconciledFiles, visibleEntries, handledNames, {
+          nameToId,
+          nameToStat,
+        }),
+      );
 
       const newContent = dump(
         { version: CURRENT_INDEX_VERSION, files, options: existingOptions },
@@ -936,35 +943,46 @@ export async function reconcileIndexedFiles(
  * the original array reference if nothing changed.
  *
  * Algorithm:
- *  1. Partition entries into attach entries (attMap keyed by name) and non-attach entries.
- *  2. Rebuild the list by emitting each non-attach entry followed by its attach sibling (if any).
- *  3. Append any orphaned attach entries at the end (shouldn't happen, but handles edge cases).
+ *  1. Partition entries into owned attach entries (attMap keyed by name — their
+ *     owning file is also listed) and everything else.
+ *  2. Rebuild the list by emitting each remaining entry followed by its attach sibling (if any).
+ *
+ * An orphaned attach entry (its owning file is not listed — e.g. the file was
+ * moved away) is treated as an ordinary entry and keeps its position. Since
+ * reconcile runs this on every navigation, sending orphans to the end would make
+ * the folder jump to the bottom of the document the moment its file left.
  */
 function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
+  const listedNames = new Set(files.map((f) => f.name));
   const attMap = new Map<string, IndexEntry>();
-  const nonAttach: IndexEntry[] = [];
+  const others: IndexEntry[] = [];
 
   for (const entry of files) {
-    if (entry.name.endsWith(ATTACH_SUFFIX)) {
+    const owner = entry.name.endsWith(ATTACH_SUFFIX)
+      ? entry.name.slice(0, -ATTACH_SUFFIX.length)
+      : null;
+    if (owner !== null && listedNames.has(owner)) {
       attMap.set(entry.name, entry);
     } else {
-      nonAttach.push(entry);
+      others.push(entry);
     }
   }
 
   const finalFiles: IndexEntry[] = [];
-  for (const entry of nonAttach) {
-    finalFiles.push(entry);
-    const attachName = `${entry.name}${ATTACH_SUFFIX}`;
-    const attachEntry = attMap.get(attachName);
-    if (attachEntry) {
+  for (const entry of others) {
+    // Follow the chain: an attach folder can itself own one ("x.attach.attach").
+    let attachEntry: IndexEntry | undefined = entry;
+    while (attachEntry) {
       finalFiles.push(attachEntry);
+      const attachName: string = `${attachEntry.name}${ATTACH_SUFFIX}`;
+      attachEntry = attMap.get(attachName);
       attMap.delete(attachName);
     }
   }
-  // Append any orphaned attach entries
-  for (const orphan of attMap.values()) {
-    finalFiles.push(orphan);
+  // Unreachable in practice (every owned entry's owner is in the chain above),
+  // but never drop an entry.
+  for (const leftover of attMap.values()) {
+    finalFiles.push(leftover);
   }
 
   // Detect change by comparing name sequences
