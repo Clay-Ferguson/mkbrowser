@@ -24,6 +24,8 @@ const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   address: 'Address',
   email: 'Email',
   url: 'URL',
+  phone: 'Phone',
+  date: 'Date',
 };
 
 // Shared fixed width for every field label in the right pane (type description

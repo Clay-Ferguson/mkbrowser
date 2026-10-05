@@ -188,7 +188,7 @@ export interface AIRewritePromptDef {
  * as a string; the type only selects how it is presented and interacted with
  * (e.g. a clickable link for `url`, a mailto for `email`).
  */
-export const PROPERTY_TYPES = ['text', 'address', 'email', 'url'] as const;
+export const PROPERTY_TYPES = ['text', 'address', 'email', 'url', 'phone', 'date'] as const;
 export type PropertyType = typeof PROPERTY_TYPES[number];
 export const DEFAULT_PROPERTY_TYPE: PropertyType = 'text';
 

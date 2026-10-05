@@ -688,7 +688,7 @@ Malformed YAML is silently "not an object" rather than an error — a code block
 | `src/components/objects/GenericObject.tsx` | The card body for every type. |
 | `src/components/CustomPre.tsx` | The one call site: selects `typeDefs` from the store, calls `resolveObjectBlock`, and picks the card, the code block + hint, or the code block. |
 
-**The generic card.** The type's *first* property is the bold title line (with a generic cube icon), or "Untitled \<type\>" when blank. The other properties that have a value follow as icon / property-name / value rows, in definition order; the description is the tooltip. **Property types** live only in the type definition — never in the block — and are looked up there: `email` opens a webmail compose page, `address` a map search, `url` the page itself (`https://` added when there's no scheme), each with its own icon; `text` is plain. The URL templates are in `src/renderer/objectUrls.ts`. **Unknown keys** (in the block, not in the definition — usually typos) are listed last with the key in orange and the value in the normal colour, so nothing is silently dropped.
+**The generic card.** The type's *first* property is the bold title line (with a generic cube icon), or "Untitled \<type\>" when blank. The other properties that have a value follow as icon / property-name / value rows, in definition order; the description is the tooltip. **Property types** live only in the type definition — never in the block — and are looked up there: `email` opens a webmail compose page, `address` a map search, `url` the page itself (`https://` added when there's no scheme), each with its own icon; `phone` and `date` get a phone / calendar icon but stay plain text; `text` is plain. The URL templates are in `src/renderer/objectUrls.ts`. **Unknown keys** (in the block, not in the definition — usually typos) are listed last with the key in orange and the value in the normal colour, so nothing is silently dropped.
 
 **Validation.** Every defined property is optional text: a number is stringified, a list or mapping fails with "\<key\> must be text". A block with none of its type's properties filled in is rejected (`needs at least one of …`), so a freshly inserted block shows as code + hint until something is typed. Unknown keys never make a block invalid.
 
@@ -732,7 +732,7 @@ Before parsing, `MarkdownView` runs three text passes over the raw document (`st
       properties:                   # display order = key order
         name:
           description: Full name
-          type: text                # text | address | email | url (default text)
+          type: text                # text | address | email | url | phone | date (default text)
   ```
 
   A `properties:` level and per-property maps leave room for type-level metadata and per-property `domain`/`range` later; unknown keys at both levels survive a load→save round-trip (schema `.loose()` + the editor model's `extra` bag in `typesEditorModel.ts`). Every property value is stored as a string; its `type` (`PROPERTY_TYPES` in `shared.ts`) only selects how it will be presented and interacted with — a missing or unrecognized `type` reads as `text`. Names must match `TYPE_NAME_PATTERN` (`[A-Za-z_][A-Za-z0-9_]*`), and `type` is a reserved property name because it is the object-block discriminator. The definitions drive the Insert Object menu, the rendered cards, and the editor's unknown-property underlines.

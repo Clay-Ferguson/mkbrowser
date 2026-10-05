@@ -474,13 +474,15 @@ describe('parseConfigYaml — types', () => {
         a: { description: '', type: 'email' },
         b: { description: '', type: 'address' },
         c: { description: '' },
-        d: { description: '', type: 'phone' },
+        d: { description: '', type: 'fax' },
+        f: { description: '', type: 'phone' },
+        g: { description: '', type: 'date' },
         e: { description: '', type: 42 },
       } } },
     });
     const props = cfg?.types?.t?.properties ?? {};
     expect(Object.fromEntries(Object.entries(props).map(([k, v]) => [k, v.type]))).toEqual({
-      a: 'email', b: 'address', c: 'text', d: 'text', e: 'text',
+      a: 'email', b: 'address', c: 'text', d: 'text', e: 'text', f: 'phone', g: 'date',
     });
   });
 });

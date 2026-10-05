@@ -1,16 +1,18 @@
 import type { ComponentType, SVGProps } from 'react';
-import { CubeIcon, EnvelopeIcon, MapPinIcon, LinkIcon } from '@heroicons/react/24/outline';
+import { CubeIcon, EnvelopeIcon, MapPinIcon, LinkIcon, PhoneIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import type { PropertyType } from '../../shared/shared';
 import type { GenericObjectData, ObjectRow } from '../../shared/objects/genericObject';
 import { api } from '../../renderer/api';
 import { buildEmailUrl, buildMapUrl, buildWebUrl } from '../../renderer/objectUrls';
 import { BUTTON_CLASS_LINK_BLUE } from '../../renderer/styles';
 
-/** Row icon per property type; plain text rows have none. */
+/** Row icon per property type; plain text rows have none. Phone numbers and dates are shown, not linked. */
 const TYPE_ICONS: Partial<Record<PropertyType, ComponentType<SVGProps<SVGSVGElement>>>> = {
   email: EnvelopeIcon,
   address: MapPinIcon,
   url: LinkIcon,
+  phone: PhoneIcon,
+  date: CalendarIcon,
 };
 
 /** The URL a value of this property type opens when clicked, or undefined for plain text. */
