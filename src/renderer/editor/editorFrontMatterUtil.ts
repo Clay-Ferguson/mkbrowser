@@ -227,6 +227,27 @@ export const frontMatterCursorGuard = EditorState.transactionFilter.of((tr) => {
   return [tr, { selection: EditorSelection.create(ranges, sel.mainIndex), sequential: true }];
 });
 
+// Refuses user edits that would touch the hidden front matter. The atomic range stops at
+// the closing line's end, so the newline joining it to the first visible line is outside
+// it: Backspace at the top of the visible text would delete that newline, merging `---`
+// into the first line and un-hiding the whole block (likewise Ctrl-Backspace, delete-line,
+// and Alt-Up line moves). Any typing/deleting/moving change that starts before the first
+// visible line is dropped entirely (`false` cancels all of the transaction's changes; the
+// cursor guard then clamps the selection back). Only user events are checked, so
+// programmatic rewrites of the front matter (external content sync, etc.) still apply.
+export const frontMatterEditGuard = EditorState.changeFilter.of((tr) => {
+  if (!tr.docChanged) return true;
+  if (!tr.isUserEvent('input') && !tr.isUserEvent('delete') && !tr.isUserEvent('move')) return true;
+  const end = frontMatterHiddenEnd(tr.startState.doc);
+  if (end <= 0) return true;
+
+  let touchesHidden = false;
+  tr.changes.iterChangedRanges((fromA) => {
+    if (fromA < end) touchesHidden = true;
+  });
+  return !touchesHidden;
+});
+
 /**
  * CodeMirror base theme for front-matter syntax highlighting and `---` HR lines.
  */

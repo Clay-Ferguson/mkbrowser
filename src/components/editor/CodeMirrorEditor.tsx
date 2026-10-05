@@ -17,7 +17,7 @@ import { useAS, setThesaurusWord, getSettings } from '../../store';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../renderer/editor/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../renderer/editor/editorDateUtil';
-import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../renderer/editor/editorFrontMatterUtil';
+import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterEditGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../renderer/editor/editorFrontMatterUtil';
 import { headingSizeExtensions } from '../../renderer/editor/editorHeadingUtil';
 import { markdownHighlightStyle } from '../../renderer/editor/editorMarkdownHighlight';
 import { fencedCodeLanguage } from '../../renderer/editor/editorCodeLanguages';
@@ -554,7 +554,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // AI-review merge view, swapped in/out by the review effect below. Empty when not reviewing.
       compartments.merge.of([]),
       compartments.frontMatter.of(
-        cfg.showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
+        cfg.showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterEditGuard, hrLinePlugin, frontMatterTheme]
       ),
       hashtagPlugin,
       hashtagTheme,
@@ -882,7 +882,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     view.dispatch({
       effects: [
         compartments.frontMatter.reconfigure(
-          showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
+          showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterEditGuard, hrLinePlugin, frontMatterTheme]
         ),
         ...(turningOn ? [EditorView.scrollIntoView(0, { y: 'start' })] : []),
       ],
