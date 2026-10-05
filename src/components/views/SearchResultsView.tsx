@@ -99,6 +99,10 @@ function SearchResultsView() {
   // with an empty query) whenever its definition is recorded.
   const hasSearched = lastSearchDefinition !== null;
 
+  // A Recent Files search with no query just lists files by modification time;
+  // its results carry a placeholder matchCount of 1, so don't show a count.
+  const isRecentFilesListing = !!lastSearchDefinition?.mostRecent && !lastSearchDefinition.searchText.trim();
+
   // Get the folder name for display
   const folderName = getFileName(searchFolder) || searchFolder;
 
@@ -303,22 +307,26 @@ function SearchResultsView() {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {/* Results list */}
+          <div>
+            {/* Results list — rows touch, forming a table: each row draws its
+                left, top and right edges (the top edge doubling as the divider
+                from the row above) and only the last row adds a bottom edge. */}
             {searchResults.map((result) => {
               const highlighted = isHighlighted(result.path);
               // Edit opens the file's editor in the Browse view, which only
               // Markdown and text files have — not folders, images, PDFs etc.
               const fileName = getFileName(result.path);
               const editable = !result.isDirectory && (isMarkdownFile(fileName) || isTextFile(fileName));
-              const borderClass = highlighted
-                ? 'border-2 border-purple-500' : 'border border-slate-700 hover:border-slate-600';
+              // The highlight is an inset outline so it can frame all four sides
+              // without changing the shared borders between rows.
+              const highlightClass = highlighted
+                ? 'outline-2 -outline-offset-2 outline-purple-500' : '';
 
               return (
               <div
                 key={result.path}
                 onClick={() => handleResultClick(result.path, result.isDirectory === true)}
-                className={`bg-slate-800/50 hover:bg-slate-700/60 rounded-lg ${borderClass} px-2 py-1.5 transition-colors cursor-pointer`}
+                className={`bg-slate-800/50 hover:bg-slate-700/60 border-x border-t last:border-b border-slate-700 ${highlightClass} px-2 py-1.5 transition-colors cursor-pointer`}
               >
                 <div className="flex items-center gap-2">
                   {/* Folder or file-type icon */}
@@ -336,12 +344,15 @@ function SearchResultsView() {
                   {/* Match count. A name match short-circuits the content read, so
                       its matchCount counts occurrences within the file name — a
                       count that would read as misleadingly low next to the content
-                      matches. Label it instead. */}
-                  <div className="text-sm text-slate-500 flex-shrink-0">
-                    {result.nameMatch
-                      ? 'name match'
-                      : `${result.matchCount} match${result.matchCount !== 1 ? 'es' : ''}`}
-                  </div>
+                      matches. Label it instead. Omitted for a Recent Files listing,
+                      which has no query to match. */}
+                  {!isRecentFilesListing && (
+                    <div className="text-sm text-slate-500 flex-shrink-0">
+                      {result.nameMatch
+                        ? 'name match'
+                        : `${result.matchCount} match${result.matchCount !== 1 ? 'es' : ''}`}
+                    </div>
+                  )}
 
                   {/* Edit button — hidden (but still taking its space, so the
                       Delete buttons stay aligned) for results that can't be edited */}
