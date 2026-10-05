@@ -5,6 +5,7 @@ import {
   assembleFrontMatter,
   getPropsFromYaml,
   setFrontMatterProperty,
+  removeFrontMatterExceptId,
 } from '../src/shared/frontMatterUtil';
 
 describe('splitFrontMatter', () => {
@@ -315,5 +316,44 @@ describe('setFrontMatterProperty', () => {
     const long = 'x'.repeat(120) + ' ' + 'y'.repeat(120);
     const result = setFrontMatterProperty('---\ntitle: hi\n---\nBody.', 'note', long);
     expect(result).toContain(`note: ${long}\n`);
+  });
+});
+
+describe('removeFrontMatterExceptId', () => {
+  it('removes every property but keeps the id', () => {
+    const doc = '---\nid: 3D6B20DDF\ntitle: Hello\ntags:\n  - a\n  - b\n---\nBody.\n';
+    expect(removeFrontMatterExceptId(doc)).toEqual({ status: 'changed', content: '---\nid: 3D6B20DDF\n---\nBody.\n' });
+  });
+
+  it('keeps the id even when it is not the first property', () => {
+    const doc = '---\ntitle: Hello\nid: abc\n---\nBody.';
+    expect(removeFrontMatterExceptId(doc)).toEqual({ status: 'changed', content: '---\nid: abc\n---\nBody.' });
+  });
+
+  it('drops the whole block when there is no id', () => {
+    const doc = '---\ntitle: Hello\nauthor: Me\n---\nBody.\n';
+    expect(removeFrontMatterExceptId(doc)).toEqual({ status: 'changed', content: 'Body.\n' });
+  });
+
+  it('drops an empty block', () => {
+    expect(removeFrontMatterExceptId('---\n---\nBody.')).toEqual({ status: 'changed', content: 'Body.' });
+  });
+
+  it('leaves a block holding only an id untouched', () => {
+    expect(removeFrontMatterExceptId('---\nid: "007"\n---\nBody.')).toEqual({ status: 'unchanged' });
+  });
+
+  it('reports a file with no front matter as unchanged', () => {
+    expect(removeFrontMatterExceptId('# Title\n\nBody.')).toEqual({ status: 'unchanged' });
+  });
+
+  it('refuses malformed or non-mapping front matter', () => {
+    expect(removeFrontMatterExceptId('---\nid: [unclosed\n---\nBody.')).toEqual({ status: 'malformed' });
+    expect(removeFrontMatterExceptId('---\n- a\n- b\n---\nBody.')).toEqual({ status: 'malformed' });
+  });
+
+  it('preserves a string id that looks like a number', () => {
+    const result = removeFrontMatterExceptId("---\nid: '0123'\nx: 1\n---\nB");
+    expect(result).toEqual({ status: 'changed', content: "---\nid: '0123'\n---\nB" });
   });
 });

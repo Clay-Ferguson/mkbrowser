@@ -21,7 +21,7 @@ import {
 import { getContentWidthClasses } from '../../renderer/styles';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, runSearch } from '../../renderer/searchUtil';
-import { pasteIntoFolder, deleteSelected, createFileOp, createFolderOp } from '../../renderer/fileOpsUtil';
+import { pasteIntoFolder, deleteSelected, createFileOp, createFolderOp, removePropertiesFromSelected } from '../../renderer/fileOpsUtil';
 import { getFileName, getParentPath, isSamePath } from '../../renderer/pathUtil';
 import { exportFolder, replaceInFolder } from '../../renderer/folderToolsOp';
 import { reconcileAndRefresh, moveInIndex, moveToEdgeInIndex } from '../../renderer/indexOrderOp';
@@ -52,10 +52,10 @@ interface BrowseViewProps {
  */
 function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps) {
   const [overlay, setOverlay] = useState<BrowseOverlay>(NO_OVERLAY);
-  // Deliberately not part of `overlay`: it is set when an async replace
-  // finishes, and by then the user may have opened another dialog that this
-  // would otherwise clobber (losing whatever they had typed into it).
-  const [replaceResultMessage, setReplaceResultMessage] = useState<string | null>(null);
+  // Deliberately not part of `overlay`: it is set when an async op (replace,
+  // remove properties) finishes, and by then the user may have opened another
+  // dialog that this would otherwise clobber (losing whatever they had typed into it).
+  const [resultAlert, setResultAlert] = useState<{ title: string; message: string } | null>(null);
 
   // Every close is conditional on the overlay still being the one that asked:
   // async ops close their dialog only once they finish, and must not close a
@@ -141,6 +141,14 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     }, 'Failed to delete: ');
   };
 
+  const performRemoveProperties = () => {
+    closeOverlay('removePropsConfirm');
+    const showResult = (message: string) => setResultAlert({ title: 'Remove Properties', message });
+    runOp(async () => {
+      await removePropertiesFromSelected(getSelectedItems(useAS.getState().items), showResult);
+    }, 'Failed to remove properties: ', showResult);
+  };
+
   const handleExport = (options: ExportOptions) => {
     if (!currentPath) return;
     closeOverlay('export');
@@ -187,7 +195,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
 
     closeOverlay('replace');
 
-    replaceInFolder(currentPath, searchText, replaceText, setReplaceResultMessage);
+    replaceInFolder(currentPath, searchText, replaceText, (message) => setResultAlert({ title: 'Replace Results', message }));
   };
 
   const handleSaveSearchDefinition = (definition: SearchDefinition) => {
@@ -209,6 +217,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
       <BrowseToolbar
         onOpenOverlay={setOverlay}
         onPasteIntoFolder={doPasteIntoFolder}
+        onShowResult={(title, message) => setResultAlert({ title, message })}
       />
 
       {/* Main content */}
@@ -286,6 +295,14 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
         />
       )}
 
+      {overlay.kind === 'removePropsConfirm' && (
+        <ConfirmDialog
+          message={`Remove all front matter properties (except id) from ${overlay.count} selected Markdown file(s)?`}
+          onConfirm={performRemoveProperties}
+          onCancel={() => closeOverlay('removePropsConfirm')}
+        />
+      )}
+
       {overlay.kind === 'cutOrphanConfirm' && (
         <ConfirmDialog
           message="One or more selected files have an attachments folder that is not selected. Cut only the file(s) without their attachments?"
@@ -294,12 +311,12 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
         />
       )}
 
-      {replaceResultMessage && (
+      {resultAlert && (
         <AlertDialog
           preserveWhitespace
-          title="Replace Results"
-          message={replaceResultMessage}
-          onClose={() => setReplaceResultMessage(null)}
+          title={resultAlert.title}
+          message={resultAlert.message}
+          onClose={() => setResultAlert(null)}
         />
       )}
     </div>

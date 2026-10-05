@@ -23,6 +23,7 @@ import { getFileName, getParentPath, joinPath, isSamePath } from './pathUtil';
 import { toErrorMessage } from '../shared/logUtil';
 import { generateTimestampFileName } from '../shared/timeUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
+import { removeFrontMatterExceptId } from '../shared/frontMatterUtil';
 
 /**
  * Returns the attachment folder path for `filePath` (`<filePath>.attach`), creating
@@ -660,4 +661,53 @@ export async function pasteFromClipboardOp(
   } else if (result.error) {
     setAppError(result.error);
   }
+}
+
+/**
+ * Clears every front-matter property except `id` from each selected Markdown file (see
+ * {@link removeFrontMatterExceptId}). Folders and non-Markdown files in the selection are
+ * silently skipped. A file that can't be read or written, or whose front matter is
+ * malformed, is left untouched and counted in the summary rather than aborting the rest.
+ * Refreshes the directory view when anything changed.
+ *
+ * @param selectedItems - The selected items; only Markdown files are processed.
+ * @param onResult - Receives the user-facing summary once every file has been processed.
+ */
+export async function removePropertiesFromSelected(
+  selectedItems: ItemData[],
+  onResult: (message: string) => void
+): Promise<void> {
+  const files = selectedItems.filter((item) => !item.isDirectory && isMarkdownFile(item.name));
+  if (files.length === 0) {
+    onResult('No Markdown files are selected.');
+    return;
+  }
+
+  let changed = 0;
+  let unchanged = 0;
+  const failed: string[] = [];
+  for (const file of files) {
+    const read = await api.readFile(file.path);
+    if (!read.ok) {
+      failed.push(`${file.name} (could not be read)`);
+      continue;
+    }
+    const result = removeFrontMatterExceptId(read.content);
+    if (result.status === 'unchanged') {
+      unchanged++;
+    } else if (result.status === 'malformed') {
+      failed.push(`${file.name} (malformed front matter)`);
+    } else if ((await api.writeFile(file.path, result.content)).ok) {
+      changed++;
+    } else {
+      failed.push(`${file.name} (could not be written)`);
+    }
+  }
+
+  if (changed > 0) refreshDirectory();
+
+  const lines = [`Removed properties from ${changed} file(s).`];
+  if (unchanged > 0) lines.push(`${unchanged} file(s) had no properties to remove.`);
+  if (failed.length > 0) lines.push('', 'Skipped:', ...failed.map((f) => `  ${f}`));
+  onResult(lines.join('\n'));
 }

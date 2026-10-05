@@ -128,3 +128,42 @@ export function getPropsFromYaml(yamlStr: string): Record<string, unknown> {
     return {};
   }
 }
+
+/**
+ * Outcome of {@link removeFrontMatterExceptId}: `changed` carries the rewritten document;
+ * `unchanged` means there was nothing to remove (no front matter, or only an `id`);
+ * `malformed` means the block couldn't be parsed as a mapping, so the file was left alone.
+ */
+export type RemovePropsResult =
+  | { status: 'changed'; content: string }
+  | { status: 'unchanged' }
+  | { status: 'malformed' };
+
+/**
+ * Removes every front-matter property except `id`, which is never touched — ids back link
+ * repair and must survive. When an `id` remains, the block is kept with just that property;
+ * otherwise the whole block (fences included) is dropped and only the body remains. A block
+ * that already holds nothing but an `id` is reported `unchanged` rather than re-serialized,
+ * so its hand formatting isn't churned for no reason.
+ */
+export function removeFrontMatterExceptId(content: string): RemovePropsResult {
+  const parts = splitFrontMatter(content);
+  if (!parts) return { status: 'unchanged' };
+  let parsed: unknown;
+  try {
+    parsed = loadYaml(parts.yamlStr);
+  } catch {
+    return { status: 'malformed' };
+  }
+  // An empty block (blank or comments only) holds no properties, but its fences are
+  // still clutter the user asked to clear.
+  if (parsed === null || parsed === undefined) {
+    return { status: 'changed', content: parts.body };
+  }
+  if (typeof parsed !== 'object' || Array.isArray(parsed)) return { status: 'malformed' };
+  const yaml = parsed as Record<string, unknown>;
+  const hasId = Object.hasOwn(yaml, 'id');
+  if (hasId && Object.keys(yaml).length === 1) return { status: 'unchanged' };
+  const kept = hasId ? dump({ id: yaml['id'] }, { lineWidth: -1 }) : '';
+  return { status: 'changed', content: assembleFrontMatter(kept, parts.body) };
+}

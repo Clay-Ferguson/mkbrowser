@@ -37,7 +37,7 @@ import { showFolderAnalysis, showFolderGraph } from '../../renderer/folderToolsO
 import { enableCustomOrdering } from '../../renderer/indexOrderOp';
 import { startAiChat } from '../../renderer/aiChatOp';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
-import { isImageFile } from '../../shared/fileTypes';
+import { isImageFile, isMarkdownFile } from '../../shared/fileTypes';
 import type { BrowseOverlay } from './browseOverlay';
 import { getSelectedItems } from './browseListing';
 
@@ -79,6 +79,8 @@ interface BrowseToolbarProps {
   /** Opens one of BrowseView's dialogs. */
   onOpenOverlay: (overlay: BrowseOverlay) => void;
   onPasteIntoFolder: (folderPath: string) => void;
+  /** Shows the summary of a finished async op in BrowseView's result alert. */
+  onShowResult: (title: string, message: string) => void;
 }
 
 /**
@@ -93,7 +95,7 @@ interface BrowseToolbarProps {
  * onClose, but since the two are separate state, closing the menu never
  * closes the dialog its action just opened.
  */
-function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps) {
+function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: BrowseToolbarProps) {
   const rootPath = useAS(s => s.rootPath);
   const currentPath = useAS(s => s.currentPath);
   const hasIndexFile = useAS(s => s.hasIndexFile);
@@ -162,6 +164,21 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
     runOp(async () => {
       await joinSelectedFiles(currentPath, getSelectedItems(useAS.getState().items), hasIndexFile);
     }, 'Failed to join files: ');
+  };
+
+  /**
+   * Asks BrowseView to confirm before clearing front-matter properties. Only
+   * Markdown files count; when the selection holds none there is nothing to
+   * confirm, so the user is told so directly.
+   */
+  const handleRemoveProperties = () => {
+    const count = getSelectedItems(useAS.getState().items)
+      .filter((item) => !item.isDirectory && isMarkdownFile(item.name)).length;
+    if (count === 0) {
+      onShowResult('Remove Properties', 'No Markdown files are selected.');
+    } else {
+      onOpenOverlay({ kind: 'removePropsConfirm', count });
+    }
   };
 
   const handlePasteFromClipboard = () => {
@@ -424,9 +441,11 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
           onSplit={handleSplitFile}
           onJoin={handleJoinFiles}
           onReplaceInFiles={() => onOpenOverlay({ kind: 'replace' })}
+          onRemoveProperties={handleRemoveProperties}
           unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
           splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
           joinDisabled={selectedFileCount < 2 || hasSelectedFolders}
+          removePropertiesDisabled={selectedFileCount === 0}
           onEnableCustomOrdering={!hasIndexFile && currentPath ? () => enableCustomOrdering(currentPath) : undefined}
         />
       )}

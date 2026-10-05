@@ -23,7 +23,8 @@ import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
 /**
  * Popup menu for the Edit toolbar button. Exposes file-level editing operations:
- * clipboard paste, selection management, split/join, and find-and-replace.
+ * clipboard paste, selection management, split/join, find-and-replace, and clearing
+ * front-matter properties from the selected files.
  * Each action callback is responsible for the actual operation; the menu only
  * wires up the items and closes itself after a selection.
  */
@@ -36,6 +37,8 @@ interface EditPopupMenuProps {
   onSplit: () => void;
   onJoin: () => void;
   onReplaceInFiles: () => void;
+  /** Clears all front-matter properties except `id` from the selected Markdown files. */
+  onRemoveProperties: () => void;
   // /** Current global inline image size, shown as the combo box's selection. */
   // imageSize: ImageSize;
   // onChangeImageSize: (size: ImageSize) => void;
@@ -43,6 +46,7 @@ interface EditPopupMenuProps {
   unselectAllDisabled: boolean;
   splitDisabled: boolean;
   joinDisabled: boolean;
+  removePropertiesDisabled: boolean;
   /** When provided, an "Enable Document Mode" item is appended after a divider. */
   onEnableCustomOrdering?: () => void;
 }
@@ -56,11 +60,13 @@ export default function EditPopupMenu({
   onSplit,
   onJoin,
   onReplaceInFiles,
+  onRemoveProperties,
   // imageSize,
   // onChangeImageSize,
   unselectAllDisabled,
   splitDisabled,
   joinDisabled,
+  removePropertiesDisabled,
   onEnableCustomOrdering,
 }: EditPopupMenuProps) {
   return (
@@ -95,6 +101,12 @@ export default function EditPopupMenu({
       <PopupMenuItem
         label="Replace in Files"
         onClick={() => { onReplaceInFiles(); onClose(); }}
+      />
+      <PopupMenuItem
+        label="Remove Properties"
+        data-testid="menu-remove-properties"
+        onClick={() => { onRemoveProperties(); onClose(); }}
+        disabled={removePropertiesDisabled}
       />
       {onEnableCustomOrdering && (
         <>

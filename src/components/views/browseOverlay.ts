@@ -5,7 +5,7 @@ import type { SearchDefinition } from '../../store';
  * dialog, so two can never be open at once and opening one needs no reset of
  * the others. Toolbar menus are not part of it — BrowseToolbar owns those,
  * next to the buttons they anchor to — and neither is the async
- * replace-results alert (see BrowseView's `replaceResultMessage`).
+ * result alerts (see BrowseView's `resultAlert`).
  */
 export type BrowseOverlay =
   | { kind: 'none' }
@@ -16,6 +16,8 @@ export type BrowseOverlay =
   | { kind: 'export' }
   /** `count` is frozen when the dialog opens: it is what the user is confirming. */
   | { kind: 'deleteConfirm'; count: number }
+  /** `count` is the number of selected Markdown files, frozen when the dialog opens. */
+  | { kind: 'removePropsConfirm'; count: number }
   | { kind: 'cutOrphanConfirm' };
 
 export const NO_OVERLAY: BrowseOverlay = { kind: 'none' };
