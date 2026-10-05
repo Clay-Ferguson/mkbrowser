@@ -183,6 +183,37 @@ export interface AIRewritePromptDef {
   prompt: string;
 }
 
+/**
+ * The fundamental kind of value a property holds. Every property value is stored
+ * as a string; the type only selects how it is presented and interacted with
+ * (e.g. a clickable link for `url`, a mailto for `email`).
+ */
+export const PROPERTY_TYPES = ['text', 'address', 'email', 'url', 'phone', 'date'] as const;
+export type PropertyType = typeof PROPERTY_TYPES[number];
+export const DEFAULT_PROPERTY_TYPE: PropertyType = 'text';
+
+/**
+ * One property of a user-defined object type. Keyed by property name in
+ * `TypeDefinition.properties`; its attributes sit beneath the name so more
+ * (e.g. a future domain/range) can be added. Unknown keys are preserved.
+ */
+export interface PropertyDefinition {
+  description: string;
+  type: PropertyType;
+  [extra: string]: unknown;
+}
+
+/** A user-defined object type, keyed by type name in `AppConfig.types`. Unknown keys are preserved. */
+export interface TypeDefinition {
+  description?: string;
+  /** Property definitions in display order (YAML key order). */
+  properties: Record<string, PropertyDefinition>;
+  [extra: string]: unknown;
+}
+
+/** All user-defined object types, keyed by type name. */
+export type TypeDefinitions = Record<string, TypeDefinition>;
+
 export interface AppConfig {
   browseFolder: string;
   curSubFolder?: string;
@@ -208,6 +239,8 @@ export interface AppConfig {
   calendarViewType?: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
   /** Recently browsed folders, most recent first, max 10. */
   recentFolders?: string[];
+  /** User-defined object types, managed in the Types Editor tab. */
+  types?: TypeDefinitions;
 }
 
 export interface FileEntry {

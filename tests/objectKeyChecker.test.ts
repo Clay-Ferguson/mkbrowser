@@ -7,7 +7,8 @@ import { EditorState } from '@codemirror/state';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { ensureSyntaxTree } from '@codemirror/language';
 import { findTopLevelKeys } from '../src/shared/objects/objectBlock';
-import { unknownObjectKeys } from '../src/components/objects/objectRegistry';
+import { unknownObjectKeys } from '../src/shared/objects/genericObject';
+import { PERSON_DEFS } from './fixtures/personTypeDefs';
 import { unknownObjectKeysInRange } from '../src/components/editor/objectKeyChecker';
 import { fencedCodeLanguage } from '../src/renderer/editor/editorCodeLanguages';
 
@@ -57,7 +58,7 @@ describe('findTopLevelKeys', () => {
 // ---------------------------------------------------------------------------
 
 describe('unknownObjectKeys', () => {
-  const keys = (code: string, language = 'yaml') => unknownObjectKeys(language, code).map(({ key }) => key);
+  const keys = (code: string, language = 'yaml') => unknownObjectKeys(language, code, PERSON_DEFS).map(({ key }) => key);
 
   it('reports nothing for a person with only known properties', () => {
     expect(keys('type: person\nname: Clay Ferguson\nbd: 1980-05-12\ncell_phone: 1\nother_phone: 2\nemail: a@b.c\naddress: x\nnotes: y')).toEqual([]);
@@ -65,7 +66,7 @@ describe('unknownObjectKeys', () => {
 
   it('reports a misspelled property with its position and type', () => {
     const code = 'type: person\nnmae: Clay Ferguson';
-    const found = unknownObjectKeys('yaml', code);
+    const found = unknownObjectKeys('yaml', code, PERSON_DEFS);
     expect(found).toEqual([{ key: 'nmae', from: 13, to: 17, type: 'person' }]);
     expect(code.slice(13, 17)).toBe('nmae');
   });
@@ -91,7 +92,7 @@ describe('unknownObjectKeys', () => {
   });
 
   it.each([
-    ['an unregistered type', 'type: gadget\nwhatever: 1', 'yaml'],
+    ['an undefined type', 'type: gadget\nwhatever: 1', 'yaml'],
     ['yaml with no type', 'nmae: Clay', 'yaml'],
     ['malformed yaml', 'type: person\nnmae: [x', 'yaml'],
     ['a non-yaml block', 'type: person\nnmae: Clay', 'json'],
@@ -111,7 +112,7 @@ function flagged(doc: string, from = 0, to = doc.length): string[] {
     extensions: [markdown({ base: markdownLanguage, codeLanguages: fencedCodeLanguage })],
   });
   if (!ensureSyntaxTree(state, doc.length, 5000)) throw new Error('parse did not finish');
-  return unknownObjectKeysInRange(state, from, to).map((key) => {
+  return unknownObjectKeysInRange(state, from, to, PERSON_DEFS).map((key) => {
     expect(key.type).toBe('person');
     return doc.slice(key.from, key.to);
   });

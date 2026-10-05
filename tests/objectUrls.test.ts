@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildEmailUrl, buildMapUrl, MAP_URL_TEMPLATE } from '../src/renderer/objectUrls';
+import { buildEmailUrl, buildMapUrl, buildWebUrl, MAP_URL_TEMPLATE } from '../src/renderer/objectUrls';
 
 describe('buildMapUrl', () => {
   it('encodes the address into the default Google Maps template', () => {
@@ -25,5 +25,18 @@ describe('buildEmailUrl', () => {
     expect(buildEmailUrl(' jane+work@example.com ')).toBe(
       'https://mail.google.com/mail/?view=cm&fs=1&to=jane%2Bwork%40example.com',
     );
+  });
+});
+
+describe('buildWebUrl', () => {
+  it('adds https:// to a value with no scheme', () => {
+    expect(buildWebUrl('example.com/page')).toBe('https://example.com/page');
+    expect(buildWebUrl('  www.example.com ')).toBe('https://www.example.com');
+  });
+
+  it('keeps a value that already has a scheme', () => {
+    expect(buildWebUrl('http://example.com')).toBe('http://example.com');
+    expect(buildWebUrl('HTTPS://example.com')).toBe('HTTPS://example.com');
+    expect(buildWebUrl('mailto:a@b.c')).toBe('mailto:a@b.c');
   });
 });

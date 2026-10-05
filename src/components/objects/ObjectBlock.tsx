@@ -6,14 +6,14 @@ interface ObjectBlockProps {
   type: string;
   /** The block's YAML source. Editing it clears a render error left by the previous content. */
   source: string;
-  /** The type's own component, already bound to its validated data. */
+  /** The card body (`GenericObject`), already bound to its validated data. */
   children: ReactNode;
 }
 
 /**
  * The card every typed object block is rendered in: a bordered frame with the type name as a
- * caption line across the top, above the type's own component. `not-prose` keeps the Typography plugin's article
- * styles (paragraph margins, link colours, …) out of the card, so each type styles itself.
+ * caption line across the top, above the card body. `not-prose` keeps the Typography plugin's article
+ * styles (paragraph margins, link colours, …) out of the card, so the body styles itself.
  *
  * Deliberately has no mouse handlers: a click falls through to the entry's content area, which
  * opens the editor exactly as a click on an ordinary code block does.
@@ -42,7 +42,7 @@ interface InvalidObjectHintProps {
 }
 
 /**
- * Shown under a YAML block whose `type` is a registered object type but whose fields don't fit
+ * Shown under a YAML block whose `type` is a defined object type but whose values don't fit
  * it. The block itself still renders as ordinary code; this says why it isn't a card.
  */
 export function InvalidObjectHint({ type, error }: InvalidObjectHintProps) {

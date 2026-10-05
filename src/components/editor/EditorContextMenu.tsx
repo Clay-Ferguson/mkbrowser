@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { EDITOR_MENU_ITEM, EDITOR_MENU_ITEM_ACCENT, Z_MODAL } from '../../renderer/styles';
 import type { ContextMenuState } from './useEditorContextMenu';
-import type { ObjectTypeOption } from '../objects/objectRegistry';
+import type { ObjectTypeOption } from '../../shared/objects/userTypes';
 
 interface EditorContextMenuProps {
   contextMenu: ContextMenuState;
@@ -19,7 +19,7 @@ interface EditorContextMenuProps {
   onOpenInsertObject: () => void;
   /** An object type picked from that list: insert an empty block of it at the cursor. */
   onInsertObject: (type: string) => void;
-  /** The registered object types, as listed after "Insert Object" is clicked. */
+  /** The user-defined object types (Types Editor), as listed after "Insert Object" is clicked. */
   objectTypes: readonly ObjectTypeOption[];
   onToggleThesaurus: () => void;
   /** Whether the thesaurus item is shown — only where the synonym strip can actually appear. */
@@ -139,6 +139,8 @@ export function EditorContextMenu({
             role="menuitem"
             tabIndex={-1}
             onClick={() => onInsertObject(type)}
+            // The label is the type's description; the tooltip names the type it inserts.
+            title={label === type ? undefined : type}
             className={EDITOR_MENU_ITEM}
             data-testid={`editor-insert-object-${type}`}
           >

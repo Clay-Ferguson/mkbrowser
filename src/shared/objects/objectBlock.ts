@@ -3,11 +3,12 @@ import { loadYaml } from '../yamlUtil';
 /**
  * Typed object blocks: a fenced `yaml` code block whose content is a mapping with a string
  * `type` property describes an object (e.g. a person) that the markdown renderer can present
- * with a custom component instead of as source code.
+ * as a card instead of as source code.
  *
- * This module is the pure half — detecting such a block and reading its fields — and has no
- * React in it, so it runs (and is unit-tested) under plain Node. The components and the
- * type → component registry live in `src/components/objects/`.
+ * This module is the low-level pure half — detecting such a block and reading its fields — and
+ * has no React in it, so it runs (and is unit-tested) under plain Node. Resolving a block
+ * against the user-defined types is `genericObject.ts`; the card components live in
+ * `src/components/objects/`.
  */
 
 /** A fenced block that parsed as an object: its `type` and the whole mapping (`type` included). */

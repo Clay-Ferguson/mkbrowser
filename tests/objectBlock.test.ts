@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { parseObjectBlock, readTextFields } from '../src/shared/objects/objectBlock';
-import { parsePerson } from '../src/shared/objects/person';
 
 // ---------------------------------------------------------------------------
 // parseObjectBlock
@@ -90,99 +89,5 @@ describe('readTextFields', () => {
 
   it('does not read inherited properties', () => {
     expect(readTextFields({}, ['toString', 'constructor'] as const)).toEqual({ ok: true, value: {} });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// parsePerson (through parseObjectBlock, as the renderer will use it)
-// ---------------------------------------------------------------------------
-
-function person(code: string) {
-  const block = parseObjectBlock('yaml', code);
-  if (!block) throw new Error('expected an object block');
-  return parsePerson(block.data);
-}
-
-describe('parsePerson', () => {
-  it('reads all seven fields', () => {
-    const code = [
-      'type: person',
-      'name: Clay Ferguson',
-      'bd: 1980-05-12',
-      'cell_phone: 555-123-4567',
-      'other_phone: (555) 987-6543',
-      'email: clay@example.com',
-      'address: 1 Main St, Dallas, TX',
-      'notes: Old friend',
-    ].join('\n');
-    expect(person(code)).toEqual({
-      ok: true,
-      value: {
-        name: 'Clay Ferguson',
-        bd: '1980-05-12',
-        cell_phone: '555-123-4567',
-        other_phone: '(555) 987-6543',
-        email: 'clay@example.com',
-        address: '1 Main St, Dallas, TX',
-        notes: 'Old friend',
-      },
-    });
-  });
-
-  it('accepts a partial person', () => {
-    expect(person('type: person\nemail: clay@example.com')).toEqual({
-      ok: true,
-      value: { email: 'clay@example.com' },
-    });
-  });
-
-  it('accepts an unquoted all-digit phone number', () => {
-    expect(person('type: person\ncell_phone: 5551234567')).toEqual({
-      ok: true,
-      value: { cell_phone: '5551234567' },
-    });
-  });
-
-  it('keeps the line breaks of a multi-line address', () => {
-    expect(person('type: person\naddress: |\n  1 Main St\n  Dallas, TX 75001\n')).toEqual({
-      ok: true,
-      value: { address: '1 Main St\nDallas, TX 75001' },
-    });
-  });
-
-  it('keeps the line breaks of multi-line notes', () => {
-    expect(person('type: person\nnotes: |\n  Met at a conference.\n  Prefers email.\n')).toEqual({
-      ok: true,
-      value: { notes: 'Met at a conference.\nPrefers email.' },
-    });
-  });
-
-  it('keeps a birthday as the text it was written in', () => {
-    expect(person('type: person\nbd: 1980-05-12')).toEqual({ ok: true, value: { bd: '1980-05-12' } });
-    expect(person('type: person\nbd: May 12')).toEqual({ ok: true, value: { bd: 'May 12' } });
-  });
-
-  it('ignores extra properties', () => {
-    expect(person('type: person\nname: Clay\nnickname: C\ntags: [a, b]')).toEqual({
-      ok: true,
-      value: { name: 'Clay' },
-    });
-  });
-
-  it('rejects a field that is not text', () => {
-    expect(person('type: person\nname: Clay\naddress:\n  street: 1 Main St')).toEqual({
-      ok: false,
-      error: 'address must be text',
-    });
-  });
-
-  it('rejects a person with none of the fields', () => {
-    const result = person('type: person\nnickname: C');
-    expect(result.ok).toBe(false);
-    expect(result.ok ? '' : result.error).toContain('name');
-  });
-
-  it('rejects a person whose fields are all blank', () => {
-    expect(person('type: person\nname: ""\nemail:').ok).toBe(false);
   });
 });

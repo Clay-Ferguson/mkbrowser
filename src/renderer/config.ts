@@ -1,4 +1,4 @@
-import { setSettings, getSettings, setCurrentPath, setCalendarViewType, setAiConfig, getAiConfig, setAppError, defaultAiConfig, defaultSettings } from '../store';
+import { setSettings, getSettings, setCurrentPath, setCalendarViewType, setAiConfig, getAiConfig, setAppError, setTypeDefs, defaultAiConfig, defaultSettings } from '../store';
 import { api } from './api';
 import { isPathInside } from './pathUtil';
 import { logger } from '../shared/logUtil';
@@ -56,6 +56,8 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     }
     // Seed the renderer-reactive AI config mirror (see store/aiConfig.ts).
     setAiConfig({ ...defaultAiConfig, ...pickAiConfig(config) });
+    // Seed the user-defined object types mirror (see store/objectTypes.ts).
+    setTypeDefs(config.types ?? {});
     const base = {
       loaded: true,
       error: null as string | null,
