@@ -54,8 +54,8 @@
 * [Typed Object Blocks (YAML → custom rendering)](#typed-object-blocks-yaml--custom-rendering)
   * [What makes a block an object](#what-makes-a-block-an-object)
   * [How it is wired](#how-it-is-wired)
-  * [Adding an object type](#adding-an-object-type)
   * [Editing objects](#editing-objects)
+  * [Type definitions (config and store)](#type-definitions-config-and-store)
   * [Fenced blocks are literal — the preprocessing rule](#fenced-blocks-are-literal--the-preprocessing-rule)
   * [Deliberately not done (yet)](#deliberately-not-done-yet)
 <!-- /TOC -->
@@ -638,25 +638,9 @@ Design alternatives we considered (or that a future refactor might be tempted by
 
 ## Typed Object Blocks (YAML → custom rendering)
 
-A fenced `yaml` block in a markdown file can describe an *object* — structured data with a `type` — and the renderer shows it as a purpose-built card instead of as source code:
+A fenced `yaml` block in a markdown file whose `type:` names a user-defined type renders as a card instead of as source code. **What the feature does for users** — the Types Editor, property types, Insert Object, how cards look, unknown-property warnings — is documented in the User Guide's [Objects and Custom Types](../USER_GUIDE.md#objects-and-custom-types) section; this section covers only how it is built.
 
-````markdown
-```yaml
-type: person
-name: Clay Ferguson
-bd: 1980-05-12
-cell_phone: 555-123-4567
-email: clay@example.com
-address: |
-  1 Main St
-  Dallas, TX 75001
-notes: |
-  Met at the 2024 conference.
-  Prefers email over phone.
-```
-````
-
-The file stays plain, portable markdown: any other tool just sees a YAML code block. Types are **user-defined** in the Types Editor tab (stored under `types:` in `config.yaml`, mirrored in the store as `typeDefs`); there are no built-in types, so `person` renders as a card only once a `person` type is defined. Every type renders through the one generic card, `GenericObject`.
+Types live under `types:` in `config.yaml` and are mirrored in the store as `typeDefs` (see [Type definitions](#type-definitions-config-and-store)). There are no built-in types, and every type renders through the one generic card, `GenericObject`.
 
 ### What makes a block an object
 
@@ -688,7 +672,7 @@ Malformed YAML is silently "not an object" rather than an error — a code block
 | `src/components/objects/GenericObject.tsx` | The card body for every type. |
 | `src/components/CustomPre.tsx` | The one call site: selects `typeDefs` from the store, calls `resolveObjectBlock`, and picks the card, the code block + hint, or the code block. |
 
-**The generic card.** The type's *first* property is the bold title line (with a generic cube icon), or "Untitled \<type\>" when blank. The other properties that have a value follow as icon / property-name / value rows, in definition order; the description is the tooltip. **Property types** live only in the type definition — never in the block — and are looked up there: `email` opens a webmail compose page, `address` a map search, `url` the page itself (`https://` added when there's no scheme), each with its own icon; `phone` and `date` get a phone / calendar icon but stay plain text; `text` is plain. The URL templates are in `src/renderer/objectUrls.ts`. **Unknown keys** (in the block, not in the definition — usually typos) are listed last with the key in orange and the value in the normal colour, so nothing is silently dropped.
+**The generic card.** `parseGenericObject` shapes the data the card needs — `title` (the type's first property), `rows` (the other filled properties, in definition order), and `unknown` (keys not in the definition, in block order) — so `GenericObject` only lays it out. **Property types live only in the type definition**, never in the block, and are looked up per row; `GenericObject`'s `TYPE_ICONS` and `hrefFor` map each one to its icon and (for `email`, `address`, `url`) its link, built from the templates in `src/renderer/objectUrls.ts`. Adding a property type means adding it to `PROPERTY_TYPES` in `shared.ts`, a label in `TypesEditorView`'s `PROPERTY_TYPE_LABELS` (a `Record`, so the compiler insists), and optionally an icon/href in `GenericObject`.
 
 **Validation.** Every defined property is optional text: a number is stringified, a list or mapping fails with "\<key\> must be text". A block with none of its type's properties filled in is rejected (`needs at least one of …`), so a freshly inserted block shows as code + hint until something is typed. Unknown keys never make a block invalid.
 
@@ -706,13 +690,28 @@ Points worth knowing before changing any of it:
 Objects are edited as plain YAML in CodeMirror — there is no form editor (see below). Three things make that comfortable:
 
 - **YAML colours in fenced blocks.** `markdown({ codeLanguages: fencedCodeLanguage })` (`src/renderer/editor/editorCodeLanguages.ts`) parses `yaml`/`yml` fences as YAML, so keys and values are coloured apart. This applies to every YAML fence, not just object blocks.
-- **Insert Object.** The editor's context menu (Markdown files only) has an "Insert Object" item. Clicking it does not act directly: it sets `contextMenu.submenu`, and `EditorContextMenu` re-renders the same floating menu as the list of user-defined types (`objectTypeOptions(typeDefs)`, each item labelled with the type's description — or its name when it has none — and sorted by that label, with the type name as the tooltip; the item is hidden when no types are defined). Picking a type dispatches `objectInsertion(state, userObjectTemplate(typeDefs, type))` (`src/renderer/editor/editorObjectUtil.ts`), which inserts the type's empty block — `type: <name>` plus every property name with a blank value, without descriptions or property types — at the cursor — padded with line breaks so the fence stands on its own lines with a blank line either side — and leaves the cursor on the first field's value.
+- **Insert Object.** Clicking the context-menu item does not act directly: it sets `contextMenu.submenu`, and `EditorContextMenu` re-renders the same floating menu as `objectTypeOptions(typeDefs)` (`useEditorContextMenu` selects `typeDefs` from the store). Picking a type dispatches `objectInsertion(state, userObjectTemplate(typeDefs, type))` (`src/renderer/editor/editorObjectUtil.ts`), which pads the block with line breaks so the fence stands on its own lines with a blank line either side, and puts the cursor on the first property's value.
 
 - **Unknown-property underlines.** `objectKeyPlugin` (`src/components/editor/objectKeyChecker.ts`) puts an amber wavy underline, with a tooltip, under any key in an object block that the type's definition doesn't include — the typo case (`nmae`). It walks the Markdown syntax tree for `FencedCode` nodes in the viewport and asks `unknownObjectKeys(language, code, defs)`, reading the definitions with `getTypeDefs()` (a change to them is picked up on the plugin's next update). Which keys a block *has* comes from the real YAML parse; `findTopLevelKeys` only locates them by line, so a line it misreads can at worst go unreported. A block whose YAML doesn't currently parse (mid-typing) is simply not flagged.
 
-A freshly inserted block has every value blank, so in the rendered view it shows as code with the "Invalid …" hint until at least one field is filled in.
+### Type definitions (config and store)
 
-Unknown properties are flagged in both places: underlined in the editor, and listed last (key in orange) on the rendered card. They never make a block invalid.
+The Types Editor tab (`src/components/views/TypesEditorView.tsx`) edits definitions stored under a top-level `types:` key in `config.yaml`:
+
+```yaml
+types:
+  person:
+    description: A contact        # optional, type-level
+    properties:                   # display order = key order
+      name:
+        description: Full name
+        type: text                # text | address | email | url | phone | date (default text)
+```
+
+- **Schema.** `TypeDefinitions` / `TypeDefinition` / `PropertyDefinition` in `src/shared/shared.ts`; validated tolerantly on load by `configSchema.ts` (`tolerantRecord` drops a malformed entry and keeps the rest; a missing or unrecognized property `type` reads as `text`).
+- **Room to grow.** The `properties:` level and per-property maps leave space for type-level metadata and per-property attributes (e.g. a future `domain`/`range`). Unknown keys at both levels survive a load→save round-trip — the schema is `.loose()` and the editor model (`typesEditorModel.ts`) carries them in an `extra` bag.
+- **Names** must match `TYPE_NAME_PATTERN` (`[A-Za-z_][A-Za-z0-9_]*`, which also rules out integer-like keys, so JS key order is always insertion order); `type` is a reserved property name because it is the object-block discriminator. Enforced by `validate` in `typesEditorModel.ts` on Save.
+- **Store mirror.** `store/objectTypes.ts` holds `typeDefs`: seeded by `loadConfig` (`src/renderer/config.ts`), replaced by `TypesEditorView` after each successful `api.updateConfig({ types })`. Readers: `CustomPre` and `useEditorContextMenu` (reactive selectors), `objectKeyPlugin` (`getTypeDefs()`). No new IPC — the generic `getConfig`/`updateConfig` handlers carry it.
 
 ### Fenced blocks are literal — the preprocessing rule
 
@@ -723,18 +722,5 @@ Before parsing, `MarkdownView` runs three text passes over the raw document (`st
 ### Deliberately not done (yet)
 
 - **HTML export** (`src/shared/exportMDtoHTML.ts`) is a separate string pipeline in the main process and cannot run React components. Exported files show object blocks as plain YAML code.
-- **User-defined types.** The intended direction is a user-configured template (a named field list) rendered by a built-in generic component — users never write code. **This is now how all object types work** (the old built-in Person type and its registry are gone): the **Types Editor** tab (`TypesEditorView.tsx`, System menu → Types Editor) edits definitions stored under a top-level `types:` key in `config.yaml`, shaped like this:
-
-  ```yaml
-  types:
-    person:
-      description: A contact        # optional, type-level
-      properties:                   # display order = key order
-        name:
-          description: Full name
-          type: text                # text | address | email | url | phone | date (default text)
-  ```
-
-  A `properties:` level and per-property maps leave room for type-level metadata and per-property `domain`/`range` later; unknown keys at both levels survive a load→save round-trip (schema `.loose()` + the editor model's `extra` bag in `typesEditorModel.ts`). Every property value is stored as a string; its `type` (`PROPERTY_TYPES` in `shared.ts`) only selects how it will be presented and interacted with — a missing or unrecognized `type` reads as `text`. Names must match `TYPE_NAME_PATTERN` (`[A-Za-z_][A-Za-z0-9_]*`), and `type` is a reserved property name because it is the object-block discriminator. The definitions drive the Insert Object menu, the rendered cards, and the editor's unknown-property underlines.
 - **Lists of objects.** One object per block.
 - **A form editor.** Replacing the YAML with an inline form inside CodeMirror (block widgets) was considered and rejected as too complex for the gain: widget identity across keystrokes, focus and shortcut handling inside the widget, undo routing, and comment loss when rewriting the YAML. Locking the keys while leaving values editable was rejected too — it needs exception rules for every structural edit and still can't guarantee a valid object.

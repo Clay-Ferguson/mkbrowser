@@ -16,6 +16,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [Suppressing the Terminal Window](#suppressing-the-terminal-window)
   * [Editing Files](#editing-files)
     * [Inserting Links to Other Files](#inserting-links-to-other-files)
+    * [Inserting Objects](#inserting-objects)
     * [Editor Keyboard Shortcuts](#editor-keyboard-shortcuts)
     * [Thesaurus](#thesaurus)
   * [Automatic Table of Contents Generation](#automatic-table-of-contents-generation)
@@ -89,6 +90,19 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Syntax](#syntax-1)
   * [Escaping Dollar Signs for Currency](#escaping-dollar-signs-for-currency)
   * [Example](#example)
+* [Objects and Custom Types](#objects-and-custom-types)
+  * [Defining Your Own Types (Types Editor)](#defining-your-own-types-types-editor)
+    * [Opening the Types Editor](#opening-the-types-editor)
+    * [Adding, Renaming, and Deleting Types](#adding-renaming-and-deleting-types)
+    * [Adding and Arranging Properties](#adding-and-arranging-properties)
+    * [Property Types](#property-types)
+    * [Saving Your Changes](#saving-your-changes)
+    * [Naming Rules](#naming-rules)
+  * [Inserting an Object into a Document](#inserting-an-object-into-a-document)
+  * [How Objects Are Displayed](#how-objects-are-displayed)
+    * [Misspelled or Unknown Properties](#misspelled-or-unknown-properties)
+    * [When a Block Shows as Code Instead of a Card](#when-a-block-shows-as-code-instead-of-a-card)
+  * [Changing a Type Later](#changing-a-type-later)
 * [AI Chat](#ai-chat)
   * [Chat Thread View](#chat-thread-view)
     * [AI Conversation Hint Text](#ai-conversation-hint-text)
@@ -175,7 +189,7 @@ To add MkBrowser to your application launcher on Ubuntu/GNOME so you can pin it 
 
 # Tab Bar
 
-MkBrowser uses a tab bar at the top of the window to switch between views: **Browse**, **Chat**, **Search**, **Analysis**, **Graph**, **Settings**, **AI Settings**, and **Calendar**. The Browse tab is always present. The others appear only when they are active (e.g. Search appears after you run a search; Chat appears when you navigate into an AI conversation folder).
+MkBrowser uses a tab bar at the top of the window to switch between views: **Browse**, **Chat**, **Search**, **Analysis**, **Graph**, **Settings**, **AI Settings**, **Types**, and **Calendar**. The Browse tab is always present. The others appear only when they are active (e.g. Search appears after you run a search; Chat appears when you navigate into an AI conversation folder).
 
 Each tab that was opened has an **×** button next to its label. Clicking it closes the tab and returns you to the Browse view. Closing a tab also discards its associated state (e.g. closing Search clears the results; closing Analysis clears the analysis data).
 
@@ -277,6 +291,10 @@ If the path contains spaces, the link target is wrapped in angle brackets (stand
 ```
 
 > **Note:** **Paste Link into Editor** is always listed in the Index Tree context menu, but it is disabled (greyed out) unless a Markdown file is currently open for editing.
+
+### Inserting Objects
+
+Right-click in the editor of a Markdown file and choose **Insert Object ▸** to insert an empty record of one of your custom types (a contact, a book, …) at the cursor. See [Objects and Custom Types](#objects-and-custom-types).
 
 ### Editor Keyboard Shortcuts
 
@@ -984,6 +1002,7 @@ MkBrowser renders Markdown using **GitHub Flavored Markdown (GFM)**, which inclu
 - **Wikilinks** — `[[filename]]` and `[[filename|alias]]` syntax for linking between files (see [Wikilinks](#wikilinks) below).
 - **Syntax highlighting** — fenced code blocks with a language tag (e.g., ` ```python `) are rendered with syntax colors.
 - **Mermaid diagrams** — fenced code blocks tagged ` ```mermaid ` are rendered as diagrams.
+- **Objects** — fenced ` ```yaml ` blocks with a `type:` line that names one of your custom types are rendered as cards (see [Objects and Custom Types](#objects-and-custom-types)).
 - **Escaped dollar signs** — use `\$` to display a literal `$` without triggering math mode.
 
 ## Column Layout (`|||`)
@@ -1070,6 +1089,175 @@ f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h}
 $$
 
 This course costs $99.
+
+# Objects and Custom Types
+
+MkBrowser lets you put structured records — a contact, a book, a piece of equipment, anything you like — directly inside your Markdown notes, and shows each one as a neat **card** instead of raw text. You decide what kinds of records exist and what information each one holds by defining your own **types**. Nothing is built in: you design the types that suit your notes.
+
+An object is simply a YAML code block with a `type:` line. For example, once you have defined a `person` type, this block in a Markdown file:
+
+````markdown
+```yaml
+type: person
+name: Clay Ferguson
+birthday: 1980-05-12
+cell_phone: 555-123-4567
+email: clay@example.com
+address: |
+  1 Main St
+  Dallas, TX 75001
+```
+````
+
+is displayed as a card titled **Clay Ferguson**, with each of the other values on its own labeled line. The email address opens a new message, and the address opens a map.
+
+Because an object is ordinary YAML inside an ordinary code block, your files stay plain, portable Markdown: any other editor or Markdown viewer just shows the YAML text.
+
+## Defining Your Own Types (Types Editor)
+
+Types are created and edited in the **Types Editor**.
+
+### Opening the Types Editor
+
+Open the **System menu** (the ☰ button at the top right of the window) and choose **Types Editor**. A **Types** tab opens. Like the other tabs, it can be closed with its **×** button; any unsaved edits are kept if you close it and open it again later in the same session.
+
+The Types Editor has two panes:
+
+- **Types** (left) — every type you have defined, in alphabetical order.
+- **Properties** (right) — the description and properties of the type selected on the left.
+
+### Adding, Renaming, and Deleting Types
+
+- **Add a type:** click the **＋** next to the **Types** heading, type the new type's name, and press `Enter`. (A type left without a name shows as *unnamed*; give it a name or delete it before saving.)
+- **Select a type:** click its name to show its properties on the right.
+- **Rename a type:** hover over it and click the **✎** (pencil) button.
+- **Delete a type:** hover over it and click the **✕** button. If the type has properties, you are asked to confirm first.
+
+Below the **Properties of "…"** heading on the right is the type's **Description** field. The description is optional, but it is worth filling in: it is the text shown for the type in the editor's **Insert Object** menu (see [Inserting an Object into a Document](#inserting-an-object-into-a-document)). A type with no description is listed there by its name.
+
+### Adding and Arranging Properties
+
+A **property** is one piece of information an object of that type holds — such as `name`, `email`, or `address`. Click the **＋** next to the **Properties of "…"** heading to add one. Each property has three fields:
+
+| Field | Purpose |
+|-------|---------|
+| **Name** | The key written in the YAML block, e.g. `cell_phone`. |
+| **Description** | A short explanation, e.g. "Mobile number". It appears as a tooltip when you hover over the property on a card. |
+| **Type** | What kind of value the property holds (see [Property Types](#property-types)). Defaults to **Text**. |
+
+Hover over a property to reveal its buttons:
+
+- **↑ / ↓** move the property up or down. The order matters — it is the order the properties are inserted into new objects and listed on cards.
+- **✕** deletes the property.
+
+**The first property is the card's title.** Whatever value an object has for its type's first property is shown in bold at the top of its card, so put the property that best identifies an object (such as `name` or `title`) first.
+
+### Property Types
+
+The **Type** of a property controls how its value is displayed and what happens when you click it. Every value is still written as plain text in your Markdown file — the property type only changes how MkBrowser presents it.
+
+| Property Type | Shown on the card as | Clicking the value |
+|---------------|----------------------|--------------------|
+| **Text** | Plain text | Opens the editor, like the rest of the card |
+| **Address** | A map-pin icon and a link | Opens a map search for the address in your web browser |
+| **Email** | An envelope icon and a link | Opens a new message to that address in webmail |
+| **URL** | A link icon and a link | Opens the page in your web browser (`https://` is added if you leave it off, so `example.com` works) |
+| **Phone** | A phone icon and plain text | Opens the editor, like the rest of the card |
+| **Date** | A calendar icon and plain text | Opens the editor, like the rest of the card |
+
+### Saving Your Changes
+
+Edits in the Types Editor are not saved until you click **Save**. While there are unsaved edits, the bottom of the editor shows **Unsaved changes**. Click **Revert** (and confirm) to discard them and go back to what was last saved.
+
+When you save:
+
+- Properties you added but left completely empty (no name and no description) are quietly removed.
+- If something is wrong — for example two properties with the same name — nothing is saved, and the problem is described in red at the bottom of the editor. Fix it and click **Save** again.
+- Your saved types take effect immediately: the **Insert Object** menu and every rendered card update without restarting.
+
+Types are stored in MkBrowser's configuration file (`config.yaml`, under a `types:` entry), alongside your other settings.
+
+### Naming Rules
+
+Type names and property names:
+
+- may contain only letters, digits, and underscores (`_`), and cannot start with a digit — e.g. `person`, `cell_phone`, `room_2`;
+- are case-sensitive (`Person` and `person` are different types);
+- must be unique — no two types with the same name, and no two properties with the same name within one type.
+
+The property name `type` is reserved, because every object block already uses `type:` to say which type it is.
+
+## Inserting an Object into a Document
+
+You can type an object block by hand, but the easiest way is to let MkBrowser insert an empty one for you:
+
+1. Open a Markdown file for editing and place the cursor where the object should go.
+2. **Right-click** inside the editor and choose **Insert Object ▸**.
+3. The menu changes to a list of your types (each shown by its description; hover over an item to see the type's name). Click the type you want.
+
+MkBrowser inserts a YAML block containing the `type:` line followed by every property name of that type with an empty value, in the order you arranged them, and places the cursor on the first property so you can start typing. For a `person` type it looks like this:
+
+````markdown
+```yaml
+type: person
+name: 
+birthday: 
+cell_phone: 
+email: 
+address: 
+```
+````
+
+Fill in the values you know and leave the rest empty — empty properties are simply not shown on the card. To give a property a value spanning several lines (an address, for instance), write `|` after the colon and put the lines underneath, indented:
+
+```yaml
+address: |
+  1 Main St
+  Dallas, TX 75001
+```
+
+**Insert Object** appears only when editing Markdown files, and only once at least one type has been defined.
+
+## How Objects Are Displayed
+
+When you view the file, each object block whose `type:` names one of your types is drawn as a card:
+
+- The **type name** appears in small capitals in the card's top-right corner.
+- The value of the type's **first property** is the bold title. If it is empty, the card is titled "Untitled *type*".
+- Every other property that has a value follows on its own line: an icon for its property type (if it has one), the property name, and the value — in the order defined in the Types Editor, regardless of the order in the block. Hover over a line to see the property's description.
+- Email, address, and URL values are links (see [Property Types](#property-types)). Clicking anywhere else on the card opens the file for editing, just as clicking any other content does.
+
+Cards are shown only inside MkBrowser. When a file is [exported](#exporting) to HTML, its objects appear as their YAML code.
+
+### Misspelled or Unknown Properties
+
+If an object block contains a property its type doesn't define — usually a typo such as `nmae` instead of `name` — nothing is hidden from you:
+
+- On the **card**, the unknown property is listed at the bottom, with its name in **orange**.
+- In the **editor**, its name has an amber wavy underline; hover over it to see which type it doesn't belong to.
+
+Fix the spelling (or add the property to the type in the Types Editor) and the warning goes away.
+
+### When a Block Shows as Code Instead of a Card
+
+A YAML block is displayed as ordinary code when:
+
+- its `type:` doesn't match any of your types (check the spelling and capitalization), or
+- it isn't valid YAML, or it is not tagged as `yaml` (or `yml`).
+
+If the type *does* match but the block can't be shown as a card, it stays as code with a short amber note underneath explaining why:
+
+- **"… must be text"** — a property's value is a list or a nested set of values instead of plain text.
+- **"needs at least one of …"** — none of the type's properties has a value yet. This is normal for an object you have just inserted; it becomes a card as soon as you fill in a value.
+
+## Changing a Type Later
+
+You can edit your types at any time, and every document using them is displayed according to the new definition:
+
+- **Added properties** are simply absent from existing objects until you add them.
+- **Renamed or deleted properties** — existing objects still contain the old name, which is then shown in orange as an unknown property. Update those objects (with **Replace in Files**, for example) if you want them to match.
+- **Reordering** properties changes the order lines appear on every card, and which property is used as the title.
+- **Deleting a type** makes its object blocks display as plain YAML code again. Your files are never modified, so defining the type again brings the cards back.
 
 # AI Chat
 
