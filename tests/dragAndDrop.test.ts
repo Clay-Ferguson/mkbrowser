@@ -303,10 +303,16 @@ describe('makeTreeNodes / makeFileChildren — attachment folders', () => {
     expect(nodes[1]).not.toHaveProperty('hasAttachFolder');
   });
 
+  it('keeps an orphaned .attach folder (no owning file) as an ordinary folder', () => {
+    const nodes = makeTreeNodes([entry('/root/gone.md.attach', true), entry('/root/b.md', false)]);
+    expect(nodes.map(n => n.path)).toEqual(['/root/gone.md.attach', '/root/b.md']);
+    expect(nodes[0]).not.toHaveProperty('isOwnedAttach');
+  });
+
   it('puts the attach folder first, before headings, keeping its real name', () => {
     const h = heading('/root/a.md#0');
     const [attach, ...rest] = makeFileChildren(owner('/root/a.md', false, null), [h]) as FileNode[];
-    expect(attach).toEqual(node('/root/a.md.attach', true, false, null));
+    expect(attach).toEqual({ ...node('/root/a.md.attach', true, false, null), isOwnedAttach: true });
     expect(rest).toEqual([h]);
   });
 

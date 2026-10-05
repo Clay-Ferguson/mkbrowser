@@ -195,7 +195,7 @@ Note the folder is created before the move is attempted. A name collision is imp
 
 In `IndexTreeView` a `<file>.attach` folder is **not** listed among its folder's children;
 it appears as the **first child of its owning file**, labelled `*.attach` (the same label
-`FolderEntry` uses with `indentFolder`). It is an ordinary folder node otherwise: clicking
+`FolderEntry` uses with `indentFolder`; such nodes carry `isOwnedAttach`). It is an ordinary folder node otherwise: clicking
 it expands it lazily via `readDirectory`, and it can be dropped onto, pasted into, renamed,
 and so on. The node keeps its real name and path (`notes.md.attach`) — only the row's label
 is rewritten (`TreeFileRow`), because drag, rename, cut and paste all need the real name.
@@ -216,7 +216,7 @@ All tree-children construction lives in this one module:
 
 | Function | Role |
 |----------|------|
-| `makeTreeNodes` / `mergeTreeNodes` | A folder's children. `isTreeVisibleEntry` drops `.attach` folders here (so an orphaned one, with no owning file, is not shown at all). |
+| `makeTreeNodes` / `mergeTreeNodes` | A folder's children. An `.attach` folder whose owning file is in the listing is dropped here (it shows under the file); an **orphaned** one — its file was moved away or deleted — stays as an ordinary folder under its real name, so it never disappears from the tree. |
 | `makeFileChildren(file, headings)` | A file's children: `[attachNode?, ...headings]`. The one place they are assembled. |
 | `expandFileNode(node)` | Expands a file on click or reveal: re-shows cached children, otherwise reads a Markdown file's headings and calls `makeFileChildren`. |
 

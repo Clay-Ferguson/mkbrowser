@@ -15,24 +15,23 @@ import { logger } from '../shared/logUtil';
 type TreeEntry = { path: string; name: string; isDirectory: boolean; indexOrder?: number; hasAttachFolder?: boolean };
 
 /**
- * Whether a directory entry may appear as a folder's child in the IndexTreeView.
- * Attachment (*.attach) folders never do: they appear under their owning file
- * instead (see makeFileChildren), so an orphaned one with no owner is not shown.
- * Local by design: `makeTreeNodes` is the only way folder children are built, so
- * every caller gets this filter for free and no other module needs to remember it.
- */
-function isTreeVisibleEntry(entry: { name: string; isDirectory: boolean }): boolean {
-  return !(entry.isDirectory && entry.name.endsWith(ATTACH_SUFFIX));
-}
-
-/**
- * Builds the IndexTreeView's lazily-loaded child nodes from a directory listing, omitting
- * Attachment (*.attach) folders, which show under their owning file rather than here.
+ * Builds the IndexTreeView's lazily-loaded child nodes from a directory listing. An
+ * Attachment (*.attach) folder whose owning file is in the listing is omitted here — it
+ * shows under that file instead (see makeFileChildren). An orphaned one (its file was
+ * moved, deleted or never existed) stays as an ordinary folder, under its real name, so
+ * it never vanishes from the tree. Local by design: this is the only way folder children
+ * are built, so every caller gets the same membership rule.
+ *
  * Which files own one comes straight from `hasAttachFolder`, which `readDirectory` already
- * computes in one pass over the listing, so the tree needs no lookup or I/O of its own.
+ * computes in one pass over the listing; one Set of the owned folder names built from it
+ * makes the filter O(n), with no lookup or I/O of the tree's own.
  */
 export function makeTreeNodes(entries: TreeEntry[]): FileNode[] {
-  return entries.filter(isTreeVisibleEntry).map(e => ({
+  const owned = new Set<string>();
+  for (const e of entries) {
+    if (!e.isDirectory && e.hasAttachFolder) owned.add(`${e.name}${ATTACH_SUFFIX}`);
+  }
+  return entries.filter(e => !(e.isDirectory && owned.has(e.name))).map(e => ({
     path: e.path,
     name: e.name,
     isDirectory: e.isDirectory,
@@ -46,7 +45,8 @@ export function makeTreeNodes(entries: TreeEntry[]): FileNode[] {
 
 /**
  * The tree node for `file`'s attachment folder. It keeps the folder's real name and
- * path (drag, rename, cut and paste all need them); only the row's label shows `*.attach`.
+ * path (drag, rename, cut and paste all need them); `isOwnedAttach` makes only the
+ * row's label show `*.attach`.
  */
 function makeAttachNode(file: FileNode): FileNode {
   return {
@@ -56,6 +56,7 @@ function makeAttachNode(file: FileNode): FileNode {
     isExpanded: false,
     isLoading: false,
     children: null,
+    isOwnedAttach: true,
   };
 }
 

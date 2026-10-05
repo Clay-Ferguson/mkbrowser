@@ -99,10 +99,6 @@ function isShellScript(node: FileNode): boolean {
   return !node.isDirectory && node.name.toLowerCase().endsWith('.sh');
 }
 
-/** A file's attachment folder, which the tree shows as a child of that file. */
-function isAttachFolderNode(node: FileNode): boolean {
-  return node.isDirectory && node.name.endsWith(ATTACH_SUFFIX);
-}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -289,7 +285,8 @@ function TreeFileRow({
   const relation = useAS(s => folderRelation(node, s.currentPath));
 
   const isSh = isShellScript(node);
-  const isAttach = isAttachFolderNode(node);
+  // Only an attachment folder shown under its file; an orphaned one is an ordinary folder.
+  const isAttach = node.isOwnedAttach === true;
 
   // Two independent cues, so the tree reads at a glance: a solid purple
   // background marks the folder being browsed and its ancestors, and a 2px

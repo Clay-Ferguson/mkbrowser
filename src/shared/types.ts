@@ -270,6 +270,11 @@ export interface FileNode extends TreeNode {
   indexOrder?: number;
   /** File nodes only: a sibling `<name>.attach` folder exists (from FileEntry.hasAttachFolder). */
   hasAttachFolder?: boolean;
+  /**
+   * An attachment folder shown as its owning file's child (labelled `*.attach`). An
+   * orphaned `.attach` folder is an ordinary folder node and shows its real name.
+   */
+  isOwnedAttach?: boolean;
 }
 
 /**
