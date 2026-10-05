@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Bars3Icon, TrashIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import { api } from '../../../renderer/api';
 import { getParentPath, getFileName, joinPath } from '../../../renderer/pathUtil';
-import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../renderer/styles';
+import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE, HOVER_REVEAL, HOVER_REVEAL_PINNED } from '../../../renderer/styles';
 import { toggleBookmark, addBookmark, useAS, revealInTree, setHighlightItem, setBrowseFile } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 import EntryPopupMenu from '../../menus/EntryPopupMenu';
@@ -118,9 +118,7 @@ export function EntryActionBar({
       {/* While the popup menu is open the bar stays visible even if the pointer
           leaves the entry — otherwise the menu's own anchor would fade out from
           under it. */}
-      <div className={showMenu
-        ? 'opacity-100 pointer-events-auto flex items-center gap-1'
-        : 'opacity-0 pointer-events-none [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:pointer-events-auto group-hover:[transition:opacity_200ms_ease_400ms] flex items-center gap-1'}>
+      <div className={`${showMenu ? HOVER_REVEAL_PINNED : HOVER_REVEAL} flex items-center gap-1`}>
       <button
         type="button"
         onClick={onDeleteClick}

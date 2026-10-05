@@ -25,7 +25,7 @@ import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilde
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
 import type { CalendarSource } from '../../shared/types';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, getContentWidthClasses } from '../../renderer/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import FileTypeIcon from '../FileTypeIcon';
 import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
@@ -36,7 +36,8 @@ import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
  * (single-file mode, same as clicking a file in the index tree); clicking a
  * folder card browses the folder's parent, scrolled to the folder. Each card
  * shows the relative path and match count, and provides Edit (open the file
- * on its own in the Browse view, for editing) and Delete buttons.
+ * on its own in the Browse view, for editing) and Delete buttons, which appear
+ * only while the pointer rests on the card.
  * The results can also be rendered two other ways: as a folder graph via the
  * "Graph" button, and — for the subset of results that are calendar files —
  * on the Calendar tab via the "Calendar" button. The refresh button re-runs the
@@ -326,7 +327,7 @@ function SearchResultsView() {
               <div
                 key={result.path}
                 onClick={() => handleResultClick(result.path, result.isDirectory === true)}
-                className={`bg-slate-800/50 hover:bg-slate-700/60 border-x border-t last:border-b border-slate-700 ${highlightClass} px-2 py-1.5 transition-colors cursor-pointer`}
+                className={`group bg-slate-800/50 hover:bg-slate-700/60 border-x border-t last:border-b border-slate-700 ${highlightClass} px-2 py-1.5 transition-colors cursor-pointer`}
               >
                 <div className="flex items-center gap-2">
                   {/* Folder or file-type icon */}
@@ -354,6 +355,10 @@ function SearchResultsView() {
                     </div>
                   )}
 
+                  {/* Action buttons, revealed only while the row is hovered so a
+                      long result list isn't cluttered with icons (same behavior
+                      as EntryActionBar in the Browse view). */}
+                  <div className={`${HOVER_REVEAL} flex items-center gap-2 flex-shrink-0`}>
                   {/* Edit button — hidden (but still taking its space, so the
                       Delete buttons stay aligned) for results that can't be edited */}
                   <button
@@ -377,6 +382,7 @@ function SearchResultsView() {
                   >
                     <TrashIcon className="w-5 h-5" />
                   </button>
+                  </div>
                 </div>
               </div>
               );

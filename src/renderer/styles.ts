@@ -287,6 +287,16 @@ export const DLG_FOOTER_CLASS = 'flex justify-end gap-3';
 // Entry component structural classes
 export const ENTRY_OUTER = 'bg-slate-800 group overflow-hidden';
 export const ENTRY_HIGHLIGHTED = 'border-2 border-purple-500 relative z-10';
+/**
+ * Hover-reveal for a row's action buttons: put this on the wrapper around them and
+ * `group` on the row. The buttons stay hidden (and unclickable) until the pointer
+ * rests on the row for 400ms, then fade in over 200ms; leaving fades them out at
+ * once. The delay keeps the buttons from flickering on across every row the
+ * pointer merely passes over, so a long list doesn't look cluttered.
+ */
+export const HOVER_REVEAL = 'opacity-0 pointer-events-none [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:pointer-events-auto group-hover:[transition:opacity_200ms_ease_400ms]';
+/** Replaces HOVER_REVEAL to keep the buttons shown regardless of hover (e.g. while their popup menu is open). */
+export const HOVER_REVEAL_PINNED = 'opacity-100 pointer-events-auto';
 /** Layout half of the entry header row, shared by its normal and drop-target states. */
 const ENTRY_HEADER_ROW_LAYOUT = 'flex items-center gap-3 px-2 py-0.5 transition-colors';
 export const ENTRY_HEADER_ROW = `${ENTRY_HEADER_ROW_LAYOUT} bg-blue-800/50 group-hover:bg-blue-700/70`;
