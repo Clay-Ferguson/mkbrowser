@@ -413,13 +413,14 @@ describe('parseConfigYaml — types', () => {
       '        description: Full name',
       '      cell_phone:',
       '        description: Mobile number',
+      '        type: url',
     ].join('\n')));
     expect(cfg?.types).toEqual({
       person: {
         description: 'A contact',
         properties: {
-          name: { description: 'Full name' },
-          cell_phone: { description: 'Mobile number' },
+          name: { description: 'Full name', type: 'text' },
+          cell_phone: { description: 'Mobile number', type: 'url' },
         },
       },
     });
@@ -428,7 +429,7 @@ describe('parseConfigYaml — types', () => {
 
   it('accepts a bare property (YAML null) as an empty description', () => {
     const cfg = parseConfigYaml(loadYaml('browseFolder: /x\ntypes:\n  person:\n    properties:\n      name:\n'));
-    expect(cfg?.types?.person?.properties).toEqual({ name: { description: '' } });
+    expect(cfg?.types?.person?.properties).toEqual({ name: { description: '', type: 'text' } });
   });
 
   it('gives a bare type (YAML null) or one without properties an empty properties map', () => {
@@ -445,7 +446,7 @@ describe('parseConfigYaml — types', () => {
       },
     });
     expect(cfg?.types).toEqual({
-      good: { properties: { ok: { description: 'fine' }, num: { description: '' } } },
+      good: { properties: { ok: { description: 'fine', type: 'text' }, num: { description: '', type: 'text' } } },
     });
   });
 
@@ -463,6 +464,23 @@ describe('parseConfigYaml — types', () => {
       browseFolder: '/x',
       types: { t: { label: 'T', properties: { p: { description: 'd', domain: 'string' } } } },
     });
-    expect(cfg?.types?.t).toEqual({ label: 'T', properties: { p: { description: 'd', domain: 'string' } } });
+    expect(cfg?.types?.t).toEqual({ label: 'T', properties: { p: { description: 'd', type: 'text', domain: 'string' } } });
+  });
+
+  it('keeps a valid property type and defaults a missing or unrecognized one to text', () => {
+    const cfg = parseConfigYaml({
+      browseFolder: '/x',
+      types: { t: { properties: {
+        a: { description: '', type: 'email' },
+        b: { description: '', type: 'address' },
+        c: { description: '' },
+        d: { description: '', type: 'phone' },
+        e: { description: '', type: 42 },
+      } } },
+    });
+    const props = cfg?.types?.t?.properties ?? {};
+    expect(Object.fromEntries(Object.entries(props).map(([k, v]) => [k, v.type]))).toEqual({
+      a: 'email', b: 'address', c: 'text', d: 'text', e: 'text',
+    });
   });
 });

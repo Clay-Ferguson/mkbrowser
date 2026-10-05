@@ -24,7 +24,7 @@
  */
 
 import { z } from 'zod';
-import { AI_PROVIDERS, DEFAULT_IMAGE_SIZE } from '../shared/shared';
+import { AI_PROVIDERS, DEFAULT_IMAGE_SIZE, DEFAULT_PROPERTY_TYPE, PROPERTY_TYPES } from '../shared/shared';
 import type { AIModelConfig, AppConfig, AppSettings } from '../shared/shared';
 
 // ---------------------------------------------------------------------------
@@ -201,6 +201,8 @@ const nullToEmpty = (v: unknown) => (v === null ? {} : v);
 const PropertyDefinitionSchema = z.preprocess(nullToEmpty, z
   .object({
     description: z.string().catch(''),
+    // Missing (configs written before property types existed) or unrecognized → 'text'.
+    type: z.enum(PROPERTY_TYPES).catch(DEFAULT_PROPERTY_TYPE),
   })
   .loose());
 

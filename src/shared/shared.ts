@@ -184,12 +184,22 @@ export interface AIRewritePromptDef {
 }
 
 /**
+ * The fundamental kind of value a property holds. Every property value is stored
+ * as a string; the type only selects how it is presented and interacted with
+ * (e.g. a clickable link for `url`, a mailto for `email`).
+ */
+export const PROPERTY_TYPES = ['text', 'address', 'email', 'url'] as const;
+export type PropertyType = typeof PROPERTY_TYPES[number];
+export const DEFAULT_PROPERTY_TYPE: PropertyType = 'text';
+
+/**
  * One property of a user-defined object type. Keyed by property name in
  * `TypeDefinition.properties`; its attributes sit beneath the name so more
  * (e.g. a future domain/range) can be added. Unknown keys are preserved.
  */
 export interface PropertyDefinition {
   description: string;
+  type: PropertyType;
   [extra: string]: unknown;
 }
 

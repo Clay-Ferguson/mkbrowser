@@ -1,4 +1,5 @@
-import type { PropertyDefinition, TypeDefinition, TypeDefinitions } from '../../shared/shared';
+import { DEFAULT_PROPERTY_TYPE } from '../../shared/shared';
+import type { PropertyDefinition, PropertyType, TypeDefinition, TypeDefinitions } from '../../shared/shared';
 
 /**
  * Pure model for the Types Editor (TypesEditorView): converts the persisted
@@ -21,6 +22,7 @@ export interface EditorProperty {
   id: string;
   name: string;
   description: string;
+  type: PropertyType;
   /** Keys of the persisted definition the editor doesn't know about, carried through a save. */
   extra: Record<string, unknown>;
 }
@@ -43,7 +45,7 @@ function singleLine(s: string): string {
 
 /** A new, empty property row. */
 export function newEditorProperty(): EditorProperty {
-  return { id: newId(), name: '', description: '', extra: {} };
+  return { id: newId(), name: '', description: '', type: DEFAULT_PROPERTY_TYPE, extra: {} };
 }
 
 /** A new, empty type row. */
@@ -64,11 +66,12 @@ export function fromTypeDefs(defs: TypeDefinitions): EditorType[] {
       name: typeName,
       description: singleLine(description ?? ''),
       properties: Object.entries(properties).map(([propName, prop]) => {
-        const { description: propDescription, ...propExtra } = prop;
+        const { description: propDescription, type: propType, ...propExtra } = prop;
         return {
           id: newId(),
           name: propName,
           description: singleLine(propDescription),
+          type: propType,
           extra: propExtra,
         };
       }),
@@ -87,7 +90,7 @@ export function toTypeDefs(editor: EditorType[]): TypeDefinitions {
   for (const type of editor) {
     const properties: Record<string, PropertyDefinition> = {};
     for (const prop of type.properties) {
-      properties[prop.name.trim()] = { ...prop.extra, description: prop.description.trim() };
+      properties[prop.name.trim()] = { ...prop.extra, description: prop.description.trim(), type: prop.type };
     }
     const description = type.description.trim();
     // Description goes before properties so it reads first in config.yaml.

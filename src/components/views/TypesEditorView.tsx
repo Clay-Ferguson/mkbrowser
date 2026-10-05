@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
+import { PROPERTY_TYPES, type PropertyType } from '../../shared/shared';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import { BUTTON_CLASS_DLG_SAVE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_LINK_MUTED, BUTTON_CLASS_LINK_RED, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
 import {
@@ -13,7 +14,20 @@ import {
   newEditorType,
   newEditorProperty,
   type EditorType,
+  type EditorProperty,
 } from './typesEditorModel';
+
+// Display labels for the property-type select; the stored values are the lowercase keys.
+const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
+  text: 'Text',
+  address: 'Address',
+  email: 'Email',
+  url: 'URL',
+};
+
+// Shared fixed width for every field label in the right pane (type description
+// and each property's name/description/type), so the inputs' left edges line up.
+const FIELD_LABEL_CLASS = 'text-sm text-slate-400 flex-shrink-0 w-24 text-right';
 
 interface PendingConfirm {
   message: string;
@@ -147,12 +161,12 @@ export default function TypesEditorView() {
 
   // --- Property operations ---
 
-  const updateProperty = (typeId: string, propId: string, field: 'name' | 'description', value: string) => {
+  const updateProperty = (typeId: string, propId: string, patch: Partial<Pick<EditorProperty, 'name' | 'description' | 'type'>>) => {
     setTypes((prev) =>
       prev.map((t) =>
         t.id !== typeId ? t : {
           ...t,
-          properties: t.properties.map((p) => p.id !== propId ? p : { ...p, [field]: value }),
+          properties: t.properties.map((p) => p.id !== propId ? p : { ...p, ...patch }),
         }
       )
     );
@@ -336,7 +350,7 @@ export default function TypesEditorView() {
                       </button>
                     </div>
                     <div className="pl-4 pr-12 pb-3 flex-shrink-0 flex items-center gap-2">
-                      <label htmlFor="types-editor-type-description" className="text-sm text-slate-400 flex-shrink-0">
+                      <label htmlFor="types-editor-type-description" className={FIELD_LABEL_CLASS}>
                         Description:
                       </label>
                       <input
@@ -353,28 +367,50 @@ export default function TypesEditorView() {
                       {selectedType.properties.map((prop, index) => (
                         <div key={prop.id} className="flex gap-2 items-start group">
                           <div className="flex flex-col gap-1 flex-1 min-w-0">
-                            <input
-                              type="text"
-                              value={prop.name}
-                              onChange={(e) => updateProperty(selectedType.id, prop.id, 'name', e.target.value)}
-                              placeholder="property_name"
-                              autoFocus={prop.id === focusPropId}
-                              className={`${inputCls} w-full`}
-                              data-testid={`types-editor-property-name-input-${prop.id}`}
-                            />
-                            <div className="flex items-center gap-2 ml-5">
-                              <label htmlFor={`types-editor-property-description-${prop.id}`} className="text-sm text-slate-400 flex-shrink-0">
+                            <div className="flex items-center gap-2">
+                              <label htmlFor={`types-editor-property-name-${prop.id}`} className={FIELD_LABEL_CLASS}>
+                                Name:
+                              </label>
+                              <input
+                                id={`types-editor-property-name-${prop.id}`}
+                                type="text"
+                                value={prop.name}
+                                onChange={(e) => updateProperty(selectedType.id, prop.id, { name: e.target.value })}
+                                placeholder="property_name"
+                                autoFocus={prop.id === focusPropId}
+                                className={`${inputCls} flex-1 min-w-0`}
+                                data-testid={`types-editor-property-name-input-${prop.id}`}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <label htmlFor={`types-editor-property-description-${prop.id}`} className={FIELD_LABEL_CLASS}>
                                 Description:
                               </label>
                               <input
                                 id={`types-editor-property-description-${prop.id}`}
                                 type="text"
                                 value={prop.description}
-                                onChange={(e) => updateProperty(selectedType.id, prop.id, 'description', e.target.value.replace(/\n/g, ' '))}
+                                onChange={(e) => updateProperty(selectedType.id, prop.id, { description: e.target.value.replace(/\n/g, ' ') })}
                                 placeholder="Description…"
                                 className={`${inputCls} flex-1 min-w-0`}
                                 data-testid={`types-editor-property-description-input-${prop.id}`}
                               />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <label htmlFor={`types-editor-property-type-${prop.id}`} className={FIELD_LABEL_CLASS}>
+                                Type:
+                              </label>
+                              <select
+                                id={`types-editor-property-type-${prop.id}`}
+                                value={prop.type}
+                                onChange={(e) => updateProperty(selectedType.id, prop.id, { type: e.target.value as PropertyType })}
+                                className={`${inputCls} cursor-pointer`}
+                                data-testid={`types-editor-property-type-select-${prop.id}`}
+                              >
+                                {PROPERTY_TYPES.map((t) => (
+                                  <option key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</option>
+                                ))}
+                              </select>
                             </div>
                           </div>
                           {/* Grouped without a gap so the icons sit close together. At either end the unusable arrow is invisible (not removed) so the icons stay aligned across rows. */}

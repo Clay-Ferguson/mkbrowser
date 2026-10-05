@@ -24,8 +24,8 @@ describe('fromTypeDefs / toTypeDefs', () => {
     person: {
       description: 'A contact',
       properties: {
-        name: { description: 'Full name' },
-        cell_phone: { description: 'Mobile', domain: 'string' },
+        name: { description: 'Full name', type: 'text' },
+        cell_phone: { description: 'Mobile', type: 'url', domain: 'string' },
       },
       label: 'Person',
     },
@@ -46,14 +46,24 @@ describe('fromTypeDefs / toTypeDefs', () => {
   });
 
   it('flattens multi-line descriptions', () => {
-    const editor = fromTypeDefs({ t: { description: 'a\nb', properties: { p: { description: 'c\nd\n' } } } });
+    const editor = fromTypeDefs({ t: { description: 'a\nb', properties: { p: { description: 'c\nd\n', type: 'text' } } } });
     expect(editor[0]!.description).toBe('a b');
     expect(editor[0]!.properties[0]!.description).toBe('c d');
   });
 
   it('trims names and omits an empty type description', () => {
     const out = toTypeDefs([makeType('  t  ', [[' p ', ' d ']], '   ')]);
-    expect(out).toEqual({ t: { properties: { p: { description: 'd' } } } });
+    expect(out).toEqual({ t: { properties: { p: { description: 'd', type: 'text' } } } });
+  });
+
+  it('carries the property type through, separate from extra keys', () => {
+    const editor = fromTypeDefs({ t: { properties: { site: { description: '', type: 'url', domain: 'x' } } } });
+    expect(editor[0]!.properties[0]!.type).toBe('url');
+    expect(editor[0]!.properties[0]!.extra).toEqual({ domain: 'x' });
+  });
+
+  it('defaults a new property to the text type', () => {
+    expect(newEditorProperty().type).toBe('text');
   });
 });
 

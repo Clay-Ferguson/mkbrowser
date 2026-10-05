@@ -738,8 +738,9 @@ Before parsing, `MarkdownView` runs three text passes over the raw document (`st
       properties:                   # display order = key order
         name:
           description: Full name
+          type: text                # text | address | email | url (default text)
   ```
 
-  A `properties:` level and per-property maps leave room for type-level metadata and per-property `domain`/`range` later; unknown keys at both levels survive a load→save round-trip (schema `.loose()` + the editor model's `extra` bag in `typesEditorModel.ts`). Names must match `TYPE_NAME_PATTERN` (`[A-Za-z_][A-Za-z0-9_]*`), and `type` is a reserved property name because it is the object-block discriminator. **Nothing reads these definitions yet** — the registry and the built-in Person type are unchanged.
+  A `properties:` level and per-property maps leave room for type-level metadata and per-property `domain`/`range` later; unknown keys at both levels survive a load→save round-trip (schema `.loose()` + the editor model's `extra` bag in `typesEditorModel.ts`). Every property value is stored as a string; its `type` (`PROPERTY_TYPES` in `shared.ts`) only selects how it will be presented and interacted with — a missing or unrecognized `type` reads as `text`. Names must match `TYPE_NAME_PATTERN` (`[A-Za-z_][A-Za-z0-9_]*`), and `type` is a reserved property name because it is the object-block discriminator. **Nothing reads these definitions yet** — the registry and the built-in Person type are unchanged.
 - **Lists of objects.** One object per block.
 - **A form editor.** Replacing the YAML with an inline form inside CodeMirror (block widgets) was considered and rejected as too complex for the gain: widget identity across keystrokes, focus and shortcut handling inside the widget, undo routing, and comment loss when rewriting the YAML. Locking the keys while leaving values editable was rejected too — it needs exception rules for every structural edit and still can't guarantee a valid object.
