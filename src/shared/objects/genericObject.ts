@@ -31,8 +31,8 @@ export interface UnknownRow {
 /** A validated object, ready for `GenericObject` to lay out. */
 export interface GenericObjectData {
   /**
-   * The type's first property — the card's title line, as a person's name was. Its value is
-   * '' when the block leaves it blank. Null only for a type with no properties.
+   * The type's first property, shown as the card's bold title line. Its value is '' when the
+   * block leaves it blank. Null only for a type with no properties.
    */
   title: ObjectRow | null;
   /** The remaining defined properties that have a value, in definition order. */
