@@ -4,9 +4,6 @@ import type { ObjectParseResult } from './objectBlock';
 /** The `type` value that marks a YAML block as a person. */
 export const PERSON_TYPE = 'person';
 
-/** Display name, as listed in the editor's "Insert Object" menu. */
-export const PERSON_LABEL = 'Person';
-
 /** Every property a person block may carry (`bd` is the birthday). All are optional text. */
 export const PERSON_FIELDS = ['name', 'bd', 'cell_phone', 'other_phone', 'email', 'address', 'notes'] as const;
 

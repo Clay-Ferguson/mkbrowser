@@ -15,3 +15,4 @@ export * from './scroll';
 export * from './view';
 export * from './thesaurus';
 export * from './history';
+export * from './objectTypes';

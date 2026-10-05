@@ -4,6 +4,7 @@ import { ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import { PROPERTY_TYPES, type PropertyType } from '../../shared/shared';
+import { setTypeDefs } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import { BUTTON_CLASS_DLG_SAVE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_LINK_MUTED, BUTTON_CLASS_LINK_RED, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
 import {
@@ -209,8 +210,11 @@ export default function TypesEditorView() {
     if (validationError) { setError(validationError); return; }
     setSaving(true);
     setError(null);
-    api.updateConfig({ types: toTypeDefs(toSave) })
+    const defs = toTypeDefs(toSave);
+    api.updateConfig({ types: defs })
       .then(() => {
+        // Mirror into the store so the editor's "Insert Object" menu sees the new types.
+        setTypeDefs(defs);
         setTypes(toSave);
         setSavedSnapshot(snapshotOf(toSave));
         setSaving(false);

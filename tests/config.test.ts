@@ -7,6 +7,7 @@ vi.mock('../src/store', () => ({
   setImageSize: vi.fn(),
   setAiConfig: vi.fn(),
   getAiConfig: vi.fn(),
+  setTypeDefs: vi.fn(),
   defaultAiConfig: {
     aiEnabled: false,
     aiRewriteMode: false,
@@ -45,7 +46,7 @@ vi.mock('../src/renderer/api', () => ({
 }));
 
 import { loadConfig, saveAiConfig } from '../src/renderer/config';
-import { setCurrentPath, setSettings, setAiConfig, getAiConfig, defaultAiConfig, defaultSettings } from '../src/store';
+import { setCurrentPath, setSettings, setAiConfig, getAiConfig, setTypeDefs, defaultAiConfig, defaultSettings } from '../src/store';
 import { api } from '../src/renderer/api';
 
 describe('loadConfig — subfolder path validation', () => {
@@ -159,6 +160,17 @@ describe('loadConfig — common result fields are consistent across branches', (
     expect(result.lastExportFolder).toBe('/exports');
     expect(setAiConfig).toHaveBeenCalledWith(expect.objectContaining({ aiEnabled: true }));
     expect(result.recentFolders).toEqual(['/a', '/b']);
+  });
+
+  it('seeds the object types mirror from config, or with {} when there are none', async () => {
+    const types = { person: { properties: { name: { description: '', type: 'text' } } } };
+    vi.mocked(api.getConfig).mockResolvedValue({ ...commonConfig, types } as never);
+    await loadConfig();
+    expect(setTypeDefs).toHaveBeenCalledWith(types);
+
+    vi.mocked(api.getConfig).mockResolvedValue({ ...commonConfig } as never);
+    await loadConfig();
+    expect(setTypeDefs).toHaveBeenLastCalledWith({});
   });
 
   it('returns common fields when browseFolder does not exist on disk', async () => {

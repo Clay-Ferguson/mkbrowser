@@ -7,7 +7,7 @@ import { isMarkdownFile } from '../../shared/fileTypes';
 import { saveSettings } from '../../renderer/config';
 import { useAS, setEnableThesaurus } from '../../store';
 import { wordAt, isSpellCheckExempt, type SpellingSuggestion } from './spellChecker';
-import { OBJECT_TYPE_OPTIONS, objectTemplate } from '../objects/objectRegistry';
+import { objectTypeOptions, userObjectTemplate } from '../../shared/objects/userTypes';
 import { objectInsertion } from '../../renderer/editor/editorObjectUtil';
 
 export interface ContextMenuState {
@@ -42,7 +42,7 @@ interface UseEditorContextMenuProps {
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
  * top of the menu. Also exposes save-in-place, cut/copy/paste, select-all, timestamp/date
- * insertion, the thesaurus on/off switch, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the registered object types).
+ * insertion, the thesaurus on/off switch, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the user-defined object types from the Types Editor).
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
@@ -55,6 +55,8 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
   // `browseFileName` being set means. Offering the switch in a folder-listing inline editor
   // would turn the feature on with nowhere for the synonyms to appear.
   const singleFileMode = useAS(s => s.browseFileName !== null);
+  // The user-defined object types (Types Editor) that "Insert Object" offers.
+  const typeDefs = useAS(s => s.typeDefs);
 
   const closeContextMenu = () => {
     setContextMenu(prev => ({ ...prev, visible: false }));
@@ -256,11 +258,11 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     setContextMenu(prev => ({ ...prev, submenu: 'insertObject' }));
   };
 
-  // Inserts an empty block of the picked type at the cursor and leaves the cursor on its
-  // first field.
+  // Inserts an empty block of the picked type (its `type:` line plus every property name with
+  // a blank value) at the cursor and leaves the cursor on its first property.
   const handleInsertObject = (type: string) => {
     const view = viewRef.current;
-    const template = objectTemplate(type);
+    const template = userObjectTemplate(typeDefs, type);
     if (!view || !template) return;
 
     view.dispatch(objectInsertion(view.state, template));
@@ -327,7 +329,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     handleInsertDate,
     handleOpenInsertObject,
     handleInsertObject,
-    objectTypes: OBJECT_TYPE_OPTIONS,
+    objectTypes: objectTypeOptions(typeDefs),
     handleToggleThesaurus,
     canToggleThesaurus: thesaurusCapable && singleFileMode,
     thesaurusEnabled,

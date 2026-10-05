@@ -7,7 +7,9 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { buildObjectTemplate, parseObjectBlock } from '../src/shared/objects/objectBlock';
-import { OBJECT_TYPE_OPTIONS, objectTemplate, resolveObjectBlock } from '../src/components/objects/objectRegistry';
+import { resolveObjectBlock } from '../src/components/objects/objectRegistry';
+import { objectTypeOptions, userObjectTemplate } from '../src/shared/objects/userTypes';
+import type { TypeDefinitions } from '../src/shared/shared';
 import { objectInsertion } from '../src/renderer/editor/editorObjectUtil';
 import { EditorContextMenu } from '../src/components/editor/EditorContextMenu';
 import type { ContextMenuState } from '../src/components/editor/useEditorContextMenu';
@@ -24,6 +26,24 @@ const PERSON_BLOCK = [
   'notes: ',
   '```',
 ].join('\n');
+
+/**
+ * User-defined types as the Types Editor saves them. `person` carries descriptions and
+ * property types that must NOT appear in the inserted block — only the data keys do.
+ */
+const TYPE_DEFS: TypeDefinitions = {
+  person: {
+    description: 'A contact',
+    properties: Object.fromEntries(
+      ['name', 'bd', 'cell_phone', 'other_phone', 'email', 'address', 'notes'].map((k) => [
+        k,
+        { description: `the ${k}`, type: k === 'email' ? 'email' : 'text' },
+      ]),
+    ),
+  },
+  book: { properties: { title: { description: 'Title', type: 'text' } } },
+  empty: { properties: {} },
+};
 
 /** The YAML between a block's fences. */
 const bodyOf = (block: string) => block.split('\n').slice(1, -1).join('\n');
@@ -49,19 +69,32 @@ describe('buildObjectTemplate', () => {
   });
 });
 
-describe('objectTemplate', () => {
-  it('builds the person block', () => {
-    expect(objectTemplate('person')?.text).toBe(PERSON_BLOCK);
+describe('userObjectTemplate', () => {
+  it('builds the type line plus every property name, in definition order, with blank values', () => {
+    expect(userObjectTemplate(TYPE_DEFS, 'person')?.text).toBe(PERSON_BLOCK);
+    expect(userObjectTemplate(TYPE_DEFS, 'book')?.text).toBe('```yaml\ntype: book\ntitle: \n```');
   });
 
-  it('returns null for an unregistered type', () => {
-    expect(objectTemplate('gadget')).toBeNull();
-    expect(objectTemplate('toString')).toBeNull();
+  it('leaves out property descriptions and property types', () => {
+    const text = userObjectTemplate(TYPE_DEFS, 'person')!.text;
+    expect(text).not.toContain('description');
+    expect(text).not.toContain('the name');
+    // Every property line is just `key: ` — no value, no property type.
+    const propertyLines = bodyOf(text).split('\n').slice(1);
+    expect(propertyLines.every((line) => /^\w+: $/.test(line))).toBe(true);
   });
 
-  it('offers every registered type in the menu, each with a template', () => {
-    expect(OBJECT_TYPE_OPTIONS).toEqual([{ type: 'person', label: 'Person' }]);
-    for (const { type } of OBJECT_TYPE_OPTIONS) expect(objectTemplate(type)).not.toBeNull();
+  it('puts the cursor on the first property, or the type line when there are none', () => {
+    const person = userObjectTemplate(TYPE_DEFS, 'person')!;
+    expect(person.text.slice(0, person.cursorOffset)).toBe('```yaml\ntype: person\nname: ');
+    const empty = userObjectTemplate(TYPE_DEFS, 'empty')!;
+    expect(empty.text.slice(0, empty.cursorOffset)).toBe('```yaml\ntype: empty');
+  });
+
+  it('returns null for an undefined type', () => {
+    expect(userObjectTemplate(TYPE_DEFS, 'gadget')).toBeNull();
+    expect(userObjectTemplate(TYPE_DEFS, 'toString')).toBeNull();
+    expect(userObjectTemplate({}, 'person')).toBeNull();
   });
 
   it('produces a block that is recognized as its type', () => {
@@ -73,6 +106,21 @@ describe('objectTemplate', () => {
     expect(resolveObjectBlock('yaml', bodyOf(PERSON_BLOCK))?.kind).toBe('invalid');
     const filled = bodyOf(PERSON_BLOCK).replace('name: ', 'name: Clay');
     expect(resolveObjectBlock('yaml', filled)?.kind).toBe('object');
+  });
+});
+
+describe('objectTypeOptions', () => {
+  it('labels each type with its description (or its name when it has none), sorted by label', () => {
+    expect(objectTypeOptions(TYPE_DEFS)).toEqual([
+      { type: 'person', label: 'A contact' },
+      { type: 'book', label: 'book' },
+      { type: 'empty', label: 'empty' },
+    ]);
+    for (const { type } of objectTypeOptions(TYPE_DEFS)) expect(userObjectTemplate(TYPE_DEFS, type)).not.toBeNull();
+  });
+
+  it('is empty when no types are defined', () => {
+    expect(objectTypeOptions({})).toEqual([]);
   });
 });
 
@@ -158,7 +206,7 @@ describe('objectInsertion', () => {
 // The context menu
 // ---------------------------------------------------------------------------
 
-function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean): string {
+function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: TypeDefinitions = TYPE_DEFS): string {
   const noop = () => {};
   return renderToStaticMarkup(createElement(EditorContextMenu, {
     contextMenu,
@@ -173,7 +221,7 @@ function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean): string 
     onInsertDate: noop,
     onOpenInsertObject: noop,
     onInsertObject: noop,
-    objectTypes: OBJECT_TYPE_OPTIONS,
+    objectTypes: objectTypeOptions(defs),
     onToggleThesaurus: noop,
     canToggleThesaurus: false,
     thesaurusEnabled: false,
@@ -194,11 +242,17 @@ describe('EditorContextMenu — Insert Object', () => {
     expect(renderMenu({ visible: true, x: 0, y: 0 }, false)).not.toContain('Insert Object');
   });
 
+  it('does not offer it when no types are defined', () => {
+    expect(renderMenu({ visible: true, x: 0, y: 0 }, true, {})).not.toContain('Insert Object');
+  });
+
   it('lists the object types, and nothing else, once Insert Object is clicked', () => {
     const html = renderMenu({ visible: true, x: 0, y: 0, submenu: 'insertObject' }, true);
     expect(html).toContain('data-testid="editor-insert-object-menu"');
     expect(html).toContain('data-testid="editor-insert-object-person"');
-    expect(html).toContain('>Person<');
+    expect(html).toContain('data-testid="editor-insert-object-book"');
+    expect(html).toContain('>A contact<');
+    expect(html).toContain('title="person"');
     expect(html).not.toContain('Insert Timestamp');
     expect(html).not.toContain('Cut');
   });

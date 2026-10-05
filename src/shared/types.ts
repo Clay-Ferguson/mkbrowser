@@ -12,6 +12,7 @@ import type {
   Bookmark,
   AppSettings,
   FileEntry,
+  TypeDefinitions,
 } from './shared';
 
 /**
@@ -597,6 +598,13 @@ export interface AppState {
    * Holds only the word — the synonym lookup is the pane's own concern. Not persisted.
    */
   thesaurusWord: string | null;
+
+  /**
+   * Renderer mirror of the user-defined object types (`AppConfig.types`), keyed by type
+   * name. Seeded by `loadConfig` and replaced after each Types Editor save; read by the
+   * editor's "Insert Object" menu. See `store/objectTypes.ts`.
+   */
+  typeDefs: TypeDefinitions;
 
   /**
    * Back/Forward navigation history: absolute paths of the files the user has

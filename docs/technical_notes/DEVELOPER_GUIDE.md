@@ -683,7 +683,8 @@ Malformed YAML is silently "not an object" rather than an error — a code block
 |---|---|
 | `src/shared/objects/objectBlock.ts` | Pure, React-free. `parseObjectBlock(language, code)` does checks 1–3; `readTextFields(data, keys)` reads optional text fields off the parsed mapping; `buildObjectTemplate(type, fields)` builds an empty block. |
 | `src/shared/objects/<type>.ts` | One file per type: its name, label, field list, data type, and `parse` (e.g. `person.ts` → `parsePerson`). Also pure. |
-| `src/components/objects/objectRegistry.tsx` | The `OBJECT_TYPES` map (`type` → label, fields, parse, component) and `resolveObjectBlock(language, code)`, which returns `{kind: 'object', element}`, `{kind: 'invalid', error}`, or `null`. Also `OBJECT_TYPE_OPTIONS` and `objectTemplate(type)` for the editor's Insert Object menu. |
+| `src/components/objects/objectRegistry.tsx` | The `OBJECT_TYPES` map (`type` → fields, parse, component) and `resolveObjectBlock(language, code)`, which returns `{kind: 'object', element}`, `{kind: 'invalid', error}`, or `null`. |
+| `src/shared/objects/userTypes.ts` | `objectTypeOptions(defs)` and `userObjectTemplate(defs, type)` — the editor's Insert Object menu and the block it inserts, built from the user-defined types (`types:` config, mirrored in the store as `typeDefs`). |
 | `src/components/objects/ObjectBlock.tsx` | The shared card frame (border, type caption, `ErrorBoundary`), and `InvalidObjectHint`. |
 | `src/components/objects/<Type>Object.tsx` | The type's card body (e.g. `PersonObject.tsx`). |
 | `src/components/CustomPre.tsx` | The one call site: calls `resolveObjectBlock` and picks the card, the code block + hint, or the code block. |
@@ -701,18 +702,18 @@ Points worth knowing before changing any of it:
 
 1. **Shape** — add `src/shared/objects/<type>.ts` exporting the `type` name, a display label, the field list, the data type, and a `parse(data): ObjectParseResult<T>`. Use `readTextFields` for text fields; return `{ ok: false, error }` where `error` completes the sentence "Invalid \<type\>: …".
 2. **Component** — add `src/components/objects/<Type>Object.tsx`, a module-level component taking `{ data: T }`. It renders only the card *body*; `ObjectBlock` supplies the frame.
-3. **Register** — add one `[TYPE, defineObjectType({ label, fields, parse, Component })]` entry to `OBJECT_TYPES` in `objectRegistry.tsx`. That alone puts the type in the editor's Insert Object menu, with a template built from `fields`.
+3. **Register** — add one `[TYPE, defineObjectType({ fields, parse, Component })]` entry to `OBJECT_TYPES` in `objectRegistry.tsx`. This does **not** add it to the editor's Insert Object menu — that menu lists the user-defined types from the Types Editor, so define a type of the same name there to make it insertable.
 4. **Test** — cover the shape in `tests/objectBlock.test.ts` (or a sibling file) and add a registry case to `tests/objectRegistry.test.ts`.
 5. **Check** — `node compiler-coverage.mjs src/components/objects/<Type>Object.tsx` must report all `OK`.
 
-Nothing else changes: `CustomPre`, `ObjectBlock`, the detection code, and the editor's Insert Object menu and unknown-property underlines are type-agnostic — the last two are driven by the type's `fields`.
+Nothing else changes: `CustomPre`, `ObjectBlock`, the detection code, and the unknown-property underlines are type-agnostic — the underlines are driven by the type's `fields`.
 
 ### Editing objects
 
 Objects are edited as plain YAML in CodeMirror — there is no form editor (see below). Three things make that comfortable:
 
 - **YAML colours in fenced blocks.** `markdown({ codeLanguages: fencedCodeLanguage })` (`src/renderer/editor/editorCodeLanguages.ts`) parses `yaml`/`yml` fences as YAML, so keys and values are coloured apart. This applies to every YAML fence, not just object blocks.
-- **Insert Object.** The editor's context menu (Markdown files only) has an "Insert Object" item. Clicking it does not act directly: it sets `contextMenu.submenu`, and `EditorContextMenu` re-renders the same floating menu as the list of `OBJECT_TYPE_OPTIONS`. Picking a type dispatches `objectInsertion(state, template)` (`src/renderer/editor/editorObjectUtil.ts`), which inserts the type's empty block at the cursor — padded with line breaks so the fence stands on its own lines with a blank line either side — and leaves the cursor on the first field's value.
+- **Insert Object.** The editor's context menu (Markdown files only) has an "Insert Object" item. Clicking it does not act directly: it sets `contextMenu.submenu`, and `EditorContextMenu` re-renders the same floating menu as the list of user-defined types (`objectTypeOptions(typeDefs)`, each item labelled with the type's description — or its name when it has none — and sorted by that label, with the type name as the tooltip; the item is hidden when no types are defined). Picking a type dispatches `objectInsertion(state, userObjectTemplate(typeDefs, type))` (`src/renderer/editor/editorObjectUtil.ts`), which inserts the type's empty block — `type: <name>` plus every property name with a blank value, without descriptions or property types — at the cursor — padded with line breaks so the fence stands on its own lines with a blank line either side — and leaves the cursor on the first field's value.
 
 - **Unknown-property underlines.** `objectKeyPlugin` (`src/components/editor/objectKeyChecker.ts`) puts an amber wavy underline, with a tooltip, under any key in a registered object block that the type's `fields` don't include — the typo case (`nmae`), which the card would otherwise drop without a word. It walks the Markdown syntax tree for `FencedCode` nodes in the viewport and asks `unknownObjectKeys(language, code)` in the registry. Which keys a block *has* comes from the real YAML parse; `findTopLevelKeys` only locates them by line, so a line it misreads can at worst go unreported. A block whose YAML doesn't currently parse (mid-typing) is simply not flagged.
 
