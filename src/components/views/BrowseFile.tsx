@@ -58,14 +58,14 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
  * contents. It is plain, non-interactive text — it replaced a "Browse Folder"
  * link that the clickable breadcrumb made redundant.
  *
- * That header — breadcrumb and badge both — is **hidden once the editor is
- * maximized** over the pane (`editorMaximized`), which in this view means any
- * edit session. The rule is about the maximized editor specifically, not
- * editing in general: the folder listing's inline editor keeps BrowseView's own
- * header and never renders through this component. A maximized editor should
- * own the pane outright, and neither half of that row is for someone with a
- * cursor in a document — one offers to navigate away mid-edit, the other
- * answers a question about missing files that an editor is not asking.
+ * The breadcrumb stays visible **even while the editor is maximized** over the
+ * pane: with nothing else on screen but the editor, it is how the user confirms
+ * which file they are editing, and where. Only the badge is **hidden once the
+ * editor is maximized** (`editorMaximized`), which in this view means any edit
+ * session — it answers a question about missing files that someone with a
+ * cursor in a document is not asking. The rule is about the maximized editor
+ * specifically, not editing in general: the folder listing's inline editor
+ * keeps BrowseView's own header and never renders through this component.
  *
  * Editing is always maximized here, but for one of two reasons, which
  * `browseFileMode` tells apart:
@@ -118,7 +118,7 @@ function BrowseFile() {
   // Is this view's one file open for editing? Drives the maximized layout
   // (editing here is ALWAYS expanded — the entry already owns the whole pane, so
   // a non-expanded editor would just waste it), hides the attachments strip, and
-  // feeds `editorMaximized` below, which hides the header row.
+  // feeds `editorMaximized` below, which hides the header's badge.
   // Scoped to this view's one entry, never to a "something in the store is
   // editing" scan: the items map is global and long-lived, so such a scan goes
   // stale the moment the user navigates elsewhere with a file still open for
@@ -156,7 +156,7 @@ function BrowseFile() {
   }, [pendingHeadingSlug, isCurrentEntry]);
 
   // Is the editor currently maximized over the whole pane? This — not editing in
-  // general — is what hides the header. Mirrors the entries' own `maximized`
+  // general — is what hides the header's badge. Mirrors the entries' own `maximized`
   // (`(settings.expandedEditor || alwaysExpandedEditor) && isEditing`, in
   // useEditorChrome) rather than assuming it, so the two cannot
   // drift. In practice it equals `editing` here, since 'browse' mode forces
@@ -227,15 +227,14 @@ function BrowseFile() {
           header has, and outside the scroll container so it stays put while the
           file scrolls.
 
-          The whole row is hidden once the editor is MAXIMIZED over the pane,
-          badge included — that is the specific case, not editing as such (the
-          listing's inline editor keeps BrowseView's header, and never reaches
-          this component). A maximized editor should own the pane outright, and
-          both halves of this header are aimed at a reader rather than an
-          editor: navigating away mid-edit is not an offer to make, and
-          "Listing Hidden" answers a question ("where are my other files?") that
-          nobody is asking with a cursor in a document. What is left is the
-          editor and nothing above it.
+          The breadcrumb is shown ALWAYS, including while the editor is
+          MAXIMIZED over the pane: with the editor owning everything else, the
+          path trail is how the user confirms they are editing the right file
+          in the right place. Only the badge is hidden while maximized (the
+          specific case, not editing as such — the listing's inline editor keeps
+          BrowseView's header, and never reaches this component): "Listing
+          Hidden" answers a question ("where are my other files?") that nobody
+          is asking with a cursor in a document.
 
           While reading, the breadcrumb is the only interactive thing up here.
           Clicking any segment leaves single-file mode for that folder's
@@ -254,16 +253,16 @@ function BrowseFile() {
           `whitespace-nowrap` keeps "Listing Hidden" on one line: the header is
           `flex-wrap` (for narrow panes and deep paths), and without it the badge
           is the thing that breaks, stacking "Hidden" under "Listing". */}
-      {!editorMaximized && (
-        <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
-          <div data-testid="browse-file-breadcrumbs" className="flex items-center gap-3 min-w-0">
-            <PathBreadcrumb
-              rootPath={rootPath}
-              currentPath={currentPath}
-              onNavigate={handleBreadcrumbNavigate}
-            />
-          </div>
+      <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
+        <div data-testid="browse-file-breadcrumbs" className="flex items-center gap-3 min-w-0">
+          <PathBreadcrumb
+            rootPath={rootPath}
+            currentPath={currentPath}
+            onNavigate={handleBreadcrumbNavigate}
+          />
+        </div>
 
+        {!editorMaximized && (
           <div className="flex-1 flex items-center justify-end">
             <span
               data-testid="listing-hidden-indicator"
@@ -273,8 +272,8 @@ function BrowseFile() {
               Listing Hidden
             </span>
           </div>
-        </header>
-      )}
+        )}
+      </header>
 
       {/* The flexPane class chain converts this into a nested flex column so a
           maximized CodeMirror fills the pane and owns the only scrollbar — the

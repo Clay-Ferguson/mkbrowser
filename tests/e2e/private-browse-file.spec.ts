@@ -171,13 +171,11 @@ Over on the right, "Listing Hidden" reminds you that you're looking at one file 
     const saveButton = mainWindow.getByTestId('entry-save-button');
     await expect(saveButton).toBeVisible({ timeout: 10000 });
 
-    // The whole header row goes away once the maximized editor takes the pane —
-    // breadcrumb and badge both. Asserted as two separate absences because they
-    // are two elements inside one conditional: a refactor that splits them
-    // could plausibly drop one guard and keep the other.
+    // Once the maximized editor takes the pane the badge goes away, but the
+    // breadcrumb stays — it is how the user confirms which file is being edited.
     await expect(listingHidden).toHaveCount(0);
-    await expect(mainWindow.getByTestId('browse-file-breadcrumbs')).toHaveCount(0);
-    await expect(mainWindow.getByTestId('path-breadcrumb')).toHaveCount(0);
+    await expect(mainWindow.getByTestId('browse-file-breadcrumbs')).toBeVisible();
+    await expect(mainWindow.getByTestId('path-breadcrumb')).toBeVisible();
 
     const editorContent = single.locator('.cm-content');
     await editorContent.click();
@@ -212,7 +210,7 @@ We've typed a new line at the end. Let's save it.`
       screenshotDir,
       step++,
       `The editor fills the whole pane automatically — single-file mode is always expanded, so there's no expand/collapse button to bother with.
-Notice the breadcrumb path and the "Listing Hidden" note have stepped aside as well: while you're editing, the editor gets the whole pane.`
+The breadcrumb path stays at the top so you can confirm which file you're editing; only the "Listing Hidden" note steps aside.`
     );
 
     await demoClick(saveButton);
@@ -223,7 +221,7 @@ Notice the breadcrumb path and the "Listing Hidden" note have stepped aside as w
       expect(onDisk).toContain('Edited in single-file mode.');
     }).toPass({ timeout: 10000 });
 
-    // Editing over, the header is back — the hiding is tied to the editor being
+    // Editing over, the badge is back — the hiding is tied to the editor being
     // up, not to some state the edit leaves behind.
     await expect(listingHidden).toBeVisible({ timeout: 10000 });
     await expect(mainWindow.getByTestId('browse-file-breadcrumbs')).toBeVisible();
