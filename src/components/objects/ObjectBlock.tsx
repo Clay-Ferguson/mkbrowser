@@ -8,6 +8,8 @@ interface ObjectBlockProps {
   source: string;
   /** The card body (`GenericObject`), already bound to its validated data. */
   children: ReactNode;
+  /** Opens the editor at the block's source line (see useBlockEditClick). */
+  onMouseUp: (e: React.MouseEvent) => void;
 }
 
 /**
@@ -15,12 +17,13 @@ interface ObjectBlockProps {
  * caption line across the top, above the card body. `not-prose` keeps the Typography plugin's article
  * styles (paragraph margins, link colours, …) out of the card, so the body styles itself.
  *
- * Deliberately has no mouse handlers: a click falls through to the entry's content area, which
- * opens the editor exactly as a click on an ordinary code block does.
+ * A click (other than on a link) opens the editor with the cursor on the block's opening fence,
+ * the same way a click on a paragraph or heading does.
  */
-export default function ObjectBlock({ type, source, children }: ObjectBlockProps) {
+export default function ObjectBlock({ type, source, children, onMouseUp }: ObjectBlockProps) {
   return (
     <div
+      onMouseUp={onMouseUp}
       data-testid="object-block"
       data-object-type={type}
       className="not-prose mb-4 w-fit max-w-full min-w-64 rounded-md border border-slate-600 bg-slate-700/50 px-4 pt-2 pb-3 text-slate-200"

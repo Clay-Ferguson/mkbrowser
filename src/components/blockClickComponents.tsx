@@ -20,16 +20,14 @@ type BlockTag = 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'blockquote' | '
 type BlockProps<Tag extends BlockTag> = React.JSX.IntrinsicElements[Tag] & ExtraProps;
 
 /**
- * Renders `tag` with a mouseup handler that opens the editor at the block's
- * source line. The per-tag components below are thin top-level wrappers around
- * this (rather than products of a factory) so the React Compiler compiles them.
+ * Returns a mouseup handler that opens the editor at `line` (the source line within the current
+ * column; the column's offset is added here). Shared by the block elements below and by
+ * CustomPre's object-block cards, so every click-to-edit target applies the same guards.
  */
-function BlockElement<Tag extends BlockTag>({ tag, node, children, ...props }: BlockProps<Tag> & { tag: Tag }) {
-  const Component = tag as React.ElementType;
+export function useBlockEditClick(line: number) {
   const { onEditClick, lineOffset } = useContext(BlockClickContext);
-  const line: number = node?.position?.start.line ?? 0;
 
-  const handleMouseUp = (e: React.MouseEvent) => {
+  return (e: React.MouseEvent) => {
     // Only the left button initiates editing; right-click must fall through
     // so the native context menu (Copy, etc.) can appear.
     if (e.button !== 0) return;
@@ -49,7 +47,16 @@ function BlockElement<Tag extends BlockTag>({ tag, node, children, ...props }: B
     e.stopPropagation();
     void onEditClick(line + lineOffset);
   };
+}
 
+/**
+ * Renders `tag` with a mouseup handler that opens the editor at the block's
+ * source line. The per-tag components below are thin top-level wrappers around
+ * this (rather than products of a factory) so the React Compiler compiles them.
+ */
+function BlockElement<Tag extends BlockTag>({ tag, node, children, ...props }: BlockProps<Tag> & { tag: Tag }) {
+  const Component = tag as React.ElementType;
+  const handleMouseUp = useBlockEditClick(node?.position?.start.line ?? 0);
   return <Component {...props} onMouseUp={handleMouseUp}>{children}</Component>;
 }
 

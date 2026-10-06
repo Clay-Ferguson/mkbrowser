@@ -8,6 +8,7 @@ import { resolveObjectBlock } from '../shared/objects/genericObject';
 import { useAS } from '../store';
 import ObjectBlock, { InvalidObjectHint } from './objects/ObjectBlock';
 import GenericObject from './objects/GenericObject';
+import { useBlockEditClick } from './blockClickComponents';
 
 /**
  * Custom <pre> renderer for react-markdown that adds a copy-to-clipboard button.
@@ -33,6 +34,9 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
   // the earlier click's timer cutting it short) and so unmount cancels it.
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(copiedTimerRef.current), []);
+  // Object cards open the editor at their own fence line rather than falling through to the
+  // entry's generic click-to-edit (which has no line to go to).
+  const handleObjectMouseUp = useBlockEditClick(node?.position?.start.line ?? 0);
 
   const codeElement = children as React.ReactElement;
   const codeProps = codeElement?.props as { className?: string; children?: React.ReactNode } | undefined;
@@ -82,7 +86,7 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
 
   if (objectBlock?.kind === 'object') {
     return (
-      <ObjectBlock type={objectBlock.type} source={codeText}>
+      <ObjectBlock type={objectBlock.type} source={codeText} onMouseUp={handleObjectMouseUp}>
         <GenericObject type={objectBlock.type} data={objectBlock.data} />
       </ObjectBlock>
     );
