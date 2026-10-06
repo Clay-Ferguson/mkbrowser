@@ -10,6 +10,8 @@ import { toggleBookmark, isBookmarked, removeBookmark, updateBookmarkName, setBo
 import {
   MENU_ROW,
   MENU_ICON_BTN,
+  MENU_ICON_BTN_EDIT,
+  MENU_ICON_BTN_DELETE,
   MENU_ROW_LABEL,
   MENU_ROW_ACTIONS,
   MENU_ROW_ICON,
@@ -137,7 +139,7 @@ export default function BookmarksPopupMenu({
                 <div className={`${MENU_ROW_ACTIONS} ml-4`}>
                   <button
                     type="button"
-                    className={`${MENU_ICON_BTN} hover:text-btn-ghost-hover`}
+                    className={`${MENU_ICON_BTN} ${MENU_ICON_BTN_EDIT}`}
                     title="Edit bookmark"
                     onClick={(e) => { e.stopPropagation(); setEditingBookmark(bookmark); }}
                     data-testid={`bookmark-edit-button-${name}`}
@@ -146,7 +148,7 @@ export default function BookmarksPopupMenu({
                   </button>
                   <button
                     type="button"
-                    className={`${MENU_ICON_BTN} hover:text-btn-accent-red`}
+                    className={`${MENU_ICON_BTN} ${MENU_ICON_BTN_DELETE}`}
                     title="Delete bookmark"
                     onClick={(e) => { e.stopPropagation(); handleDelete(fullPath); }}
                     data-testid={`bookmark-delete-button-${name}`}

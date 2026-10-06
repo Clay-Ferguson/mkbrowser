@@ -358,15 +358,23 @@ export const MENU_ITEM_ENABLED = 'text-btn-neutral-fg hover:bg-btn-menu-hover cu
 export const MENU_ITEM_DISABLED = 'text-btn-label-off cursor-not-allowed';
 export const MENU_DIVIDER      = 'border-t border-slate-500 my-1';
 // Row with inline action buttons revealed on hover (e.g. bookmark rows)
-export const MENU_ROW          = 'flex items-center gap-1 px-2 py-2 rounded hover:bg-btn-menu-hover group';
-export const MENU_ICON_BTN     = `p-1 rounded text-btn-ghost hover:bg-btn-menu-icon-hover cursor-pointer ${ICON_HOVER_FRAME}`;
+// py-1 (not py-2): the 32px MENU_ICON_BTN sets the row height, keeping rows at 40px
+export const MENU_ROW          = 'flex items-center gap-1 px-1.5 py-1 rounded hover:bg-btn-menu-hover group';
+// Standard icon-button hover (GHOST: gray fill + frame), sized like the action-bar
+// buttons: 18px icon + p-1.5 + 1px frame = 32px square.
+export const MENU_ICON_BTN     = `${BTN} ${SIZE_ICON} rounded ${GHOST}`;
+// Hovered glyph colors for MENU_ICON_BTN, matching BUTTON_CLASS_NORMAL / _RED
+export const MENU_ICON_BTN_EDIT   = 'hover:text-btn-ghost-hover';
+export const MENU_ICON_BTN_DELETE = 'hover:text-btn-accent-red';
 // Primary clickable label within a MENU_ROW (icon + truncated text)
 export const MENU_ROW_LABEL    = 'flex items-center gap-2 flex-1 text-left text-sm text-btn-neutral-fg cursor-pointer min-w-0';
 // Action button cluster revealed on row hover (sits beside MENU_ROW_LABEL)
 export const MENU_ROW_ACTIONS  = 'flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity pl-2';
 // Icon sizing inside menu rows
-export const MENU_ROW_ICON     = 'w-4 h-4 flex-shrink-0';
-export const MENU_ACTION_ICON  = 'w-3.5 h-3.5';
+// ml-1.5: with MENU_ROW's 6px padding this puts the glyph ~12px from the left edge,
+// matching the trash glyph's 13px (6px row + 1px frame + 6px button padding) on the right
+export const MENU_ROW_ICON     = 'w-4 h-4 flex-shrink-0 ml-1.5';
+export const MENU_ACTION_ICON  = 'w-4.5 h-4.5';
 // Folder vs. file icon colors used in menu rows
 export const MENU_FOLDER_ICON  = 'text-btn-accent-amber';
 export const MENU_FILE_ICON    = 'text-btn-accent-blue';
