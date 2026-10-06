@@ -34,9 +34,9 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
   // the earlier click's timer cutting it short) and so unmount cancels it.
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(copiedTimerRef.current), []);
-  // Object cards open the editor at their own fence line rather than falling through to the
-  // entry's generic click-to-edit (which has no line to go to).
-  const handleObjectMouseUp = useBlockEditClick(node?.position?.start.line ?? 0);
+  // Object cards open the editor at their first property line (the one after the opening
+  // fence) rather than falling through to the entry's generic click-to-edit (which has no line).
+  const handleObjectMouseUp = useBlockEditClick((node?.position?.start.line ?? 0) + 2);
 
   const codeElement = children as React.ReactElement;
   const codeProps = codeElement?.props as { className?: string; children?: React.ReactNode } | undefined;

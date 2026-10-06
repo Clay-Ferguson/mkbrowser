@@ -17,7 +17,7 @@ interface ObjectBlockProps {
  * caption line across the top, above the card body. `not-prose` keeps the Typography plugin's article
  * styles (paragraph margins, link colours, …) out of the card, so the body styles itself.
  *
- * A click (other than on a link) opens the editor with the cursor on the block's opening fence,
+ * A click (other than on a link) opens the editor with the cursor on the block's first property line,
  * the same way a click on a paragraph or heading does.
  */
 export default function ObjectBlock({ type, source, children, onMouseUp }: ObjectBlockProps) {
