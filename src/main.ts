@@ -20,7 +20,8 @@ import { createExclusiveSearchRunner, SearchCancelledError } from './main/search
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './main/folderAnalysis';
 import { loadCalendarEvents, loadCalendarEventsForFiles, type CalendarEventResult } from './main/calendarLoader';
 import { startCalendarWatcher, stopCalendarWatcher } from './main/calendarWatcher';
-import { scanFolderTree, type FolderGraphResult } from './main/folderGraph';
+import { scanFolderTree, type FolderGraphLinkData, type FolderGraphResult } from './main/folderGraph';
+import { scanFolderGraphLinks } from './main/folderGraphLinks';
 import { loadTags } from './main/tagLoader';
 import { lookupThesaurus } from './main/thesaurusUtil';
 import type { TagCategory } from './shared/tagUtil';
@@ -770,6 +771,17 @@ function setupIpcHandlers(): void {
       // Propagate so the renderer can surface the reason (e.g. the graph
       // exceeds the node cap even with files excluded) rather than silently
       // showing an empty graph.
+      throw error;
+    }
+  });
+
+  // Read the folder graph's Markdown files for their file-to-file links (the
+  // graph view's "Links" toggle). Runs separately from the tree scan.
+  ipcMain.handle('scan-folder-graph-links', async (_event, folderPath: string, nodeIds: string[]): Promise<FolderGraphLinkData[]> => {
+    try {
+      return await scanFolderGraphLinks(folderPath, nodeIds);
+    } catch (error) {
+      logger.error('Error scanning folder graph links:', error);
       throw error;
     }
   });

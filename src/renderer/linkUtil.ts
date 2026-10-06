@@ -1,19 +1,8 @@
 import { getParentPath, isAbsolutePath, pathSep, splitPath, splitPathSegments } from './pathUtil';
 
-/**
- * Decode a percent-encoded markdown URL back into a filesystem path.
- * Markdown links encode spaces and other special characters (e.g. `%20`),
- * but the on-disk path uses the literal characters, so the URL must be
- * decoded before it can be resolved against the file system. Falls back to
- * the original string if it is not validly encoded.
- */
-export function decodeMarkdownUrl(url: string): string {
-  try {
-    return decodeURIComponent(url);
-  } catch {
-    return url;
-  }
-}
+// Pure link-syntax helpers live in shared/ so the main process can use them too
+// (the folder graph's link scan); re-exported so renderer call sites import them from here.
+export { decodeMarkdownUrl, splitHeadingFragment } from '../shared/markdownLinks';
 
 /**
  * Resolve a decoded markdown link destination to a filesystem path. An absolute
@@ -156,20 +145,6 @@ export function formatLinkDestination(relPath: string): string {
  */
 export function formatLinkTitle(text: string): string {
   return `"${text.replace(/["\\]/g, '\\$&')}"`;
-}
-
-/**
- * Split a (still encoded) Markdown link destination into the file part and a
- * heading fragment: `../a/README.md#requirements` → `{ path: '../a/README.md',
- * fragment: 'requirements' }`. Only a `#` directly after a `.md` file name counts —
- * file names may themselves contain `#` (`formatLinkDestination` leaves a non-leading
- * one literal), so splitting on any `#` would break links to such files. The fragment
- * is a heading slug (see `appendLinkFragment`); null when there is none.
- */
-export function splitHeadingFragment(dest: string): { path: string; fragment: string | null } {
-  const match = /^(.*?\.md)#([^#/]*)$/i.exec(dest);
-  if (!match) return { path: dest, fragment: null };
-  return { path: match[1]!, fragment: match[2] || null };
 }
 
 /**

@@ -499,6 +499,17 @@ export interface AppState {
   folderGraph: FolderGraphState | null;
 
   /**
+   * File-to-file link edges (a Markdown file -> each graph node it links to) for
+   * the current `folderGraph`. Null until the link scan has run for this graph;
+   * reset to null whenever `folderGraph` is replaced. Kept apart from
+   * `folderGraph` so loading them never re-runs the graph layout.
+   */
+  folderGraphFileLinks: FolderGraphLink[] | null;
+
+  /** Whether the Folder Graph view draws file-to-file links (session only, off by default). */
+  showGraphFileLinks: boolean;
+
+  /**
    * Root node of the IndexTree sidebar.
    * Null until the tree has been initialized for a root path.
    */

@@ -486,6 +486,8 @@ export interface ElectronAPI {
   loadCalendarEventsForFiles: (filePaths: string[]) => Promise<CalendarEventResult[]>;
   /** Scans `folderPath` for the folder graph; `markdownOnly` limits files to `.md` and prunes folders without any. */
   scanFolderTree: (folderPath: string, markdownOnly?: boolean) => Promise<FolderGraphScanResult>;
+  /** Reads the graph's Markdown files and returns their links to other graph nodes (source -> target). */
+  scanFolderGraphLinks: (folderPath: string, nodeIds: string[]) => Promise<Array<{ source: string; target: string }>>;
   loadTags: () => Promise<TagCategory[]>;
   saveTags: (yamlContent: string) => Promise<void>;
   setWindowTitle: (title: string) => Promise<void>;

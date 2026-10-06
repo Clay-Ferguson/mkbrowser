@@ -114,6 +114,8 @@ const initialState: AppState = {
   highlightedSearchResult: null,
   folderAnalysis: null,
   folderGraph: null,
+  folderGraphFileLinks: null,
+  showGraphFileLinks: false,
   pendingThreadScrollToBottom: false,
   rootPath: '',
   visibleTabs: new Set<AppState['currentView']>(['browser']),

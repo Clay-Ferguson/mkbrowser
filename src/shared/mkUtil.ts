@@ -8,7 +8,7 @@
  * another backtick is not a fence (it is inline code, e.g. "```x``` text"), hence the lookahead.
  * The closing fence must use the same character and be at least as long as the opening one.
  */
-const FENCED_BLOCK =
+export const FENCED_BLOCK =
   /^[ \t>]*(?<fence>(?<fenceChar>[`~])\k<fenceChar>{2,})(?:(?<=~)|(?![^\n]*`))[^\n]*(?:\n[\s\S]*?)?(?:\n[ \t>]*\k<fence>\k<fenceChar>*[ \t]*$|(?![\s\S]))/;
 
 /**

@@ -11,7 +11,8 @@ import { api } from './api';
 import { runOp } from './runOp';
 import { refreshDirectory } from './directoryLoader';
 import { buildReplaceResultMessage } from '../shared/searchHelpers';
-import { setAppError, setCurrentView, setFolderAnalysis, setFolderGraph } from '../store';
+import { setAppError, setCurrentView, setFolderAnalysis, setFolderGraph, setFolderGraphFileLinks, useAS } from '../store';
+import type { FolderGraphState } from '../store';
 import type { ExportOptions } from '../components/dialogs/ExportDialog';
 
 /**
@@ -56,6 +57,19 @@ export function showFolderGraph(folderPath: string, markdownOnly = false): void 
     });
     setCurrentView('folder-graph');
   }, 'Failed to scan folder graph: ');
+}
+
+/**
+ * Scans `graph`'s Markdown files for links to other graph nodes and stores the
+ * edges for the Folder Graph view's file-link overlay. Dropped if the graph was
+ * replaced (a new scan) while this one ran, since the edges belong to `graph`.
+ */
+export function loadFolderGraphFileLinks(graph: FolderGraphState): void {
+  runOp(async () => {
+    const links = await api.scanFolderGraphLinks(graph.folderPath, graph.nodes.map(n => n.id));
+    if (useAS.getState().folderGraph !== graph) return;
+    setFolderGraphFileLinks(links);
+  }, 'Failed to scan folder graph links: ');
 }
 
 /**

@@ -917,9 +917,14 @@ The graph reflects a snapshot of the folder at scan time. To refresh it (or to v
 
 ## Reading the Graph
 
-- **Folders** are colored circles. Larger circles indicate folders with more direct children, and the color shifts with depth (cyan at the top, transitioning through blue and violet to warmer tones the deeper you go).
-- **Files** are smaller slate-gray circles.
-- **Labels** show the name of each item (long names are truncated). Hover over any node to see its full path as a tooltip.
+- **The root folder** (the one you graphed) is red.
+- **Folders** are orange. Larger circles indicate folders with more direct children.
+- **Files** are smaller circles: blue for Markdown files, light gray for everything else.
+- The currently highlighted item (for example, the one you last clicked) is purple, with a bold label.
+- **Labels** show the name of each item. Hover over a node to see its path relative to the root as a tooltip. For Markdown and text files, the tooltip shows a short preview of the file's opening lines instead.
+- **Hovering** a node turns the lines from it up to the root red. Hovering a folder also turns its direct children green.
+
+Check the pink **Links** box in the graph's header to also draw arrows from each Markdown file to the files and folders it links to (both regular links and `[[wikilinks]]`). These arrows only show connections. They don't change the layout. Hovering a node brightens its own link arrows. Links are off by default because turning them on reads every Markdown file in the graph.
 
 ## Interacting with the Graph
 

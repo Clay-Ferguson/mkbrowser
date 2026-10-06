@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Simulation, ForceCenter } from 'd3-force';
-import { select } from 'd3-selection';
+import { select, type Selection } from 'd3-selection';
 import { drag as d3drag, type D3DragEvent } from 'd3-drag';
 import { zoom as d3zoom, zoomIdentity, type D3ZoomEvent } from 'd3-zoom';
 import { api } from '../../renderer/api';
@@ -20,10 +20,14 @@ import {
   useAS,
   navigateToBrowserPath,
   setHighlightItem,
+  setShowGraphFileLinks,
+  type FolderGraphLink,
 } from '../../store';
+import { loadFolderGraphFileLinks } from '../../renderer/folderToolsOp';
 import { parseFrontMatter } from '../../shared/frontMatterUtil';
 import { getParentPath, ensureTrailingSep } from '../../renderer/pathUtil';
 import { logger } from '../../shared/logUtil';
+import { CHECKBOX_FIELD_CLASS } from '../../renderer/styles';
 
 // Node colors by type, tuned for a dark slate-900 background.
 const COLOR_ROOT = '#ef4444';     // bright red
@@ -33,6 +37,22 @@ const COLOR_OTHER = '#cbd5e1';    // light gray
 const COLOR_HIGHLIGHT = '#a855f7'; // purple
 const COLOR_CONTAINS = '#22c55e'; // green — shown on a folder's children while hovering it
 const COLOR_PATH = '#ef4444';     // red — links from a hovered node up to the root
+const COLOR_FILE_LINK = '#FF69B4'; // hot pink — file-to-file links (a file linking to another node)
+
+// File-link opacity: at rest, while some other node is hovered, and while one of
+// the link's own ends is hovered.
+const FILE_LINK_OPACITY = 0.6;
+const FILE_LINK_OPACITY_DIMMED = 0.15;
+const FILE_LINK_OPACITY_EMPHASIZED = 1;
+
+/** How far a file link's arc bows out, as a fraction of the distance it spans. */
+const FILE_LINK_BEND = 0.15;
+
+/** A drawn file-to-file link, with its ends resolved to the graph's nodes. */
+interface FileLinkDatum {
+  source: SimNode;
+  target: SimNode;
+}
 
 /** Returns the fill color for a graph node based on its type and highlight state. */
 function colorForNode(d: SimNode, highlighted: boolean): string {
@@ -146,6 +166,34 @@ function measureLabelFootprint(this: SVGTextElement, d: SimNode): void {
 }
 
 /**
+ * SVG path for a file-to-file link: a gentle quadratic arc from the source to
+ * the target node. The arc always bows to the left of its direction of travel,
+ * so a pair of files linking to each other draws two distinct arcs rather than
+ * one doubled line, and the curve sets these apart from the straight containment
+ * links. The end is pulled back to the target circle's edge so the arrowhead
+ * (marker-end) lands on the circle instead of under it. Empty until both ends
+ * have positions.
+ */
+function fileLinkPath(d: FileLinkDatum): string {
+  const { source: s, target: t } = d;
+  if (s.x === undefined || s.y === undefined || t.x === undefined || t.y === undefined) return '';
+  const dx = t.x - s.x;
+  const dy = t.y - s.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist === 0) return '';
+  const cx = (s.x + t.x) / 2 - (dy / dist) * dist * FILE_LINK_BEND;
+  const cy = (s.y + t.y) / 2 + (dx / dist) * dist * FILE_LINK_BEND;
+  // The curve arrives at the target heading along (control point -> target).
+  const ex = t.x - cx;
+  const ey = t.y - cy;
+  const elen = Math.hypot(ex, ey) || 1;
+  const pullBack = nodeRadius(t) + 2;
+  const endX = t.x - (ex / elen) * pullBack;
+  const endY = t.y - (ey / elen) * pullBack;
+  return `M${s.x},${s.y}Q${cx},${cy} ${endX},${endY}`;
+}
+
+/**
  * Copies a worker-settled layout (packed [x, y, vx, vy] per node) back onto the
  * node objects the SVG selections are bound to. Module-level (not compiled by
  * the React Compiler): the running offset counter is a mutation the compiler
@@ -169,6 +217,11 @@ function applySettledPositions(nodes: SimNode[], positions: Float64Array): void 
  * direct children, red for the hovered node's ancestor path to root). File nodes
  * show a lazily-loaded content preview in the native SVG tooltip.
  *
+ * The header's "Links" toggle adds an overlay of hot-pink arrowed arcs from
+ * each Markdown file to the nodes it links to. They come from a separate scan
+ * (folderGraphLinks.ts, run only when the toggle is on) and are drawn only,
+ * taking no part in the force layout.
+ *
  * The layout itself lives in graphSim.ts and is computed in graphSimWorker.ts:
  * this component renders the graph, measures label footprints, ships the whole
  * settle to the worker, and takes ownership of the result for drag interaction.
@@ -187,6 +240,12 @@ function FolderGraphView() {
   // Same pattern: written by the graph effect, called by the ResizeObserver so
   // a container resize re-frames the existing graph rather than rebuilding it.
   const resizeGraphRef = useRef<(() => void) | null>(null);
+  // Same pattern: written by the graph effect, called by the file-links effect
+  // below to draw (or, with null, remove) the file-to-file link overlay on the
+  // existing graph, without rebuilding it or re-running the layout.
+  const drawFileLinksRef = useRef<((links: FolderGraphLink[] | null) => void) | null>(null);
+  const showGraphFileLinks = useAS(s => s.showGraphFileLinks);
+  const folderGraphFileLinks = useAS(s => s.folderGraphFileLinks);
   useEffect(() => {
     highlightRef.current = highlightItem;
   });
@@ -271,6 +330,23 @@ function FolderGraphView() {
       .data(simLinks)
       .join('line')
       .attr('stroke-width', 1);
+
+    // File-to-file links get their own layer, between the containment links and
+    // the nodes (so node circles stay on top). Empty until drawFileLinks fills
+    // it; these links are drawn only — they take no part in the force layout.
+    root.append('defs')
+      .append('marker')
+      .attr('id', 'file-link-arrow')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 10)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('fill', COLOR_FILE_LINK);
+    const fileLinkLayer = zoomLayer.append('g').attr('class', 'file-links');
+    let fileLinkSel: Selection<SVGPathElement, FileLinkDatum, SVGGElement, unknown> | null = null;
 
     const nodeSel = zoomLayer.append('g')
       .attr('class', 'nodes')
@@ -396,6 +472,11 @@ function FolderGraphView() {
       linkSel
         .attr('stroke', d => linkColor(d) ?? '#475569')
         .attr('stroke-opacity', d => linkColor(d) !== null ? 1 : 0.7);
+      // File links: emphasize the hovered node's own (in and out), dim the rest.
+      fileLinkSel?.attr('opacity', d => {
+        if (!hovered) return FILE_LINK_OPACITY;
+        return d.source === hovered || d.target === hovered ? FILE_LINK_OPACITY_EMPHASIZED : FILE_LINK_OPACITY_DIMMED;
+      });
     };
 
     nodeSel.on('mouseenter.contains', (_event: MouseEvent, d) => applyHoverHighlight(d));
@@ -411,7 +492,34 @@ function FolderGraphView() {
         .attr('x2', d => (d.target as SimNode).x ?? 0)
         .attr('y2', d => (d.target as SimNode).y ?? 0);
       nodeSel.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`);
+      fileLinkSel?.attr('d', fileLinkPath);
     };
+
+    /**
+     * Draws the file-to-file link overlay from `links` (null removes it). Ends
+     * are resolved to this graph's node objects, so the arcs follow the same
+     * positions the nodes do — tick() keeps them in place through drags.
+     */
+    const nodeById = new Map(simNodes.map(n => [n.id, n]));
+    const drawFileLinks = (links: FolderGraphLink[] | null): void => {
+      const data: FileLinkDatum[] = [];
+      for (const l of links ?? []) {
+        const source = nodeById.get(l.source);
+        const target = nodeById.get(l.target);
+        if (source && target) data.push({ source, target });
+      }
+      fileLinkSel = fileLinkLayer
+        .selectAll<SVGPathElement, FileLinkDatum>('path')
+        .data(data)
+        .join('path')
+        .attr('fill', 'none')
+        .attr('stroke', COLOR_FILE_LINK)
+        .attr('stroke-width', 1)
+        .attr('opacity', FILE_LINK_OPACITY)
+        .attr('marker-end', 'url(#file-link-arrow)')
+        .attr('d', fileLinkPath);
+    };
+    drawFileLinksRef.current = drawFileLinks;
 
     // Set once the user zooms/pans by hand, which makes the viewport theirs: a
     // later resize then preserves their transform instead of re-fitting over it.
@@ -591,12 +699,27 @@ function FolderGraphView() {
       root.on('.zoom', null);
       applyHighlightRef.current = null;
       resizeGraphRef.current = null;
+      drawFileLinksRef.current = null;
     };
   }, [folderGraph, ready]);
 
   useEffect(() => {
     applyHighlightRef.current?.();
   }, [highlightItem]);
+
+  // File-to-file link overlay. Off by default, so the graph costs no file reads
+  // until the user asks: turning the toggle on scans this graph's Markdown files
+  // once (the result is cached in the store until a new graph replaces it), and
+  // turning it off just removes the drawn links. Declared after the graph effect
+  // so a rebuilt graph has set drawFileLinksRef before this runs.
+  useEffect(() => {
+    if (!folderGraph || !ready) return;
+    if (showGraphFileLinks && folderGraphFileLinks === null && !folderGraph.foldersOnly) {
+      loadFolderGraphFileLinks(folderGraph);
+      return;
+    }
+    drawFileLinksRef.current?.(showGraphFileLinks ? folderGraphFileLinks : null);
+  }, [folderGraph, ready, showGraphFileLinks, folderGraphFileLinks]);
 
   if (!folderGraph) {
     return (
@@ -623,12 +746,37 @@ function FolderGraphView() {
             {folderGraph.nodes.length} nodes ({folderCount} folders, {fileCount} files)
             {' · '}
             {folderGraph.links.length} links
+            {showGraphFileLinks && !folderGraph.foldersOnly && (
+              <>
+                {' · '}
+                {folderGraphFileLinks === null ? 'scanning file links…' : `${folderGraphFileLinks.length} file links`}
+              </>
+            )}
           </span>
           {folderGraph.truncated && (
             <span className="text-amber-400 ml-3">truncated — node cap reached</span>
           )}
           <span className="text-slate-500 ml-3">drag nodes · scroll to zoom · click to open</span>
         </div>
+        <label
+          className={`flex-shrink-0 flex items-center gap-2 text-sm select-none ${folderGraph.foldersOnly ? 'opacity-50' : 'cursor-pointer'}`}
+          title={folderGraph.foldersOnly
+            ? 'This graph has no file nodes'
+            : 'Draw an arrow from each Markdown file to the files and folders it links to'}
+          // Label and checkbox share the link arcs' color, tying the toggle to what it draws.
+          style={{ color: COLOR_FILE_LINK }}
+        >
+          <input
+            type="checkbox"
+            className={CHECKBOX_FIELD_CLASS}
+            style={{ accentColor: COLOR_FILE_LINK }}
+            checked={showGraphFileLinks}
+            disabled={folderGraph.foldersOnly}
+            onChange={(e) => setShowGraphFileLinks(e.target.checked)}
+            data-testid="folder-graph-file-links-toggle"
+          />
+          Links
+        </label>
       </header>
       <div ref={containerRef} className="flex-1 min-h-0 relative">
         <svg

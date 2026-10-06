@@ -1,4 +1,4 @@
-import type { AppState, AppView, BrowseFileMode, FolderAnalysisState, FolderGraphState, LinkIdMismatch } from '../shared/types';
+import type { AppState, AppView, BrowseFileMode, FolderAnalysisState, FolderGraphLink, FolderGraphState, LinkIdMismatch } from '../shared/types';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
 import { withItemExpanded, withSelectionsCleared } from './items';
@@ -36,6 +36,8 @@ export interface ViewSlice {
   clearPendingThreadScrollToBottom: () => void;
   setFolderAnalysis: (data: FolderAnalysisState | null) => void;
   setFolderGraph: (data: FolderGraphState | null) => void;
+  setFolderGraphFileLinks: (links: FolderGraphLink[] | null) => void;
+  setShowGraphFileLinks: (show: boolean) => void;
   setRootPath: (path: string) => void;
   openRootFolder: (folder: string) => void;
   showTab: (tab: AppView) => void;
@@ -251,9 +253,16 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     /**
      * Set the folder graph data. Pass null to clear it.
      * Used both for the initial scan result and to overwrite when the user
-     * re-launches the graph from the menu.
+     * re-launches the graph from the menu. Also drops the old graph's
+     * file-link edges in the same update, since they belong to that graph.
      */
-    setFolderGraph: (data) => set({ folderGraph: data }),
+    setFolderGraph: (data) => set({ folderGraph: data, folderGraphFileLinks: null }),
+
+    /** Set the file-to-file link edges for the current folder graph (null = not scanned). */
+    setFolderGraphFileLinks: (links) => set({ folderGraphFileLinks: links }),
+
+    /** Show or hide the folder graph's file-to-file links. */
+    setShowGraphFileLinks: (show) => set({ showGraphFileLinks: show }),
 
     /** Set the root folder path. */
     setRootPath: (path) => {
@@ -412,6 +421,14 @@ export function setFolderAnalysis(data: FolderAnalysisState | null): void {
 
 export function setFolderGraph(data: FolderGraphState | null): void {
   getState().setFolderGraph(data);
+}
+
+export function setFolderGraphFileLinks(links: FolderGraphLink[] | null): void {
+  getState().setFolderGraphFileLinks(links);
+}
+
+export function setShowGraphFileLinks(show: boolean): void {
+  getState().setShowGraphFileLinks(show);
 }
 
 export function setRootPath(path: string): void {

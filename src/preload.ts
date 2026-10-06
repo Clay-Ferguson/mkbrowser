@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),
   loadCalendarEventsForFiles: (filePaths: string[]) => ipcRenderer.invoke('load-calendar-events-for-files', filePaths),
   scanFolderTree: (folderPath: string, markdownOnly?: boolean) => ipcRenderer.invoke('scan-folder-tree', folderPath, markdownOnly),
+  scanFolderGraphLinks: (folderPath: string, nodeIds: string[]) => ipcRenderer.invoke('scan-folder-graph-links', folderPath, nodeIds),
   loadTags: () => ipcRenderer.invoke('load-tags'),
   saveTags: (yamlContent: string) => ipcRenderer.invoke('save-tags', yamlContent),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
