@@ -11,8 +11,10 @@ import { useDropTarget } from './useDropTarget';
 import type { RenameState, DeleteState } from './types';
 import {
   ENTRY_OUTER,
+  ENTRY_OUTER_EXPANDED,
   ENTRY_HIGHLIGHTED,
   ENTRY_HEADER_ROW,
+  ENTRY_HEADER_ROW_COLLAPSED,
   ENTRY_HEADER_EXPANDED,
   ENTRY_NAME_SPAN,
   ENTRY_HEADER_ROW_DROP,
@@ -56,7 +58,7 @@ interface EntryShellProps {
   deleteMessage?: string;
   /** Extra classes on the outer wrapper */
   className?: string;
-  /** Whether to apply ENTRY_HEADER_EXPANDED when expanded (Generic does not expand) */
+  /** Whether expanding shows a body, so the header takes the expanded look (Generic does not expand) */
   expandedAffectsHeader?: boolean;
   /** Test id passthrough on the outer wrapper */
   'data-testid'?: string;
@@ -105,17 +107,23 @@ export function EntryShell({
     payload => void dropAsAttachment(payload, entry.path)
   );
 
+  // Only a header with its body showing gets the blue bar and border; a collapsed
+  // one is transparent like a folder row.
+  const headerExpanded = expandedAffectsHeader && isExpanded;
+
   return (
     <div
       data-testid={dataTestId}
-      className={clsx(ENTRY_OUTER, isHighlighted && ENTRY_HIGHLIGHTED, className)}
+      className={clsx(ENTRY_OUTER, headerExpanded && ENTRY_OUTER_EXPANDED, isHighlighted && ENTRY_HIGHLIGHTED, className)}
     >
       {/* Drop handlers sit on the header row, not the outer wrapper, so dragging
           across an expanded entry's body doesn't light the row up. */}
       <div
         className={clsx(
-          drop.isDragOver ? ENTRY_HEADER_ROW_DROP : ENTRY_HEADER_ROW,
-          expandedAffectsHeader && isExpanded && ENTRY_HEADER_EXPANDED,
+          drop.isDragOver
+            ? ENTRY_HEADER_ROW_DROP
+            : headerExpanded ? ENTRY_HEADER_ROW : ENTRY_HEADER_ROW_COLLAPSED,
+          headerExpanded && ENTRY_HEADER_EXPANDED,
         )}
         // Right-click renames — but not while the entry's editor is open: entering
         // rename mode there swaps the name for the rename input and hides the edit

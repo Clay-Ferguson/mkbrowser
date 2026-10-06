@@ -285,7 +285,9 @@ export const DLG_LABEL_CLASS = 'block text-sm text-slate-400 mb-2';
 export const DLG_FOOTER_CLASS = 'flex justify-end gap-3';
 
 // Entry component structural classes
-export const ENTRY_OUTER = 'bg-slate-800 group overflow-hidden';
+export const ENTRY_OUTER = 'group overflow-hidden';
+/** Background for an expanded entry (header + body); collapsed entries stay transparent like folder rows. */
+export const ENTRY_OUTER_EXPANDED = 'bg-slate-800';
 export const ENTRY_HIGHLIGHTED = 'border-2 border-purple-500 relative z-10';
 /**
  * Hover-reveal for a row's action buttons: put this on the wrapper around them and
@@ -300,6 +302,11 @@ export const HOVER_REVEAL_PINNED = 'opacity-100 pointer-events-auto';
 /** Layout half of the entry header row, shared by its normal and drop-target states. */
 const ENTRY_HEADER_ROW_LAYOUT = 'flex items-center gap-3 px-2 py-0.5 transition-colors';
 export const ENTRY_HEADER_ROW = `${ENTRY_HEADER_ROW_LAYOUT} bg-blue-800/50 group-hover:bg-blue-700/70`;
+/**
+ * Entry header row while collapsed (body not shown): transparent like FolderEntry's
+ * row, so only expanded entries carry the blue bar. Same hover color as ENTRY_HEADER_ROW.
+ */
+export const ENTRY_HEADER_ROW_COLLAPSED = `${ENTRY_HEADER_ROW_LAYOUT} bg-transparent group-hover:bg-blue-700/70`;
 export const ENTRY_HEADER_EXPANDED = 'border border-slate-500';
 /**
  * Frame for an expanded entry's body, continuing ENTRY_HEADER_EXPANDED's border down
