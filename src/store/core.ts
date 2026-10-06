@@ -61,6 +61,7 @@ export const defaultSettings: AppSettings = {
   imageSize: DEFAULT_IMAGE_SIZE,
   // Off by default — see the note on the same field in `configSchema.ts`.
   enableThesaurus: false,
+  wordWrap: true,
 };
 
 /**

@@ -88,10 +88,11 @@ interface EditorCompartments {
   frontMatter: Compartment;
   spellCheck: Compartment;
   merge: Compartment;
+  wordWrap: Compartment;
 }
 
 function createCompartments(): EditorCompartments {
-  return { fontSize: new Compartment(), frontMatter: new Compartment(), spellCheck: new Compartment(), merge: new Compartment() };
+  return { fontSize: new Compartment(), frontMatter: new Compartment(), spellCheck: new Compartment(), merge: new Compartment(), wordWrap: new Compartment() };
 }
 
 /**
@@ -384,12 +385,13 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   // save while the previous flash is still playing re-triggers it instead of being swallowed.
   const [saveFlashKey, setSaveFlashKey] = useState(0);
   const fontSize = useAS(s => s.settings.fontSize);
+  const wordWrap = useAS(s => s.settings.wordWrap);
 
   // Mount-time configuration, captured on first render. The mount effect below intentionally
   // uses these initial values — a given editor instance is created fresh per file/mode rather
   // than having them mutated on a live instance, so capturing them once is correct (not a
   // stale-closure bug). The props that DO change during a session are re-synced by their own
-  // effects below: `value` (value-sync), `fontSize` (font-size),
+  // effects below: `value` (value-sync), `fontSize` (font-size), `wordWrap` (line wrapping),
   // `showPropsInEditor` (front matter), and `reviewText` (AI-review merge view).
   const mountConfigRef = useRef({
     value,
@@ -400,6 +402,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     readOnly,
     showPropsInEditor,
     fontSize,
+    wordWrap,
   });
 
   // Effect events: the keymap, DOM handlers and update listener inside the once-created
@@ -489,6 +492,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     handleToggleThesaurus,
     canToggleThesaurus,
     thesaurusEnabled,
+    handleToggleWordWrap,
     isMarkdown,
   } = useEditorContextMenu({
     viewRef,
@@ -573,7 +577,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         : [createThesaurusPlugin(setThesaurusWord, () => getSettings().enableThesaurus)]),
       // customRenderPlugin, <-- Keep for future use
       // customRenderTheme, <-- Keep for future use
-      EditorView.lineWrapping,
+      compartments.wordWrap.of(cfg.wordWrap ? EditorView.lineWrapping : []),
       keymap.of([
         {
           key: 'Escape',
@@ -869,6 +873,16 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     });
   }, [fontSize, compartments]);
 
+  // Turn soft line wrapping on/off when the wordWrap setting changes
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    view.dispatch({
+      effects: compartments.wordWrap.reconfigure(wordWrap ? EditorView.lineWrapping : []),
+    });
+  }, [wordWrap, compartments]);
+
   // Toggle front matter visibility when showPropsInEditor changes
   useEffect(() => {
     const view = viewRef.current;
@@ -999,6 +1013,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         onToggleThesaurus={handleToggleThesaurus}
         canToggleThesaurus={canToggleThesaurus}
         thesaurusEnabled={thesaurusEnabled}
+        onToggleWordWrap={handleToggleWordWrap}
+        wordWrap={wordWrap}
         isMarkdown={isMarkdown}
       />
     </div>

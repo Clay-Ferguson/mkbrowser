@@ -154,6 +154,12 @@ export interface AppSettings {
    * happens while the user types.
    */
   enableThesaurus: boolean;
+  /**
+   * Whether CodeMirror soft-wraps long lines (`EditorView.lineWrapping`). Toggled
+   * from the editor's right-click menu ("Word Wrap") and on by default. Applies
+   * to every editor instance, live, via a compartment reconfigure.
+   */
+  wordWrap: boolean;
 }
 
 /** Command-line switch main passes to the renderer (via `additionalArguments`) when unpackaged; see ElectronAPI.testHooksEnabled. */

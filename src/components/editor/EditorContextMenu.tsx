@@ -26,6 +26,9 @@ interface EditorContextMenuProps {
   canToggleThesaurus: boolean;
   /** Current state of `settings.enableThesaurus`, which is what the item's wording flips on. */
   thesaurusEnabled: boolean;
+  onToggleWordWrap: () => void;
+  /** Current state of `settings.wordWrap`, shown as a check mark beside "Word Wrap". */
+  wordWrap: boolean;
   isMarkdown?: boolean;
 }
 
@@ -35,7 +38,7 @@ const VIEWPORT_MARGIN = 8;
 /**
  * Floating context menu for the CodeMirror editor. Renders at the right-click coordinates,
  * clamped so it stays fully within the viewport. Includes Save (writes the file without
- * leaving edit mode), standard edit actions (cut/copy/paste, select all), timestamp/date
+ * leaving edit mode), the Word Wrap toggle, standard edit actions (cut/copy/paste, select all), timestamp/date
  * insertion, optional spell-check suggestions, the thesaurus on/off switch, and
  * the Markdown-only Insert Object item. Closes on outside click, scroll, or
  * Escape.
@@ -60,6 +63,8 @@ export function EditorContextMenu({
   onToggleThesaurus,
   canToggleThesaurus,
   thesaurusEnabled,
+  onToggleWordWrap,
+  wordWrap,
   isMarkdown,
 }: EditorContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -97,7 +102,7 @@ export function EditorContextMenu({
     e.preventDefault();
 
     const items = Array.from(
-      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? []
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled), [role="menuitemcheckbox"]:not(:disabled)') ?? []
     );
     if (items.length === 0) return;
 
@@ -163,20 +168,30 @@ export function EditorContextMenu({
       onClick={(e) => e.stopPropagation()}
     >
       {canSave && (
-        <>
-          <button
-            type="button"
-            role="menuitem"
-            tabIndex={-1}
-            onClick={onSave}
-            className={EDITOR_MENU_ITEM}
-            data-testid="editor-save"
-          >
-            Save
-          </button>
-          <div className="border-t border-slate-600 my-1" />
-        </>
+        <button
+          type="button"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={onSave}
+          className={EDITOR_MENU_ITEM}
+          data-testid="editor-save"
+        >
+          Save
+        </button>
       )}
+      <button
+        type="button"
+        role="menuitemcheckbox"
+        aria-checked={wordWrap}
+        tabIndex={-1}
+        onClick={onToggleWordWrap}
+        className={`${EDITOR_MENU_ITEM} flex items-center`}
+        data-testid="editor-toggle-word-wrap"
+      >
+        {wordWrap && <span className="mr-2" aria-hidden="true">✓</span>}
+        <span>Word Wrap</span>
+      </button>
+      <div className="border-t border-slate-600 my-1" />
       {contextMenu.spelling && (
         <>
           <div className="px-4 py-1 text-xs text-red-400 font-medium">

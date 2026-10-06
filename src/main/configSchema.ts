@@ -50,6 +50,7 @@ export const defaultSettings: AppSettings = {
   // Off by default: the synonym strip renders nothing at all while it is off, so a fresh
   // install gets the full editor height. It is opted into from the editor's right-click menu.
   enableThesaurus: false,
+  wordWrap: true,
 };
 
 /** Returns a fresh `AppSettings` with independent copies of all mutable arrays. */
@@ -241,6 +242,7 @@ const AppSettingsSchema = z
     // 'small'/'large' meaning) falls back to the default rather than erroring.
     imageSize: z.enum(['small', 'medium', 'large']).catch(defaultSettings.imageSize),
     enableThesaurus: z.boolean().catch(defaultSettings.enableThesaurus),
+    wordWrap: z.boolean().catch(defaultSettings.wordWrap),
   })
   .loose();
 

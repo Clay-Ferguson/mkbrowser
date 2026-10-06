@@ -28,6 +28,7 @@ export interface SettingsSlice {
   setIndexTreeWidth: (indexTreeWidth: IndexTreeWidth) => void;
   setImageSize: (imageSize: ImageSize) => void;
   setEnableThesaurus: (enableThesaurus: boolean) => void;
+  setWordWrap: (wordWrap: boolean) => void;
   toggleBookmark: (filePath: string) => boolean;
   addBookmark: (filePath: string, name: string, isDirectory: boolean) => void;
   updateBookmarkName: (filePath: string, name: string) => void;
@@ -106,6 +107,9 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
         ...(enableThesaurus ? null : { thesaurusWord: null }),
       });
     },
+
+    /** Turn the editor's soft line wrapping on or off. */
+    setWordWrap: (wordWrap) => patchSettings('wordWrap', wordWrap),
 
     /**
      * Toggle bookmark for a file path.
@@ -231,6 +235,10 @@ export function setImageSize(imageSize: ImageSize): void {
 
 export function setEnableThesaurus(enableThesaurus: boolean): void {
   getState().setEnableThesaurus(enableThesaurus);
+}
+
+export function setWordWrap(wordWrap: boolean): void {
+  getState().setWordWrap(wordWrap);
 }
 
 export function toggleBookmark(filePath: string): boolean {

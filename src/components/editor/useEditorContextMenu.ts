@@ -5,7 +5,7 @@ import { logger } from '../../shared/logUtil';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { isMarkdownFile } from '../../shared/fileTypes';
 import { saveSettings } from '../../renderer/config';
-import { useAS, setEnableThesaurus } from '../../store';
+import { useAS, setEnableThesaurus, setWordWrap } from '../../store';
 import { wordAt, isSpellCheckExempt, type SpellingSuggestion } from './spellChecker';
 import { objectTypeOptions, userObjectTemplate } from '../../shared/objects/userTypes';
 import { objectInsertion } from '../../renderer/editor/editorObjectUtil';
@@ -42,15 +42,16 @@ interface UseEditorContextMenuProps {
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
  * top of the menu. Also exposes save-in-place, cut/copy/paste, select-all, timestamp/date
- * insertion, the thesaurus on/off switch, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the user-defined object types from the Types Editor).
+ * insertion, the word-wrap and thesaurus on/off switches, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the user-defined object types from the Types Editor).
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
- * `canSave`, `canToggleThesaurus`, `thesaurusEnabled`).
+ * `canSave`, `canToggleThesaurus`, `thesaurusEnabled`, `wordWrap`).
  */
 export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesaurusCapable = false }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
+  const wordWrap = useAS(s => s.settings.wordWrap);
   // Only `BrowseFile` (single-file mode) mounts the synonym strip, and that is what
   // `browseFileName` being set means. Offering the switch in a folder-listing inline editor
   // would turn the feature on with nowhere for the synonyms to appear.
@@ -285,6 +286,16 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     saveSettings();
   };
 
+  // Flips `settings.wordWrap`. Every mounted editor re-syncs its line-wrapping compartment
+  // from the store, so the change applies everywhere at once, not just to this editor.
+  const handleToggleWordWrap = () => {
+    const view = viewRef.current;
+    setWordWrap(!wordWrap);
+    closeContextMenu();
+    view?.focus();
+    saveSettings();
+  };
+
   // Close context menu when clicking elsewhere
   useEffect(() => {
     if (!contextMenu.visible) return;
@@ -333,6 +344,8 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     handleToggleThesaurus,
     canToggleThesaurus: thesaurusCapable && singleFileMode,
     thesaurusEnabled,
+    handleToggleWordWrap,
+    wordWrap,
     isMarkdown,
   };
 }
