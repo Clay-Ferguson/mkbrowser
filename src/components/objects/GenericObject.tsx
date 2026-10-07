@@ -3,10 +3,10 @@ import { CubeIcon, EnvelopeIcon, MapPinIcon, LinkIcon, PhoneIcon, CalendarIcon }
 import type { PropertyType } from '../../shared/shared';
 import type { GenericObjectData, ObjectRow } from '../../shared/objects/genericObject';
 import { api } from '../../renderer/api';
-import { buildEmailUrl, buildMapUrl, buildWebUrl } from '../../shared/objects/objectUrls';
+import { buildEmailUrl, buildMapUrl, buildPhoneUrl, buildWebUrl } from '../../shared/objects/objectUrls';
 import { BUTTON_CLASS_LINK_BLUE } from '../../renderer/styles';
 
-/** Row icon per property type; plain text rows have none. Phone numbers and dates are shown, not linked. */
+/** Row icon per property type; plain text rows have none. Dates are shown, not linked. */
 const TYPE_ICONS: Partial<Record<PropertyType, ComponentType<SVGProps<SVGSVGElement>>>> = {
   email: EnvelopeIcon,
   address: MapPinIcon,
@@ -15,12 +15,19 @@ const TYPE_ICONS: Partial<Record<PropertyType, ComponentType<SVGProps<SVGSVGElem
   date: CalendarIcon,
 };
 
+/** Hover text for the click action of a linked value, where it isn't opening the browser. */
+const LINK_ACTIONS: Partial<Record<PropertyType, string>> = {
+  email: 'send email',
+  phone: 'call',
+};
+
 /** The URL a value of this property type opens when clicked, or undefined for plain text. */
 function hrefFor(propertyType: PropertyType, value: string): string | undefined {
   switch (propertyType) {
     case 'email': return buildEmailUrl(value);
     case 'address': return buildMapUrl(value);
     case 'url': return buildWebUrl(value);
+    case 'phone': return buildPhoneUrl(value);
     default: return undefined;
   }
 }
@@ -32,8 +39,9 @@ const PLAIN_VALUE_CLASS = `${VALUE_CLASS} text-slate-300`;
 const LABEL_CLASS = 'whitespace-nowrap text-slate-400';
 
 /**
- * One defined property: type icon, property name, value. An email, address, or url value is a
- * link that opens in the system browser; everything else is plain text.
+ * One defined property: type icon, property name, value. An address or url value is a link that
+ * opens in the system browser; an email value is a `mailto:` link and a dialable phone value a
+ * `tel:` link, both handed to the system's handler for them. Everything else is plain text.
  */
 function PropertyRow({ row }: { row: ObjectRow }) {
   const Icon = TYPE_ICONS[row.propertyType];
@@ -51,7 +59,7 @@ function PropertyRow({ row }: { row: ObjectRow }) {
         <button
           type="button"
           className={`${VALUE_CLASS} ${BUTTON_CLASS_LINK_BLUE} text-left`}
-          title={`${tooltip}: open in browser`}
+          title={`${tooltip}: ${LINK_ACTIONS[row.propertyType] ?? 'open in browser'}`}
           onClick={(e) => {
             e.stopPropagation();
             void api.openExternalUrl(href);

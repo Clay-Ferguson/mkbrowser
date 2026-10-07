@@ -19,7 +19,13 @@ vi.mock('../src/store', () => ({
   useAS: <T,>(selector: (s: { typeDefs: TypeDefinitions }) => T): T => selector({ typeDefs: TYPE_DEFS }),
 }));
 Object.assign(TYPE_DEFS, PERSON_DEFS, {
-  gizmo: { properties: { model: { description: '', type: 'text' }, site: { description: 'Vendor site', type: 'url' } } },
+  gizmo: {
+    properties: {
+      model: { description: '', type: 'text' },
+      site: { description: 'Vendor site', type: 'url' },
+      support: { description: 'Support line', type: 'phone' },
+    },
+  },
 });
 
 function render(markdown: string): string {
@@ -73,14 +79,15 @@ describe('CustomPre object blocks', () => {
     expect(html).not.toContain('>name<');
   });
 
-  it('makes email, address, and url values clickable, and leaves text plain', () => {
+  it('makes email, address, url, and phone values clickable, and leaves text plain', () => {
     const person = render(fence('yaml', 'type: person\nname: Clay\nbd: May 12\nemail: a@b.c\naddress: 1 Main St'));
-    expect(person.match(/open in browser/g)).toHaveLength(2);
-    expect(person).toContain('title="Email: open in browser"');
+    expect(person.match(/open in browser/g)).toHaveLength(1);
+    expect(person).toContain('title="Email: send email"');
     expect(person).toContain('title="Address: open in browser"');
-    const gizmo = render(fence('yaml', 'type: gizmo\nmodel: X1\nsite: example.com'));
+    const gizmo = render(fence('yaml', 'type: gizmo\nmodel: X1\nsite: example.com\nsupport: +1 (555) 123-4567'));
     expect(gizmo).toContain('data-object-type="gizmo"');
     expect(gizmo).toContain('title="Vendor site: open in browser"');
+    expect(gizmo).toContain('title="Support line: call"');
   });
 
   it('lists unknown keys last, flagged, with their values', () => {

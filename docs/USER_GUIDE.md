@@ -1187,9 +1187,9 @@ The **Type** of a property controls how its value is displayed and what happens 
 |---------------|----------------------|--------------------|
 | **Text** | Plain text | Opens the editor, like the rest of the card |
 | **Address** | A map-pin icon and a link | Opens a map search for the address in your web browser |
-| **Email** | An envelope icon and a link | Opens a new message to that address in webmail |
+| **Email** | An envelope icon and a link | Opens a new message to that address in your default email app (a `mailto:` link) |
 | **URL** | A link icon and a link | Opens the page in your web browser (`https://` is added if you leave it off, so `example.com` works) |
-| **Phone** | A phone icon and plain text | Opens the editor, like the rest of the card |
+| **Phone** | A phone icon and a link | Opens a `tel:` link, which your system hands to its phone app (the punctuation is dropped, so `+1 (555) 123-4567` dials `+15551234567`; an extension like `x89` is kept). A number containing letters stays plain text |
 | **Date** | A calendar icon and plain text | Opens the editor, like the rest of the card |
 
 ### Saving Your Changes

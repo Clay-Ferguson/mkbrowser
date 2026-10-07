@@ -23,10 +23,14 @@ const MAX_IMAGE_SEARCH_DEPTH = 10;
 const SCHEME_RE = /^([a-z][a-z0-9+.-]*):/i;
 
 /** Schemes a link keeps and opens in a new browser tab. */
-const EXTERNAL_SCHEMES = new Set(['http', 'https', 'mailto']);
+const EXTERNAL_SCHEMES = new Set(['http', 'https']);
 
-/** Local-file schemes a link keeps as written (the target lives outside the export). */
-const LOCAL_SCHEMES = new Set(['file', 'local-file']);
+/**
+ * Schemes a link keeps as written, in the same tab: local files (the target lives outside
+ * the export), and `mailto:` / `tel:` links, which the browser hands to the system's mail
+ * client or dialer (a new tab would just be left blank).
+ */
+const KEPT_SCHEMES = new Set(['file', 'local-file', 'mailto', 'tel']);
 
 /** What the source walk found: everything the export mirrors. */
 export interface ExportManifest {
@@ -100,8 +104,8 @@ function kindOf(manifest: ExportManifest, p: string): 'file' | 'dir' | null {
 /**
  * Rewrites a link (`<a href>`) on the page `ctx.mdPath` for the exported tree:
  *   - `#fragment` — kept as is (headings carry GitHub-style slug ids).
- *   - http/https/mailto (and protocol-relative `//host`) — kept; opens in a new tab.
- *   - file:// and local-file:// — kept as written.
+ *   - http/https (and protocol-relative `//host`) — kept; opens in a new tab.
+ *   - file://, local-file://, mailto: and tel: — kept as written.
  *   - any other scheme (javascript:, …) — dropped, mirroring `safeUrlTransform`.
  *   - a relative or absolute path — resolved against the page's folder, as the app's
  *     link handler does (CustomAnchor). A target inside the export links to its output
@@ -118,7 +122,7 @@ export function resolveExportLink(href: string, title: string | undefined, ctx: 
   const scheme = SCHEME_RE.exec(href)?.[1]?.toLowerCase();
   if (scheme) {
     if (EXTERNAL_SCHEMES.has(scheme)) return { href, external: true };
-    if (LOCAL_SCHEMES.has(scheme)) return unchanged;
+    if (KEPT_SCHEMES.has(scheme)) return unchanged;
     return { href: null, external: false };
   }
 

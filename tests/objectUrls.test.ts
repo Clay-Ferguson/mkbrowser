@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildEmailUrl, buildMapUrl, buildWebUrl, MAP_URL_TEMPLATE } from '../src/shared/objects/objectUrls';
+import { buildEmailUrl, buildMapUrl, buildPhoneUrl, buildWebUrl, MAP_URL_TEMPLATE } from '../src/shared/objects/objectUrls';
 
 describe('buildMapUrl', () => {
   it('encodes the address into the default Google Maps template', () => {
@@ -21,9 +21,17 @@ describe('buildMapUrl', () => {
 });
 
 describe('buildEmailUrl', () => {
-  it('fills the default Gmail compose template', () => {
-    expect(buildEmailUrl(' jane+work@example.com ')).toBe(
-      'https://mail.google.com/mail/?view=cm&fs=1&to=jane%2Bwork%40example.com',
+  it('builds a mailto: link, keeping the @ literal', () => {
+    expect(buildEmailUrl(' jane+work@example.com ')).toBe('mailto:jane%2Bwork@example.com');
+  });
+
+  it('encodes characters that would break the URL', () => {
+    expect(buildEmailUrl('a b?c#d@example.com')).toBe('mailto:a%20b%3Fc%23d@example.com');
+  });
+
+  it('still fills a webmail compose template', () => {
+    expect(buildEmailUrl('jane@example.com', 'https://mail.example/compose?to={email}')).toBe(
+      'https://mail.example/compose?to=jane@example.com',
     );
   });
 });
@@ -38,5 +46,26 @@ describe('buildWebUrl', () => {
     expect(buildWebUrl('http://example.com')).toBe('http://example.com');
     expect(buildWebUrl('HTTPS://example.com')).toBe('HTTPS://example.com');
     expect(buildWebUrl('mailto:a@b.c')).toBe('mailto:a@b.c');
+  });
+});
+
+describe('buildPhoneUrl', () => {
+  it('keeps a leading + and the digits, dropping punctuation', () => {
+    expect(buildPhoneUrl('+1 (555) 123-4567')).toBe('tel:+15551234567');
+    expect(buildPhoneUrl(' 555-123-4567 ')).toBe('tel:5551234567');
+    expect(buildPhoneUrl('555.123.4567')).toBe('tel:5551234567');
+  });
+
+  it('turns a trailing extension into ;ext=', () => {
+    expect(buildPhoneUrl('555-123-4567 x89')).toBe('tel:5551234567;ext=89');
+    expect(buildPhoneUrl('555-123-4567 ext. 89')).toBe('tel:5551234567;ext=89');
+    expect(buildPhoneUrl('555-123-4567 extension 89')).toBe('tel:5551234567;ext=89');
+    expect(buildPhoneUrl('+44 20 7946 0958 #12')).toBe('tel:+442079460958;ext=12');
+  });
+
+  it('does not link values that are not dialable numbers', () => {
+    expect(buildPhoneUrl('')).toBeUndefined();
+    expect(buildPhoneUrl('n/a')).toBeUndefined();
+    expect(buildPhoneUrl('1-800-FLOWERS')).toBeUndefined();
   });
 });

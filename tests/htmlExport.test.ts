@@ -90,10 +90,11 @@ describe('resolveExportLink', () => {
     expect(resolveExportLink('../elsewhere/x.md', undefined, ctx(p('index.md'))).href).toBe('../elsewhere/x.md');
   });
 
-  it('opens external links in a new tab and drops dangerous schemes', () => {
+  it('opens web links in a new tab, keeps mailto:/tel: in place, and drops dangerous schemes', () => {
     expect(resolveExportLink('https://example.com', undefined, ctx(p('index.md')))).toEqual({ href: 'https://example.com', external: true });
-    expect(resolveExportLink('mailto:a@b.c', undefined, ctx(p('index.md'))).external).toBe(true);
+    expect(resolveExportLink('mailto:a@b.c', undefined, ctx(p('index.md')))).toEqual({ href: 'mailto:a@b.c', external: false });
     expect(resolveExportLink('javascript:alert(1)', undefined, ctx(p('index.md'))).href).toBeNull();
+    expect(resolveExportLink('tel:+15551234567', undefined, ctx(p('index.md')))).toEqual({ href: 'tel:+15551234567', external: false });
   });
 });
 
@@ -127,13 +128,14 @@ const TYPE_DEFS: TypeDefinitions = {
 
 describe('renderMarkdownPage', () => {
   it('renders a typed object block as a card with linked values', async () => {
-    const md = '```yaml\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\nnickname: Ada\n```\n';
+    const md = '```yaml\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\nphone: +1 (555) 123-4567\nnickname: Ada\n```\n';
     const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS);
     expect(html).toContain('class="object-block"');
     expect(html).toContain('data-object-type="person"');
     expect(html).toContain('Ada Lovelace');
-    expect(html).toContain('href="https://mail.google.com/mail/?view=cm&#x26;fs=1&#x26;to=ada%40example.com"');
+    expect(html).toContain('<a class="object-value" href="mailto:ada@example.com" title="Work email">ada@example.com</a>');
     expect(html).toContain('class="object-label object-unknown"');
+    expect(html).toContain('<a class="object-value" href="tel:+15551234567" title="phone">+1 (555) 123-4567</a>');
     expect(html).not.toContain('<pre>');
   });
 

@@ -2,7 +2,7 @@ import type { Element, ElementContent, Root } from 'hast';
 import type { PropertyType, TypeDefinitions } from '../../shared/shared';
 import { resolveObjectBlock } from '../../shared/objects/genericObject';
 import type { GenericObjectData, ObjectRow } from '../../shared/objects/genericObject';
-import { buildEmailUrl, buildMapUrl, buildWebUrl } from '../../shared/objects/objectUrls';
+import { buildEmailUrl, buildMapUrl, buildPhoneUrl, buildWebUrl } from '../../shared/objects/objectUrls';
 import { classesOf, h, textOf, walkElements } from './hastUtil';
 
 /**
@@ -83,11 +83,12 @@ function hrefFor(propertyType: PropertyType, value: string): string | undefined 
     case 'email': return buildEmailUrl(value);
     case 'address': return buildMapUrl(value);
     case 'url': return buildWebUrl(value);
+    case 'phone': return buildPhoneUrl(value);
     default: return undefined;
   }
 }
 
-/** One defined property: icon cell, name, value (a new-tab link for email/address/url). */
+/** One defined property: icon cell, name, value (a link for email/address/url/phone; web links open in a new tab). */
 function propertyRow(row: ObjectRow): ElementContent[] {
   const iconName = TYPE_ICONS[row.propertyType];
   const href = hrefFor(row.propertyType, row.value);
@@ -96,7 +97,7 @@ function propertyRow(row: ObjectRow): ElementContent[] {
     h('span', { className: ['object-row-icon'] }, iconName ? [icon(iconName, 'object-icon-row')] : []),
     h('span', { className: ['object-label'], title: tooltip }, [row.key]),
     href
-      ? h('a', { className: ['object-value'], href, target: '_blank', rel: ['noopener'], title: tooltip }, [row.value])
+      ? h('a', { className: ['object-value'], href, title: tooltip }, [row.value])
       : h('span', { className: ['object-value'], title: tooltip }, [row.value]),
   ];
 }
