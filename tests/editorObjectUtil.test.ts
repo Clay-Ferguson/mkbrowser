@@ -225,6 +225,8 @@ function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: Ty
     onToggleThesaurus: noop,
     canToggleThesaurus: false,
     thesaurusEnabled: false,
+    onToggleWordWrap: noop,
+    wordWrap: true,
     isMarkdown,
   }));
 }
