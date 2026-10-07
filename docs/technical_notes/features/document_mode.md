@@ -14,7 +14,7 @@
   * [Algorithm (`reconcileIndexedFiles`)](#algorithm-reconcileindexedfiles)
   * [`insertIntoIndexYaml`](#insertintoindexyaml)
 * [Atomic, Serialized Index Updates](#atomic-serialized-index-updates)
-  * [Front-Matter IDs on Save (`ensureFrontMatterIdIfIndexed` / `recordFrontMatterIdInIndex`)](#front-matter-ids-on-save-ensurefrontmatteridifindexed--recordfrontmatteridinindex)
+  * [Saving Never Adds an ID](#saving-never-adds-an-id)
 * [Stable Identity via Front-Matter IDs](#stable-identity-via-front-matter-ids)
 * [Code Locations](#code-locations)
 
@@ -38,7 +38,7 @@ The document-editing controls (insert bars, selection checkboxes, and the orderi
 `.INDEX.yaml` is a hidden YAML file placed directly inside the directory it controls. It has three top-level keys:
 
 - **`version`** — the schema version this file uses (`CURRENT_INDEX_VERSION`, currently `1`). See [Schema Version](#schema-version).
-- **`files`** — an ordered list of entries. Each entry has at minimum a `name` field (the exact filename or folder name as it appears on disk). Markdown files also carry an `id` field — a 9-character uppercase hex string used as a stable identity across renames. Non-markdown files (images, PDFs, txt) carry `create_time` and `size` fields instead, forming a best-effort `createTime:size:ext` fingerprint for rename detection (see [Stable Identity](#stable-identity-via-front-matter-ids)).
+- **`files`** — an ordered list of entries. Each entry has at minimum a `name` field (the exact filename or folder name as it appears on disk). A markdown file whose front matter has an `id` also carries that `id` — a 9-character uppercase hex string used as a stable identity across renames. Every other file (non-markdown files, and markdown files without an `id`) carries `create_time` and `size` fields instead, forming a best-effort `createTime:size:ext` fingerprint for rename detection (see [Stable Identity](#stable-identity-via-front-matter-ids)).
 - **`options`** _(optional)_ — a map of directory-level settings. It is reserved for future per-directory settings and is preserved across reconciliation. Nothing currently writes it.
 
 ### Example
@@ -63,7 +63,7 @@ files:
 Key points:
 
 - **All visible entries are listed** — not just markdown files. Folders, images, PDFs, and any other non-hidden file in the directory appear in the list.
-- **Only markdown files have `id`** — non-markdown files have no front matter, so no stable ID can be derived from them. They are fingerprinted by `create_time` + `size` instead (a best-effort identity, not a guaranteed-unique one — see [Stable Identity](#stable-identity-via-front-matter-ids)).
+- **Only markdown files can have `id`, and only when the user gave them one** — Document Mode never adds an `id` to a file (see [Stable Identity](#stable-identity-via-front-matter-ids)). Files without one are fingerprinted by `create_time` + `size` instead (a best-effort identity, not a guaranteed-unique one).
 - **Order is authoritative** — the display order in the app exactly follows the sequence in this file.
 - **Hidden entries are excluded** — files and folders whose names begin with `.` (including `.INDEX.yaml` itself) are never listed.
 - **`options` is preserved across reconciliation** — when `reconcileIndexedFiles` rewrites `.INDEX.yaml`, it reads the existing `options` block and writes it back unchanged, so directory settings are never lost.
@@ -84,9 +84,8 @@ Custom ordering is enabled via the **Edit menu**, accessible from the edit butto
 
 Clicking this item triggers `reconcileIndexedFiles` with `createIfMissing = true`, which:
 
-1. Assigns a front-matter `id` to every markdown file in the directory that does not already have one.
-2. Creates `.INDEX.yaml` and populates it with all visible entries in filesystem order.
-3. Refreshes the directory listing.
+1. Creates `.INDEX.yaml` and populates it with all visible entries in filesystem order (markdown files with a front-matter `id` are listed by it; everything else gets a fingerprint). No file in the directory is modified.
+2. Refreshes the directory listing.
 
 After the refresh, BrowseView detects entries with `indexOrder` values and switches into indexed mode: the sort menu is replaced by an informational message ("Files ordered by .INDEX.yaml"), the "Enable Document Mode" item disappears from the Edit menu, and insert bars appear between every entry.
 
@@ -121,11 +120,11 @@ The index tree's right-click **New File** item (`IndexTreeView.tsx`) is a shortc
 
 Reconciliation keeps `.INDEX.yaml` consistent with the actual contents of the directory — which can be changed at any time by tools other than MkBrowser. It handles five concerns:
 
-1. **ID assignment** — every markdown file should have a unique `id` in its YAML front matter.
-2. **Rename detection** — if a markdown file is renamed on disk, its `id` (which persists in the front matter) lets the index entry's `name` be updated to match the new filename. Non-markdown files use the fingerprint path instead.
+1. **ID uniqueness** — a markdown file's front-matter `id` must be unique within the directory; a newer duplicate (e.g. a copy that carried its source's front matter) is re-keyed. Reconciliation **never adds** an `id` to a file that has none.
+2. **Rename detection** — if a markdown file with an `id` is renamed on disk, its `id` (which persists in the front matter) lets the index entry's `name` be updated to match the new filename. Every other file uses the fingerprint path instead.
 3. **New-entry detection** — files or folders present on disk but absent from the index are appended to the end of the index — except a `<file>.attach` folder, which is placed directly after its file (algorithm step 8 below).
 4. **Deletion** — entries whose file no longer exists on disk are dropped.
-5. **Orphan healing** — an entry whose `id` no longer matches any file, but whose name is still on disk and unclaimed, is re-bound to that file in place (adopting its current id) rather than being dropped and re-appended. This is what keeps a hand-edited front-matter `id` from producing two entries for one file.
+5. **Orphan healing** — an entry whose `id` no longer matches any file, but whose name is still on disk and unclaimed, is re-bound to that file in place (adopting its current id, or switching to a fingerprint when the user removed the id) rather than being dropped and re-appended. This is what keeps a hand-edited or deleted front-matter `id` from producing two entries for one file.
 
 ### When Reconciliation Runs
 
@@ -136,7 +135,7 @@ Reconciliation keeps `.INDEX.yaml` consistent with the actual contents of the di
 | **Enable Document Mode** clicked | `true` | Creates `.INDEX.yaml` if absent, then reconciles |
 | **Everything else** (folder navigation, refresh, and the file operations below) | `false` | Reconciles an existing index; does nothing if no `.INDEX.yaml` |
 
-Importantly, reconciliation does **not** run on every file-operation refresh (create, rename) — for performance, not safety. The insert bars call `insertIntoIndexYaml` directly and do not trigger reconciliation. Operations that remove or add files, however, do keep the index in sync themselves rather than waiting for the next navigation: delete, paste (both folders), clipboard paste, and **Join** call `reconcileIndexedFiles` explicitly after they mutate the disk (for Join, that drops the merged-away sources' entries while the surviving target keeps its entry and position), and **Split** splices its `-01` … `-NN` parts into the index directly after the original file's entry via `insertIntoIndexYaml` and then reconciles — the reconcile re-points the original's entry to the new `-00` file in place via its front-matter id (which travels with part 0's content) — so the parts keep the original file's document position instead of being appended at the end. (Concurrency safety is handled separately by the per-directory lock described below, so even if two index operations do overlap they can no longer corrupt the index.)
+Importantly, reconciliation does **not** run on every file-operation refresh (create, rename) — for performance, not safety. The insert bars call `insertIntoIndexYaml` directly and do not trigger reconciliation. Operations that remove or add files, however, do keep the index in sync themselves rather than waiting for the next navigation: delete, paste (both folders), clipboard paste, and **Join** call `reconcileIndexedFiles` explicitly after they mutate the disk (for Join, that drops the merged-away sources' entries while the surviving target keeps its entry and position), and **Split** splices its `-01` … `-NN` parts into the index directly after the original file's entry via `insertIntoIndexYaml` and then reconciles — the reconcile re-points the original's entry to the new `-00` file in place via its front-matter id (which travels with part 0's content); when the original has no id, `-00` is spliced in too and the reconcile drops the original's entry — so the parts keep the original file's document position instead of being appended at the end. (Concurrency safety is handled separately by the per-directory lock described below, so even if two index operations do overlap they can no longer corrupt the index.)
 
 ### Algorithm (`reconcileIndexedFiles`, and other helpers)
 
@@ -151,16 +150,18 @@ Located in `src/main/indexUtil.ts`.
 
 2. Read all non-hidden directory entries (files + folders).
 
-3. Build identity for every visible entry (`ensureMarkdownIds`,
-   `buildNonMarkdownFingerprints`):
-   - Markdown: parse front matter; record an existing `id`, or generate a
-     9-char uppercase hex ID (nanoid customAlphabet) and write it into the file.
+3. Build identity for every visible entry (`collectMarkdownIds`,
+   `buildFileFingerprints`):
+   - Markdown: parse front matter and record an existing `id`. A file without
+     one is NEVER given one (it is collected into `noIdNames` instead).
      IDs must be unique within the directory — on a duplicate (e.g. a copy/paste
      that carried its source's front matter) the OLDEST file keeps the id and the
      newer one is re-keyed, so the original keeps its entry and position.
-     Every id write is a guarded compare-and-swap: the file is re-read and
+     Every re-key write is a guarded compare-and-swap: the file is re-read and
      byte-compared first, so an editor save landing in between is never clobbered.
-   - Non-markdown: stat into a `createTime:size:ext` fingerprint.
+   - Every file (markdown included): stat into a `createTime:size:ext`
+     fingerprint. A markdown file with an `id` is matched by the id first, so its
+     fingerprint only matters if it has none.
 
 4. Reconcile each existing index entry (`reconcileEntries`):
    - Entry has `id` → look it up in idToName.
@@ -172,13 +173,16 @@ Located in `src/main/indexUtil.ts`.
      collision can't bind an entry to the wrong file. A name-matched entry has
      its stored fingerprint refreshed from the current stat, otherwise one
      content edit would permanently disable rename detection for that file.
+     A matched entry whose file has since been given an `id` switches to it.
    - Entry has neither (folder, or an old entry predating fingerprints)
-       → match by name; adopt the file's id if it now has one.
+       → match by name; adopt the file's id if it now has one, or a fingerprint
+         if it is an id-less markdown file.
 
 5. Adoption pass: an entry whose `id` matched nothing, but whose NAME is still on
    disk and unclaimed, is that same file with a hand-edited or removed
-   front-matter id. Re-bind the entry to it and adopt the file's current id —
-   preserving the entry's position. (Without this the index would end up holding
+   front-matter id. Re-bind the entry to it and adopt the file's current id (or,
+   when the id was removed, drop it and record a fingerprint) — preserving the
+   entry's position. (Without this the index would end up holding
    two entries for one file, showing it twice in the UI.)
 
 6. Drop entries for files that no longer exist: an entry is kept if it matched by
@@ -205,7 +209,7 @@ Located in `src/main/indexUtil.ts`.
 Also in `src/main/indexUtil.ts`. Used by the insert bars to add a single new entry at a specific position without re-running the full reconcile:
 
 1. Read the current `.INDEX.yaml` (via `readIndexYamlChecked` — it writes, so a corrupt or too-new index is refused rather than rebuilt).
-2. Build the new entry with `buildEntryForName`, which seeds its identity immediately: a front-matter `id` for a markdown file, a `create_time`+`size` fingerprint for another file, name only for a folder. So the entry is complete from the moment it is inserted, not just after the next reconcile.
+2. Build the new entry with `buildEntryForName`, which seeds its identity immediately: the existing front-matter `id` of a markdown file that has one (it never adds one), a `create_time`+`size` fingerprint for any other file, name only for a folder. So the entry is complete from the moment it is inserted, not just after the next reconcile.
 3. Place it:
    - `insertAfterName === null` → unshift to position 0 (the topmost insert bar).
    - `insertAfterName` found → splice immediately after it.
@@ -225,20 +229,16 @@ One consequence: a locked function must not call another locked function on the 
 
 A second rule follows from the "never write over an index we can't understand" invariant: **every writing path reads through `readIndexYamlChecked`, never `readIndexYaml`.** The checked reader is the one that reports an existing-but-unloadable index (and a too-new [`version`](#schema-version)) as an error rather than collapsing it to "absent", which is what stops a mutator from rebuilding over user ordering it couldn't parse.
 
-### Front-Matter IDs on Save (`ensureFrontMatterIdIfIndexed` / `recordFrontMatterIdInIndex`)
+### Saving Never Adds an ID
 
-Saving a markdown file in a Document Mode folder must give it a front-matter `id` and record that `id` in `.INDEX.yaml`. To avoid ever recording an `id` in the index for content that was never written, the work is split and **ordered file-first**:
+Saving a markdown file writes exactly what the user saved (plus TOC regeneration) — in a Document Mode folder too. Earlier versions injected a front-matter `id` on every save, which made it impossible to remove one (the next save put a new one back) and leaked `id:` lines into files such as a `README.md` published on GitHub. The save's file write still runs inside the directory's `withIndexLock`, so it can't interleave with a reconcile's duplicate-id re-key of the same file.
 
-1. **`ensureFrontMatterIdIfIndexed(filePath, content)`** — if the folder is in Document Mode and the content has no `id`, it returns the content with a freshly injected `id` plus that id as `addedId` (or `addedId: null` for a no-op). It does **not** touch `.INDEX.yaml`.
-2. The `write-file` IPC handler writes the (id-bearing) content to disk.
-3. **`recordFrontMatterIdInIndex(filePath, addedId)`** — *only after* the file is on disk — records the id in `.INDEX.yaml`, **appending** a new `{ name, id }` entry if the file isn't listed yet (so a brand-new file is consistent immediately, not just after the next reconcile).
-
-If step 3 fails, the file still carries the id and the next reconcile heals the index; the reverse — an index id with no matching file content — can no longer happen. (See issues 013 and 014.)
+`recordFrontMatterIdInIndex` remains for the one path that does add an id — "Paste Link into Editor" (`ensureFrontMatterId`, below). It records the id in `.INDEX.yaml` only *after* the id-bearing file is on disk, so the index can never reference an id that isn't in the file (issue 014), and it replaces any fingerprint the entry carried.
 
 
 ## Stable Identity via Front-Matter IDs
 
-Each markdown file gets a front-matter block added (or extended) with an `id` field:
+A markdown file *may* carry an `id` field in its front matter:
 
 ```markdown
 ---
@@ -248,11 +248,13 @@ id: A1B2C3D4E
 # Document content here
 ```
 
-The ID is generated with `customAlphabet('0123456789ABCDEF', 9)` from the `nanoid` library, producing a 9-character uppercase hex string. IDs are stored in both the file's front matter and in the corresponding `.INDEX.yaml` entry. This makes it possible to detect renames: even after a file is moved to a different name, its `id` in the front matter matches an existing index entry, allowing the entry's `name` to be corrected automatically on the next reconcile.
+IDs are **optional and never added implicitly**: nothing in Document Mode (enabling it, reconcile, insert, save) writes one. The only path that adds an id to a file that has none is **"Paste Link into Editor"** in the index tree (`ensureFrontMatterId`), which uses the target's id in the link title so a broken link can be auto-repaired — and it asks the user first ("Add ID & Link" / "Plain Link"), because an injected front-matter block is visible to anyone reading the file. A file without an id is tracked by fingerprint, like a non-markdown file (below).
 
-### Non-Markdown Files: Fingerprint Identity (and Its Limits)
+The ID is generated with `customAlphabet('0123456789ABCDEF', 9)` from the `nanoid` library, producing a 9-character uppercase hex string. When present, an id is stored in both the file's front matter and in the corresponding `.INDEX.yaml` entry. This makes it possible to detect renames: even after a file is moved to a different name, its `id` in the front matter matches an existing index entry, allowing the entry's `name` to be corrected automatically on the next reconcile.
 
-Non-markdown files (images, PDFs, txt) have no front matter, so they can't carry an `id`. To still detect renames, `reconcileIndexedFiles` fingerprints each one as `createTime:size:ext`, derived from `fs.stat` (rounded `birthtimeMs`, byte `size`, and lowercased extension) and stored on the entry as `create_time` + `size`. On the next reconcile, an index entry whose stored fingerprint matches a disk file's is treated as a rename and re-pointed to that file.
+### Files Without an ID: Fingerprint Identity (and Its Limits)
+
+Non-markdown files (images, PDFs, txt) have no front matter, so they can't carry an `id`, and markdown files only have one if the user gave them one. To still detect renames, `reconcileIndexedFiles` fingerprints each such file as `createTime:size:ext`, derived from `fs.stat` (rounded `birthtimeMs`, byte `size`, and lowercased extension) and stored on the entry as `create_time` + `size`. On the next reconcile, an index entry whose stored fingerprint matches a disk file's is treated as a rename and re-pointed to that file.
 
 Unlike a front-matter `id`, **this fingerprint is not guaranteed unique**:
 

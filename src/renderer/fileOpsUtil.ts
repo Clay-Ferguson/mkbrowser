@@ -322,8 +322,10 @@ export async function deleteEmptyFolderOp(folderPath: string): Promise<void> {
  * `-01` … `-NN` are inserted after that entry (or after its attach folder, which
  * must stay immediately behind its file), and the closing reconcile re-points the
  * original's entry to the new `-00` file in place via its front-matter id — the
- * id travels with part 0's content. If the original has no entry at all, the
- * inserts are skipped and the reconcile appends every part at the end.
+ * id travels with part 0's content. Front-matter ids are optional, so when the
+ * original's entry has none, `-00` is inserted too and the reconcile simply drops
+ * the deleted original's entry. If the original has no entry at all, the inserts
+ * are skipped and the reconcile appends every part at the end.
  *
  * @param currentPath - Absolute path of the folder that was split into.
  * @param originalName - Filename of the file that was split (now deleted).
@@ -337,12 +339,15 @@ async function insertSplitPartsIntoIndex(
   const names = filePaths.map((p) => getFileName(p));
 
   const indexYaml = await api.readIndexYaml(currentPath);
-  const entryNames = (indexYaml?.files ?? []).map((f) => f.name);
+  const entries = indexYaml?.files ?? [];
+  const entryNames = entries.map((f) => f.name);
   const anchorIdx = entryNames.indexOf(originalName);
   if (anchorIdx !== -1) {
     const attachName = `${originalName}${ATTACH_SUFFIX}`;
     let insertAfter = entryNames[anchorIdx + 1] === attachName ? attachName : originalName;
-    for (const name of names.slice(1)) {
+    // With an id, the original's entry becomes `-00`'s (see above); without one it can't.
+    const toInsert = entries[anchorIdx]!.id ? names.slice(1) : names;
+    for (const name of toInsert) {
       const result = await api.insertIntoIndexYaml(currentPath, name, insertAfter);
       if (!result.success) {
         throw new Error(result.error || `Failed to insert "${name}" into the index`);

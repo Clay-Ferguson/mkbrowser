@@ -161,6 +161,25 @@ describe('splitSelectedFile (Document Mode index sync)', () => {
     ]);
   });
 
+  it("also splices -00 when the original's entry has no id (it can't be re-pointed)", async () => {
+    seedFs({ '/docs/notes.md': splitContent });
+    // Front-matter ids are optional: an id-less file's entry carries a fingerprint
+    // instead, which the new -00 file won't match, so -00 needs its own entry.
+    vi.mocked(api.readIndexYaml).mockResolvedValue({
+      files: [{ name: 'intro.md' }, { name: 'notes.md' }, { name: 'outro.md' }],
+    });
+
+    await splitSelectedFile('/docs', selected, true);
+
+    expect(vi.mocked(api.insertIntoIndexYaml).mock.calls).toEqual([
+      ['/docs', 'notes-00.md', 'notes.md'],
+      ['/docs', 'notes-01.md', 'notes-00.md'],
+      ['/docs', 'notes-02.md', 'notes-01.md'],
+    ]);
+    expect(api.reconcileIndexedFiles).toHaveBeenCalledWith('/docs', false);
+    expect(setAppError).not.toHaveBeenCalled();
+  });
+
   it('skips the splice and just reconciles when the original has no index entry', async () => {
     seedFs({ '/docs/notes.md': splitContent });
     // e.g. the file was created but never reconciled into the index.

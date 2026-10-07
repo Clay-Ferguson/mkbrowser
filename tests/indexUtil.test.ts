@@ -14,7 +14,6 @@ import {
   insertIntoIndexYaml,
   renameInIndexYaml,
   getSortedDirEntries,
-  ensureFrontMatterIdIfIndexed,
   ensureFrontMatterId,
   recordFrontMatterIdInIndex,
   CURRENT_INDEX_VERSION,
@@ -453,9 +452,10 @@ describe('insertIntoIndexYaml', () => {
 // insertIntoIndexYaml seeds identity at insert time (issue 012)
 //
 // Unlike the bulk reconcile append path, the insert bars splice a single new
-// entry in. That entry must carry its identity immediately — an id for markdown,
-// a create_time/size fingerprint for other files — so a rename of the freshly
-// inserted file is tracked without waiting for the next reconcile.
+// entry in. That entry must carry its identity immediately — an existing
+// front-matter id for markdown, else a create_time/size fingerprint — so a rename
+// of the freshly inserted file is tracked without waiting for the next reconcile.
+// Insert never adds an id to a file.
 // ---------------------------------------------------------------------------
 
 describe('insertIntoIndexYaml seeds identity at insert time', () => {
@@ -463,18 +463,19 @@ describe('insertIntoIndexYaml seeds identity at insert time', () => {
     return fs.readFileSync(path.join(tmpDir, name), 'utf8');
   }
 
-  it('assigns a front-matter id to an inserted markdown file and records it on the entry', async () => {
-    touchFile('a.md', '# Hello\n'); // no front matter yet
+  it('fingerprints an inserted markdown file without an id and leaves the file untouched', async () => {
+    touchFile('a.md', '# Hello\n'); // no front matter
     writeIndex({ files: [] });
 
     await insertIntoIndexYaml(tmpDir, 'a.md', null);
 
     const entry = readIndex().files[0];
     expect(entry.name).toBe('a.md');
-    expect(entry.id).toMatch(/^[0-9A-F]{9}$/);
-    // The id is also persisted to the file's front matter, so it survives renames.
-    const { yaml: fm } = parseFrontMatter(readRaw('a.md'));
-    expect(fm?.id).toBe(entry.id);
+    expect(entry.id).toBeUndefined();
+    expect(typeof entry.create_time).toBe('number');
+    expect(entry.size).toBe('# Hello\n'.length);
+    // No front matter is ever injected into the file.
+    expect(readRaw('a.md')).toBe('# Hello\n');
   });
 
   it('reuses an existing front-matter id rather than minting a new one', async () => {
@@ -519,10 +520,25 @@ describe('insertIntoIndexYaml seeds identity at insert time', () => {
     expect(readIndex().files[0]).toEqual({ name: 'ghost.md' });
   });
 
-  it('lets id-based rename detection fire on a freshly inserted markdown file before any full reconcile', async () => {
-    // Insert seeds the entry's id; renaming the file (id stays in front matter)
-    // and reconciling re-points the entry by id to the new name.
+  it('lets fingerprint rename detection fire on a freshly inserted id-less markdown file', async () => {
+    // Insert seeds the entry's fingerprint; a rename keeps the inode (birthtime)
+    // and size, so reconciling re-points the entry to the new name.
     touchFile('draft.md', '# Draft\n');
+    writeIndex({ files: [] });
+    await insertIntoIndexYaml(tmpDir, 'draft.md', null);
+    expect(readIndex().files[0].create_time).toBeDefined();
+
+    fs.renameSync(path.join(tmpDir, 'draft.md'), path.join(tmpDir, 'final.md'));
+    await reconcileIndexedFiles(tmpDir);
+
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['final.md']);
+    expect(readRaw('final.md')).toBe('# Draft\n');
+  });
+
+  it('lets id-based rename detection fire on a freshly inserted markdown file before any full reconcile', async () => {
+    // Insert records the file's existing id; renaming the file (id stays in front
+    // matter) and reconciling re-points the entry by id to the new name.
+    touchFile('draft.md', '---\nid: 0A1B2C3D4\n---\n# Draft\n');
     writeIndex({ files: [] });
     await insertIntoIndexYaml(tmpDir, 'draft.md', null);
     const id = readIndex().files[0].id;
@@ -939,13 +955,61 @@ describe('reconcileIndexedFiles', () => {
     expect(names).toContain('b.md');
   });
 
-  it('writes an id into front matter of a markdown file that lacks one', async () => {
+  it('never writes an id into a markdown file that lacks one; it is fingerprinted instead', async () => {
     touchFile('a.md', '# No front matter');
+    touchFile('b.md', '---\ntitle: B\n---\n# Has front matter but no id');
     writeIndex({ files: [] });
     await reconcileIndexedFiles(tmpDir);
-    const content = fs.readFileSync(path.join(tmpDir, 'a.md'), 'utf8');
-    expect(content).toMatch(/^---\n/);
-    expect(content).toMatch(/id:/);
+    expect(fs.readFileSync(path.join(tmpDir, 'a.md'), 'utf8')).toBe('# No front matter');
+    expect(fs.readFileSync(path.join(tmpDir, 'b.md'), 'utf8')).toBe('---\ntitle: B\n---\n# Has front matter but no id');
+    for (const entry of readIndex().files) {
+      expect(entry.id).toBeUndefined();
+      expect(typeof entry.create_time).toBe('number');
+      expect(typeof entry.size).toBe('number');
+    }
+  });
+
+  it('detects an external rename of an id-less markdown file by fingerprint', async () => {
+    touchFile('a.md', '# A');
+    touchFile('b.md', '# Bee');
+    writeIndex({ files: [] });
+    await reconcileIndexedFiles(tmpDir);
+    await moveToEdgeInIndexYaml(tmpDir, 'b.md', 'top'); // order: b, a
+
+    fs.renameSync(path.join(tmpDir, 'b.md'), path.join(tmpDir, 'renamed.md'));
+    await reconcileIndexedFiles(tmpDir);
+
+    // Re-pointed in place (position kept), not dropped and re-appended.
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['renamed.md', 'a.md']);
+  });
+
+  it('switches an entry to a fingerprint when the user removes the id, keeping its position', async () => {
+    touchFile('a.md', '---\nid: AAA000001\n---\n# A');
+    touchFile('b.md', '# B');
+    writeIndex({ files: [{ name: 'a.md', id: 'AAA000001' }, { name: 'b.md' }] });
+
+    // The user deletes the id property from a.md (and its now-empty block).
+    touchFile('a.md', '# A');
+    await reconcileIndexedFiles(tmpDir);
+
+    expect(fs.readFileSync(path.join(tmpDir, 'a.md'), 'utf8')).toBe('# A'); // id NOT restored
+    const files = readIndex().files;
+    expect(files.map((f: IndexEntry) => f.name)).toEqual(['a.md', 'b.md']); // no duplicate
+    expect(files[0].id).toBeUndefined();
+    expect(typeof files[0].create_time).toBe('number');
+    expect(typeof files[1].create_time).toBe('number'); // name-only md entry gains a fingerprint
+  });
+
+  it('switches a fingerprinted entry to its id once the file is given one', async () => {
+    touchFile('a.md', '# A');
+    writeIndex({ files: [] });
+    await reconcileIndexedFiles(tmpDir);
+    expect(readIndex().files[0].create_time).toBeDefined();
+
+    touchFile('a.md', '---\nid: AAA000002\n---\n# A');
+    await reconcileIndexedFiles(tmpDir);
+
+    expect(readIndex().files).toEqual([{ name: 'a.md', id: 'AAA000002' }]);
   });
 
   it('re-keys a duplicate front-matter id so copied markdown files get distinct ids', async () => {
@@ -1107,30 +1171,40 @@ describe('reconcileIndexedFiles', () => {
     expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(expected);
   });
 
-  it('assigns a unique id to every file across a large directory (bounded parallel I/O)', async () => {
+  it('re-keys duplicate ids and fingerprints id-less files across a large directory (bounded parallel I/O)', async () => {
     // Exercises the parallel stat/read/write fan-out: more files than the
-    // concurrency limit, a mix of markdown (which gets ids written) and
-    // non-markdown (fingerprinted), all reconciled in one pass.
+    // concurrency limit, a mix of markdown copies sharing one id (all but the
+    // oldest get re-keyed ids written), id-less markdown and non-markdown (both
+    // fingerprinted, never written), all reconciled in one pass.
     const COUNT = 80; // comfortably above RECONCILE_FILE_CONCURRENCY (32)
     for (let i = 0; i < COUNT; i++) {
-      touchFile(`doc${i}.md`, `# Doc ${i}`); // no front matter → each needs an id
+      touchFile(`dup${i}.md`, `---\nid: DUP000001\n---\n# Dup ${i}`); // copies → re-keyed
+      touchFile(`doc${i}.md`, `# Doc ${i}`); // no front matter → left alone
       touchFile(`asset${i}.png`, `binary-${i}`); // non-markdown → fingerprinted
     }
     writeIndex({ files: [] });
 
     await reconcileIndexedFiles(tmpDir);
 
-    // Every markdown file got a distinct id, both on disk and in the index.
+    // Every duplicate ended up with a distinct id, both on disk and in the index.
     const diskIds = Array.from({ length: COUNT }, (_, i) =>
-      parseFrontMatter(fs.readFileSync(path.join(tmpDir, `doc${i}.md`), 'utf8')).yaml?.id,
+      parseFrontMatter(fs.readFileSync(path.join(tmpDir, `dup${i}.md`), 'utf8')).yaml?.id,
     );
     expect(diskIds.every(Boolean)).toBe(true);
     expect(new Set(diskIds).size).toBe(COUNT);
 
     const data = readIndex();
-    const mdEntries = data.files.filter((f: IndexEntry) => f.name.endsWith('.md'));
-    expect(mdEntries).toHaveLength(COUNT);
-    expect(new Set(mdEntries.map((f: IndexEntry) => f.id)).size).toBe(COUNT);
+    const dupEntries = data.files.filter((f: IndexEntry) => f.name.startsWith('dup'));
+    expect(dupEntries).toHaveLength(COUNT);
+    expect(new Set(dupEntries.map((f: IndexEntry) => f.id)).size).toBe(COUNT);
+
+    // Id-less markdown files are untouched and fingerprinted.
+    for (let i = 0; i < COUNT; i++) {
+      expect(fs.readFileSync(path.join(tmpDir, `doc${i}.md`), 'utf8')).toBe(`# Doc ${i}`);
+    }
+    const docEntries = data.files.filter((f: IndexEntry) => f.name.startsWith('doc'));
+    expect(docEntries).toHaveLength(COUNT);
+    expect(docEntries.every((f: IndexEntry) => f.id === undefined && f.size !== undefined)).toBe(true);
 
     // Non-markdown files are all listed with a (create_time, size) fingerprint.
     const pngEntries = data.files.filter((f: IndexEntry) => f.name.endsWith('.png'));
@@ -1411,11 +1485,11 @@ describe('YAML dump does not fold long lines', () => {
     const longTitle =
       'This is an extremely long front matter title that runs well beyond eighty characters of width';
     expect(longTitle.length).toBeGreaterThan(80);
-    // Markdown file with front matter but no id — reconcile rewrites it to add one.
+    // Markdown file with front matter but no id — Paste Link's ensureFrontMatterId
+    // rewrites it to add one.
     touchFile('a.md', `---\ntitle: ${longTitle}\n---\n# Body`);
-    writeIndex({ files: [] });
 
-    await reconcileIndexedFiles(tmpDir);
+    await ensureFrontMatterId(path.join(tmpDir, 'a.md'));
 
     const raw = readRaw('a.md');
     expect(raw).toContain('id:');
@@ -1427,7 +1501,9 @@ describe('YAML dump does not fold long lines', () => {
 // ---------------------------------------------------------------------------
 // Front-matter id injection (issues 006/007)
 //
-// The id is added by round-tripping the front matter through js-yaml (we never
+// Ids are only added with the user's consent, by "Paste Link into Editor"
+// (ensureFrontMatterId), or when reconcile re-keys a duplicated id. The id is
+// added by round-tripping the front matter through js-yaml (we never
 // hand-edit YAML text). That normalizes the block — comments are dropped and
 // key order/quoting may change — which is acceptable; what must hold is that the
 // id is injected (and leads the block) and that the user's field *values* and
@@ -1457,9 +1533,7 @@ describe('injecting an id round-trips front matter without losing field values',
       'note.md',
       '---\nzebra: keep this value\ntitle: My Title\napple: 1\n---\n# Body text\n',
     );
-    writeIndex({ files: [] });
-
-    await reconcileIndexedFiles(tmpDir);
+    await ensureFrontMatterId(path.join(tmpDir, 'note.md'));
 
     const raw = readRaw('note.md');
     // The id is added at the top of the block, then the original body follows.
@@ -1484,9 +1558,7 @@ describe('injecting an id round-trips front matter without losing field values',
     ['comments only', '---\n# nothing yet\n---\n# Body\n'],
   ])('adds an id to a %s front matter block without duplicating the fences', async (_label, content) => {
     touchFile('empty.md', content);
-    writeIndex({ files: [] });
-
-    await reconcileIndexedFiles(tmpDir);
+    await ensureFrontMatterId(path.join(tmpDir, 'empty.md'));
 
     const raw = readRaw('empty.md');
     expect(raw).toMatch(new RegExp(String.raw`^---\n${RAW_ID}\n---\n# Body\n$`));
@@ -1561,7 +1633,8 @@ describe('injecting an id round-trips front matter without losing field values',
   // YAML destroys a leading zero before we ever see it — `id: 012345678` arrives
   // as the number 12345678 — so String()-ing it would fabricate the 8-char id
   // "12345678", which the user never wrote and which matches nothing in the
-  // index. It must be rejected and the file given a real id instead.
+  // index. It must be rejected (treated as no id), so Paste Link gives the file a
+  // real id instead.
   //
   // A blank id is rejected for the same reason (it isn't an id), which also
   // guards the coercion from over-accepting.
@@ -1570,9 +1643,7 @@ describe('injecting an id round-trips front matter without losing field values',
     ['a blank id', '---\nid:\ntitle: Kept\n---\n# Body\n'],
   ])('assigns a real id when the front matter carries %s', async (_label, content) => {
     touchFile('bad.md', content);
-    writeIndex({ files: [] });
-
-    await reconcileIndexedFiles(tmpDir);
+    await ensureFrontMatterId(path.join(tmpDir, 'bad.md'));
 
     const parsed = parseFrontMatter(readRaw('bad.md'));
     expectParsedId(parsed.yaml?.id);
@@ -1626,47 +1697,8 @@ describe('concurrent .INDEX.yaml mutations are serialized per directory (issue 0
 });
 
 // ---------------------------------------------------------------------------
-// ensureFrontMatterIdIfIndexed / recordFrontMatterIdInIndex (issue 014)
+// recordFrontMatterIdInIndex (issue 014)
 // ---------------------------------------------------------------------------
-
-describe('ensureFrontMatterIdIfIndexed (issue 014)', () => {
-  it('injects an id and returns it without touching .INDEX.yaml, in Document Mode', async () => {
-    writeIndex({ files: [{ name: 'note.md' }] });
-    const indexBefore = fs.readFileSync(indexPath(), 'utf8');
-
-    const { content, addedId } = await ensureFrontMatterIdIfIndexed(
-      path.join(tmpDir, 'note.md'),
-      '# Hello',
-    );
-
-    expect(addedId).toMatch(/^[0-9A-F]{9}$/);
-    expect(parseFrontMatter(content).yaml?.id).toBe(addedId);
-    // The index write is deferred to recordFrontMatterIdInIndex (post file-write),
-    // so this function must leave .INDEX.yaml untouched.
-    expect(fs.readFileSync(indexPath(), 'utf8')).toBe(indexBefore);
-  });
-
-  it('is a no-op when the folder is not in Document Mode', async () => {
-    const { content, addedId } = await ensureFrontMatterIdIfIndexed(
-      path.join(tmpDir, 'note.md'),
-      '# Hello',
-    );
-    expect(addedId).toBeNull();
-    expect(content).toBe('# Hello');
-    expect(fs.existsSync(indexPath())).toBe(false);
-  });
-
-  it('is a no-op when the file already has an id', async () => {
-    writeIndex({ files: [{ name: 'note.md', id: 'AAAAAAAA1' }] });
-    const input = '---\nid: AAAAAAAA1\n---\n# Hello';
-    const { content, addedId } = await ensureFrontMatterIdIfIndexed(
-      path.join(tmpDir, 'note.md'),
-      input,
-    );
-    expect(addedId).toBeNull();
-    expect(content).toBe(input);
-  });
-});
 
 describe('recordFrontMatterIdInIndex (issue 014)', () => {
   it('updates an existing entry with the id', async () => {
@@ -1687,24 +1719,11 @@ describe('recordFrontMatterIdInIndex (issue 014)', () => {
     await recordFrontMatterIdInIndex(path.join(tmpDir, 'fresh.md'), 'ABCDEF123');
     expect(fs.existsSync(indexPath())).toBe(false);
   });
-});
 
-describe('save flow leaves file and index consistent for a new file (issue 014)', () => {
-  it('the injected id ends up in both the file and the index, file-written first', async () => {
-    // A Document Mode folder whose index does not yet list the brand-new file.
-    writeIndex({ files: [{ name: 'existing.md' }] });
-    const filePath = path.join(tmpDir, 'fresh.md');
-
-    // Mirror the write-file handler's ordering: inject id -> write file -> record id.
-    const { content, addedId } = await ensureFrontMatterIdIfIndexed(filePath, '# Fresh');
-    expect(addedId).not.toBeNull();
-    fs.writeFileSync(filePath, content, 'utf8'); // file written BEFORE the index
-    if (addedId) await recordFrontMatterIdInIndex(filePath, addedId);
-
-    const fileId = parseFrontMatter(fs.readFileSync(filePath, 'utf8')).yaml?.id;
-    const indexEntry = readIndex().files.find((f: IndexEntry) => f.name === 'fresh.md');
-    expect(fileId).toBe(addedId);
-    expect(indexEntry?.id).toBe(addedId);
+  it('replaces a fingerprint with the id (an id-less file just given one by Paste Link)', async () => {
+    writeIndex({ files: [{ name: 'note.md', create_time: 123, size: 45 }] });
+    await recordFrontMatterIdInIndex(path.join(tmpDir, 'note.md'), 'ABCDEF123');
+    expect(readIndex().files).toEqual([{ name: 'note.md', id: 'ABCDEF123' }]);
   });
 });
 
@@ -1731,46 +1750,23 @@ describe('reconcile does not clobber a concurrent write (MAIN_ISSUES.md issue 1)
     vi.restoreAllMocks();
   });
 
-  it('reconcileIndexedFiles skips the id write when the file changed after Phase 2 read', async () => {
-    touchFile('note.md', '# old content, no id');
-    interceptReadToRewrite('note.md', '# NEWER content saved mid-reconcile');
+  it('reconcileIndexedFiles skips a duplicate-id re-key when the file changed after Phase 2 read', async () => {
+    touchFile('a.md', '---\nid: DUP000001\n---\n# A');
+    await new Promise((r) => { setTimeout(r, 20); }); // copy.md is the newer duplicate
+    touchFile('copy.md', '---\nid: DUP000001\n---\n# old copy');
+    interceptReadToRewrite('copy.md', '# NEWER content saved mid-reconcile');
 
     const result = await reconcileIndexedFiles(tmpDir, true);
     expect(result.success).toBe(true);
 
     // The user's newer content survives — reconcile must not write the stale
-    // read-plus-injected-id copy over it.
-    expect(fs.readFileSync(path.join(tmpDir, 'note.md'), 'utf8')).toBe(
+    // read-plus-re-keyed-id copy over it.
+    expect(fs.readFileSync(path.join(tmpDir, 'copy.md'), 'utf8')).toBe(
       '# NEWER content saved mid-reconcile',
     );
-    // The skipped file is dropped from the id maps, so its index entry is
-    // name-only this round (the next reconcile heals the id).
-    const entry = readIndex().files.find((f: IndexEntry) => f.name === 'note.md');
-    expect(entry).toBeDefined();
-    expect(entry?.id).toBeUndefined();
-  });
-
-  it('reconcileIndexedFiles still injects ids when nothing changes mid-flight', async () => {
-    touchFile('note.md', '# plain content, no id');
-    await reconcileIndexedFiles(tmpDir, true);
-    const fileId = parseFrontMatter(fs.readFileSync(path.join(tmpDir, 'note.md'), 'utf8')).yaml?.id;
-    expect(fileId).toBeTruthy();
-    expect(readIndex().files.find((f: IndexEntry) => f.name === 'note.md')?.id).toBe(fileId);
-  });
-
-  it('insertIntoIndexYaml skips the id write when the file changed after it was read', async () => {
-    writeIndex({ files: [] });
-    touchFile('pasted.md', '# old content, no id');
-    interceptReadToRewrite('pasted.md', '# NEWER content saved mid-insert');
-
-    const result = await insertIntoIndexYaml(tmpDir, 'pasted.md', null);
-    expect(result.success).toBe(true);
-
-    expect(fs.readFileSync(path.join(tmpDir, 'pasted.md'), 'utf8')).toBe(
-      '# NEWER content saved mid-insert',
-    );
-    // Degrades to a name-only entry rather than clobbering the file.
-    const entry = readIndex().files.find((f: IndexEntry) => f.name === 'pasted.md');
+    // The skipped file is dropped from the id maps, so its index entry carries
+    // no id this round.
+    const entry = readIndex().files.find((f: IndexEntry) => f.name === 'copy.md');
     expect(entry).toBeDefined();
     expect(entry?.id).toBeUndefined();
   });

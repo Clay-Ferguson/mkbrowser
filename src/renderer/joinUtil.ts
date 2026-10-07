@@ -26,7 +26,7 @@ function prepareMarkdownForAppend(filePath: string, rawContent: string): string 
   // Remove the id property — it's no longer valid after the file is deleted
   const { id: _id, ...rest } = frontMatter as Record<string, unknown>;
 
-  // In Document Mode `id` is often the only front-matter property, so once it's
+  // `id` is often the only front-matter property, so once it's
   // dropped there's nothing left to preserve. Emitting a block here would put a
   // useless ```yaml {} ``` fence between every joined part.
   if (Object.keys(rest).length === 0) return content;
@@ -111,8 +111,8 @@ export async function joinFiles(
     const joinedContent = contents.join('\n\n\n');
 
     // Write to the first file (alphabetically). Note that writeFile may
-    // legitimately normalize/transform the content (e.g. markdown TOC expansion
-    // or front-matter id injection), so it returns the exact bytes it wrote
+    // legitimately normalize/transform the content (e.g. markdown TOC
+    // expansion), so it returns the exact bytes it wrote
     // back in `content`. We verify against that authoritative result, not
     // against joinedContent.
     const targetPath = sortedPaths[0];

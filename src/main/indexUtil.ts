@@ -178,8 +178,11 @@ function frontMatterId(fm: Record<string, unknown> | null): string | undefined {
  * `isTaken` lets a caller reject ids already in use — reconcileIndexedFiles must
  * keep ids unique within a directory; by default any generated id is accepted.
  *
- * This is the single home for id injection: both reconcileIndexedFiles and
- * ensureFrontMatterIdIfIndexed call it, so the logic can't drift between them.
+ * This is the single home for id injection, and it has exactly two callers:
+ * ensureFrontMatterId ("Paste Link into Editor", after the user consents) and
+ * reconcileIndexedFiles' duplicate re-key (a file that already has an id). No
+ * other path may add an id to a file — a silently injected front-matter block
+ * is visible to every reader of the file (e.g. a README.md on GitHub).
  */
 function injectFrontMatterId(
   content: string,
@@ -396,12 +399,13 @@ export async function readIndexYaml(dirPath: string): Promise<IndexYaml | null> 
   return result.status === 'ok' ? result.data : null;
 }
 
-/** Stat fingerprint used to detect renames of non-markdown files. */
+/** Stat fingerprint used to detect renames of files that carry no front-matter id. */
 type Fingerprint = { createTime: number; size: number };
 
 /**
- * The "createTime:size:ext" key under which a non-markdown file is recorded for
- * rename detection. Centralized so the build, match, and filter sites can't
+ * The "createTime:size:ext" key under which a file without a front-matter id
+ * (any non-markdown file, or a markdown file the user never gave an id) is
+ * recorded for rename detection. Centralized so the build, match, and filter sites can't
  * drift apart on how the key is composed.
  */
 function fingerprintOf(createTime: number, size: number, name: string): string {
@@ -419,10 +423,15 @@ async function readVisibleEntries(dirPath: string): Promise<fs.Dirent[]> {
 }
 
 /**
- * Stats every visible non-markdown file to build the maps used for rename
- * detection: `nameToStat` (name → {createTime, size}) and `fingerprintToVisibleNames`
+ * Stats every visible file to build the maps used for rename detection:
+ * `nameToStat` (name → {createTime, size}) and `fingerprintToVisibleNames`
  * (fingerprint → all names sharing it). Files that can't be stat'd are skipped (no
  * fingerprint → no rename detection for them).
+ *
+ * Markdown files are included too: one that carries a front-matter `id` is
+ * matched by that id first (reconcileEntries never consults the fingerprint of
+ * an id entry), but one without an id — ids are optional and never added
+ * implicitly — is tracked by fingerprint exactly like a non-markdown file.
  *
  * The fingerprint ("createTime:size:ext") is deliberately *not* assumed unique:
  * `stat.birthtimeMs` is unreliable on some Linux filesystems (returns 0), and even
@@ -431,16 +440,14 @@ async function readVisibleEntries(dirPath: string): Promise<fs.Dirent[]> {
  * full list (rather than last-writer-wins) so reconcileEntries can recognize the
  * ambiguity and refuse to re-point an entry to the wrong file. See reconcileEntries.
  */
-async function buildNonMarkdownFingerprints(
+async function buildFileFingerprints(
   dirPath: string,
   visibleEntries: fs.Dirent[],
 ): Promise<{ nameToStat: Map<string, Fingerprint>; fingerprintToVisibleNames: Map<string, string[]> }> {
   const nameToStat = new Map<string, Fingerprint>();
   const fingerprintToVisibleNames = new Map<string, string[]>();
 
-  const nonMarkdownFiles = visibleEntries.filter(
-    (e) => !e.isDirectory() && !e.name.toLowerCase().endsWith('.md'),
-  );
+  const files = visibleEntries.filter((e) => !e.isDirectory());
 
   // Stat the files in parallel (bounded): each stat is an independent fs
   // round-trip, so serial awaits would sum to N round-trips on large/slow
@@ -449,7 +456,7 @@ async function buildNonMarkdownFingerprints(
   // preserves input order, so assembling the maps from its results below stays
   // deterministic.
   const stats = await mapWithConcurrency(
-    nonMarkdownFiles,
+    files,
     RECONCILE_FILE_CONCURRENCY,
     async (entry) => {
       try {
@@ -476,22 +483,30 @@ async function buildNonMarkdownFingerprints(
 }
 
 /**
- * Ensures every visible markdown file has a unique front-matter `id` (assigning
- * and persisting one when it's missing or collides with an older file), and
- * returns the bidirectional name↔id maps used for rename/duplicate detection.
+ * Collects the front-matter `id` of every visible markdown file that has one,
+ * returning the bidirectional name↔id maps used for rename/duplicate detection,
+ * plus `noIdNames`: the markdown files that were read successfully but carry no
+ * id (reconcileEntries fingerprints those instead).
  *
- * Files are processed oldest-first (tie-broken by name) so that when two share
- * an id — e.g. a copy/paste duplicated the front matter — the oldest keeps the
- * id and any newer duplicate is re-keyed. So a freshly pasted copy is the one
- * that gets a fresh id, while the original keeps its identity (and its existing
- * .INDEX.yaml entry).
+ * A file without an id is **never** given one here. Ids are optional and are only
+ * added with the user's consent ("Paste Link into Editor"), because an injected
+ * front-matter block is visible to anyone reading the file — e.g. a README.md
+ * rendered on GitHub.
+ *
+ * The one write this does is to keep ids unique within the directory. Files are
+ * processed oldest-first (tie-broken by name) so that when two share an id — e.g.
+ * a copy/paste duplicated the front matter — the oldest keeps the id and any newer
+ * duplicate is re-keyed. So a freshly pasted copy is the one that gets a fresh id,
+ * while the original keeps its identity (and its existing .INDEX.yaml entry). A
+ * re-keyed file already had an `id` field, so no new front matter appears.
  */
-async function ensureMarkdownIds(
+async function collectMarkdownIds(
   dirPath: string,
   visibleEntries: fs.Dirent[],
-): Promise<{ nameToId: Map<string, string>; idToName: Map<string, string> }> {
+): Promise<{ nameToId: Map<string, string>; idToName: Map<string, string>; noIdNames: Set<string> }> {
   const nameToId = new Map<string, string>();
   const idToName = new Map<string, string>();
+  const noIdNames = new Set<string>();
 
   const markdownEntries = visibleEntries.filter(
     (e) => !e.isDirectory() && e.name.toLowerCase().endsWith('.md'),
@@ -538,10 +553,10 @@ async function ensureMarkdownIds(
     },
   );
 
-  // Phase 3 — decide ids sequentially in oldest-first order. This loop is purely
+  // Phase 3 — record ids sequentially in oldest-first order. This loop is purely
   // synchronous (no awaits), so the cross-file collision logic that mutates and
-  // reads idToName/nameToId runs without interleaving. Files needing a
-  // (re)written id are collected for a batched write.
+  // reads idToName/nameToId runs without interleaving. Duplicates needing a
+  // re-keyed id are collected for a batched write.
   const pendingWrites: Array<{
     name: string;
     filePath: string;
@@ -552,21 +567,25 @@ async function ensureMarkdownIds(
     if (rawContent === null) continue; // unreadable — skip (no id assigned)
     const { yaml: fm } = parseFrontMatter(rawContent);
 
-    // A file needs a fresh id when it has none, or when its id is already
-    // claimed by an older file. Filenames are unique within a directory, so a
-    // hit in idToName here means a true duplicate id — e.g. a copy/paste that
-    // carried the source file's front-matter id. Re-key the (newer) duplicate
-    // so the per-directory uniqueness invariant rename detection relies on holds.
+    // No id → leave the file alone; it is tracked by fingerprint instead.
     let fileId = frontMatterId(fm);
-    const collidingName = fileId ? idToName.get(fileId) : undefined;
-    if (!fileId || collidingName !== undefined) {
-      if (fileId && collidingName !== undefined) {
-        logger.warn(
-          `reconcileIndexedFiles: duplicate front-matter id "${fileId}" in "${name}" (already used by older file "${collidingName}"); assigning a new id`,
-        );
-      }
-      // Inject an id not already in use in this directory, preserving any
-      // existing front-matter formatting (see injectFrontMatterId).
+    if (!fileId) {
+      noIdNames.add(name);
+      continue;
+    }
+
+    // A file needs a fresh id when its id is already claimed by an older file.
+    // Filenames are unique within a directory, so a hit in idToName here means a
+    // true duplicate id — e.g. a copy/paste that carried the source file's
+    // front-matter id. Re-key the (newer) duplicate so the per-directory
+    // uniqueness invariant rename detection relies on holds.
+    const collidingName = idToName.get(fileId);
+    if (collidingName !== undefined) {
+      logger.warn(
+        `reconcileIndexedFiles: duplicate front-matter id "${fileId}" in "${name}" (already used by older file "${collidingName}"); assigning a new id`,
+      );
+      // Inject an id not already in use in this directory, preserving the
+      // file's other front-matter fields (see injectFrontMatterId).
       const injected = injectFrontMatterId(rawContent, (id) => idToName.has(id));
       fileId = injected.id;
       pendingWrites.push({
@@ -580,7 +599,7 @@ async function ensureMarkdownIds(
     idToName.set(fileId, name);
   }
 
-  // Phase 4 — persist the injected ids in parallel (bounded). Writes target
+  // Phase 4 — persist the re-keyed ids in parallel (bounded). Writes target
   // distinct paths, so they're independent. If a write fails the file couldn't be
   // persisted, so drop it from the maps (no id → excluded from rename detection).
   //
@@ -617,19 +636,20 @@ async function ensureMarkdownIds(
     },
   );
 
-  return { nameToId, idToName };
+  return { nameToId, idToName, noIdNames };
 }
 
 /**
  * Reconciles the existing index entries against what's on disk: applies detected
- * renames in place (by id for markdown, by fingerprint for non-markdown), drops
+ * renames in place (by front-matter id for markdown files that have one, by
+ * fingerprint for every other file), drops
  * entries whose file/folder no longer exists, and collects the set of names that
  * matched a disk entry ("handled") so the caller knows which visible entries are
  * still new. Name-only entries also pick up an id when their file now has one,
  * and a fingerprinted entry matched by name has its fingerprint refreshed from
  * the file's current stat (see the name-match branch below).
  *
- * Non-markdown fingerprints (createTime:size:ext) are not guaranteed unique, so a
+ * Fingerprints (createTime:size:ext) are not guaranteed unique, so a
  * rename is only inferred when the fingerprint maps one-to-one (one index entry ↔
  * one disk file). Ambiguous (colliding) fingerprints fall back to name-only
  * matching and are never re-pointed — a missed rename is preferred to binding an
@@ -647,9 +667,12 @@ export function reconcileEntries(
     nameToId: Map<string, string>;
     nameToStat: Map<string, Fingerprint>;
     visibleNames: Set<string>;
+    /** Markdown files read successfully that carry no front-matter id. */
+    noIdNames?: Set<string>;
   },
 ): { files: IndexEntry[]; handledNames: Set<string> } {
   const { idToName, fingerprintToVisibleNames, nameToId, nameToStat, visibleNames } = maps;
+  const noIdNames = maps.noIdNames ?? new Set<string>();
   const handledNames = new Set<string>();
 
   // Count how many index entries claim each fingerprint. A "createTime:size:ext"
@@ -724,18 +747,28 @@ export function reconcileEntries(
       }
       // Otherwise the name is gone and the fingerprint is ambiguous → treat as
       // deleted (filtered out below) rather than risk a wrong re-point.
+
+      // A fingerprinted markdown file that has since been given an id (e.g. by
+      // "Paste Link into Editor") switches to id-based identity.
+      if (handledNames.has(entry.name)) {
+        const id = nameToId.get(entry.name);
+        if (id) setEntryId(entry, id);
+      }
     } else {
-      // Name-only entry (folder or old-style non-markdown without fingerprint)
+      // Name-only entry (folder, old-style non-markdown without fingerprint, or
+      // a markdown file whose identity couldn't be seeded when it was added)
       handledNames.add(entry.name);
       const id = nameToId.get(entry.name);
       if (id) entry.id = id;
+      else if (noIdNames.has(entry.name)) setEntryFingerprint(entry, nameToStat.get(entry.name));
     }
   }
 
   // An id entry that matched nothing by id, but whose *name* is still on disk and
   // unclaimed, is that same file with a changed id — the front-matter id was
   // hand-edited or removed.
-  // Re-bind the entry to the file and adopt the file's current id.
+  // Re-bind the entry to the file and adopt the file's current id — or, when the
+  // user removed the id altogether, switch the entry to a fingerprint.
   //
   // Without this the entry is orphaned but still survives the keep filter (its
   // name is visible), while the file also looks brand new to appendNewEntries
@@ -751,10 +784,15 @@ export function reconcileEntries(
     if (!visibleNames.has(entry.name) || handledNames.has(entry.name)) continue;
     handledNames.add(entry.name);
     adopted.add(entry);
-    // Unreadable files are absent from nameToId (no id could be read); keep the
-    // entry's existing id rather than blanking it, and let the next reconcile heal.
+    // Unreadable files are absent from both nameToId and noIdNames (no id could
+    // be read); keep the entry's existing id rather than blanking it, and let the
+    // next reconcile heal.
     const id = nameToId.get(entry.name);
     if (id) entry.id = id;
+    else if (noIdNames.has(entry.name)) {
+      delete entry.id;
+      setEntryFingerprint(entry, nameToStat.get(entry.name));
+    }
   }
 
   // Remove entries for files/folders that no longer exist on disk.
@@ -775,6 +813,20 @@ export function reconcileEntries(
   });
 
   return { files: kept, handledNames };
+}
+
+/** Gives `entry` id-based identity, dropping any fingerprint it carried. */
+function setEntryId(entry: IndexEntry, id: string): void {
+  entry.id = id;
+  delete entry.create_time;
+  delete entry.size;
+}
+
+/** Records a fingerprint on `entry` (a no-op when the file couldn't be stat'd). */
+function setEntryFingerprint(entry: IndexEntry, stat: Fingerprint | undefined): void {
+  if (!stat) return;
+  entry.create_time = stat.createTime;
+  entry.size = stat.size;
 }
 
 /**
@@ -814,7 +866,8 @@ export function appendNewEntries(
 
 /**
  * Reconciles a directory's .INDEX.yaml with the actual markdown files on disk.
- * - Ensures every .md file has a unique `id` in its YAML front matter.
+ * - Reads the front-matter `id` of each .md file that has one (never adding one —
+ *   see collectMarkdownIds), re-keying a newer duplicate so ids stay unique.
  * - Creates .INDEX.yaml if it doesn't exist (when createIfMissing).
  * - Updates index entry names when an id match detects a rename.
  * - Appends any new files not yet listed in the index.
@@ -865,11 +918,11 @@ export async function reconcileIndexedFiles(
       }
       const visibleNames = new Set(visibleEntries.map((e) => e.name));
 
-      const { nameToStat, fingerprintToVisibleNames } = await buildNonMarkdownFingerprints(
+      const { nameToStat, fingerprintToVisibleNames } = await buildFileFingerprints(
         dirPath,
         visibleEntries,
       );
-      const { nameToId, idToName } = await ensureMarkdownIds(dirPath, visibleEntries);
+      const { nameToId, idToName, noIdNames } = await collectMarkdownIds(dirPath, visibleEntries);
 
       // Parse the existing index (already read above). Corrupt or invalid YAML is
       // NEVER rebuilt over: the files list holds user ordering that can't be
@@ -907,6 +960,7 @@ export async function reconcileIndexedFiles(
         nameToId,
         nameToStat,
         visibleNames,
+        noIdNames,
       });
       // New entries are appended at the end, which would strand a "<file>.attach"
       // folder that just (re)appeared — e.g. moved back in, by the app or by an
@@ -1155,68 +1209,10 @@ export async function getSortedDirEntries(
 }
 
 /**
- * Result of {@link ensureFrontMatterIdIfIndexed}: the (possibly modified)
- * content to write, and the id that was newly injected — or `null` when nothing
- * changed (not Document Mode, or the file already had an id). When `addedId` is
- * non-null the caller must, *after* persisting `content`, call
- * {@link recordFrontMatterIdInIndex} so the id is recorded in .INDEX.yaml.
- */
-export interface EnsureFrontMatterIdResult {
-  content: string;
-  addedId: string | null;
-}
-
-/**
- * If `filePath` is a markdown file in a Document Mode folder (a sibling
- * .INDEX.yaml exists) and its content has no front-matter `id`, returns the
- * content with a freshly injected id plus that id as `addedId`. Otherwise
- * returns the content unchanged with `addedId: null`.
- *
- * This function deliberately does NOT touch .INDEX.yaml. The id is recorded in
- * the index by {@link recordFrontMatterIdInIndex}, which the caller invokes only
- * *after* the (id-bearing) content has been written to disk. That ordering
- * closes the partial-failure window in issue 014: the index can never record an
- * id for content that was never written — at worst the file has an id the index
- * doesn't yet know about, which the next reconcile heals. Splitting "compute the
- * content" from "persist the index" is what makes file-then-index ordering
- * possible across the IPC write-file handler.
- *
- * Safe to call unconditionally on every .md save — a no-op (addedId: null) when
- * the directory has no .INDEX.yaml or the file already has an id.
- */
-export async function ensureFrontMatterIdIfIndexed(
-  filePath: string,
-  content: string,
-): Promise<EnsureFrontMatterIdResult> {
-  const indexFilePath = indexPathFor(path.dirname(filePath));
-
-  // Document Mode is signalled by a readable, well-formed .INDEX.yaml sibling.
-  let indexYaml: IndexYaml | null = null;
-  try {
-    const raw = await fs.promises.readFile(indexFilePath, 'utf8');
-    indexYaml = parseIndexYaml(loadYaml(raw));
-  } catch (err) {
-    // A missing index is the normal "not Document Mode" case; surface anything else.
-    if (!isENOENT(err)) {
-      logger.warn(`ensureFrontMatterIdIfIndexed: cannot read/parse "${indexFilePath}": ${err}`);
-    }
-    return { content, addedId: null }; // no usable .INDEX.yaml — nothing to do
-  }
-  if (!indexYaml) return { content, addedId: null };
-
-  const { yaml: fm } = parseFrontMatter(content);
-  if (frontMatterId(fm) !== undefined) return { content, addedId: null }; // already has an id
-
-  // Inject a new id, preserving any existing front-matter formatting
-  // (see injectFrontMatterId). The index is updated separately, post-write.
-  const { content: newContent, id: addedId } = injectFrontMatterId(content);
-  return { content: newContent, addedId };
-}
-
-/**
  * Records `fileId` as the front-matter id of `filePath`'s entry in its
  * directory's .INDEX.yaml. Must be called *after* the file content carrying that
- * id has been written to disk (see {@link ensureFrontMatterIdIfIndexed}).
+ * id has been written to disk (issue 014), so the index can never reference an
+ * id that isn't in the file.
  *
  * If an entry for the file already exists, its id is set; otherwise a new
  * `{ name, id }` entry is appended — so a brand-new file (saved before reconcile
@@ -1242,7 +1238,7 @@ export async function recordFrontMatterIdInIndex(filePath: string, fileId: strin
       const indexYaml = read.data;
       const entry = indexYaml.files.find((f) => f.name === fileName);
       if (entry) {
-        entry.id = fileId;
+        setEntryId(entry, fileId);
       } else {
         indexYaml.files.push({ name: fileName, id: fileId });
       }
@@ -1257,10 +1253,11 @@ export async function recordFrontMatterIdInIndex(filePath: string, fileId: strin
 
 /**
  * Returns the front-matter id of the markdown file at `filePath`, first injecting
- * a fresh one (via injectFrontMatterId) when it has none. Unlike
- * {@link ensureFrontMatterIdIfIndexed} this applies in ANY folder, not only
- * Document Mode ones: it backs "Paste Link into Editor", which stores the id in
- * the link title so a broken link can later be repaired by id.
+ * a fresh one (via injectFrontMatterId) when it has none. Applies in ANY folder,
+ * not only Document Mode ones: it backs "Paste Link into Editor", which stores
+ * the id in the link title so a broken link can later be repaired by id. This is
+ * the only path that adds an id to a file that has none, and the renderer asks
+ * the user before calling it (see IndexTreeView's insertMarkdownFileLink).
  *
  * The read → inject → write runs inside the per-directory index lock, so it
  * can't interleave with a reconcile or save of the same folder. When the folder
@@ -1336,41 +1333,15 @@ export async function renameInIndexYaml(
 }
 
 /**
- * Ensures the markdown file at filePath has a front-matter `id`, returning it.
- * If the file already has one it is returned unchanged; otherwise a fresh id is
- * injected (preserving any existing front matter — see injectFrontMatterId) and
- * persisted. Returns null when the file can't be read or written, so callers can
- * degrade to a name-only index entry rather than failing.
- *
- * Unlike ensureMarkdownIds (the bulk reconcile path), this does not check the id
- * against the rest of the directory for uniqueness — it seeds identity for a
- * single freshly-created file, and the astronomically-unlikely collision would be
- * detected and re-keyed by the next reconcile anyway. This matches the unchecked
- * injection already done by ensureFrontMatterIdIfIndexed on save.
+ * Reads the front-matter `id` of the markdown file at filePath without modifying
+ * the file. Returns null when it has none or can't be read.
  */
-async function ensureFileFrontMatterId(filePath: string): Promise<string | null> {
+async function readFileFrontMatterId(filePath: string): Promise<string | null> {
   try {
-    const content = await fs.promises.readFile(filePath, 'utf8');
-    const { yaml: fm } = parseFrontMatter(content);
-    const existingId = frontMatterId(fm);
-    if (existingId !== undefined) return existingId;
-    const { content: updated, id } = injectFrontMatterId(content);
-    // Guarded compare-and-swap: if the file changed since we read it (e.g. an
-    // editor save landed in between), writing `updated` — derived from the old
-    // content — would clobber those edits. Re-read and compare content (an mtime
-    // check would miss same-tick writes on coarse-timestamp filesystems).
-    // Degrade to a name-only entry; the next reconcile assigns the id from the
-    // fresh content.
-    if ((await fs.promises.readFile(filePath, 'utf8')) !== content) {
-      logger.warn(
-        `ensureFileFrontMatterId: "${filePath}" changed since it was read; skipping id write to avoid clobbering the newer content`,
-      );
-      return null;
-    }
-    await writeFileAtomic(filePath, updated);
-    return id;
+    const { yaml: fm } = parseFrontMatter(await fs.promises.readFile(filePath, 'utf8'));
+    return frontMatterId(fm) ?? null;
   } catch (err) {
-    logger.debug(`ensureFileFrontMatterId: cannot ensure id for "${filePath}": ${err}`);
+    logger.debug(`readFileFrontMatterId: cannot read "${filePath}": ${err}`);
     return null;
   }
 }
@@ -1378,12 +1349,12 @@ async function ensureFileFrontMatterId(filePath: string): Promise<string | null>
 /**
  * Builds the IndexEntry for a single on-disk entry named `name` in `dirPath`,
  * seeding the same identity reconcileIndexedFiles would assign when appending it:
- *  - markdown file → ensures (and records) a front-matter `id`, so rename
- *    detection works immediately rather than only after the next reconcile;
- *  - other file    → records a create_time+size fingerprint from `fs.stat`;
+ *  - markdown file with a front-matter `id` → records that id (never adds one);
+ *  - any other file → records a create_time+size fingerprint from `fs.stat`;
  *  - folder         → name only.
+ * So rename detection works immediately rather than only after the next reconcile.
  *
- * Best-effort: any fs failure (stat/read/write) degrades to a name-only entry,
+ * Best-effort: a stat failure degrades to a name-only entry,
  * exactly as the bulk append path does when a file can't be stat'd/read — the
  * next reconcile fills in the missing identity.
  */
@@ -1401,9 +1372,9 @@ async function buildEntryForName(dirPath: string, name: string): Promise<IndexEn
 
   if (stat.isDirectory()) return entry; // folders carry name only
 
-  if (name.toLowerCase().endsWith('.md')) {
-    const id = await ensureFileFrontMatterId(filePath);
-    if (id) entry.id = id;
+  const id = name.toLowerCase().endsWith('.md') ? await readFileFrontMatterId(filePath) : null;
+  if (id) {
+    entry.id = id;
   } else {
     entry.create_time = Math.round(stat.birthtimeMs);
     entry.size = stat.size;
@@ -1424,8 +1395,8 @@ async function buildEntryForName(dirPath: string, name: string): Promise<IndexEn
  * then kept directly behind their files (reorderAttachFolders), as the other
  * move operations do, so a file moved without its `.attach` folder takes it along.
  *
- * Each new entry is seeded with identity up front (markdown id / non-markdown
- * fingerprint) via buildEntryForName, so a rename of the just-inserted file is
+ * Each new entry is seeded with identity up front (an existing markdown id, else
+ * a fingerprint) via buildEntryForName, so a rename of the just-inserted file is
  * tracked immediately rather than only after the next reconcile.
  *
  * Creates the index when absent; refuses (with `corruptIndex`) when it exists

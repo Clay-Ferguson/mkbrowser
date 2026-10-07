@@ -8,7 +8,7 @@ import { TEST_HOOKS_ARG } from './shared/shared';
 
 import { readDirectory, isFolderEmpty, deleteEmptyFolder } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterIdIfIndexed, ensureFrontMatterId, recordFrontMatterIdInIndex, renameInIndexYaml, withIndexLock, type IndexMutationResult } from './main/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterId, renameInIndexYaml, withIndexLock, type IndexMutationResult } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
 import { writeFileAtomic } from './main/atomicWrite';
 import { processTOC } from './shared/tocUtil';
@@ -370,22 +370,20 @@ function setupIpcHandlers(): void {
   ipcMain.handle('write-file', async (_event, filePath: string, content: string): Promise<FileWriteResult> => {
     try {
       let finalContent = content;
-      let addedIndexId: string | null = null;
       let savedStats: fs.Stats | null;
 
+      // The content is written as the user saved it (plus TOC regeneration) —
+      // the save path never adds a front-matter `id`. Ids are only ever added
+      // with the user's consent, by "Paste Link into Editor".
       if (filePath.toLowerCase().endsWith('.md')) {
         finalContent = await processTOC(content);
-        const ensured = await ensureFrontMatterIdIfIndexed(filePath, finalContent);
-        finalContent = ensured.content;
-        addedIndexId = ensured.addedId;
         // Take the per-directory index lock for the write itself: reconcile's
-        // read → write-ids cycle for .md files runs entirely inside this lock,
-        // so serializing the save's write against it means reconcile can never
-        // overwrite this save with stale content read before it landed
-        // (MAIN_ISSUES.md issue 1). Only the writeFile (and the stat capturing
-        // its resulting mtime, which must not observe a later write) is inside
-        // the lock — recordFrontMatterIdInIndex below takes the (non-reentrant)
-        // lock itself.
+        // read → write-ids cycle for .md files (re-keying duplicate ids) runs
+        // entirely inside this lock, so serializing the save's write against it
+        // means reconcile can never overwrite this save with stale content read
+        // before it landed (MAIN_ISSUES.md issue 1). Only the writeFile (and the
+        // stat capturing its resulting mtime, which must not observe a later
+        // write) is inside the lock.
         const contentToWrite = finalContent;
         savedStats = await withIndexLock(path.dirname(filePath), async () => {
           await writeFileAtomic(filePath, contentToWrite);
@@ -394,13 +392,6 @@ function setupIpcHandlers(): void {
       } else {
         await writeFileAtomic(filePath, finalContent);
         savedStats = await fs.promises.stat(filePath).catch(() => null);
-      }
-
-      // Record a freshly-injected Document Mode id in .INDEX.yaml only AFTER the
-      // file content (which now carries that id) is on disk, so the index can
-      // never reference an id that isn't in the file (issue 014).
-      if (addedIndexId) {
-        await recordFrontMatterIdInIndex(filePath, addedIndexId);
       }
 
       // Post-save: run front-matter autogen for Markdown files

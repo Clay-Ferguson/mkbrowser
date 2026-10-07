@@ -91,13 +91,24 @@ async function repairLinkInFile(sourcePath: string, brokenTarget: string, id: st
 
 /**
  * Resolves to the front-matter id of the Markdown file at `path` for use as a link
- * title, adding a fresh id to the file first when it has none — so every link made
- * by "Paste Link into Editor" can later be auto-repaired. A file open in the editor
- * is only read, never rewritten (that would fight the edit buffer). Resolves to ''
- * when there is no id; never rejects.
+ * title, or '' when it has none (or can't be read). Never writes the file — so
+ * "Paste Link into Editor" can ask the user before adding an id (addLinkTargetId).
+ * Never rejects.
  */
-export function getOrAddLinkTargetId(path: string): Promise<string> {
-  if (getItem(path)?.editing) return readFrontMatterId(path).then((id) => id ?? '');
+export function readLinkTargetId(path: string): Promise<string> {
+  return readFrontMatterId(path).then((id) => id ?? '');
+}
+
+/**
+ * Resolves to the front-matter id of the Markdown file at `path`, adding a fresh id
+ * to the file first when it has none — so the link made by "Paste Link into Editor"
+ * can later be auto-repaired. Only called once the user has agreed to the id being
+ * written (an injected front-matter block is visible to anyone reading the file).
+ * A file open in the editor is only read, never rewritten (that would fight the edit
+ * buffer). Resolves to '' when there is no id; never rejects.
+ */
+export function addLinkTargetId(path: string): Promise<string> {
+  if (getItem(path)?.editing) return readLinkTargetId(path);
   return api.ensureFrontMatterId(path)
     .then(({ id, written }) => {
       // The file was rewritten with its new id: refresh the cached content, stamped
@@ -106,7 +117,7 @@ export function getOrAddLinkTargetId(path: string): Promise<string> {
       return id ?? '';
     })
     .catch((err: unknown) => {
-      logger.warn(`[linkRepair] Failed to get or add an id for ${path}:`, err);
+      logger.warn(`[linkRepair] Failed to add an id to ${path}:`, err);
       return '';
     });
 }

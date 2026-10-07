@@ -56,8 +56,7 @@ async function writeFileAndExitEditMode(path: string, editContent: string): Prom
  * matters just as much here) but leaves `editing` — and the edit buffer — alone.
  *
  * The edit buffer is re-seeded from what actually landed on disk because the main process
- * can rewrite the content it saves (TOC regeneration, injecting a Document Mode `id` into
- * the front matter); without this the buffer would drift from the file, and the next
+ * can rewrite the content it saves (TOC regeneration); without this the buffer would drift from the file, and the next
  * Escape-if-unmodified check would compare against — and a later save would re-write —
  * stale text. In the common case the saved content matches the buffer, so nothing is
  * dispatched into the editor at all.

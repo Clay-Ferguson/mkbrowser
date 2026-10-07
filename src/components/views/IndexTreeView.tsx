@@ -4,7 +4,7 @@ import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { saveSettings } from '../../renderer/config';
 import { refreshDirectory } from '../../renderer/directoryLoader';
-import { BUTTON_CLASS_TB_NORMAL, ENTRY_DROP_TARGET } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_TB_NORMAL, ENTRY_DROP_TARGET } from '../../renderer/styles';
 import { runOp } from '../../renderer/runOp';
 import { isImageFile } from '../../shared/fileTypes';
 import FileTypeIcon from '../FileTypeIcon';
@@ -34,6 +34,7 @@ import {
   setBrowseFile,
   setHighlightItem,
   setIndexTreeWidth,
+  getItem,
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownHeadingNode } from '../../store';
 import type { FileEntry } from '../../shared/shared';
@@ -60,7 +61,7 @@ import { generateTimestampFileName } from '../../shared/timeUtil';
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
 import { appendLinkFragment, formatLinkDestination, formatLinkTitle } from '../../renderer/linkUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
-import { getOrAddLinkTargetId, openFileSingle } from '../../renderer/linkRepair';
+import { addLinkTargetId, openFileSingle, readLinkTargetId } from '../../renderer/linkRepair';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 const INDENT_SIZE = 20;
@@ -178,15 +179,24 @@ function isEditingMarkdown(): boolean {
   return false;
 }
 
+type MarkdownEditor = NonNullable<ReturnType<typeof getActiveMarkdownEditor>>;
+
+/** A "Paste Link into Editor" waiting on the user's consent to add an id to its target. */
+interface PendingIdLink {
+  editor: MarkdownEditor;
+  targetPath: string;
+  heading?: MarkdownHeadingNode;
+}
+
 /**
  * Inserts a relative link to the Markdown file `targetPath` at `editor`'s cursor —
  * `[README](../a/README.md "id:36F7385CA")`, or with `heading` (a heading row's
  * "Paste Link into Editor") `[README — Requirements](../a/README.md#requirements "id:36F7385CA")`,
- * labelled with the file name, an em dash and the heading text.
+ * labelled with the file name, an em dash and the heading text. With an empty `id`
+ * the link has no title.
+ *
  * The target's front-matter id rides in the link title, so any Markdown parser
  * returns it with the link and a broken link can be auto-repaired (linkRepair.ts).
- * A target without an id gets one first; with no id at all (unreadable or malformed
- * front matter) this falls back to a plain link.
  *
  * The fragment is the heading's GitHub-style slug (lowercased, spaces → hyphens,
  * punctuation dropped, `-1`/`-2` suffixes on repeats) — the id rehype-slug gives the
@@ -195,13 +205,32 @@ function isEditingMarkdown(): boolean {
  * Square brackets and backslashes in the label are backslash-escaped, since heading
  * text (and file names) may contain them and an unescaped `]` would end the label.
  */
-function insertMarkdownFileLink(editor: NonNullable<ReturnType<typeof getActiveMarkdownEditor>>, targetPath: string, heading?: MarkdownHeadingNode): void {
+function insertMarkdownLinkWithId(editor: MarkdownEditor, targetPath: string, heading: MarkdownHeadingNode | undefined, id: string): void {
   const dest = formatLinkDestination(computeRelativePath(getParentPath(editor.path), targetPath));
   const fileLabel = getFileName(targetPath).replace(/\.md$/, '');
   const label = (heading ? `${fileLabel} — ${heading.heading}` : fileLabel).replace(/[[\]\\]/g, '\\$&');
-  void getOrAddLinkTargetId(targetPath).then((id) => {
-    const title = id ? ` ${formatLinkTitle(`id:${id}`)}` : '';
-    editor.handle.insertAtCursor(`[${label}](${appendLinkFragment(dest, heading?.slug ?? '')}${title})`);
+  const title = id ? ` ${formatLinkTitle(`id:${id}`)}` : '';
+  editor.handle.insertAtCursor(`[${label}](${appendLinkFragment(dest, heading?.slug ?? '')}${title})`);
+}
+
+/**
+ * "Paste Link into Editor" for a Markdown target (see insertMarkdownLinkWithId).
+ * A target that already has a front-matter id is linked with it right away. One
+ * without an id is never silently given one — an injected front-matter block is
+ * visible to anyone reading the file (e.g. a README.md on GitHub) — so the link is
+ * handed to `onNeedsId`, which asks the user whether to add an id or paste a plain
+ * link. A target open in the editor can't be rewritten (it would fight the edit
+ * buffer), so it gets a plain link without asking.
+ */
+function insertMarkdownFileLink(
+  editor: MarkdownEditor,
+  targetPath: string,
+  heading: MarkdownHeadingNode | undefined,
+  onNeedsId: (pending: PendingIdLink) => void,
+): void {
+  void readLinkTargetId(targetPath).then((id) => {
+    if (id || getItem(targetPath)?.editing) insertMarkdownLinkWithId(editor, targetPath, heading, id);
+    else onNeedsId({ editor, targetPath, heading });
   });
 }
 
@@ -453,6 +482,8 @@ function IndexTreeView() {
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
+  // A Paste Link whose target has no front-matter id, awaiting the user's choice (see insertMarkdownFileLink)
+  const [pendingIdLink, setPendingIdLink] = useState<PendingIdLink | null>(null);
   // File whose cut would strand an attachments folder, held while the user confirms.
   const [cutOrphanAttachTarget, setCutOrphanAttachTarget] = useState<FileEntry | null>(null);
   const widthClass = indexTreeWidth === 'wide' ? 'w-1/2' : indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
@@ -966,7 +997,7 @@ function IndexTreeView() {
       path: node.path,
       isDirectory: false,
       ...(activeEditor ? {
-        onPasteLink: () => insertMarkdownFileLink(activeEditor, headingFilePath(node), node),
+        onPasteLink: () => insertMarkdownFileLink(activeEditor, headingFilePath(node), node, setPendingIdLink),
       } : {}),
     });
   };
@@ -977,7 +1008,7 @@ function IndexTreeView() {
    * items exist) Paste; files get Browse/Rename/Delete and (when a markdown file
    * is being edited; otherwise shown disabled) "Paste Link into Editor", which inserts a relative Markdown link (to the file or folder) at the
    * active editor's cursor — using a Markdown target's front-matter `id` field as the
-   * link title (`"id:…"`), first adding an id to the target when it has none. Shell scripts (`.sh`) also get "Run". Both directories
+   * link title (`"id:…"`), and asking before adding an id to a target that has none. Shell scripts (`.sh`) also get "Run". Both directories
    * and files also get "Copy Path" (absolute) and "Copy Relative Path" (relative
    * to the folder currently browsed in BrowseView).
    */
@@ -1022,7 +1053,7 @@ function IndexTreeView() {
           const name = getFileName(node.path);
           const label = node.isDirectory ? name : name.replace(/\.md$/, '');
           if (!node.isDirectory && node.path.endsWith('.md')) {
-            insertMarkdownFileLink(activeEditor, node.path);
+            insertMarkdownFileLink(activeEditor, node.path, undefined, setPendingIdLink);
           } else if (!node.isDirectory && isImageFile(node.name)) {
             activeEditor.handle.insertAtCursor(`![${label}](${relPath})`);
           } else {
@@ -1147,6 +1178,26 @@ function IndexTreeView() {
             : `Delete file "${deleteTarget.name}"?`}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+      {pendingIdLink && (
+        <ConfirmDialog
+          title="Add ID to Linked File?"
+          message={`"${getFileName(pendingIdLink.targetPath)}" has no ID. Adding one writes an "id" property into the file's 'front matter', and lets this link repair itself if the file is later renamed or moved.`}
+          confirmLabel="Add ID & Link"
+          cancelLabel="Plain Link"
+          confirmClassName={BUTTON_CLASS_DLG_BLUE}
+          onConfirm={() => {
+            const { editor, targetPath, heading } = pendingIdLink;
+            setPendingIdLink(null);
+            void addLinkTargetId(targetPath).then((id) => insertMarkdownLinkWithId(editor, targetPath, heading, id));
+          }}
+          onCancel={() => {
+            const { editor, targetPath, heading } = pendingIdLink;
+            setPendingIdLink(null);
+            insertMarkdownLinkWithId(editor, targetPath, heading, '');
+          }}
+          onDismiss={() => setPendingIdLink(null)}
         />
       )}
       {cutOrphanAttachTarget && (
