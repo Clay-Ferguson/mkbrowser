@@ -133,21 +133,20 @@ th { color: var(--heading); background: var(--surface); font-weight: 600; }
   letter-spacing: 0.05em;
   color: var(--muted);
 }
-.object-title { display: flex; align-items: center; gap: 0.5rem; }
-.object-title-text { font-weight: 600; color: var(--heading); overflow-wrap: anywhere; }
-.object-title-text.object-untitled { font-weight: normal; font-style: italic; color: var(--muted); }
-.object-icon { flex-shrink: 0; }
-.object-icon-title { width: 1.25rem; height: 1.25rem; color: #38bdf8; }
-.object-icon-row { width: 1rem; height: 1rem; color: var(--muted); }
+.object-title { font-weight: 600; color: var(--heading); overflow-wrap: anywhere; }
+.object-title.object-untitled { font-weight: normal; font-style: italic; color: var(--muted); }
+/* Each row is a div of bullet / name / value; display: contents lets all rows share one grid,
+   so names and values line up across rows. */
 .object-rows {
   display: grid;
-  grid-template-columns: 1rem auto minmax(0, 1fr);
+  grid-template-columns: auto auto minmax(0, 1fr);
   align-items: start;
   gap: 0.375rem 0.5rem;
   margin-top: 0.375rem;
   font-size: 0.875rem;
 }
-.object-row-icon { display: flex; align-items: center; height: 1.25rem; }
+.object-row { display: contents; }
+.object-bullet { color: var(--muted); }
 .object-label { white-space: nowrap; color: var(--muted); }
 .object-label.object-unknown { color: #fb923c; }
 .object-value { min-width: 0; overflow-wrap: anywhere; white-space: pre-line; color: var(--text); }

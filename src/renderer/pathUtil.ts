@@ -82,6 +82,17 @@ export function splitPathSegments(path: string): string[] {
   return splitPath(path).filter(Boolean);
 }
 
+/**
+ * The `file://` URL for an absolute path, each segment percent-encoded so spaces, '#', '?' and
+ * the like survive: '/home/me/My Notes/a.html' → 'file:///home/me/My%20Notes/a.html'. A Windows
+ * drive letter is kept as is: 'C:\x\a.html' → 'file:///C:/x/a.html'. (The renderer has no
+ * Node `url.pathToFileURL`.)
+ */
+export function toFileUrl(path: string): string {
+  const encoded = splitPath(path).map((s) => (/^[A-Za-z]:$/.test(s) ? s : encodeURIComponent(s))).join('/');
+  return `file://${encoded.startsWith('/') ? '' : '/'}${encoded}`;
+}
+
 /** True for rooted paths: '/unix/style', '\\server\share', or 'C:\windows\style'. */
 export function isAbsolutePath(path: string): boolean {
   return path.startsWith('/') || path.startsWith('\\') || /^[A-Za-z]:[/\\]/.test(path);

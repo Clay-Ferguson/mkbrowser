@@ -15,7 +15,8 @@ import { setAppError, setCurrentView, setFolderAnalysis, setFolderGraph, setFold
 import type { FolderGraphState } from '../store';
 import type { ExportOptions } from '../components/dialogs/ExportDialog';
 import type { HtmlExportOptions, HtmlExportResult } from '../shared/shared';
-import { getParentPath } from './pathUtil';
+import { getParentPath, toFileUrl } from './pathUtil';
+import { logger } from '../shared/logUtil';
 
 /**
  * Ids of the most recently started analysis / graph scan. Both scans can take
@@ -132,6 +133,12 @@ function buildHtmlExportMessage(result: HtmlExportResult): string {
  * "Export to Folder (HTML)": exports `folderPath` as a browsable HTML tree into
  * the new folder `outputFolder`, then reports the outcome through `onResult` and,
  * when index pages were generated, opens the root index page in the browser.
+ *
+ * Opening the browser is deliberately outside the export's error path: it is not
+ * awaited, and a failure is only logged. It uses `openExternalUrl` (shell.openExternal
+ * with a file:// URL) rather than `openExternal` (shell.openPath), which on Linux can
+ * wait on `xdg-open` for as long as a newly started browser stays open, and then fail
+ * with "reply was never sent" well after the export succeeded.
  * The output's parent folder is remembered as the last export folder, both
  * through `onOutputFolderChosen` and in the persisted config.
  */
@@ -157,7 +164,11 @@ export function exportFolderHtml(
 
     onResult(buildHtmlExportMessage(result));
     if (result.entryPage) {
-      await api.openExternal(result.entryPage);
+      api.openExternalUrl(toFileUrl(result.entryPage))
+        .then((opened) => {
+          if (!opened) logger.warn('Could not open the exported index page:', result.entryPage);
+        })
+        .catch((err: unknown) => logger.error('Failed to open the exported index page:', err));
     }
   }, 'Failed to export folder to HTML: ');
 }

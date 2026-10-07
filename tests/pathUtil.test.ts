@@ -11,6 +11,7 @@ import {
   isAbsolutePath,
   isPathInside,
   isSamePath,
+  toFileUrl,
 } from '../src/renderer/pathUtil';
 
 // Outside the renderer there is no window.electronAPI, so pathSep() falls
@@ -269,5 +270,16 @@ describe('isPathInside', () => {
 
   it('does not treat the child as inside when it is a parent of the root', () => {
     expect(isPathInside('/home/user/notes', '/home/user')).toBe(false);
+  });
+});
+
+describe('toFileUrl', () => {
+  it('builds a file:// URL for a POSIX path, encoding each segment', () => {
+    expect(toFileUrl('/home/me/My Notes/_index.html')).toBe('file:///home/me/My%20Notes/_index.html');
+    expect(toFileUrl('/a/b#1?x.html')).toBe('file:///a/b%231%3Fx.html');
+  });
+
+  it('keeps a Windows drive letter', () => {
+    expect(toFileUrl('C:\\Users\\me\\out\\_index.html')).toBe('file:///C:/Users/me/out/_index.html');
   });
 });

@@ -137,6 +137,9 @@ describe('renderMarkdownPage', () => {
     expect(html).toContain('class="object-label object-unknown"');
     expect(html).toContain('<a class="object-value" href="tel:+15551234567" title="phone">+1 (555) 123-4567</a>');
     expect(html).not.toContain('<pre>');
+    // No inline SVG: rows are marked with a plain bullet and laid out one per source line.
+    expect(html).not.toContain('<svg');
+    expect(html).toContain('\n<div class="object-row"><span class="object-bullet">•</span><span class="object-label" title="Work email">email</span>');
   });
 
   it('keeps an invalid object as code and adds the hint', async () => {
