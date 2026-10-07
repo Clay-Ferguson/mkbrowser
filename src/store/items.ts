@@ -163,9 +163,11 @@ function editingPatch(
     ? enterExpandedEditPatch(state, path)
     : (isExpandedEditOf(state, path) ? { browseFileName: null, pendingScrollToFile: path } : null);
 
+  // Starting an edit highlights the file, and — like every other highlight —
+  // records it as a Back/Forward history visit (see `history.ts`).
   return {
     items: newItems,
-    ...(editing ? { highlightItem: path } : {}),
+    ...(editing ? { highlightItem: path, ...withHistoryPush(state, path) } : {}),
     ...routing,
   };
 }

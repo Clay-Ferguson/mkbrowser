@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useAS } from '../src/store/core';
-import { deleteItems, renameItem, setHighlightItem, syncDirectoryItems } from '../src/store/items';
+import { deleteItems, renameItem, setHighlightItem, setItemEditing, startEditing, syncDirectoryItems } from '../src/store/items';
 import { revealInTree } from '../src/store/indexTree';
 import { canGoBack, canGoForward, goBack, goForward, MAX_HISTORY } from '../src/store/history';
 
@@ -56,6 +56,18 @@ describe('navigation history', () => {
   it('records revealInTree', () => {
     revealInTree(A);
     expect(history().navHistory).toEqual([A]);
+  });
+
+  it('records files opened for editing', () => {
+    syncDirectoryItems('/notes', [
+      { path: A, name: 'a.md', isDirectory: false, modifiedTime: 1, createdTime: 1 },
+      { path: B, name: 'b.md', isDirectory: false, modifiedTime: 1, createdTime: 1 },
+    ]);
+    startEditing(A);
+    setItemEditing(A, false);
+    setItemEditing(B, true);
+    expect(history()).toEqual({ navHistory: [A, B], navHistoryIndex: 1 });
+    expect(canGoBack(useAS.getState())).toBe(true);
   });
 
   it('goBack/goForward open the file in single-file mode without adding entries', () => {
