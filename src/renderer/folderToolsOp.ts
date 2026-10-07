@@ -14,6 +14,8 @@ import { buildReplaceResultMessage } from '../shared/searchHelpers';
 import { setAppError, setCurrentView, setFolderAnalysis, setFolderGraph, setFolderGraphFileLinks, useAS } from '../store';
 import type { FolderGraphState } from '../store';
 import type { ExportOptions } from '../components/dialogs/ExportDialog';
+import type { HtmlExportOptions, HtmlExportResult } from '../shared/shared';
+import { getParentPath } from './pathUtil';
 
 /**
  * Ids of the most recently started analysis / graph scan. Both scans can take
@@ -107,6 +109,57 @@ export function exportFolder(
       await api.openExternal(result.outputPath);
     }
   }, 'Failed to export folder contents: ');
+}
+
+/** Most warnings listed in the export summary; any beyond are only counted. */
+const MAX_LISTED_WARNINGS = 10;
+
+/** The summary shown after a successful HTML folder export. */
+function buildHtmlExportMessage(result: HtmlExportResult): string {
+  const pages = `${result.pageCount} page${result.pageCount === 1 ? '' : 's'}`;
+  const files = `${result.fileCount} other file${result.fileCount === 1 ? '' : 's'}`;
+  let message = `Exported ${pages} and ${files} to:\n${result.outputPath ?? ''}`;
+  const { warnings } = result;
+  if (warnings.length > 0) {
+    const listed = warnings.slice(0, MAX_LISTED_WARNINGS).map((w) => `• ${w}`).join('\n');
+    const more = warnings.length > MAX_LISTED_WARNINGS ? `\n…and ${warnings.length - MAX_LISTED_WARNINGS} more.` : '';
+    message += `\n\n${warnings.length} problem${warnings.length === 1 ? '' : 's'}:\n${listed}${more}`;
+  }
+  return message;
+}
+
+/**
+ * "Export to Folder (HTML)": exports `folderPath` as a browsable HTML tree into
+ * the new folder `outputFolder`, then reports the outcome through `onResult` and,
+ * when index pages were generated, opens the root index page in the browser.
+ * The output's parent folder is remembered as the last export folder, both
+ * through `onOutputFolderChosen` and in the persisted config.
+ */
+export function exportFolderHtml(
+  folderPath: string,
+  outputFolder: string,
+  options: HtmlExportOptions,
+  onOutputFolderChosen: (folder: string) => void,
+  onResult: (message: string) => void,
+): void {
+  setAppError(null);
+
+  runOp(async () => {
+    const parentFolder = getParentPath(outputFolder);
+    onOutputFolderChosen(parentFolder);
+    await api.updateConfig({ lastExportFolder: parentFolder });
+
+    const result = await api.exportFolderToHtml(folderPath, outputFolder, options);
+    if (!result.success) {
+      setAppError(result.error || 'Failed to export folder to HTML');
+      return;
+    }
+
+    onResult(buildHtmlExportMessage(result));
+    if (result.entryPage) {
+      await api.openExternal(result.entryPage);
+    }
+  }, 'Failed to export folder to HTML: ');
 }
 
 /**

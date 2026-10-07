@@ -14,6 +14,7 @@ export type BrowseOverlay =
   | { kind: 'search'; definition?: SearchDefinition }
   | { kind: 'replace' }
   | { kind: 'export' }
+  | { kind: 'exportHtml' }
   /** `count` is frozen when the dialog opens: it is what the user is confirming. */
   | { kind: 'deleteConfirm'; count: number }
   /** `count` is the number of selected Markdown files, frozen when the dialog opens. */

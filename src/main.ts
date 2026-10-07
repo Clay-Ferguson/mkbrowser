@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition } from './shared/shared';
+import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
 import { readDirectory, isFolderEmpty, deleteEmptyFolder } from './main/fileUtil';
@@ -32,6 +32,7 @@ import { getUsageWithCosts, resetUsage } from './main/ai/usageTracker';
 import { readExifMetadata, readImageDimensions, writeExifMetadata } from './main/exifUtil';
 import { logger, toErrorMessage } from './shared/logUtil';
 import { exportFolderContents, exportToPdf } from './main/exportUtil';
+import { exportFolderToHtml } from './main/htmlExport/folderHtmlExport';
 import { runShellScript, runOcrInTerminal } from './main/launcherUtil';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
@@ -825,6 +826,29 @@ function setupIpcHandlers(): void {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
+      };
+    }
+  });
+
+  // Export a folder tree as a browsable HTML folder ("Export to Folder (HTML)")
+  ipcMain.handle('export-folder-html', async (
+    _event,
+    sourceFolder: string,
+    outputFolder: string,
+    options: HtmlExportOptions,
+  ): Promise<HtmlExportResult> => {
+    try {
+      const config = getConfig();
+      const ignoredPaths = parseIgnoredPaths(config.settings?.ignoredPaths ?? '');
+      return await exportFolderToHtml(sourceFolder, outputFolder, options, config.types ?? {}, ignoredPaths);
+    } catch (error) {
+      logger.error('Error exporting folder to HTML:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        pageCount: 0,
+        fileCount: 0,
+        warnings: [],
       };
     }
   });

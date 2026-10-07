@@ -80,6 +80,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Scan Limits](#scan-limits)
   * [Search-based Graph](#search-based-graph)
 * [Exporting](#exporting)
+  * [Export to Folder (HTML)](#export-to-folder-html)
 * [OCR](#ocr)
 * [Markdown Support](#markdown-support)
   * [Column Layout (`|||`)](#column-layout-)
@@ -973,7 +974,7 @@ This is useful for understanding how your search hits are distributed across the
 
 You can export the contents of the current folder into a single document.
 
-1. Click the **Export** button in the toolbar.
+1. Choose **Tools → Export to File**.
 2. Configure the export settings:
     - **Output Folder**: Choose where to save the exported file.
     - **File Name**: Name the output file.
@@ -982,6 +983,27 @@ You can export the contents of the current folder into a single document.
     - **Include Dividers**: Adds a visual separator between files.
     - **Export to PDF**: If checked, the application will attempt to generate a PDF file instead of a Markdown file.
 3. Click **Export** to finish.
+
+## Export to Folder (HTML)
+
+**Tools → Export to Folder (HTML)** creates a copy of the current folder tree that can be browsed with nothing but a web browser — handy for sharing notes with someone who doesn't use MkBrowser, or for publishing them as a static site.
+
+1. Choose **Tools → Export to Folder (HTML)**.
+2. Configure the export:
+    - **Output Folder**: The full path of the folder to create. It must **not** already exist — the export never overwrites anything — and it can't be inside the folder being exported. The folder button picks the parent folder; the new folder's name is added for you.
+    - **Index Pages**: Adds a generated `_index.html` to every folder listing its subfolders and pages (in the same order MkBrowser shows them), plus a breadcrumb trail at the top of every page. When index pages are generated, the top-level `_index.html` opens in your browser once the export finishes.
+3. Click **Export**.
+
+What ends up in the output folder:
+
+- Every Markdown file becomes an `.html` page with the same name and relative location (`Notes/Plan.md` → `Notes/Plan.html`).
+- Every other file — images, PDFs, text files, and so on — is copied as is.
+- A single `style.css` in the output root styles all the pages.
+- Hidden files and folders (names starting with `.`) and anything matching your **Ignored Paths** setting are left out.
+
+Pages render much as they do in MkBrowser: tables, task lists, callouts, math, `|||` columns, and object blocks of your custom types (see **Types Editor**) all carry over. Links between your Markdown files are rewritten to point at the matching `.html` pages (heading links like `Plan.md#goals` included), links to folders go to that folder's index page, and images and other linked files point at their copies. Links to anything outside the exported folder are left as written.
+
+The exported pages are fully self-contained and work offline, so code blocks — including Mermaid diagrams — appear as plain, unhighlighted text.
 
 # OCR
 

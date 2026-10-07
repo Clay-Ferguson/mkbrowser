@@ -458,6 +458,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
           onFolderGraph={() => { if (currentPath) showFolderGraph(currentPath); }}
           onMarkdownGraph={() => { if (currentPath) showFolderGraph(currentPath, true); }}
           onExport={() => onOpenOverlay({ kind: 'export' })}
+          onExportHtml={() => onOpenOverlay({ kind: 'exportHtml' })}
           onRunOcr={handleRunOcr}
           onNewAiChat={() => { if (currentPath) startAiChat(currentPath); }}
         />

@@ -21,20 +21,29 @@ const ID_LINE_RE = /^id:\s*(?:"([^"]*)"|'([^']*)'|(\S+))\s*$/;
 const isMarkdown = (filePath: string): boolean => filePath.toLowerCase().endsWith('.md');
 
 /**
- * True when `content` (the head of a file) opens with a front-matter block whose
- * top-level `id` equals `id`. Only lines up to the closing fence are examined, so
- * an `id:` line in the body never matches. Pure, for testability.
+ * The top-level `id` of the front-matter block that `content` (the head of a file)
+ * opens with, or null when there is no such block or it has no `id`. Only lines up
+ * to the closing fence are examined, so an `id:` line in the body never counts.
+ * Pure, for testability.
  */
-export function headHasId(content: string, id: string): boolean {
+export function frontMatterIdOf(content: string): string | null {
   const lines = content.split(/\r?\n/);
-  if (lines[0]?.trimEnd() !== '---') return false;
+  if (lines[0]?.trimEnd() !== '---') return null;
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i]!;
-    if (line.trimEnd() === '---') return false;
+    if (line.trimEnd() === '---') return null;
     const m = ID_LINE_RE.exec(line);
-    if (m) return (m[1] ?? m[2] ?? m[3]) === id;
+    if (m) return m[1] ?? m[2] ?? m[3] ?? null;
   }
-  return false;
+  return null;
+}
+
+/**
+ * True when `content` (the head of a file) opens with a front-matter block whose
+ * top-level `id` equals `id`. Pure, for testability.
+ */
+export function headHasId(content: string, id: string): boolean {
+  return frontMatterIdOf(content) === id;
 }
 
 /** Reads the first HEAD_BYTES of a file and checks it for the id. Unreadable files never match. */

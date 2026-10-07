@@ -54,6 +54,48 @@ const processor = unified()
   .use(rehypeStringify);
 
 // ---------------------------------------------------------------------------
+// GitHub-style callout styles (shared with the folder HTML export's style.css)
+// ---------------------------------------------------------------------------
+
+/** Styles for the `> [!NOTE]` … `> [!CAUTION]` alert boxes produced by `rehypeCallouts`. */
+export const CALLOUT_CSS = `
+/* GitHub-style callouts / alerts (> [!NOTE], [!TIP], [!WARNING], ...) */
+blockquote.markdown-alert {
+  color: #eaeaea;
+  border-left: 4px solid var(--callout-accent);
+  border-radius: 0 6px 6px 0;
+  background: var(--callout-bg);
+}
+blockquote.markdown-alert > .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  margin-bottom: 0.4em;
+  font-weight: 600;
+  color: var(--callout-accent);
+}
+blockquote.markdown-alert > .markdown-alert-title::before {
+  content: var(--callout-icon);
+}
+blockquote.markdown-alert > p:last-child { margin-bottom: 0; }
+blockquote.markdown-alert-note {
+  --callout-accent: #4493f8; --callout-bg: rgba(56,139,253,0.1); --callout-icon: 'ℹ️';
+}
+blockquote.markdown-alert-tip {
+  --callout-accent: #3fb950; --callout-bg: rgba(63,185,80,0.1); --callout-icon: '💡';
+}
+blockquote.markdown-alert-important {
+  --callout-accent: #ab7df8; --callout-bg: rgba(163,113,247,0.1); --callout-icon: '❗';
+}
+blockquote.markdown-alert-warning {
+  --callout-accent: #d29922; --callout-bg: rgba(187,128,9,0.1); --callout-icon: '⚠️';
+}
+blockquote.markdown-alert-caution {
+  --callout-accent: #f85149; --callout-bg: rgba(248,81,73,0.1); --callout-icon: '🛑';
+}
+`.trim();
+
+// ---------------------------------------------------------------------------
 // Embedded default stylesheet
 // ---------------------------------------------------------------------------
 
@@ -108,40 +150,7 @@ const DEFAULT_CSS = `
     background: #f6f8fa;
   }
 
-  /* GitHub-style callouts / alerts (> [!NOTE], [!TIP], [!WARNING], ...) */
-  blockquote.markdown-alert {
-    color: #eaeaea;
-    border-left: 4px solid var(--callout-accent);
-    border-radius: 0 6px 6px 0;
-    background: var(--callout-bg);
-  }
-  blockquote.markdown-alert > .markdown-alert-title {
-    display: flex;
-    align-items: center;
-    gap: 0.45em;
-    margin-bottom: 0.4em;
-    font-weight: 600;
-    color: var(--callout-accent);
-  }
-  blockquote.markdown-alert > .markdown-alert-title::before {
-    content: var(--callout-icon);
-  }
-  blockquote.markdown-alert > p:last-child { margin-bottom: 0; }
-  blockquote.markdown-alert-note {
-    --callout-accent: #4493f8; --callout-bg: rgba(56,139,253,0.1); --callout-icon: 'ℹ️';
-  }
-  blockquote.markdown-alert-tip {
-    --callout-accent: #3fb950; --callout-bg: rgba(63,185,80,0.1); --callout-icon: '💡';
-  }
-  blockquote.markdown-alert-important {
-    --callout-accent: #ab7df8; --callout-bg: rgba(163,113,247,0.1); --callout-icon: '❗';
-  }
-  blockquote.markdown-alert-warning {
-    --callout-accent: #d29922; --callout-bg: rgba(187,128,9,0.1); --callout-icon: '⚠️';
-  }
-  blockquote.markdown-alert-caution {
-    --callout-accent: #f85149; --callout-bg: rgba(248,81,73,0.1); --callout-icon: '🛑';
-  }
+  ${CALLOUT_CSS}
 
 
   p code, li code {

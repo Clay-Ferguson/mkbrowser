@@ -371,6 +371,28 @@ export interface ExportResult {
   error?: string;
 }
 
+/** Options chosen in the "Export to Folder (HTML)" dialog. */
+export interface HtmlExportOptions {
+  /** Generate an `_index.html` navigation page in every exported folder. */
+  indexPages: boolean;
+}
+
+/** Outcome of an "Export to Folder (HTML)" run. */
+export interface HtmlExportResult {
+  success: boolean;
+  /** The created output folder. */
+  outputPath?: string;
+  /** The root `_index.html`, when index pages were generated. */
+  entryPage?: string;
+  /** Markdown files converted to HTML pages. */
+  pageCount: number;
+  /** Other files copied as is. */
+  fileCount: number;
+  /** Per-file problems that didn't stop the export. */
+  warnings: string[];
+  error?: string;
+}
+
 export interface FolderAnalysisResult {
   hashtags: Array<{ tag: string; count: number }>;
   totalFiles: number;
@@ -500,6 +522,7 @@ export interface ElectronAPI {
   selectExportFolder: () => Promise<string | null>;
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;
   exportToPdf: (markdownPath: string, pdfPath: string, sourceFolder?: string) => Promise<{ success: boolean; error?: string }>;
+  exportFolderToHtml: (sourceFolder: string, outputFolder: string, options: HtmlExportOptions) => Promise<HtmlExportResult>;
   runShellScript: (filePath: string) => Promise<{ success: boolean; error?: string }>;
   askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   replyToAi: (parentFolderPath: string, createSubFolder: boolean) => Promise<{ folderPath: string; filePath: string } | { error: string }>;

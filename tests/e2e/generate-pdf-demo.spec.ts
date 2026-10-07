@@ -117,8 +117,8 @@ Let's click it to open the available tools for this folder.`
 
     await demoClick(toolsMenuButton);
 
-    // Click "Export..." from the dropdown menu
-    const exportOption = mainWindow.getByText('Export...');
+    // Click "Export to File" from the dropdown menu
+    const exportOption = mainWindow.getByTestId('menu-export');
     await expect(exportOption).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, exportOption, screenshotDir, step++, 'tools-menu-open');
     writeNarration(

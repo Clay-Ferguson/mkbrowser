@@ -8,6 +8,7 @@ import SearchDialog from '../dialogs/SearchDialog';
 import ReplaceDialog from '../dialogs/ReplaceDialog';
 import ExportDialog from '../dialogs/ExportDialog';
 import type { ExportOptions } from '../dialogs/ExportDialog';
+import HtmlExportDialog from '../dialogs/HtmlExportDialog';
 import AlertDialog from '../dialogs/AlertDialog';
 import BrowseToolbar from './BrowseToolbar';
 import BrowseEntryList from './BrowseEntryList';
@@ -19,11 +20,12 @@ import {
   type SearchDefinition,
 } from '../../store';
 import { getContentWidthClasses } from '../../renderer/styles';
+import type { HtmlExportOptions } from '../../shared/shared';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, runSearch } from '../../renderer/searchUtil';
 import { pasteIntoFolder, deleteSelected, createFileOp, createFolderOp, removePropertiesFromSelected } from '../../renderer/fileOpsUtil';
-import { getFileName, getParentPath, isSamePath } from '../../renderer/pathUtil';
-import { exportFolder, replaceInFolder } from '../../renderer/folderToolsOp';
+import { getFileName, getParentPath, isSamePath, joinPath } from '../../renderer/pathUtil';
+import { exportFolder, exportFolderHtml, replaceInFolder } from '../../renderer/folderToolsOp';
 import { reconcileAndRefresh, moveInIndex, moveToEdgeInIndex } from '../../renderer/indexOrderOp';
 import { pasteCutAsAttachment, pasteClipboardAsAttachment, attachFromFile, createAttachment } from '../../renderer/attachmentOp';
 import { NO_OVERLAY, type BrowseOverlay } from './browseOverlay';
@@ -33,6 +35,11 @@ import { usePendingBrowseIntents } from './usePendingBrowseIntents';
 /** Derives a default export file name from the current folder name. */
 function generateExportFileName(currentPath: string): string {
   return `${getFileName(currentPath)}-export.md`;
+}
+
+/** Derives a default HTML export folder name from the current folder name. */
+function generateHtmlExportFolderName(currentPath: string): string {
+  return `${getFileName(currentPath)}-html`;
 }
 
 interface BrowseViewProps {
@@ -153,6 +160,12 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     if (!currentPath) return;
     closeOverlay('export');
     exportFolder(currentPath, options, onSetLastExportFolder);
+  };
+
+  const handleExportHtml = (outputFolder: string, options: HtmlExportOptions) => {
+    if (!currentPath) return;
+    closeOverlay('exportHtml');
+    exportFolderHtml(currentPath, outputFolder, options, onSetLastExportFolder, (message) => setResultAlert({ title: 'Export to Folder (HTML)', message }));
   };
 
   const handleInsertFileAt = (insertIndex: number) => {
@@ -284,6 +297,15 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
           defaultFileName={generateExportFileName(currentPath)}
           onExport={handleExport}
           onCancel={() => closeOverlay('export')}
+        />
+      )}
+
+      {overlay.kind === 'exportHtml' && currentPath && (
+        <HtmlExportDialog
+          defaultOutputFolder={joinPath(lastExportFolder || getParentPath(currentPath), generateHtmlExportFolderName(currentPath))}
+          defaultFolderName={generateHtmlExportFolderName(currentPath)}
+          onExport={handleExportHtml}
+          onCancel={() => closeOverlay('exportHtml')}
         />
       )}
 

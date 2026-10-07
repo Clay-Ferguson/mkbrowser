@@ -3,7 +3,7 @@ import { CubeIcon, EnvelopeIcon, MapPinIcon, LinkIcon, PhoneIcon, CalendarIcon }
 import type { PropertyType } from '../../shared/shared';
 import type { GenericObjectData, ObjectRow } from '../../shared/objects/genericObject';
 import { api } from '../../renderer/api';
-import { buildEmailUrl, buildMapUrl, buildWebUrl } from '../../renderer/objectUrls';
+import { buildEmailUrl, buildMapUrl, buildWebUrl } from '../../shared/objects/objectUrls';
 import { BUTTON_CLASS_LINK_BLUE } from '../../renderer/styles';
 
 /** Row icon per property type; plain text rows have none. Phone numbers and dates are shown, not linked. */

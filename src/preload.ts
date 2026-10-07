@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppConfig, ElectronAPI, CalendarEventResult, OcrTarget, SearchDefinition } from './shared/shared';
+import type { AppConfig, ElectronAPI, CalendarEventResult, HtmlExportOptions, OcrTarget, SearchDefinition } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
 // Expose protected methods to the renderer process
@@ -51,6 +51,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('export-folder-contents', sourceFolder, outputFolder, outputFileName, includeSubfolders, includeFilenames, includeDividers),
   exportToPdf: (markdownPath: string, pdfPath: string, sourceFolder?: string) =>
     ipcRenderer.invoke('export-to-pdf', markdownPath, pdfPath, sourceFolder),
+  exportFolderToHtml: (sourceFolder: string, outputFolder: string, options: HtmlExportOptions) =>
+    ipcRenderer.invoke('export-folder-html', sourceFolder, outputFolder, options),
   runShellScript: (filePath: string) =>
     ipcRenderer.invoke('run-shell-script', filePath),
   askAi: (prompt: string, parentFolderPath: string) =>

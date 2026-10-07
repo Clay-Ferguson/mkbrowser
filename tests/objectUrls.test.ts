@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildEmailUrl, buildMapUrl, buildWebUrl, MAP_URL_TEMPLATE } from '../src/renderer/objectUrls';
+import { buildEmailUrl, buildMapUrl, buildWebUrl, MAP_URL_TEMPLATE } from '../src/shared/objects/objectUrls';
 
 describe('buildMapUrl', () => {
   it('encodes the address into the default Google Maps template', () => {

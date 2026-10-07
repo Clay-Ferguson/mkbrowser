@@ -9,14 +9,16 @@ interface ToolsPopupMenuProps {
   onFolderGraph: () => void;
   onMarkdownGraph: () => void;
   onExport: () => void;
+  onExportHtml: () => void;
   onNewAiChat: () => void;
   onRunOcr: () => void;
 }
 
 /**
  * Popup menu for the Tools toolbar button. Exposes advanced folder operations:
- * AI chat (when AI is enabled), folder analysis, export, OCR, and (below a
- * divider) the folder graph of all files or of Markdown files only.
+ * AI chat (when AI is enabled), folder analysis, OCR, then (each group below a
+ * divider) the folder graph of all files or of Markdown files only, and the
+ * export options.
  */
 export default function ToolsPopupMenu({
   anchorRef,
@@ -25,6 +27,7 @@ export default function ToolsPopupMenu({
   onFolderGraph,
   onMarkdownGraph,
   onExport,
+  onExportHtml,
   onNewAiChat,
   onRunOcr,
 }: ToolsPopupMenuProps) {
@@ -45,11 +48,6 @@ export default function ToolsPopupMenu({
         onClick={() => { onFolderAnalysis(); onClose(); }}
       />
       <PopupMenuItem
-        label="Export..."
-        data-testid="menu-export"
-        onClick={() => { onExport(); onClose(); }}
-      />
-      <PopupMenuItem
         label="Run OCR"
         data-testid="menu-run-ocr"
         onClick={() => { onRunOcr(); onClose(); }}
@@ -64,6 +62,17 @@ export default function ToolsPopupMenu({
         label="Graph Markdown"
         data-testid="menu-markdown-graph"
         onClick={() => { onMarkdownGraph(); onClose(); }}
+      />
+      <PopupMenuDivider />
+      <PopupMenuItem
+        label="Export to File"
+        data-testid="menu-export"
+        onClick={() => { onExport(); onClose(); }}
+      />
+      <PopupMenuItem
+        label="Export to Folder (HTML)"
+        data-testid="menu-export-html"
+        onClick={() => { onExportHtml(); onClose(); }}
       />
     </PopupMenu>
   );
