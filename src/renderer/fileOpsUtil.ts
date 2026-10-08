@@ -24,6 +24,7 @@ import { toErrorMessage } from '../shared/logUtil';
 import { generateTimestampFileName } from '../shared/timeUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { removeFrontMatterExceptId } from '../shared/frontMatterUtil';
+import { DEFAULT_JOIN_OPTIONS, type JoinOptions } from './joinUtil';
 
 /**
  * Returns the attachment folder path for `filePath` (`<filePath>.attach`), creating
@@ -415,13 +416,15 @@ export async function splitSelectedFile(
  * @param currentPath - Absolute path of the folder containing the files.
  * @param selectedItems - The selected items; two or more text or Markdown files are expected.
  * @param hasIndexFile - Whether the current folder has an .INDEX.yaml file to reconcile.
+ * @param options - Join options chosen in the Join Options dialog (e.g. filename headings).
  */
 export async function joinSelectedFiles(
   currentPath: string,
   selectedItems: ItemData[],
-  hasIndexFile: boolean
+  hasIndexFile: boolean,
+  options: JoinOptions = DEFAULT_JOIN_OPTIONS
 ): Promise<void> {
-  const result = await performJoinFiles(selectedItems, api);
+  const result = await performJoinFiles(selectedItems, api, options);
 
   if (!result.success) {
     setAppError(result.error || 'Failed to join files.');

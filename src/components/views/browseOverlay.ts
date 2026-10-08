@@ -19,6 +19,8 @@ export type BrowseOverlay =
   | { kind: 'deleteConfirm'; count: number }
   /** `count` is the number of selected Markdown files, frozen when the dialog opens. */
   | { kind: 'removePropsConfirm'; count: number }
-  | { kind: 'cutOrphanConfirm' };
+  | { kind: 'cutOrphanConfirm' }
+  /** `count` is the number of selected files to join, frozen when the dialog opens. */
+  | { kind: 'joinOptions'; count: number };
 
 export const NO_OVERLAY: BrowseOverlay = { kind: 'none' };

@@ -880,6 +880,50 @@ describe('joinFiles (markdown front-matter handling)', () => {
   });
 });
 
+describe('joinFiles (Include Filenames option)', () => {
+  it('puts a bold filename line and a blank line above each file', async () => {
+    const fs = makeJoinFs({
+      '/docs/File 2.md': 'file two content',
+      '/docs/File 1.md': 'file one content',
+      '/docs/File 3.md': 'file three content',
+    });
+
+    const result = await joinFiles(['/docs/File 2.md', '/docs/File 1.md', '/docs/File 3.md'], fs, { includeFilenames: true });
+
+    expect(result.success).toBe(true);
+    expect(fs.store['/docs/File 1.md']).toBe(
+      '**File 1.md**\n\nfile one content\n\n\n' +
+      '**File 2.md**\n\nfile two content\n\n\n' +
+      '**File 3.md**\n\nfile three content'
+    );
+  });
+
+  it("keeps the lead file's front matter at the top, putting its filename below it", async () => {
+    const fs = makeJoinFs({
+      '/docs/a.md': '---\nid: AAA111BBB\n---\npart 1',
+      '/docs/b.md': '---\nid: CCC222DDD\ntitle: B\n---\npart 2',
+    });
+
+    const result = await joinFiles(['/docs/a.md', '/docs/b.md'], fs, { includeFilenames: true });
+
+    expect(result.success).toBe(true);
+    // The appended file's heading goes above its converted front-matter block.
+    expect(fs.store['/docs/a.md']).toBe(
+      '---\nid: AAA111BBB\n---\n**a.md**\n\npart 1\n\n\n' +
+      '**b.md**\n\n```yaml\ntitle: B\n```\npart 2'
+    );
+  });
+
+  it('adds no filenames when the option is off', async () => {
+    const fs = makeJoinFs({ '/docs/a.md': 'one', '/docs/b.md': 'two' });
+
+    const result = await joinFiles(['/docs/a.md', '/docs/b.md'], fs, { includeFilenames: false });
+
+    expect(result.success).toBe(true);
+    expect(fs.store['/docs/a.md']).toBe('one\n\n\ntwo');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // joinFiles — delete gating + error/edge paths
 // ---------------------------------------------------------------------------

@@ -7,7 +7,7 @@
  */
 
 import { dump } from 'js-yaml';
-import { parseFrontMatter } from '../shared/frontMatterUtil';
+import { parseFrontMatter, splitFrontMatter } from '../shared/frontMatterUtil';
 import { isMarkdownFile } from '../shared/fileTypes';
 import { getFileName, getParentPath } from './pathUtil';
 import type { FileOps } from '../shared/shared';
@@ -36,6 +36,36 @@ function prepareMarkdownForAppend(filePath: string, rawContent: string): string 
   return fencedBlock + content;
 }
 
+/** User-chosen options for a join, gathered by the Join Options dialog. */
+export interface JoinOptions {
+  /**
+   * Put each file's name, in bold (`**name**`), on its own line followed by a
+   * blank line, above that file's content in the joined result.
+   */
+  includeFilenames: boolean;
+}
+
+export const DEFAULT_JOIN_OPTIONS: JoinOptions = { includeFilenames: false };
+
+/**
+ * Inserts a bold filename heading above a part's content. For the lead file the
+ * heading goes *after* its front matter, which must stay at the very top of the
+ * file to remain front matter; appended parts have already had theirs converted
+ * to a fenced block, so their heading simply goes first.
+ */
+function addFilenameHeading(filePath: string, content: string, isLead: boolean): string {
+  const heading = `**${getFileName(filePath)}**\n\n`;
+  if (isLead && isMarkdownFile(getFileName(filePath))) {
+    const split = splitFrontMatter(content);
+    if (split) {
+      const frontMatter = content.slice(0, content.length - split.body.length);
+      const sep = frontMatter.endsWith('\n') ? '' : '\n';
+      return frontMatter + sep + heading + split.body;
+    }
+  }
+  return heading + content;
+}
+
 export interface JoinFilesResult {
   success: boolean;
   error?: string;
@@ -54,11 +84,13 @@ export interface JoinFilesResult {
  * @param filePaths - Array of file paths to join
  * @param ops - Injected file operations: `readFile`, `writeFile`, and
  *   `deleteFile`.
+ * @param options - Join options; see {@link JoinOptions}.
  * @returns Result object with success status and info
  */
 export async function joinFiles(
   filePaths: string[],
-  ops: Pick<FileOps, 'readFile' | 'writeFile' | 'deleteFile'>
+  ops: Pick<FileOps, 'readFile' | 'writeFile' | 'deleteFile'>,
+  options: JoinOptions = DEFAULT_JOIN_OPTIONS
 ): Promise<JoinFilesResult> {
   const { readFile, writeFile, deleteFile } = ops;
   try {
@@ -104,7 +136,7 @@ export async function joinFiles(
       }
       const raw = result.content;
       const content = i === 0 ? raw : prepareMarkdownForAppend(filePath!, raw);
-      contents.push(content);
+      contents.push(options.includeFilenames ? addFilenameHeading(filePath!, content, i === 0) : content);
     }
     
     // Concatenate with double blank line separator

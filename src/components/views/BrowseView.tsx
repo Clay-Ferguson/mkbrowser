@@ -9,6 +9,7 @@ import ReplaceDialog from '../dialogs/ReplaceDialog';
 import ExportDialog from '../dialogs/ExportDialog';
 import type { ExportOptions } from '../dialogs/ExportDialog';
 import HtmlExportDialog from '../dialogs/HtmlExportDialog';
+import JoinOptionsDialog from '../dialogs/JoinOptionsDialog';
 import AlertDialog from '../dialogs/AlertDialog';
 import BrowseToolbar from './BrowseToolbar';
 import BrowseEntryList from './BrowseEntryList';
@@ -23,7 +24,8 @@ import { getContentWidthClasses } from '../../renderer/styles';
 import type { HtmlExportOptions } from '../../shared/shared';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, runSearch } from '../../renderer/searchUtil';
-import { pasteIntoFolder, deleteSelected, createFileOp, createFolderOp, removePropertiesFromSelected } from '../../renderer/fileOpsUtil';
+import { pasteIntoFolder, deleteSelected, createFileOp, createFolderOp, removePropertiesFromSelected, joinSelectedFiles } from '../../renderer/fileOpsUtil';
+import type { JoinOptions } from '../../renderer/joinUtil';
 import { getFileName, getParentPath, isSamePath, joinPath } from '../../renderer/pathUtil';
 import { exportFolder, exportFolderHtml, replaceInFolder } from '../../renderer/folderToolsOp';
 import { reconcileAndRefresh, moveInIndex, moveToEdgeInIndex } from '../../renderer/indexOrderOp';
@@ -154,6 +156,14 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     runOp(async () => {
       await removePropertiesFromSelected(getSelectedItems(useAS.getState().items), showResult);
     }, 'Failed to remove properties: ', showResult);
+  };
+
+  const handleJoin = (options: JoinOptions) => {
+    closeOverlay('joinOptions');
+    if (!currentPath) return;
+    runOp(async () => {
+      await joinSelectedFiles(currentPath, getSelectedItems(useAS.getState().items), hasIndexFile, options);
+    }, 'Failed to join files: ');
   };
 
   const handleExport = (options: ExportOptions) => {
@@ -322,6 +332,14 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
           message={`Remove all front matter properties (except id) from ${overlay.count} selected Markdown file(s)?`}
           onConfirm={performRemoveProperties}
           onCancel={() => closeOverlay('removePropsConfirm')}
+        />
+      )}
+
+      {overlay.kind === 'joinOptions' && (
+        <JoinOptionsDialog
+          fileCount={overlay.count}
+          onJoin={handleJoin}
+          onCancel={() => closeOverlay('joinOptions')}
         />
       )}
 

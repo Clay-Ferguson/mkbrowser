@@ -1,5 +1,5 @@
 import type { ItemData } from '../shared/types';
-import { joinFiles as joinFilesUtil } from './joinUtil';
+import { joinFiles as joinFilesUtil, DEFAULT_JOIN_OPTIONS, type JoinOptions } from './joinUtil';
 import { splitFile as splitFileUtil } from './splitUtil';
 import type { FileOps } from '../shared/shared';
 import { getParentPath, joinPath, isPathInside, isSamePath } from './pathUtil';
@@ -430,7 +430,8 @@ export interface JoinFilesValidationResult {
  */
 export async function performJoinFiles(
   selectedItems: ItemData[],
-  ops: Pick<FileOps, 'readFile' | 'writeFile' | 'deleteFile'>
+  ops: Pick<FileOps, 'readFile' | 'writeFile' | 'deleteFile'>,
+  options: JoinOptions = DEFAULT_JOIN_OPTIONS
 ): Promise<JoinFilesValidationResult> {
   // Check that multiple items are selected
   if (selectedItems.length < 2) {
@@ -462,7 +463,7 @@ export async function performJoinFiles(
   const filePaths = selectedItems.map(item => item.path);
 
   // Perform the join operation
-  const result = await joinFilesUtil(filePaths, ops);
+  const result = await joinFilesUtil(filePaths, ops, options);
 
   if (!result.success) {
     return { success: false, error: result.error || 'Failed to join files.' };
