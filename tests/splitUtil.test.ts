@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { splitFile } from '../src/renderer/splitUtil';
+import { splitFile, parseSplitDelimiter, buildSplitRegExp, DEFAULT_SPLIT_DELIMITER } from '../src/renderer/splitUtil';
 
 /**
  * Build an in-memory mock filesystem and the injectable file ops splitFile
@@ -261,5 +261,81 @@ describe('splitFile — rollback on failure', () => {
     // Even so, the original — the only copy of the full content — survives.
     expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB');
     expect(m.fs.has('/docs/note-01.md')).toBe(true);
+  });
+});
+
+describe('parseSplitDelimiter', () => {
+  it('turns \\n into a newline and keeps everything else verbatim', () => {
+    expect(parseSplitDelimiter('\\n\\n')).toBe('\n\n');
+    expect(parseSplitDelimiter('\\n---\\n')).toBe('\n---\n');
+    expect(parseSplitDelimiter('a\\tb.*')).toBe('a\\tb.*');
+  });
+
+  it('defaults to a blank line', () => {
+    expect(parseSplitDelimiter(DEFAULT_SPLIT_DELIMITER)).toBe('\n\n');
+  });
+});
+
+describe('buildSplitRegExp', () => {
+  it('returns null for an empty delimiter', () => {
+    expect(buildSplitRegExp('')).toBeNull();
+  });
+
+  it('treats regex metacharacters literally', () => {
+    expect('a.*b'.split(buildSplitRegExp('.*')!)).toEqual(['a', 'b']);
+    expect('ab'.split(buildSplitRegExp('.*')!)).toEqual(['ab']);
+  });
+
+  it('matches CRLF line endings', () => {
+    expect('A\r\n---\r\nB'.split(buildSplitRegExp('\n---\n')!)).toEqual(['A', 'B']);
+  });
+});
+
+describe('splitFile — custom delimiters', () => {
+  it('splits on single blank lines with the default delimiter', async () => {
+    const m = makeFs({ '/docs/note.md': 'AAA\nstill A\n\nBBB\n\n\n\nCCC' });
+    const result = await run('/docs/note.md', m);
+
+    expect(result.success).toBe(true);
+    expect(m.fs.get('/docs/note-00.md')).toBe('AAA\nstill A');
+    expect(m.fs.get('/docs/note-01.md')).toBe('BBB');
+    expect(m.fs.get('/docs/note-02.md')).toBe('CCC');
+  });
+
+  it('splits on a --- line, absorbing blank lines around it', async () => {
+    const m = makeFs({ '/docs/note.md': 'AAA\n\n---\n\nBBB\n---\nCCC\n----\nstill C' });
+    const result = await splitFile('/docs/note.md', m, '\n---\n');
+
+    expect(result.success).toBe(true);
+    expect(result.fileCount).toBe(3);
+    expect(m.fs.get('/docs/note-00.md')).toBe('AAA');
+    expect(m.fs.get('/docs/note-01.md')).toBe('BBB');
+    expect(m.fs.get('/docs/note-02.md')).toBe('CCC\n----\nstill C');
+  });
+
+  it('keeps front matter intact on the first part', async () => {
+    const m = makeFs({ '/docs/note.md': '---\nid: abc\n---\nAAA\n---\nBBB' });
+    const result = await splitFile('/docs/note.md', m, '\n---\n');
+
+    expect(result.success).toBe(true);
+    expect(m.fs.get('/docs/note-00.md')).toBe('---\nid: abc\n---\nAAA');
+    expect(m.fs.get('/docs/note-01.md')).toBe('BBB');
+  });
+
+  it('names the delimiter when there are no split points', async () => {
+    const m = makeFs({ '/docs/note.md': 'AAA\n\nBBB' });
+    const result = await splitFile('/docs/note.md', m, '\n---\n');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('\\n---\\n');
+    expect(m.calls.create + m.calls.delete).toBe(0);
+  });
+
+  it('rejects an empty delimiter without touching the filesystem', async () => {
+    const m = makeFs({ '/docs/note.md': 'AAA\n\nBBB' });
+    const result = await splitFile('/docs/note.md', m, '');
+
+    expect(result.success).toBe(false);
+    expect(m.calls.read + m.calls.create + m.calls.delete).toBe(0);
   });
 });

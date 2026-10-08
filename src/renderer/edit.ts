@@ -1,6 +1,6 @@
 import type { ItemData } from '../shared/types';
 import { joinFiles as joinFilesUtil, DEFAULT_JOIN_OPTIONS, type JoinOptions } from './joinUtil';
-import { splitFile as splitFileUtil } from './splitUtil';
+import { splitFile as splitFileUtil, DEFAULT_SPLIT_DELIMITER, parseSplitDelimiter } from './splitUtil';
 import type { FileOps } from '../shared/shared';
 import { getParentPath, joinPath, isPathInside, isSamePath } from './pathUtil';
 import { toErrorMessage } from '../shared/logUtil';
@@ -381,10 +381,14 @@ export interface SplitFileValidationResult {
 /**
  * Validate and perform split file operation on a selected item.
  * Checks that exactly one text/markdown file is selected, then splits it.
+ *
+ * @param delimiter - Literal text to split on, with real newline characters (see
+ *   `parseSplitDelimiter` in splitUtil.ts).
  */
 export async function performSplitFile(
   selectedItems: ItemData[],
-  ops: FileOps
+  ops: FileOps,
+  delimiter: string = parseSplitDelimiter(DEFAULT_SPLIT_DELIMITER)
 ): Promise<SplitFileValidationResult> {
   // Check that exactly one item is selected
   if (selectedItems.length === 0) {
@@ -407,7 +411,7 @@ export async function performSplitFile(
   }
 
   // Perform the split operation
-  const result = await splitFileUtil(selectedItem!.path, ops);
+  const result = await splitFileUtil(selectedItem!.path, ops, delimiter);
 
   if (!result.success) {
     return { success: false, error: result.error || 'Failed to split file.' };

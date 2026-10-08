@@ -10,6 +10,7 @@ import ExportDialog from '../dialogs/ExportDialog';
 import type { ExportOptions } from '../dialogs/ExportDialog';
 import HtmlExportDialog from '../dialogs/HtmlExportDialog';
 import JoinOptionsDialog from '../dialogs/JoinOptionsDialog';
+import SplitOptionsDialog from '../dialogs/SplitOptionsDialog';
 import AlertDialog from '../dialogs/AlertDialog';
 import BrowseToolbar from './BrowseToolbar';
 import BrowseEntryList from './BrowseEntryList';
@@ -24,7 +25,7 @@ import { getContentWidthClasses } from '../../renderer/styles';
 import type { HtmlExportOptions } from '../../shared/shared';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, runSearch } from '../../renderer/searchUtil';
-import { pasteIntoFolder, deleteSelected, createFileOp, createFolderOp, removePropertiesFromSelected, joinSelectedFiles } from '../../renderer/fileOpsUtil';
+import { pasteIntoFolder, deleteSelected, createFileOp, createFolderOp, removePropertiesFromSelected, joinSelectedFiles, splitSelectedFile } from '../../renderer/fileOpsUtil';
 import type { JoinOptions } from '../../renderer/joinUtil';
 import { getFileName, getParentPath, isSamePath, joinPath } from '../../renderer/pathUtil';
 import { exportFolder, exportFolderHtml, replaceInFolder } from '../../renderer/folderToolsOp';
@@ -164,6 +165,14 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     runOp(async () => {
       await joinSelectedFiles(currentPath, getSelectedItems(useAS.getState().items), hasIndexFile, options);
     }, 'Failed to join files: ');
+  };
+
+  const handleSplit = (delimiter: string) => {
+    closeOverlay('splitOptions');
+    if (!currentPath) return;
+    runOp(async () => {
+      await splitSelectedFile(currentPath, getSelectedItems(useAS.getState().items), hasIndexFile, delimiter);
+    }, 'Failed to split file: ');
   };
 
   const handleExport = (options: ExportOptions) => {
@@ -340,6 +349,13 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
           fileCount={overlay.count}
           onJoin={handleJoin}
           onCancel={() => closeOverlay('joinOptions')}
+        />
+      )}
+
+      {overlay.kind === 'splitOptions' && (
+        <SplitOptionsDialog
+          onSplit={handleSplit}
+          onCancel={() => closeOverlay('splitOptions')}
         />
       )}
 

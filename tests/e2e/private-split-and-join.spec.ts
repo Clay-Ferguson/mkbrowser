@@ -132,10 +132,16 @@ Now let's open the Edit menu, where the Split option lives.`
       screenshotDir,
       step++,
       `The Edit menu is open, and we can see both the Split and Join options.
-We'll click Split, which divides the selected file at every double blank line.`
+We'll click Split, which asks for a delimiter and then divides the selected file at every blank line.`
     );
 
     await demoClick(splitMenuItem);
+
+    // Split first asks for its options; the default delimiter (a blank line)
+    // splits at the paragraph breaks.
+    await expect(mainWindow.getByTestId('split-options-dialog')).toBeVisible();
+    await expect(mainWindow.getByTestId('split-options-delimiter-input')).toHaveValue('\\n\\n');
+    await demoClick(mainWindow.getByTestId('split-options-submit-button'));
 
     // The split produces three numbered files; the original name is gone.
     for (const file of splitFileNames) {
@@ -196,6 +202,10 @@ Join sorts the selected files alphabetically, merges their contents into the fir
     );
 
     await demoClick(joinMenuItem);
+
+    // Join first asks for its options; the defaults keep the plain join.
+    await expect(mainWindow.getByTestId('join-options-dialog')).toBeVisible();
+    await demoClick(mainWindow.getByTestId('join-options-submit-button'));
 
     // The join merges everything into the alphabetically-first file (-00) and
     // deletes the other two.

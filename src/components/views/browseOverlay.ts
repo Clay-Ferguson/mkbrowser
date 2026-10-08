@@ -21,6 +21,7 @@ export type BrowseOverlay =
   | { kind: 'removePropsConfirm'; count: number }
   | { kind: 'cutOrphanConfirm' }
   /** `count` is the number of selected files to join, frozen when the dialog opens. */
-  | { kind: 'joinOptions'; count: number };
+  | { kind: 'joinOptions'; count: number }
+  | { kind: 'splitOptions' };
 
 export const NO_OVERLAY: BrowseOverlay = { kind: 'none' };

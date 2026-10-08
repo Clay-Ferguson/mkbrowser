@@ -31,7 +31,7 @@ import {
 import { BUTTON_CLASS_BAR_BLUE, BUTTON_CLASS_BAR_RED, BUTTON_CLASS_TB_AMBER, BUTTON_CLASS_TB_BLUE, BUTTON_CLASS_TB_NORMAL } from '../../renderer/styles';
 import { runSearch } from '../../renderer/searchUtil';
 import { saveSettings } from '../../renderer/config';
-import { splitSelectedFile, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
+import { pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
 import { showFolderCalendar } from '../../renderer/calendarNav';
 import { showFolderAnalysis, showFolderGraph } from '../../renderer/folderToolsOp';
 import { enableCustomOrdering } from '../../renderer/indexOrderOp';
@@ -152,11 +152,10 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
     }
   };
 
+  // BrowseView runs the split once the user confirms its options.
   const handleSplitFile = () => {
     if (!currentPath) return;
-    runOp(async () => {
-      await splitSelectedFile(currentPath, getSelectedItems(useAS.getState().items), hasIndexFile);
-    }, 'Failed to split file: ');
+    onOpenOverlay({ kind: 'splitOptions' });
   };
 
   // BrowseView runs the join once the user confirms its options.

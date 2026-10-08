@@ -25,6 +25,7 @@ import { generateTimestampFileName } from '../shared/timeUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { removeFrontMatterExceptId } from '../shared/frontMatterUtil';
 import { DEFAULT_JOIN_OPTIONS, type JoinOptions } from './joinUtil';
+import { DEFAULT_SPLIT_DELIMITER, parseSplitDelimiter } from './splitUtil';
 
 /**
  * Returns the attachment folder path for `filePath` (`<filePath>.attach`), creating
@@ -364,8 +365,8 @@ async function insertSplitPartsIntoIndex(
 }
 
 /**
- * Splits the single selected text/Markdown file into numbered parts on blank-line boundaries
- * (a run of 3 or more newlines). Every part is written to a new numbered file (`-00`, `-01`,
+ * Splits the single selected text/Markdown file into numbered parts wherever `delimiter`
+ * occurs (by default, at every blank line). Every part is written to a new numbered file (`-00`, `-01`,
  * `-02`, …) and the original file is deleted once they all exist. See `splitUtil.ts` for the
  * transactional details. In a Document Mode folder, the parts are spliced into .INDEX.yaml at
  * the original file's position so the document order is preserved. Clears all selections and
@@ -374,13 +375,16 @@ async function insertSplitPartsIntoIndex(
  * @param currentPath - Absolute path of the folder containing the file.
  * @param selectedItems - The selected items; exactly one text or Markdown file is expected.
  * @param hasIndexFile - Whether the current folder has an .INDEX.yaml file to update.
+ * @param delimiter - Literal text to split on, with real newline characters — the
+ *   Split Options dialog's input after `parseSplitDelimiter`.
  */
 export async function splitSelectedFile(
   currentPath: string,
   selectedItems: ItemData[],
-  hasIndexFile: boolean
+  hasIndexFile: boolean,
+  delimiter: string = parseSplitDelimiter(DEFAULT_SPLIT_DELIMITER)
 ): Promise<void> {
-  const result = await performSplitFile(selectedItems, api);
+  const result = await performSplitFile(selectedItems, api, delimiter);
 
   if (!result.success) {
     setAppError(result.error || 'Failed to split file.');

@@ -1,7 +1,7 @@
 /**
  * Transactional file-splitting utility.
  *
- * `splitFile` divides a file on a blank-line delimiter into numbered parts
+ * `splitFile` divides a file on a user-chosen delimiter into numbered parts
  * (`name-00.ext`, `name-01.ext`, …). Because it manipulates real user files, it
  * is written to be fail-safe: it validates and detects collisions before
  * touching the filesystem, only ever *adds* files until every part is safely on
@@ -12,14 +12,55 @@
 
 import { getFileName, getParentPath, joinPath } from './pathUtil';
 import type { FileOps } from '../shared/shared';
+import { splitFrontMatter } from '../shared/frontMatterUtil';
 
 /**
- * Delimiter between parts: a run of 3 or more line breaks (each optionally
- * `\r\n`). Collapsing runs of 3+ avoids leaving stray newlines on the following
- * part, and round-trips cleanly with `joinFiles`, which joins parts with
- * `'\n\n\n'`.
+ * Default delimiter text shown in the Split Options dialog: a blank line, so each
+ * paragraph becomes its own part. Written in the dialog's escaped form, where `\n`
+ * stands for a newline (see {@link parseSplitDelimiter}).
  */
-const SPLIT_DELIMITER = /(?:\r?\n){3,}/;
+export const DEFAULT_SPLIT_DELIMITER = '\\n\\n';
+
+/**
+ * Turns the delimiter the user typed in the Split Options dialog into the literal
+ * text to split on. The only escape recognized is `\n` (a newline); everything else,
+ * including any other backslash sequence, is taken verbatim.
+ */
+export function parseSplitDelimiter(input: string): string {
+  return input.replaceAll('\\n', '\n');
+}
+
+/** Escapes a string so it matches literally inside a RegExp. */
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Builds the RegExp that finds split points for a literal delimiter (already
+ * parsed by {@link parseSplitDelimiter}). Every newline in it also matches `\r\n`,
+ * so CRLF files split the same as LF ones. A run of newlines at either end of the
+ * delimiter matches *that many or more*, so extra blank lines around a split point
+ * are absorbed rather than left as stray newlines on the neighboring parts — e.g.
+ * `\n\n` splits on any run of 2+ newlines, which also round-trips cleanly with
+ * `joinFiles`, which joins parts with `'\n\n\n'`. Returns null for an empty
+ * delimiter.
+ */
+export function buildSplitRegExp(delimiter: string): RegExp | null {
+  if (delimiter.length === 0) return null;
+  const NL = '(?:\\r?\\n)';
+  const lead = /^\n*/.exec(delimiter)![0].length;
+  if (lead === delimiter.length) return new RegExp(`${NL}{${lead},}`);
+  const trail = /\n*$/.exec(delimiter)![0].length;
+  const middle = delimiter.slice(lead, delimiter.length - trail)
+    .split('\n').map(escapeRegExp).join(NL);
+  const run = (n: number) => (n > 0 ? `${NL}{${n},}` : '');
+  return new RegExp(`${run(lead)}${middle}${run(trail)}`);
+}
+
+/** Shows a parsed delimiter in the escaped form the user typed, for error messages. */
+function describeDelimiter(delimiter: string): string {
+  return delimiter.replaceAll('\n', '\\n');
+}
 
 export interface SplitFileResult {
   success: boolean;
@@ -31,8 +72,10 @@ export interface SplitFileResult {
 }
 
 /**
- * Split a file into multiple files based on a blank-line delimiter (a run of 3+
- * newlines). Every part — including the first — is written to a new numbered
+ * Split a file into multiple files wherever `delimiter` occurs (see
+ * {@link buildSplitRegExp} for how it matches). A leading front-matter block is
+ * never split: it stays at the top of the first part, so the file's id and other
+ * properties travel with part 0. Every part — including the first — is written to a new numbered
  * file (e.g. my-file-00.md, my-file-01.md, …) and the original file is deleted
  * once they all exist.
  *
@@ -46,13 +89,21 @@ export interface SplitFileResult {
  * @param ops - Injected file operations: `readFile` to load the original,
  *   `createFile` to write each part, `pathExists` for the collision check, and
  *   `deleteFile` to remove the original (and to roll back on failure).
+ * @param delimiter - Literal text to split on, with real newline characters (the
+ *   output of {@link parseSplitDelimiter}). Defaults to a blank line.
  * @returns Result object with success status and file info
  */
 export async function splitFile(
   filePath: string,
-  ops: Pick<FileOps, 'readFile' | 'createFile' | 'pathExists' | 'deleteFile'>
+  ops: Pick<FileOps, 'readFile' | 'createFile' | 'pathExists' | 'deleteFile'>,
+  delimiter: string = parseSplitDelimiter(DEFAULT_SPLIT_DELIMITER)
 ): Promise<SplitFileResult> {
   const { readFile, createFile, pathExists, deleteFile } = ops;
+
+  const splitRegExp = buildSplitRegExp(delimiter);
+  if (!splitRegExp) {
+    return { success: false, error: 'The split delimiter cannot be empty.' };
+  }
 
   // ---- Phase 1: validate and compute everything before mutating anything ----
 
@@ -70,17 +121,24 @@ export async function splitFile(
     }
     const content = readResult.content;
 
-    // Split on the blank-line delimiter, dropping empty/whitespace-only parts so
-    // a leading or trailing delimiter does not produce empty files. Non-empty
-    // parts are kept verbatim (their content is not trimmed).
-    parts = content.split(SPLIT_DELIMITER).filter((p) => p.trim().length > 0);
+    // Front matter is held out of the split (a delimiter like `\n---\n` would
+    // otherwise cut through its closing fence) and re-attached to the first part.
+    const frontMatter = splitFrontMatter(content);
+    const fence = frontMatter ? content.slice(0, content.length - frontMatter.body.length) : '';
+    const body = frontMatter ? frontMatter.body : content;
+
+    // Split on the delimiter, dropping empty/whitespace-only parts so a leading or
+    // trailing delimiter does not produce empty files. Non-empty parts are kept
+    // verbatim (their content is not trimmed).
+    parts = body.split(splitRegExp).filter((p) => p.trim().length > 0);
 
     if (parts.length <= 1) {
       return {
         success: false,
-        error: 'File does not contain any split points (double blank lines).',
+        error: `File does not contain any split points (delimiter "${describeDelimiter(delimiter)}").`,
       };
     }
+    parts[0] = fence + parts[0];
 
     directory = getParentPath(filePath);
     const fileName = getFileName(filePath);
