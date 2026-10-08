@@ -1000,6 +1000,7 @@ What ends up in the output folder:
 - Every other file — images, PDFs, text files, and so on — is copied as is.
 - A single `style.css` in the output root styles all the pages.
 - Hidden files and folders (names starting with `.`) and anything matching your **Ignored Paths** setting are left out.
+- Inside a **Document Mode** folder (one with an `.INDEX.yaml`), every file and subfolder is renamed with an ordinal prefix that follows the document's order (`Intro.md` → `0001_Intro.html`, `Chapter 1` → `0002_Chapter 1`, …). This keeps the document order in any plain folder listing (a file manager, or Google Drive after uploading the export). Pages, index pages and breadcrumbs still show the original names, and every link is rewritten to the prefixed names. Other folders keep their names unchanged.
 
 Pages render much as they do in MkBrowser: tables, task lists, callouts, math, `|||` columns, and object blocks of your custom types (see **Types Editor**) all carry over. Links between your Markdown files are rewritten to point at the matching `.html` pages (heading links like `Plan.md#goals` included), links to folders go to that folder's index page, and images and other linked files point at their copies. Links to anything outside the exported folder are left as written.
 

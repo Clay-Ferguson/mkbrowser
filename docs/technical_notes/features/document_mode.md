@@ -278,6 +278,7 @@ Because a wrong re-point silently corrupts the index (an entry bound to the wron
 | Edit menu ("Enable Document Mode" item)                             | `src/components/menus/EditPopupMenu.tsx` |
 | Directory reading + indexOrder injection                            | `src/main/fileUtil.ts` |
 | Export ordering (`getSortedDirEntries` consumer)                    | `src/main/exportUtil.ts` |
+| HTML folder export: document order + `0001_` ordinal name prefixes | `src/main/htmlExport/folderHtmlExport.ts` |
 | Atomic write primitive (`writeFileAtomic`)                          | `src/main/atomicWrite.ts` |
 
 

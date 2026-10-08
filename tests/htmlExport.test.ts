@@ -35,6 +35,7 @@ function manifest(): ExportManifest {
       p('docs', 'pic.png'),
     ]),
     idToPath: new Map([['ABC123', p('docs', 'deep', 'leaf.md')]]),
+    renamed: new Map(),
   };
 }
 
@@ -44,13 +45,23 @@ function ctx(mdPath: string, indexPages = true): PageLinkContext {
 
 describe('hrefBetween', () => {
   it('links .md targets as .html and percent-encodes each segment', () => {
-    expect(hrefBetween(p('docs', 'guide.md'), p('my notes.md'), 'file', true)).toBe('../my%20notes.html');
+    expect(hrefBetween(manifest(), p('docs', 'guide.md'), p('my notes.md'), 'file', true)).toBe('../my%20notes.html');
   });
 
   it('links folders to their index page, or to the folder itself without index pages', () => {
-    expect(hrefBetween(p('index.md'), p('docs'), 'dir', true)).toBe('docs/_index.html');
-    expect(hrefBetween(p('index.md'), p('docs'), 'dir', false)).toBe('docs/');
-    expect(hrefBetween(p('index.md'), ROOT, 'dir', false)).toBe('./');
+    expect(hrefBetween(manifest(), p('index.md'), p('docs'), 'dir', true)).toBe('docs/_index.html');
+    expect(hrefBetween(manifest(), p('index.md'), p('docs'), 'dir', false)).toBe('docs/');
+    expect(hrefBetween(manifest(), p('index.md'), ROOT, 'dir', false)).toBe('./');
+  });
+
+  it('links renamed folders and files by their output names, from either side', () => {
+    const m = manifest();
+    m.renamed.set(p('docs'), '0001_docs');
+    m.renamed.set(p('docs', 'guide.md'), '0002_guide.md');
+    expect(hrefBetween(m, p('index.md'), p('docs', 'guide.md'), 'file', true)).toBe('0001_docs/0002_guide.html');
+    expect(hrefBetween(m, p('docs', 'deep', 'leaf.md'), p('docs', 'guide.md'), 'file', true)).toBe('../0002_guide.html');
+    expect(hrefBetween(m, p('docs', 'guide.md'), p('index.md'), 'file', true)).toBe('../index.html');
+    expect(hrefBetween(m, p('index.md'), p('docs'), 'dir', true)).toBe('0001_docs/_index.html');
   });
 });
 
@@ -280,6 +291,46 @@ describe('exportFolderToHtml', () => {
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/cannot be inside/);
     expect(fs.existsSync(path.join(src, 'export'))).toBe(false);
+  });
+
+  it('prefixes the entries of a Document Mode folder with ordinals and links them by those names', async () => {
+    const book = path.join(src, 'book');
+    await fs.promises.mkdir(path.join(book, 'Intro'), { recursive: true });
+    await fs.promises.writeFile(path.join(book, 'Zeta.md'), '[alpha](Alpha.md) ![cover](cover.png) [intro](Intro)\n');
+    await fs.promises.writeFile(path.join(book, 'Alpha.md'), 'alpha');
+    await fs.promises.writeFile(path.join(book, 'cover.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    await fs.promises.writeFile(path.join(book, 'Intro', 'inner.md'), '[zeta](../Zeta.md)\n');
+    await fs.promises.writeFile(path.join(book, '.INDEX.yaml'),
+      'version: 1\nfiles:\n  - name: Zeta.md\n  - name: Intro\n  - name: Alpha.md\n  - name: cover.png\n');
+    await fs.promises.appendFile(path.join(src, 'home.md'), '\n[book alpha](book/Alpha.md)\n');
+
+    const out = path.join(tmpDir, 'out');
+    const result = await exportFolderToHtml(src, out, { indexPages: true }, {}, []);
+    expect(result).toMatchObject({ success: true, warnings: [] });
+
+    expect(fs.readdirSync(path.join(out, 'book')).sort()).toEqual(
+      ['0001_Zeta.html', '0002_Intro', '0003_Alpha.html', '0004_cover.png', '_index.html'],
+    );
+    // Only the Document Mode folder is renamed: the root and its other subfolders are not.
+    expect(fs.existsSync(path.join(out, 'home.html'))).toBe(true);
+    expect(fs.existsSync(path.join(out, 'book', '0002_Intro', 'inner.html'))).toBe(true);
+
+    const zeta = fs.readFileSync(path.join(out, 'book', '0001_Zeta.html'), 'utf8');
+    expect(zeta).toContain('href="0003_Alpha.html"');
+    expect(zeta).toContain('src="0004_cover.png"');
+    expect(zeta).toContain('href="0002_Intro/_index.html"');
+    expect(zeta).toContain('<title>Zeta</title>');
+    expect(fs.readFileSync(path.join(out, 'book', '0002_Intro', 'inner.html'), 'utf8')).toContain('href="../0001_Zeta.html"');
+    expect(fs.readFileSync(path.join(out, 'home.html'), 'utf8')).toContain('href="book/0003_Alpha.html"');
+
+    // The index page lists the entries in document order, under their original names.
+    const index = fs.readFileSync(path.join(out, 'book', '_index.html'), 'utf8');
+    const positions = ['>Zeta</a>', '>Intro</a>', '>Alpha</a>'].map((label) => index.indexOf(label));
+    expect(positions.every((pos) => pos >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expect(index).toContain('href="0002_Intro/_index.html"');
+    expect(fs.readFileSync(path.join(out, 'book', '0002_Intro', '_index.html'), 'utf8'))
+      .toContain('<a href="../_index.html">book</a>');
   });
 
   it('lets a page win over a same-named .html file and reports it', async () => {

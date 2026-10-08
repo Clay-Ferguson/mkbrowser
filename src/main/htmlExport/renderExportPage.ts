@@ -65,10 +65,10 @@ function breadcrumb(manifest: ExportManifest, srcPath: string, isDir: boolean): 
   const crumbs: Crumb[] = [];
   let dir = manifest.root;
   const folderCount = isDir ? names.length : names.length - 1;
-  crumbs.push({ label: path.basename(manifest.root), href: hrefBetween(pageFile, dir, 'dir', true) });
+  crumbs.push({ label: path.basename(manifest.root), href: hrefBetween(manifest, pageFile, dir, 'dir', true) });
   for (let i = 0; i < folderCount; i++) {
     dir = path.join(dir, names[i]!);
-    crumbs.push({ label: names[i]!, href: hrefBetween(pageFile, dir, 'dir', true) });
+    crumbs.push({ label: names[i]!, href: hrefBetween(manifest, pageFile, dir, 'dir', true) });
   }
   if (!isDir) crumbs.push({ label: pageTitle(srcPath) });
   // The current folder's own crumb (an index page) is not a link to itself.
@@ -161,11 +161,11 @@ export function renderFolderIndex(manifest: ExportManifest, dir: string, childre
   const others: string[] = [];
   for (const child of children) {
     if (child.isDir) {
-      listed.push(item('📁', hrefBetween(indexFile, child.srcPath, 'dir', true), child.name));
+      listed.push(item('📁', hrefBetween(manifest, indexFile, child.srcPath, 'dir', true), child.name));
     } else if (isMarkdownPath(child.name)) {
-      listed.push(item('📄', hrefBetween(indexFile, child.srcPath, 'file', true), pageTitle(child.srcPath)));
+      listed.push(item('📄', hrefBetween(manifest, indexFile, child.srcPath, 'file', true), pageTitle(child.srcPath)));
     } else if (!isImageFile(child.name)) {
-      others.push(item('📎', hrefBetween(indexFile, child.srcPath, 'file', true), child.name));
+      others.push(item('📎', hrefBetween(manifest, indexFile, child.srcPath, 'file', true), child.name));
     }
   }
 

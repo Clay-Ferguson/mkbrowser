@@ -1,7 +1,10 @@
 /**
  * Pure path logic for the folder HTML export ("Export to Folder (HTML)"): maps
  * source paths to their mirrored output paths and rewrites the links and image
- * references of a page so they work inside the exported tree.
+ * references of a page so they work inside the exported tree. The output mirrors
+ * the source except for the names in `ExportManifest.renamed` (the ordinal
+ * prefixes given to the entries of Document Mode folders), so every href is built
+ * from output paths, never from the source-relative path.
  *
  * Every existence check goes against the export's manifest (the set of files and
  * folders found by the source walk), never the disk, so all of this is testable
@@ -42,6 +45,12 @@ export interface ExportManifest {
   files: Set<string>;
   /** Front-matter id → absolute path of the `.md` file carrying it (link auto-repair). */
   idToPath: Map<string, string>;
+  /**
+   * Absolute source path → the name its output carries, for entries exported under a
+   * different name (`0003_Intro.md` for `Intro.md` in a Document Mode folder). The name
+   * is still in source form: a `.md` file's `.html` swap is applied on top of it.
+   */
+  renamed: Map<string, string>;
 }
 
 /** Everything link rewriting needs to know about the page being converted. */
@@ -75,15 +84,40 @@ export function toOutputPath(p: string): string {
 }
 
 /**
- * The relative URL from the page generated for `fromSrcFile` to the output of
- * `toSrc` (both source paths; the output tree mirrors the source tree, so the
- * relative path is the same on both sides). Each segment is percent-encoded so
- * names with spaces, `#`, `?` and the like survive as URLs. A folder target links
- * to its `_index.html` when index pages are generated, else to the folder itself.
+ * The output path of the source path `p` (inside `manifest.root`) as segments
+ * relative to the export root: each folder or file keeps its source name unless the
+ * manifest renamed it. A `.md` file's last segment keeps its `.md` extension here.
  */
-export function hrefBetween(fromSrcFile: string, toSrc: string, kind: 'file' | 'dir', indexPages: boolean): string {
-  const rel = path.relative(path.dirname(fromSrcFile), toSrc);
-  const segments = rel === '' ? [] : rel.split(path.sep);
+export function outputSegments(manifest: ExportManifest, p: string): string[] {
+  const rel = path.relative(manifest.root, p);
+  if (rel === '') return [];
+  let current = manifest.root;
+  return rel.split(path.sep).map((name) => {
+    current = path.join(current, name);
+    return manifest.renamed.get(current) ?? name;
+  });
+}
+
+/**
+ * The relative URL from the page generated for `fromSrcFile` to the output of
+ * `toSrc` (both source paths, resolved to their output paths through the manifest,
+ * so renamed folders and files are linked by their exported names). Each segment is
+ * percent-encoded so names with spaces, `#`, `?` and the like survive as URLs. A
+ * folder target links to its `_index.html` when index pages are generated, else to
+ * the folder itself.
+ */
+export function hrefBetween(
+  manifest: ExportManifest,
+  fromSrcFile: string,
+  toSrc: string,
+  kind: 'file' | 'dir',
+  indexPages: boolean,
+): string {
+  // Posix paths under a fake root, so the relative path joins with '/' on every platform.
+  const fromDir = `/${outputSegments(manifest, path.dirname(fromSrcFile)).join('/')}`;
+  const to = `/${outputSegments(manifest, toSrc).join('/')}`;
+  const rel = path.posix.relative(fromDir, to);
+  const segments = rel === '' ? [] : rel.split('/');
   if (kind === 'file') {
     const last = segments.length - 1;
     segments[last] = toOutputPath(segments[last]!);
@@ -148,7 +182,7 @@ export function resolveExportLink(href: string, title: string | undefined, ctx: 
 
   if (!kind || !isInsideOrEqual(manifest.root, target)) return unchanged;
 
-  const rewritten = hrefBetween(mdPath, target, kind, indexPages);
+  const rewritten = hrefBetween(manifest, mdPath, target, kind, indexPages);
   return { href: fragment ? `${rewritten}#${fragment}` : rewritten, external: false };
 }
 
@@ -180,5 +214,5 @@ export function resolveExportImage(src: string, ctx: PageLinkContext): string {
   }
 
   const found = candidates.find((c) => manifest.files.has(c));
-  return found ? hrefBetween(mdPath, found, 'file', ctx.indexPages) : src;
+  return found ? hrefBetween(manifest, mdPath, found, 'file', ctx.indexPages) : src;
 }
