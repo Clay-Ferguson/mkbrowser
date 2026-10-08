@@ -6,6 +6,27 @@ This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) 
 
 **[Demo Videos](https://clay-ferguson.github.io/videos/)**
 
+## Screenshots
+
+### View Files Collapsed
+![collapsed-files](docs/img/collapsed-files.png)
+
+### View Files Expanded
+![expanded-file](docs/img/expanded-file.png)
+
+### Editing a File
+![expanded-file](docs/img/editing-file.png)
+
+### Searching
+![expanded-file](docs/img/searching.png)
+
+### Export
+![export-dialog](docs/img/export-dialog.png)
+
+### Settings
+![settings-page](docs/img/settings-page.png)
+
+
 ## Features
 
 A comprehensive list of what MkBrowser can do. See the [User Guide](docs/USER_GUIDE.md) for full details on any item.
@@ -144,26 +165,6 @@ A comprehensive list of what MkBrowser can do. See the [User Guide](docs/USER_GU
 | Configurable sorting | Multiple sort orders for file listings. |
 | Show Table of Contents | Toggle inline rendering of `<!-- TOC -->` blocks. |
 | Desktop icon (Linux) | Install script to add MkBrowser to the application launcher. |
-
-## Screenshots
-
-### View Files Collapsed
-![collapsed-files](docs/img/collapsed-files.png)
-
-### View Files Expanded
-![expanded-file](docs/img/expanded-file.png)
-
-### Editing a File
-![expanded-file](docs/img/editing-file.png)
-
-### Searching
-![expanded-file](docs/img/searching.png)
-
-### Export
-![export-dialog](docs/img/export-dialog.png)
-
-### Settings
-![settings-page](docs/img/settings-page.png)
 
 ## Tech Stack
 
