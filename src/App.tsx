@@ -46,6 +46,7 @@ import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
 import { loadDirectoryContents } from './renderer/directoryLoader';
 import { buildEntryHeaderId, getVisibleElementById } from './renderer/entryDom';
+import { isKeyForOverlay } from './renderer/overlayDom';
 import { BUTTON_CLASS_LG_BLUE } from './renderer/styles';
 
 /**
@@ -55,17 +56,6 @@ import { BUTTON_CLASS_LG_BLUE } from './renderer/styles';
  */
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
-}
-
-/**
- * True when an Escape keypress belongs to an open overlay — a native <dialog>
- * (Dialog.tsx) or a popover PopupMenu — rather than to the editor. Checks both
- * where the key landed and whether any overlay is open, since focus is not
- * always inside the overlay (e.g. a menu opened while the editor keeps focus).
- */
-function isEscapeForOverlay(e: KeyboardEvent): boolean {
-  if (e.target instanceof Element && e.target.closest('dialog,[popover]')) return true;
-  return document.querySelector('dialog[open],[popover]:popover-open') !== null;
 }
 
 /**
@@ -149,7 +139,7 @@ function App() {
       if (e.isComposing) return;
       // Already consumed (CodeMirror's own Escape keymap, autocomplete, search panel), or
       // meant for an open dialog/menu: that Esc dismisses the overlay, not the editor.
-      if (e.defaultPrevented || isEscapeForOverlay(e)) return;
+      if (e.defaultPrevented || isKeyForOverlay(e)) return;
       // Only an editor that is on screen: the items Map is global, and an editing item
       // can belong to a folder the user has navigated away from.
       const editing = getEditingItem(isEntryRendered);

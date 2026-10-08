@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
+import { isKeyForOverlay } from '../../renderer/overlayDom';
 import { BUTTON_CLASS_SCRIM_LG, Z_MODAL } from '../../renderer/styles';
 import type { FileEntry as FileEntryType } from '../../global';
 import { setHighlightItem, setPendingScrollToFile, deleteItems, useAS, setItemSelected } from '../../store';
@@ -68,6 +69,9 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
   // cheap, and correctness here is worth far more than skipping it.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // A dialog/menu opened over the viewer (EXIF, delete confirm, …) owns the keyboard:
+      // its arrows/Space/Esc must not navigate, select, or close the image underneath.
+      if (isKeyForOverlay(e)) return;
       if (e.key === 'Escape') {
         onClose();
         return;
