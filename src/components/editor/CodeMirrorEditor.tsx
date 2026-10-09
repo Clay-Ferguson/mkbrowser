@@ -493,6 +493,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     canToggleThesaurus,
     thesaurusEnabled,
     handleToggleWordWrap,
+    handleSearchReplace,
     isMarkdown,
   } = useEditorContextMenu({
     viewRef,
@@ -1015,6 +1016,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         thesaurusEnabled={thesaurusEnabled}
         onToggleWordWrap={handleToggleWordWrap}
         wordWrap={wordWrap}
+        onSearchReplace={handleSearchReplace}
         isMarkdown={isMarkdown}
       />
     </div>

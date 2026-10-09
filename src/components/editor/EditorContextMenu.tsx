@@ -29,6 +29,8 @@ interface EditorContextMenuProps {
   onToggleWordWrap: () => void;
   /** Current state of `settings.wordWrap`, shown as a check mark beside "Word Wrap". */
   wordWrap: boolean;
+  /** Opens CodeMirror's search & replace panel at the top of the editor. */
+  onSearchReplace: () => void;
   isMarkdown?: boolean;
 }
 
@@ -38,7 +40,7 @@ const VIEWPORT_MARGIN = 8;
 /**
  * Floating context menu for the CodeMirror editor. Renders at the right-click coordinates,
  * clamped so it stays fully within the viewport. Includes Save (writes the file without
- * leaving edit mode), the Word Wrap toggle, standard edit actions (cut/copy/paste, select all), timestamp/date
+ * leaving edit mode), the Word Wrap toggle, Search & Replace, standard edit actions (cut/copy/paste, select all), timestamp/date
  * insertion, optional spell-check suggestions, the thesaurus on/off switch, and
  * the Markdown-only Insert Object item. Closes on outside click, scroll, or
  * Escape.
@@ -65,6 +67,7 @@ export function EditorContextMenu({
   thesaurusEnabled,
   onToggleWordWrap,
   wordWrap,
+  onSearchReplace,
   isMarkdown,
 }: EditorContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -190,6 +193,17 @@ export function EditorContextMenu({
       >
         {wordWrap && <span className="mr-2" aria-hidden="true">✓</span>}
         <span>Word Wrap</span>
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        tabIndex={-1}
+        onClick={onSearchReplace}
+        className={`${EDITOR_MENU_ITEM} flex items-center justify-between`}
+        data-testid="editor-search-replace"
+      >
+        <span>Search &amp; Replace</span>
+        <span className="text-slate-500 text-xs ml-4">Ctrl+F</span>
       </button>
       <div className="border-t border-slate-600 my-1" />
       {contextMenu.spelling && (

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { EditorView } from '@codemirror/view';
+import { openSearchPanel } from '@codemirror/search';
 import Typo from 'typo-js';
 import { logger } from '../../shared/logUtil';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
@@ -296,6 +297,15 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     saveSettings();
   };
 
+  // Opens CodeMirror's built-in search panel (top of the editor, set up by `search({ top: true })`),
+  // which has both the find and replace fields; it moves focus into the search field itself and
+  // pre-fills it with the current selection, so the editor is deliberately not re-focused here.
+  const handleSearchReplace = () => {
+    const view = viewRef.current;
+    closeContextMenu();
+    if (view) openSearchPanel(view);
+  };
+
   // Close context menu when clicking elsewhere
   useEffect(() => {
     if (!contextMenu.visible) return;
@@ -346,6 +356,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     thesaurusEnabled,
     handleToggleWordWrap,
     wordWrap,
+    handleSearchReplace,
     isMarkdown,
   };
 }
