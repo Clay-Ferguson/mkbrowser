@@ -208,7 +208,10 @@ Now let's scroll the right-hand panel back to the top so we can access the file 
     );
 
     // --- Scroll the main content panel to the top ---
-    const mainContent = mainWindow.getByTestId('browser-main-content');
+    // Clicking a heading in the tree (above) opens the file in single-file mode
+    // (commit a213599), so the scrolling pane is BrowseFile's <main>, not
+    // BrowseView's 'browser-main-content' — which is unmounted at this point.
+    const mainContent = mainWindow.getByTestId('browse-file-main-content');
     await mainContent.evaluate((el) => el.scrollTo({ top: 0}));
     await mainWindow.waitForTimeout(800);
 
