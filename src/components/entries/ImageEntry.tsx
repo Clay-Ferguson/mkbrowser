@@ -5,7 +5,7 @@ import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import type { ExifData, ImageSize } from '../../shared/shared';
-import { useAS, toggleItemExpanded } from '../../store';
+import { useAS, toggleItemExpanded, setHighlightItem } from '../../store';
 import ExifDialog from '../dialogs/ExifDialog';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import {
@@ -124,7 +124,13 @@ function ImageEntry(props: ImageEntryProps) {
                   IMAGE_SIZE_CLASSES[imageSize],
                 )}
                 loading="lazy"
-                onClick={() => setIsFullscreen(true)}
+                onClick={() => {
+                  // Record the expand as a Back/Forward history visit (setHighlightItem pushes
+                  // history). Only this initial click does — arrowing through images inside
+                  // FullscreenImageViewer is local state and deliberately leaves history alone.
+                  setHighlightItem(entry.path);
+                  setIsFullscreen(true);
+                }}
                 title="Click to view fullscreen"
                 // onLoad={() => {logger.log('[ImageEntry] Image loaded successfully:', imageUrl)}}
                 onError={(e) => logger.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
