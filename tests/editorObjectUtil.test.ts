@@ -216,6 +216,7 @@ function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: Ty
     onCopy: noop,
     onPaste: noop,
     onSelectAll: noop,
+    onSearchReplace: noop,
     onSpellingSuggestion: noop,
     onInsertTimestamp: noop,
     onInsertDate: noop,
