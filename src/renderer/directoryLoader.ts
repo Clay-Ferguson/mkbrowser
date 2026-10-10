@@ -6,10 +6,12 @@ import {
   setCurrentEntries,
   setEntriesLoading,
   setAppError,
+  setCurrentPath,
   getIndexTreeRoot,
   setIndexTreeRoot,
 } from '../store';
 import { logger } from '../shared/logUtil';
+import { getParentPath } from './pathUtil';
 
 /**
  * Monotonic token identifying the most recent loadDirectoryContents call.
@@ -50,17 +52,38 @@ export async function loadDirectoryContents(currentPath: string, showLoading: bo
     applyDirectoryListing(currentPath, files);
   } catch (err) {
     if (isStale()) return;
-    const errorMessage = err instanceof Error ? err.message : 'Failed to read directory';
-    if (errorMessage.includes('does not exist')) {
-      setAppError('This folder no longer exists');
-    } else {
-      setAppError('Failed to read directory');
+    // The folder was deleted (from the index tree, a folder entry, or outside
+    // the app): navigate up to its nearest surviving ancestor instead of
+    // showing an error. Changing currentPath makes App load that folder.
+    const ancestor = await findExistingAncestor(currentPath);
+    if (isStale()) return;
+    if (ancestor) {
+      setCurrentPath(ancestor);
+      return;
     }
+    logger.error('Failed to read directory:', err);
+    setAppError('Failed to read directory');
     setCurrentEntries([]);
   } finally {
     if (!isStale()) {
       setEntriesLoading(false);
     }
+  }
+}
+
+/**
+ * When `path` no longer exists, returns its nearest ancestor that does, or null
+ * if `path` itself still exists (so the read failed for some other reason,
+ * e.g. permissions) or no ancestor exists.
+ */
+async function findExistingAncestor(path: string): Promise<string | null> {
+  if (await api.pathExists(path)) return null;
+  let candidate = path;
+  for (;;) {
+    const parent = getParentPath(candidate);
+    if (!parent || parent === candidate) return null;
+    if (await api.pathExists(parent)) return parent;
+    candidate = parent;
   }
 }
 
