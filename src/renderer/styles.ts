@@ -338,7 +338,22 @@ export const ENTRY_NAME_SPAN = 'text-slate-300 font-medium truncate flex-1 curso
 export const ENTRY_DROP_TARGET = 'relative z-10 bg-blue-600/60 outline outline-2 -outline-offset-2 outline-green-400';
 /** Entry header row while an acceptable drag hovers it. */
 export const ENTRY_HEADER_ROW_DROP = `${ENTRY_HEADER_ROW_LAYOUT} ${ENTRY_DROP_TARGET}`;
-export const ENTRY_CONTENT_AREA = `px-6 py-4 ${ENTRY_BODY_BORDER}`;
+const ENTRY_CONTENT_PADDING = 'px-6 py-4';
+export const ENTRY_CONTENT_AREA = `${ENTRY_CONTENT_PADDING} ${ENTRY_BODY_BORDER}`;
+/**
+ * Feature flag: draw ENTRY_BODY_BORDER around an expanded Markdown entry's body. Off, the
+ * rendered Markdown sits borderless on the page. Independent of ENTRY_HIGHLIGHTED's purple
+ * border, which is on the entry's outer wrapper and always shows.
+ */
+export const SHOW_MARKDOWN_BORDER = false;
+/** MarkdownEntry's body: ENTRY_CONTENT_AREA, minus the border when SHOW_MARKDOWN_BORDER is off. */
+export const MARKDOWN_CONTENT_AREA = SHOW_MARKDOWN_BORDER ? ENTRY_CONTENT_AREA : ENTRY_CONTENT_PADDING;
+/**
+ * Markdown body background: the app's own background (App.tsx's `bg-slate-900`) rather
+ * than ENTRY_OUTER_EXPANDED's gray, so rendered Markdown reads as if drawn directly on
+ * the page. Applied to the body only, so the header bar keeps its usual tint.
+ */
+export const ENTRY_CONTENT_BG_APP = 'bg-slate-900';
 export const ENTRY_LOADING = 'text-slate-400 text-sm';
 // Editor-toolbar icon buttons. The "on" state of a toggle keeps a visible border at
 // rest instead of the hover frame, so a toggle never carries two competing

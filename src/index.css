@@ -215,6 +215,14 @@ html[data-font-size="xlarge"] {
   font-size: 1.05em;
 }
 
+/* Inline `code` spans: the same green the CodeMirror editor uses for `tags.monospace`
+   (one-dark's `sage`, see editorMarkdownHighlight.ts). Excludes code inside <pre>, so
+   fenced blocks without a language keep the plain prose colour. */
+.prose :not(pre) > code {
+  color: #98c379;
+  font-weight: 600;
+}
+
 /* Scale down all headings proportionally */
 .prose h1 {
   font-size: 1.65em;
