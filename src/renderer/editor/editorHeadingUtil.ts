@@ -10,8 +10,7 @@ import { frontMatterEndLine } from './editorFrontMatterUtil';
  */
 export const ENABLE_HEADING_SIZES = true;
 
-// One reusable line decoration per heading level (1..6). Levels 5-6 share the
-// smallest size bump via CSS below, but each still gets its own class for clarity.
+// One reusable line decoration per heading level (1..6), each sized via its own class below.
 const headingLineDecos = [1, 2, 3, 4, 5, 6].map((level) =>
   Decoration.line({ class: `cm-md-heading cm-md-heading-${level}` })
 );
@@ -57,22 +56,23 @@ export const headingSizePlugin = ViewPlugin.fromClass(
 );
 
 /**
- * Theme for heading line sizing. Uses `em` so sizes scale with the user's editor
- * font-size setting, and a unitless line-height so the line box grows with the
- * font — keeping the clickable box and the visible text coincident (accurate
- * click-to-place-cursor behavior).
+ * Theme for heading line sizing. The sizes are the `--md-heading-N-size` CSS variables
+ * in index.css, shared with the rendered Markdown view. They are `em` values, so sizes
+ * scale with the user's editor font-size setting, and a unitless line-height so the
+ * line box grows with the font — keeping the clickable box and the visible text
+ * coincident (accurate click-to-place-cursor behavior).
  */
 export const headingSizeTheme = EditorView.baseTheme({
   '.cm-md-heading': {
     fontWeight: 'bold',
     lineHeight: '1.4',
   },
-  '.cm-md-heading-1': { fontSize: '1.6em' },
-  '.cm-md-heading-2': { fontSize: '1.45em' },
-  '.cm-md-heading-3': { fontSize: '1.3em' },
-  '.cm-md-heading-4': { fontSize: '1.15em' },
-  '.cm-md-heading-5': { fontSize: '1.05em' },
-  '.cm-md-heading-6': { fontSize: '1.05em' },
+  '.cm-md-heading-1': { fontSize: 'var(--md-heading-1-size)' },
+  '.cm-md-heading-2': { fontSize: 'var(--md-heading-2-size)' },
+  '.cm-md-heading-3': { fontSize: 'var(--md-heading-3-size)' },
+  '.cm-md-heading-4': { fontSize: 'var(--md-heading-4-size)' },
+  '.cm-md-heading-5': { fontSize: 'var(--md-heading-5-size)' },
+  '.cm-md-heading-6': { fontSize: 'var(--md-heading-6-size)' },
 });
 
 /**

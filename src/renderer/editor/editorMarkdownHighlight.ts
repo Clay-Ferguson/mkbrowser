@@ -35,12 +35,13 @@ const markdownSpecs = [
   // colour is a redundant second cue that keeps the outline scannable while scrolling. h1 stays
   // one-dark's own heading colour, so the most common case looks unchanged. These override the
   // parent `heading` rule for h1-h6 only; bare `tags.heading` still reaches GFM table headers.
-  { tag: tags.heading1, color: color.coral, fontWeight: 'bold' },
-  { tag: tags.heading2, color: color.chalky, fontWeight: 'bold' },
-  { tag: tags.heading3, color: color.sage, fontWeight: 'bold' },
-  { tag: tags.heading4, color: color.cyan, fontWeight: 'bold' },
-  { tag: tags.heading5, color: color.malibu, fontWeight: 'bold' },
-  { tag: tags.heading6, color: color.violet, fontWeight: 'bold' },
+  // Colours are CSS variables defined in index.css, shared with the rendered Markdown view.
+  { tag: tags.heading1, color: 'var(--md-heading-1)', fontWeight: 'bold' },
+  { tag: tags.heading2, color: 'var(--md-heading-2)', fontWeight: 'bold' },
+  { tag: tags.heading3, color: 'var(--md-heading-3)', fontWeight: 'bold' },
+  { tag: tags.heading4, color: 'var(--md-heading-4)', fontWeight: 'bold' },
+  { tag: tags.heading5, color: 'var(--md-heading-5)', fontWeight: 'bold' },
+  { tag: tags.heading6, color: 'var(--md-heading-6)', fontWeight: 'bold' },
 
   // Inline emphasis: one warm hue for both, told apart by weight vs. slant.
   { tag: tags.strong, color: color.whiskey, fontWeight: 'bold' },
@@ -52,7 +53,7 @@ const markdownSpecs = [
 
   // Code. Colour only, no background: a fenced block is highlighted one span per line, so a
   // background would end each line at the last character and look ragged down the right edge.
-  { tag: tags.monospace, color: color.sage },
+  { tag: tags.monospace, color: 'var(--md-code)' },
 
   // Links. `url` must follow `link` — the URL node carries both tags (see note 1 above).
   { tag: tags.link, color: color.malibu },

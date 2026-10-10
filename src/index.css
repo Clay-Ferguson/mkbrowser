@@ -199,7 +199,7 @@ html[data-font-size="xlarge"] {
 }
 
 /* Custom prose typography adjustments:
-   - Headings are scaled down to prevent them from becoming too large
+   - Headings use a custom size ramp (see "Heading sizes" below)
    - Body text is scaled up slightly for better readability
    These ratios work well across all font size settings */
 .prose {
@@ -215,42 +215,78 @@ html[data-font-size="xlarge"] {
   font-size: 1.05em;
 }
 
-/* Inline `code` spans: the same green the CodeMirror editor uses for `tags.monospace`
-   (one-dark's `sage`, see editorMarkdownHighlight.ts). Excludes code inside <pre>, so
-   fenced blocks without a language keep the plain prose colour. */
+/* Markdown colours and heading sizes — the single source of truth shared by the
+   CodeMirror editor (editorMarkdownHighlight.ts and editorHeadingUtil.ts reference these
+   via var()) and the rendered Markdown (.prose rules below), so both views style headings
+   and inline code alike.
+   Values are one-dark's palette: coral, chalky, sage, cyan, malibu, violet. */
+:root {
+  --md-heading-1: #e06c75;
+  --md-heading-2: #e5c07b;
+  --md-heading-3: #98c379;
+  --md-heading-4: #56b6c2;
+  --md-heading-5: #61afef;
+  --md-heading-6: #c678dd;
+  --md-code: #98c379;
+
+  /* Heading sizes, relative to the surrounding text. */
+  --md-heading-1-size: 2em;
+  --md-heading-2-size: 1.65em;
+  --md-heading-3-size: 1.35em;
+  --md-heading-4-size: 1.15em;
+  --md-heading-5-size: 1.05em;
+  --md-heading-6-size: 1em;
+}
+
+/* Inline `code` spans. Excludes code inside <pre>, so fenced blocks without a
+   language keep the plain prose colour. */
 .prose :not(pre) > code {
-  color: #98c379;
+  color: var(--md-code);
   font-weight: 600;
 }
 
-/* Scale down all headings proportionally */
+/* Heading colours, matching the editor's per-level ramp. */
+.prose h1 { color: var(--md-heading-1); }
+.prose h2 { color: var(--md-heading-2); }
+.prose h3 { color: var(--md-heading-3); }
+.prose h4 { color: var(--md-heading-4); }
+.prose h5 { color: var(--md-heading-5); }
+.prose h6 { color: var(--md-heading-6); }
+
+/* Heading sizes: each level takes the next-larger level's size, with h1 a step above.
+   Margins are in em, so they scale along with each heading's size. */
 .prose h1 {
-  font-size: 1.65em;
+  font-size: var(--md-heading-1-size);
   margin-top: 0;
   margin-bottom: 0.6em;
 }
 
 .prose h2 {
-  font-size: 1.35em;
+  font-size: var(--md-heading-2-size);
   margin-top: 1.2em;
   margin-bottom: 0.5em;
 }
 
 .prose h3 {
-  font-size: 1.15em;
+  font-size: var(--md-heading-3-size);
   margin-top: 1em;
   margin-bottom: 0.4em;
 }
 
 .prose h4 {
-  font-size: 1.05em;
+  font-size: var(--md-heading-4-size);
   margin-top: 0.9em;
   margin-bottom: 0.3em;
 }
 
-.prose h5,
+.prose h5 {
+  font-size: var(--md-heading-5-size);
+  margin-top: 0.8em;
+  margin-bottom: 0.3em;
+}
+
 .prose h6 {
-  font-size: 1em;
+  font-size: var(--md-heading-6-size);
   margin-top: 0.8em;
   margin-bottom: 0.3em;
 }
