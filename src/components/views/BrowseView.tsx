@@ -321,6 +321,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
 
       {overlay.kind === 'exportHtml' && currentPath && (
         <HtmlExportDialog
+          sourceFolder={currentPath}
           defaultOutputFolder={joinPath(lastExportFolder || getParentPath(currentPath), generateHtmlExportFolderName(currentPath))}
           defaultFolderName={generateHtmlExportFolderName(currentPath)}
           onExport={handleExportHtml}

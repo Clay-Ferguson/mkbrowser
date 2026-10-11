@@ -15,7 +15,7 @@ import {
   type PageLinkContext,
 } from '../src/main/htmlExport/exportPaths';
 import { renderMarkdownPage } from '../src/main/htmlExport/renderExportPage';
-import { exportFolderToHtml } from '../src/main/htmlExport/folderHtmlExport';
+import { checkExportTarget, exportFolderToHtml } from '../src/main/htmlExport/folderHtmlExport';
 import { processTOC } from '../src/shared/tocUtil';
 
 const ROOT = path.resolve('/notes');
@@ -340,6 +340,43 @@ describe('exportFolderToHtml', () => {
     expect(byFile.success).toBe(false);
     expect(byFile.error).toMatch(/not a folder/);
     expect(fs.readFileSync(file, 'utf8')).toBe('keep');
+  });
+
+  it('refuses the source folder itself as the output, even with overwrite, and deletes nothing', async () => {
+    const before = fs.readdirSync(src).sort();
+    for (const target of [src, `${src}/`, path.join(src, 'sub', '..')]) {
+      const result = await exportFolderToHtml(src, target, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/is the folder being exported/);
+    }
+    expect(fs.readdirSync(src).sort()).toEqual(before);
+  });
+
+  it('refuses a symlinked alias of the source, and of its parent, and deletes nothing', async () => {
+    const before = fs.readdirSync(src).sort();
+    const alias = path.join(tmpDir, 'alias');
+    await fs.promises.symlink(src, alias);
+    const parentAlias = path.join(tmpDir, 'parent-alias');
+    await fs.promises.symlink(tmpDir, parentAlias);
+
+    // The alias itself, and the source reached through a symlinked parent: both are the source.
+    for (const target of [alias, path.join(parentAlias, 'src')]) {
+      const check = await checkExportTarget(src, target);
+      expect(check.error).toMatch(/is the folder being exported/);
+      const result = await exportFolderToHtml(src, target, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+      expect(result.success).toBe(false);
+    }
+    // A new folder inside the source, reached through the alias.
+    expect((await checkExportTarget(src, path.join(alias, 'export'))).error).toMatch(/cannot be inside/);
+    // The source's parent, reached through the parent alias.
+    expect((await checkExportTarget(src, parentAlias)).error).toBeTruthy();
+    expect(fs.readdirSync(src).sort()).toEqual(before);
+  });
+
+  it('checkExportTarget reports a usable folder and whether it exists', async () => {
+    expect(await checkExportTarget(src, path.join(tmpDir, 'new'))).toEqual({ error: null, exists: false });
+    await fs.promises.mkdir(path.join(tmpDir, 'old'));
+    expect(await checkExportTarget(src, path.join(tmpDir, 'old'))).toEqual({ error: null, exists: true });
   });
 
   it('refuses an output folder inside the source', async () => {

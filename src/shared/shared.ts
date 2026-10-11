@@ -384,6 +384,14 @@ export interface HtmlExportOptions {
   overwrite: boolean;
 }
 
+/** Whether a folder can be an "Export to Folder (HTML)" output, checked before any overwrite warning. */
+export interface HtmlExportTargetCheck {
+  /** Why this folder can never be the output (e.g. it is or contains the source); null when it can. */
+  error: string | null;
+  /** The folder already exists, so exporting to it means replacing its contents. */
+  exists: boolean;
+}
+
 /** Outcome of an "Export to Folder (HTML)" run. */
 export interface HtmlExportResult {
   success: boolean;
@@ -530,6 +538,8 @@ export interface ElectronAPI {
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;
   exportToPdf: (markdownPath: string, pdfPath: string, sourceFolder?: string) => Promise<{ success: boolean; error?: string }>;
   exportFolderToHtml: (sourceFolder: string, outputFolder: string, options: HtmlExportOptions) => Promise<HtmlExportResult>;
+  /** Checks an HTML export output folder against the source, before the user is asked to overwrite it. */
+  checkHtmlExportTarget: (sourceFolder: string, outputFolder: string) => Promise<HtmlExportTargetCheck>;
   runShellScript: (filePath: string) => Promise<{ success: boolean; error?: string }>;
   askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   replyToAi: (parentFolderPath: string, createSubFolder: boolean) => Promise<{ folderPath: string; filePath: string } | { error: string }>;

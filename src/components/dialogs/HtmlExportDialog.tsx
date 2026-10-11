@@ -10,6 +10,8 @@ import CheckboxField from './common/CheckboxField';
 import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_NEUTRAL, DLG_FOOTER_CLASS, DLG_INPUT_CLASS, DLG_LABEL_CLASS } from '../../renderer/styles';
 
 interface HtmlExportDialogProps {
+  /** The folder being exported; the output folder is checked against it before anything else. */
+  sourceFolder: string;
   /** Pre-filled output folder path (full path to the folder to create). */
   defaultOutputFolder: string;
   /** Name given to the new folder when one is picked with Browse. */
@@ -22,14 +24,18 @@ interface HtmlExportDialogProps {
  * Configures "Export to Folder (HTML)": the full path of the folder to create
  * and whether each folder gets a generated index page, and whether object cards
  * are collapsible. Browse picks the parent folder; the new folder's name is
- * appended to it. If the output folder already exists, a red warning asks before
- * its contents are replaced. Returns the choice through onExport.
+ * appended to it. Export first has the main process check the output folder: one
+ * that is, contains, or lies inside the source (symlinks resolved) is refused with
+ * an inline error and no overwrite warning ever appears. Only a folder that passes
+ * and already exists gets the red warning before its contents are replaced.
+ * Returns the choice through onExport.
  */
-function HtmlExportDialog({ defaultOutputFolder, defaultFolderName, onExport, onCancel }: HtmlExportDialogProps) {
+function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName, onExport, onCancel }: HtmlExportDialogProps) {
   const [outputFolder, setOutputFolder] = useState(defaultOutputFolder);
   const [indexPages, setIndexPages] = useState(true);
   const [collapsibleObjects, setCollapsibleObjects] = useState(true);
   const [confirmOverwrite, setConfirmOverwrite] = useState(false);
+  const [folderError, setFolderError] = useState<string | null>(null);
   const outputInputRef = useRef<HTMLInputElement>(null);
 
   const trimmedFolder = outputFolder.trim();
@@ -37,7 +43,9 @@ function HtmlExportDialog({ defaultOutputFolder, defaultFolderName, onExport, on
   const handleSelectFolder = () => {
     api.selectExportFolder()
       .then((folder) => {
-        if (folder) setOutputFolder(joinPath(folder, defaultFolderName));
+        if (!folder) return;
+        setOutputFolder(joinPath(folder, defaultFolderName));
+        setFolderError(null);
       })
       .catch((err: unknown) => logger.error('Failed to select export folder:', err));
   };
@@ -45,9 +53,10 @@ function HtmlExportDialog({ defaultOutputFolder, defaultFolderName, onExport, on
   const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!trimmedFolder) return;
-    api.pathExists(trimmedFolder)
-      .then((exists) => {
-        if (exists) setConfirmOverwrite(true);
+    api.checkHtmlExportTarget(sourceFolder, trimmedFolder)
+      .then(({ error, exists }) => {
+        if (error) setFolderError(error);
+        else if (exists) setConfirmOverwrite(true);
         else onExport(trimmedFolder, { indexPages, collapsibleObjects, overwrite: false });
       })
       .catch((err: unknown) => logger.error('Failed to check the export folder:', err));
@@ -74,7 +83,10 @@ function HtmlExportDialog({ defaultOutputFolder, defaultFolderName, onExport, on
                 ref={outputInputRef}
                 type="text"
                 value={outputFolder}
-                onChange={(e) => setOutputFolder(e.target.value)}
+                onChange={(e) => {
+                  setOutputFolder(e.target.value);
+                  setFolderError(null);
+                }}
                 className={`${DLG_INPUT_CLASS} flex-1`}
                 placeholder="/path/to/new/folder"
                 data-testid="export-html-output-folder"
@@ -89,9 +101,15 @@ function HtmlExportDialog({ defaultOutputFolder, defaultFolderName, onExport, on
                 <FolderIcon className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              This folder will be created. If it already exists, everything in it is replaced.
-            </p>
+            {folderError ? (
+              <p className="text-xs text-red-400 mt-1 whitespace-pre-line break-words" data-testid="export-html-folder-error">
+                {folderError}
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500 mt-1">
+                This folder will be created. If it already exists, everything in it is replaced.
+              </p>
+            )}
           </div>
 
           <div className="mb-6">

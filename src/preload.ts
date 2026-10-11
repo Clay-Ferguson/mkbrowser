@@ -53,6 +53,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('export-to-pdf', markdownPath, pdfPath, sourceFolder),
   exportFolderToHtml: (sourceFolder: string, outputFolder: string, options: HtmlExportOptions) =>
     ipcRenderer.invoke('export-folder-html', sourceFolder, outputFolder, options),
+  checkHtmlExportTarget: (sourceFolder: string, outputFolder: string) =>
+    ipcRenderer.invoke('check-html-export-target', sourceFolder, outputFolder),
   runShellScript: (filePath: string) =>
     ipcRenderer.invoke('run-shell-script', filePath),
   askAi: (prompt: string, parentFolderPath: string) =>

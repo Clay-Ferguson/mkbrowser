@@ -19,7 +19,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { HtmlExportOptions, HtmlExportResult, TypeDefinitions } from '../../shared/shared';
+import type { HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck, TypeDefinitions } from '../../shared/shared';
 import { buildExcludePredicate } from '../../shared/pathPattern';
 import { mapWithConcurrency } from '../../shared/asyncUtil';
 import { toErrorMessage } from '../../shared/logUtil';
@@ -105,24 +105,59 @@ async function walkSource(root: string, ignoredPaths: string[]): Promise<SourceT
 }
 
 /**
- * Why the export can't run with these folders, or null when it can. An existing
- * output folder is allowed only with `overwrite`, and even then only when emptying
- * it can't take anything precious along: it must be a real folder (not a symlink or
- * a file), must not contain the source, and must not be the filesystem root or the
- * home folder.
+ * `p` with every symlink resolved, so two spellings of the same folder compare equal.
+ * A path that doesn't exist yet resolves its nearest existing ancestor and keeps the
+ * missing tail, so a new folder reached through a symlink is still placed correctly.
+ */
+async function realPathOf(p: string): Promise<string> {
+  const real = await fs.promises.realpath(p).catch(() => null);
+  if (real) return real;
+  const parent = path.dirname(p);
+  return parent === p ? p : path.join(await realPathOf(parent), path.basename(p));
+}
+
+/**
+ * Checks `out` (already absolute) as the output folder for exporting `root`, before
+ * the user is ever asked to overwrite it. It can never be the source itself or a
+ * folder inside it, and, when it exists, it is emptied first, so it must also be a
+ * real folder (not a file or a symlink) that doesn't contain the source and isn't the
+ * filesystem root or the home folder. Paths are compared both as given and with
+ * symlinks resolved, so no alias of the source folder gets through.
+ */
+export async function checkExportTarget(root: string, out: string): Promise<HtmlExportTargetCheck> {
+  const refuse = (error: string): HtmlExportTargetCheck => ({ error, exists: false });
+  const sourceStat = await fs.promises.stat(root).catch(() => null);
+  if (!sourceStat?.isDirectory()) return refuse(`The folder to export does not exist: ${root}`);
+
+  const realRoot = await realPathOf(root);
+  const realOut = await realPathOf(out);
+  if (out === root || realOut === realRoot) return refuse('The output folder is the folder being exported. Choose a different output folder.');
+  if (isInsideOrEqual(root, out) || isInsideOrEqual(realRoot, realOut)) {
+    return refuse('The output folder cannot be inside the folder being exported.');
+  }
+
+  const outStat = await fs.promises.lstat(out).catch(() => null);
+  if (!outStat) return { error: null, exists: false };
+  if (!outStat.isDirectory()) return refuse(`The output path exists but is not a folder: ${out}`);
+  if (isInsideOrEqual(out, root) || isInsideOrEqual(realOut, realRoot)) {
+    return refuse('The output folder cannot contain the folder being exported.');
+  }
+  const home = await realPathOf(os.homedir());
+  if (realOut === path.parse(realOut).root || realOut === home) {
+    return refuse(`Refusing to overwrite ${out}: choose a dedicated output folder.`);
+  }
+  return { error: null, exists: true };
+}
+
+/**
+ * Why the export can't run with these folders, or null when it can. Repeats the
+ * dialog's checkExportTarget at export time, so nothing is ever deleted on the
+ * strength of an earlier check; an existing folder also needs `overwrite`.
  */
 async function validateFolders(root: string, out: string, overwrite: boolean): Promise<string | null> {
-  const sourceStat = await fs.promises.stat(root).catch(() => null);
-  if (!sourceStat?.isDirectory()) return `The folder to export does not exist: ${root}`;
-  if (isInsideOrEqual(root, out)) return 'The output folder cannot be inside the folder being exported.';
-  const outStat = await fs.promises.lstat(out).catch(() => null);
-  if (!outStat) return null;
-  if (!overwrite) return `The output folder already exists: ${out}`;
-  if (!outStat.isDirectory()) return `The output path exists but is not a folder: ${out}`;
-  if (isInsideOrEqual(out, root)) return 'The output folder cannot contain the folder being exported.';
-  if (out === path.parse(out).root || out === path.resolve(os.homedir())) {
-    return `Refusing to overwrite ${out}: choose a dedicated output folder.`;
-  }
+  const { error, exists } = await checkExportTarget(root, out);
+  if (error) return error;
+  if (exists && !overwrite) return `The output folder already exists: ${out}`;
   return null;
 }
 
@@ -153,7 +188,7 @@ export async function exportFolderToHtml(
   if (outputFolder.trim() === '') return fail('No output folder was given.');
   const invalid = await validateFolders(root, out, overwrite);
   if (invalid) return fail(invalid);
-  if (overwrite && await fs.promises.access(out).then(() => true, () => false)) await emptyFolder(out);
+  if (overwrite && await fs.promises.lstat(out).then(() => true, () => false)) await emptyFolder(out);
 
   const { manifest, children, warnings } = await walkSource(root, ignoredPaths);
   const toOut = (srcPath: string) => path.join(out, ...outputSegments(manifest, srcPath));

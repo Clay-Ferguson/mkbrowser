@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult } from './shared/shared';
+import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
 import { readDirectory, isFolderEmpty, deleteEmptyFolder } from './main/fileUtil';
@@ -32,7 +32,7 @@ import { getUsageWithCosts, resetUsage } from './main/ai/usageTracker';
 import { readExifMetadata, readImageDimensions, writeExifMetadata } from './main/exifUtil';
 import { logger, toErrorMessage } from './shared/logUtil';
 import { exportFolderContents, exportToPdf } from './main/exportUtil';
-import { exportFolderToHtml } from './main/htmlExport/folderHtmlExport';
+import { checkExportTarget, exportFolderToHtml } from './main/htmlExport/folderHtmlExport';
 import { runShellScript, runOcrInTerminal } from './main/launcherUtil';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
@@ -851,6 +851,20 @@ function setupIpcHandlers(): void {
         fileCount: 0,
         warnings: [],
       };
+    }
+  });
+
+  // Check an HTML export output folder before the dialog offers to overwrite it
+  ipcMain.handle('check-html-export-target', async (
+    _event,
+    sourceFolder: string,
+    outputFolder: string,
+  ): Promise<HtmlExportTargetCheck> => {
+    try {
+      return await checkExportTarget(path.resolve(sourceFolder), path.resolve(outputFolder.trim()));
+    } catch (error) {
+      logger.error('Error checking HTML export folder:', error);
+      return { error: error instanceof Error ? error.message : 'Unknown error occurred', exists: false };
     }
   });
 
