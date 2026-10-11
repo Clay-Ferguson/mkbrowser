@@ -38,8 +38,11 @@ vi.mock('../src/store', () => ({
 }));
 
 vi.mock('../src/renderer/api', () => ({
+  // No bridge: pathUtil's joinPath then uses '/' as the separator.
+  getApi: () => undefined,
   api: {
     getConfig: vi.fn(),
+    getHomeDir: vi.fn(),
     pathExists: vi.fn(),
     updateConfig: vi.fn(),
   },
@@ -135,6 +138,24 @@ describe('loadConfig — error handling', () => {
     });
 
     spy.mockRestore();
+  });
+});
+
+describe('loadConfig — default export folder', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('defaults lastExportFolder to ~/exports when none is saved', async () => {
+    vi.mocked(api.getConfig).mockResolvedValue({} as never);
+    vi.mocked(api.getHomeDir).mockResolvedValue('/home/clay');
+    expect((await loadConfig()).lastExportFolder).toBe('/home/clay/exports');
+  });
+
+  it('keeps a saved lastExportFolder without asking for the home folder', async () => {
+    vi.mocked(api.getConfig).mockResolvedValue({ lastExportFolder: '/data/exports' } as never);
+    expect((await loadConfig()).lastExportFolder).toBe('/data/exports');
+    expect(api.getHomeDir).not.toHaveBeenCalled();
   });
 });
 

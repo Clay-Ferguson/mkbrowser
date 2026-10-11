@@ -227,6 +227,9 @@ function setupIpcHandlers(): void {
     });
   });
 
+  // The user's home folder, resolved per OS (/home/<user>, /Users/<user>, C:\\Users\\<user>)
+  ipcMain.handle('get-home-dir', () => app.getPath('home'));
+
   // Get the in-memory config (no file I/O after startup)
   ipcMain.handle('get-config', () => {
     return getConfig();

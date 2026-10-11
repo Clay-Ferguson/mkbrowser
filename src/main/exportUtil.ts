@@ -143,7 +143,8 @@ export async function exportFolderContents(
   const separator = includeDividers ? '\n\n---\n\n' : '\n\n';
   const concatenatedContent = allParts.join(separator);
 
-  // Write the output file
+  // Write the output file, creating its folder if needed (the default ~/exports may not exist yet)
+  await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
   await writeFileAtomic(outputPath, concatenatedContent);
 
   return {

@@ -40,9 +40,9 @@ function generateExportFileName(currentPath: string): string {
   return `${getFileName(currentPath)}-export.md`;
 }
 
-/** Derives a default HTML export folder name from the current folder name. */
+/** Derives a default HTML export folder name: the current folder's own name. */
 function generateHtmlExportFolderName(currentPath: string): string {
-  return `${getFileName(currentPath)}-html`;
+  return getFileName(currentPath);
 }
 
 interface BrowseViewProps {

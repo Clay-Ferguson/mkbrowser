@@ -1,8 +1,9 @@
 import { setSettings, getSettings, setCurrentPath, setCalendarViewType, setAiConfig, getAiConfig, setAppError, setTypeDefs, defaultAiConfig, defaultSettings } from '../store';
 import { api } from './api';
-import { isPathInside } from './pathUtil';
+import { isPathInside, joinPath } from './pathUtil';
 import { logger } from '../shared/logUtil';
 import type { AppConfig } from '../shared/shared';
+import { EXPORTS_FOLDER_NAME } from '../shared/shared';
 import type { AiConfigState } from '../store';
 
 /**
@@ -32,10 +33,20 @@ function pickAiConfig(updates: Partial<AppConfig>): Partial<AiConfigState> {
   return mirror;
 }
 
+/**
+ * Where exports go until the user has exported somewhere: `exports` in the home folder
+ * (`~/exports`), which also satisfies the HTML export's `exports`-folder rule. Not
+ * persisted; the first export saves the folder actually used.
+ */
+async function defaultExportFolder(): Promise<string> {
+  return joinPath(await api.getHomeDir(), EXPORTS_FOLDER_NAME);
+}
+
 export interface LoadConfigResult {
   rootPath: string | null;
   loaded: boolean;
   error: string | null;
+  /** The saved last export folder, or `~/exports` (see defaultExportFolder) when none is saved. */
   lastExportFolder: string;
   recentFolders: string[];
 }
@@ -61,7 +72,7 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     const base = {
       loaded: true,
       error: null as string | null,
-      lastExportFolder: config.lastExportFolder ?? '',
+      lastExportFolder: config.lastExportFolder || await defaultExportFolder(),
       recentFolders: config.recentFolders ?? [],
     };
     if (!config.browseFolder || !(await api.pathExists(config.browseFolder))) {

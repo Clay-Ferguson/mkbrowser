@@ -503,6 +503,8 @@ export interface ElectronAPI {
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
   lookupThesaurus: (word: string) => Promise<ThesaurusLookup>;
   getConfig: () => Promise<AppConfig>;
+  /** The user's home folder on any OS (Electron's `app.getPath('home')`). */
+  getHomeDir: () => Promise<string>;
   updateConfig: (updates: Partial<AppConfig>) => Promise<void>;
   selectFolder: () => Promise<string | null>;
   /** Shows the OS single-file picker; resolves to the chosen path, or null if cancelled. */

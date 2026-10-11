@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   testHooksEnabled: process.argv.includes(TEST_HOOKS_ARG),
   quit: () => ipcRenderer.invoke('quit'),
   getConfig: () => ipcRenderer.invoke('get-config'),
+  getHomeDir: () => ipcRenderer.invoke('get-home-dir'),
   updateConfig: (updates: Partial<AppConfig>) => ipcRenderer.invoke('update-config', updates),
   selectFolder: () => ipcRenderer.invoke('select-folder'),
   selectFile: (title: string) => ipcRenderer.invoke('select-file', title),  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
