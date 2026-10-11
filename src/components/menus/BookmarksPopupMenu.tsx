@@ -6,7 +6,7 @@ import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import BookmarkDialog from '../dialogs/BookmarkDialog';
 import { saveSettings } from '../../renderer/config';
-import { toggleBookmark, isBookmarked, removeBookmark, updateBookmarkName, setBookmarkIsDirectory, type Bookmark } from '../../store';
+import { toggleBookmark, isBookmarked, removeBookmark, updateBookmarkName, setBookmarkIsDirectory, revealInTree, type Bookmark } from '../../store';
 import {
   MENU_ROW,
   MENU_ICON_BTN,
@@ -35,7 +35,8 @@ interface BookmarksPopupMenuProps {
 /**
  * Popup menu listing bookmarks scoped to the current root folder.
  * Items are sorted alphabetically by name. Each row has inline Edit and
- * Delete icon buttons. Clicking a bookmark navigates to it; if the path
+ * Delete icon buttons. Clicking a bookmark navigates to it, right-clicking
+ * reveals it in the folder tree; if the path
  * no longer exists on disk the bookmark is removed and an alert is shown.
  */
 export default function BookmarksPopupMenu({
@@ -71,12 +72,15 @@ export default function BookmarksPopupMenu({
   };
 
   /**
-   * Navigates to the bookmarked path. If the path no longer exists on disk,
-   * the bookmark is automatically removed and an alert is shown instead.
-   * A bookmark saved before `isDirectory` was recorded has its type resolved
-   * from disk here and backfilled, so later clicks and its icon are exact.
+   * Opens the bookmarked path: a left click (`reveal` false) browses to it, a
+   * right click (`reveal` true) reveals it in the folder tree instead, exactly
+   * like the entry header's "Reveal in folder tree" button. If the path no
+   * longer exists on disk, the bookmark is automatically removed and an alert
+   * is shown instead. A bookmark saved before `isDirectory` was recorded has
+   * its type resolved from disk here and backfilled, so later clicks and its
+   * icon are exact.
    */
-  const handleClick = (bookmark: Bookmark) => {
+  const handleClick = (bookmark: Bookmark, reveal: boolean) => {
     const fullPath = bookmark.path;
     void (async () => {
       try {
@@ -95,7 +99,11 @@ export default function BookmarksPopupMenu({
           setBookmarkIsDirectory(fullPath, isDirectory);
           saveSettings();
         }
-        onNavigate(fullPath, isDirectory);
+        if (reveal) {
+          revealInTree(fullPath);
+        } else {
+          onNavigate(fullPath, isDirectory);
+        }
         onClose();
       } catch (err) {
         logger.error('Failed to open bookmark:', err);
@@ -139,7 +147,9 @@ export default function BookmarksPopupMenu({
                 <button
                   type="button"
                   className={MENU_ROW_LABEL}
-                  onClick={() => handleClick(bookmark)}
+                  onClick={() => handleClick(bookmark, false)}
+                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); handleClick(bookmark, true); }}
+                  title="Click to browse; right-click to reveal in folder tree"
                   data-testid={`bookmark-item-${name}`}
                 >
                   <Icon className={`${MENU_ROW_ICON} ${iconColorClass}`} />
