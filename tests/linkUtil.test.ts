@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRelativePath, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath, splitHeadingFragment, appendLinkFragment } from '../src/renderer/linkUtil';
+import { getRelativePath, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath, splitHeadingFragment, appendLinkFragment, isFileLinkHref } from '../src/renderer/linkUtil';
 
 describe('getRelativePath', () => {
   it('returns just the file name when target is in the same directory', () => {
@@ -165,5 +165,26 @@ describe('appendLinkFragment', () => {
 
   it('returns the destination unchanged for an empty fragment', () => {
     expect(appendLinkFragment('README.md', '')).toBe('README.md');
+  });
+});
+
+describe('isFileLinkHref', () => {
+  it('treats relative and absolute paths as file links', () => {
+    expect(isFileLinkHref('notes.md')).toBe(true);
+    expect(isFileLinkHref('./notes.md')).toBe(true);
+    expect(isFileLinkHref('../folder')).toBe(true);
+    expect(isFileLinkHref('my%20file.md#some-heading')).toBe(true);
+    expect(isFileLinkHref('/home/user/doc.md')).toBe(true);
+    expect(isFileLinkHref('C:\\docs\\doc.md')).toBe(true);
+  });
+
+  it('treats URLs with a scheme, in-page anchors and empty hrefs as non-file links', () => {
+    expect(isFileLinkHref('https://example.com')).toBe(false);
+    expect(isFileLinkHref('http://example.com/a.md')).toBe(false);
+    expect(isFileLinkHref('file:///home/user/doc.md')).toBe(false);
+    expect(isFileLinkHref('mailto:someone@example.com')).toBe(false);
+    expect(isFileLinkHref('#section')).toBe(false);
+    expect(isFileLinkHref('')).toBe(false);
+    expect(isFileLinkHref(undefined)).toBe(false);
   });
 });

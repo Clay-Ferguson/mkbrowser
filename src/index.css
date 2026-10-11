@@ -209,6 +209,13 @@ html[data-font-size="xlarge"] {
   line-height: 1.75;
 }
 
+/* Link colors: local file/folder links use the folder amber (as in the breadcrumbs),
+   web links a light blue. CustomAnchor tags each <a> with md-link-file / md-link-web. */
+.prose a.md-link-file { color: var(--color-btn-accent-amber); }
+.prose a.md-link-file:hover { color: var(--color-btn-accent-amber-hover); }
+.prose a.md-link-web { color: var(--color-btn-accent-blue); }
+.prose a.md-link-web:hover { color: var(--color-btn-accent-blue-hover); }
+
 .prose p,
 .prose li,
 .prose blockquote {

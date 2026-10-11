@@ -5,6 +5,17 @@ import { getParentPath, isAbsolutePath, pathSep, splitPath, splitPathSegments } 
 export { decodeMarkdownUrl, splitHeadingFragment } from '../shared/markdownLinks';
 
 /**
+ * True when a markdown link `href` points at a local file or folder (a relative or
+ * absolute path, optionally with a `#heading` fragment) rather than a URL with a
+ * scheme (`https:`, `file://`, `mailto:`, …) or an in-page `#anchor`. The scheme
+ * must be 2+ characters so a Windows drive letter (`C:\…`) still counts as a path.
+ */
+export function isFileLinkHref(href: string | undefined): boolean {
+  if (!href || href.startsWith('#')) return false;
+  return !/^[a-z][a-z0-9+.-]+:/i.test(href);
+}
+
+/**
  * Resolve a decoded markdown link destination to a filesystem path. An absolute
  * destination is returned as-is; a relative one is resolved against the directory
  * containing `sourceFilePath` (the markdown file the link appears in). Markdown

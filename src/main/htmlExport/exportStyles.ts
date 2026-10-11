@@ -20,8 +20,12 @@ export const STYLE_CSS = `
   --border: #475569;
   --border-soft: #334155;
   --surface: #1e293b;
-  --link: #38bdf8;
-  --link-hover: #7dd3fc;
+  /* Same colors as the app's rendered Markdown (index.css btn-accent-blue/amber):
+     web links light blue, links to files and folders the folder amber. */
+  --link: #5d9eff;
+  --link-hover: #90bcfe;
+  --file-link: #fbab0b;
+  --file-link-hover: #ffd295;
 }
 
 html { background: var(--bg); }
@@ -61,6 +65,8 @@ strong { color: var(--heading); }
 
 a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
 a:hover { color: var(--link-hover); }
+a.file-link, nav.breadcrumb a, .folder-index a { color: var(--file-link); }
+a.file-link:hover, nav.breadcrumb a:hover, .folder-index a:hover { color: var(--file-link-hover); }
 
 img { max-width: 100%; height: auto; }
 

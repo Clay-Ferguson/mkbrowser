@@ -283,6 +283,8 @@ describe('exportFolderToHtml', () => {
 
     const home = fs.readFileSync(path.join(out, 'home.html'), 'utf8');
     expect(home).toContain('href="sub/page.html"');
+    // Links to other files/folders in the export are tagged for the folder-amber color.
+    expect(home).toContain('href="sub/page.html" class="file-link"');
     expect(home).toContain('src="logo.png"');
     expect(home).toContain('href="notes.txt"');
     expect(home).toContain('href="sub/"');

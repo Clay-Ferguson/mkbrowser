@@ -1,8 +1,9 @@
 import React, { useContext } from 'react';
+import { clsx } from 'clsx';
 import type { ExtraProps } from 'react-markdown';
 import { api } from '../renderer/api';
 import { navigateToBrowserPath } from '../store';
-import { decodeMarkdownUrl, resolveLinkPath, splitHeadingFragment } from '../renderer/linkUtil';
+import { decodeMarkdownUrl, isFileLinkHref, resolveLinkPath, splitHeadingFragment } from '../renderer/linkUtil';
 import { openFileSingle, openIdLink } from '../renderer/linkRepair';
 import { MarkdownEntryContext } from './markdownEntryContext';
 import { getVisibleElementById } from '../renderer/entryDom';
@@ -94,9 +95,11 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
   // The markdown container initiates editing on `onMouseUp` (so click-drag text
   // selection still works), NOT on click. Stopping click propagation alone won't
   // prevent edit mode — we must also stop the mouseup from bubbling to the container.
+  // File links are colored like folders (amber) and web links light blue — see index.css.
   return (
     <a
       {...props}
+      className={clsx(props.className, isFileLinkHref(href) ? 'md-link-file' : 'md-link-web')}
       href={href}
       onClick={handleClick}
       onMouseUp={(e) => e.stopPropagation()}

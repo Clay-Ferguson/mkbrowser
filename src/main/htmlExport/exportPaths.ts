@@ -23,7 +23,7 @@ const MD_EXT_RE = /\.md$/i;
 const MAX_IMAGE_SEARCH_DEPTH = 10;
 
 /** A leading URL scheme (`https:`, `mailto:`, …). */
-const SCHEME_RE = /^([a-z][a-z0-9+.-]*):/i;
+export const SCHEME_RE = /^([a-z][a-z0-9+.-]*):/i;
 
 /** Schemes a link keeps and opens in a new browser tab. */
 const EXTERNAL_SCHEMES = new Set(['http', 'https']);
