@@ -1,11 +1,10 @@
 import { CALLOUT_CSS } from '../../shared/exportMDtoHTML';
 
-/** File name of the stylesheet written to the export root. */
-export const STYLE_FILE_NAME = 'style.css';
-
 /**
- * The folder HTML export's shared stylesheet, written once to the export root as
- * `style.css` and linked from every page. A dark slate theme close to the app's
+ * The folder HTML export's stylesheet, embedded in a `<style>` block in every page
+ * rather than linked as a shared file: viewers such as the Google Drive phone app
+ * open one HTML file on its own, without its folder, so a relative stylesheet link
+ * would never load. A dark slate theme close to the app's
  * `prose-invert` look. Content fills the browser width apart from a small side
  * margin. Code blocks (mermaid included) are plain monospace text: the export is
  * fully offline and does no syntax highlighting.
@@ -135,9 +134,33 @@ th { color: var(--heading); background: var(--surface); font-weight: 600; }
 }
 .object-title { font-weight: 600; color: var(--heading); overflow-wrap: anywhere; }
 .object-title.object-untitled { font-weight: normal; font-style: italic; color: var(--muted); }
-/* "Collapsible Objects": the title is the <summary> of a <details> holding the rows. */
-summary.object-title { cursor: pointer; }
-summary.object-title::marker { color: var(--muted); }
+/* "Collapsible Objects": the title is the <summary> of a <details> holding the rows. Sized as a
+   large, muted-blue tap target (well over the ~44px touch minimum) for reading on a phone. */
+summary.object-title {
+  display: list-item;
+  list-style-position: inside;
+  min-height: 3rem;
+  margin-top: 0.25rem;
+  padding: 0.7rem 1rem;
+  font-size: 1.2rem;
+  line-height: 1.4;
+  color: #e8eef6;
+  background: #34557a;
+  border: 1px solid #44688f;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+summary.object-title:hover { background: #3c6189; }
+summary.object-title:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+summary.object-title::marker { color: #b4c6dc; }
+summary.object-title.object-untitled { color: #c3d0e0; }
+details[open] > summary.object-title { margin-bottom: 0.5rem; }
+/* On a phone a collapsible card spans the page, so its title bar is a full-width tap target. */
+@media (max-width: 640px) {
+  .object-block:has(> details) { width: 100%; }
+}
 /* Each row is a div of bullet / name / value; display: contents lets all rows share one grid,
    so names and values line up across rows. */
 .object-rows {

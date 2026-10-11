@@ -39,6 +39,11 @@ function manifest(): ExportManifest {
   };
 }
 
+/** A page's <body>, without the embedded stylesheet (whose selectors name the very elements tests look for). */
+function bodyOf(html: string): string {
+  return html.slice(html.indexOf('<body>'));
+}
+
 function ctx(mdPath: string, indexPages = true): PageLinkContext {
   return { manifest: manifest(), mdPath, indexPages };
 }
@@ -162,14 +167,14 @@ describe('renderMarkdownPage', () => {
   it('keeps a collapsible object with no other properties as a plain card', async () => {
     const html = await renderMarkdownPage('```yaml\ntype: person\nname: Ada\n```\n', ctx(p('index.md')), TYPE_DEFS, true);
     expect(html).toContain('<div class="object-title" title="name">Ada</div>');
-    expect(html).not.toContain('<details>');
+    expect(bodyOf(html)).not.toContain('<details>');
   });
 
   it('renders no details/summary when objects are not collapsible', async () => {
     const md = '```yaml\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\n```\n';
     const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS, false);
-    expect(html).not.toContain('<details>');
-    expect(html).not.toContain('<summary');
+    expect(bodyOf(html)).not.toContain('<details>');
+    expect(bodyOf(html)).not.toContain('<summary');
   });
 
   it('keeps an invalid object as code and adds the hint', async () => {
@@ -183,7 +188,7 @@ describe('renderMarkdownPage', () => {
   it('leaves a block of an undefined type as an ordinary code block', async () => {
     const html = await renderMarkdownPage('```yaml\ntype: robot\nname: R2\n```\n', ctx(p('index.md')), TYPE_DEFS);
     expect(html).toContain('<pre><code class="language-yaml">');
-    expect(html).not.toContain('object-block');
+    expect(bodyOf(html)).not.toContain('object-block');
   });
 
   it('gives headings the same slugs the generated TOC links to', async () => {
@@ -195,11 +200,12 @@ describe('renderMarkdownPage', () => {
     expect(html).toContain('id="q--a-1"');
   });
 
-  it('splits ||| pages into columns and links the stylesheet at the right depth', async () => {
+  it('splits ||| pages into columns and embeds the stylesheet', async () => {
     const html = await renderMarkdownPage('left\n|||\nright\n', ctx(p('docs', 'deep', 'leaf.md')), {});
     expect(html).toContain('class="columns"');
     expect(html.match(/class="col"/g)).toHaveLength(2);
-    expect(html).toContain('<link rel="stylesheet" href="../../style.css">');
+    expect(html).toMatch(/<head>[\s\S]*<style>[\s\S]*\.object-block \{[\s\S]*<\/style>[\s\S]*<\/head>/);
+    expect(html).not.toContain('<link rel="stylesheet"');
   });
 
   it('strips front matter and HTML comments and renders math as MathML', async () => {
@@ -215,7 +221,7 @@ describe('renderMarkdownPage', () => {
     expect(withNav).toContain('<a href="_index.html">docs</a>');
     expect(withNav).toContain('<span class="current">guide</span>');
     const without = await renderMarkdownPage('# Hi\n', ctx(p('docs', 'guide.md'), false), {});
-    expect(without).not.toContain('breadcrumb');
+    expect(bodyOf(without)).not.toContain('breadcrumb');
   });
 });
 
@@ -240,14 +246,14 @@ describe('exportFolderToHtml', () => {
     await fs.promises.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('mirrors the tree: pages as .html, other files copied, style.css at the root', async () => {
+  it('mirrors the tree: pages as .html, other files copied, no separate stylesheet', async () => {
     const out = path.join(tmpDir, 'out');
     const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false, overwrite: false }, {}, []);
     expect(result).toMatchObject({ success: true, outputPath: out, pageCount: 3, fileCount: 3, warnings: [] });
     expect(result.entryPage).toBeUndefined();
 
     const exists = (...parts: string[]) => fs.existsSync(path.join(out, ...parts));
-    expect(exists('style.css')).toBe(true);
+    expect(exists('style.css')).toBe(false);
     expect(exists('home.html')).toBe(true);
     expect(exists('home.md')).toBe(false);
     expect(exists('sub', 'page.html')).toBe(true);
@@ -265,13 +271,11 @@ describe('exportFolderToHtml', () => {
     expect(home).toContain('src="logo.png"');
     expect(home).toContain('href="notes.txt"');
     expect(home).toContain('href="sub/"');
-    expect(home).toContain('href="style.css"');
 
     // The walk-up resolver finds ../logo.png for the bare `logo.png` in sub/page.md.
     const page = fs.readFileSync(path.join(out, 'sub', 'page.html'), 'utf8');
     expect(page).toContain('href="../home.html"');
     expect(page).toContain('src="../logo.png"');
-    expect(page).toContain('href="../style.css"');
   });
 
   it('writes an index page per folder when asked', async () => {

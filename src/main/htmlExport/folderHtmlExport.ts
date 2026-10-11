@@ -1,8 +1,8 @@
 /**
  * "Export to Folder (HTML)": mirrors a folder tree into a new output folder that
  * can be browsed with nothing but a web browser. Every `.md` file becomes a `.html`
- * page at the same relative path, every other file is copied as is, a shared
- * `style.css` goes in the output root, and (optionally) each folder gets a
+ * page at the same relative path (with the stylesheet embedded, so each page
+ * renders on its own), every other file is copied as is, and (optionally) each folder gets a
  * generated `_index.html` listing its contents.
  *
  * Document Mode folders (those with an `.INDEX.yaml`) are exported in their
@@ -29,7 +29,6 @@ import { INDEX_PAGE_NAME, isInsideOrEqual, isMarkdownPath, outputSegments, toOut
 import type { ExportManifest } from './exportPaths';
 import { renderFolderIndex, renderMarkdownPage } from './renderExportPage';
 import type { IndexChild } from './renderExportPage';
-import { STYLE_CSS, STYLE_FILE_NAME } from './exportStyles';
 
 /** Files converted or copied at once. */
 const WRITE_CONCURRENCY = 8;
@@ -165,9 +164,8 @@ export async function exportFolderToHtml(
   }
 
   // A page `x.md` is written as `x.html`, so a source `x.html` beside it would collide;
-  // the page wins. Likewise the root stylesheet wins over a source `style.css` there.
-  // Compared as output paths, since Document Mode prefixes can rename either side.
-  const reserved = new Set([path.join(out, STYLE_FILE_NAME)]);
+  // the page wins. Compared as output paths, since Document Mode prefixes can rename either side.
+  const reserved = new Set<string>();
   for (const file of manifest.files) {
     if (isMarkdownPath(file)) reserved.add(outFileOf(file));
   }
@@ -182,7 +180,7 @@ export async function exportFolderToHtml(
         await fs.promises.writeFile(outFileOf(file), html, 'utf-8');
         pageCount++;
       } else if (reserved.has(toOut(file))) {
-        warnings.push(`Skipped ${path.relative(root, file)}: an exported page or the stylesheet uses that name.`);
+        warnings.push(`Skipped ${path.relative(root, file)}: an exported page uses that name.`);
       } else {
         await fs.promises.copyFile(file, toOut(file));
         fileCount++;
@@ -191,8 +189,6 @@ export async function exportFolderToHtml(
       warnings.push(`Failed to export ${path.relative(root, file)}: ${toErrorMessage(err)}`);
     }
   });
-
-  await fs.promises.writeFile(path.join(out, STYLE_FILE_NAME), STYLE_CSS, 'utf-8');
 
   if (indexPages) {
     const outFiles = new Set([...manifest.files].map(outFileOf));

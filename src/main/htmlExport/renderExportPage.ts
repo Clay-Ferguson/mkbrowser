@@ -16,7 +16,7 @@ import type { ExportManifest, PageLinkContext } from './exportPaths';
 import { rehypeHeadingIds } from './rehypeHeadingIds';
 import { rehypeObjectBlocks } from './rehypeObjectBlocks';
 import { rehypeExportLinks } from './rehypeExportLinks';
-import { STYLE_FILE_NAME } from './exportStyles';
+import { STYLE_CSS } from './exportStyles';
 
 /**
  * Page rendering for the folder HTML export. Markdown goes through the same
@@ -45,12 +45,6 @@ const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '
 
 function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]!);
-}
-
-/** The relative href from a page (any file in `fromDir`) to the stylesheet at the export root. */
-function styleHref(root: string, fromDir: string): string {
-  const rel = path.relative(fromDir, root);
-  return rel === '' ? STYLE_FILE_NAME : `${rel.split(path.sep).join('/')}/${STYLE_FILE_NAME}`;
 }
 
 /**
@@ -89,14 +83,15 @@ function pageTitle(srcPath: string): string {
   return path.basename(srcPath).replace(/\.md$/i, '');
 }
 
-function htmlDocument(title: string, cssHref: string, body: string): string {
+/** A complete page, with the stylesheet embedded so it renders even when opened on its own. */
+function htmlDocument(title: string, body: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(title)}</title>
-<link rel="stylesheet" href="${escapeHtml(cssHref)}">
+<style>${STYLE_CSS}</style>
 </head>
 <body>
 ${body}</body>
@@ -146,7 +141,7 @@ export async function renderMarkdownPage(
 
   const nav = indexPages ? breadcrumbHtml(breadcrumb(manifest, mdPath, false)) : '';
   const body = `${nav}<main>\n${inner}\n</main>\n`;
-  return htmlDocument(pageTitle(mdPath), styleHref(manifest.root, path.dirname(mdPath)), body);
+  return htmlDocument(pageTitle(mdPath), body);
 }
 
 /**
@@ -177,5 +172,5 @@ export function renderFolderIndex(manifest: ExportManifest, dir: string, childre
 
   const title = path.basename(dir);
   const body = `${breadcrumbHtml(breadcrumb(manifest, dir, true))}<main class="folder-index">\n<h1>${escapeHtml(title)}</h1>\n${sections}\n</main>\n`;
-  return htmlDocument(title, styleHref(manifest.root, dir), body);
+  return htmlDocument(title, body);
 }
