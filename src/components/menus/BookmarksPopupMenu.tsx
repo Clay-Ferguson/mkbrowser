@@ -113,7 +113,16 @@ export default function BookmarksPopupMenu({
 
   return (
     <>
-      <PopupMenu anchorRef={anchorRef} onClose={onClose} disableClose={!!editingBookmark}>
+      {/* Lift MENU_CONTAINER's max-w-xs so the menu grows to fit the longest
+          name on one line (the action icons are in-flow and never shrink, so
+          their space is always reserved). Capped at the viewport minus
+          PopupMenu's 8px edge margins; only beyond that does a name truncate. */}
+      <PopupMenu
+        anchorRef={anchorRef}
+        onClose={onClose}
+        disableClose={!!editingBookmark}
+        style={{ maxWidth: 'calc(100vw - 16px)' }}
+      >
         {sorted.length === 0 ? (
           <PopupMenuItem label="No bookmarks" disabled onClick={onClose} />
         ) : (
@@ -136,7 +145,7 @@ export default function BookmarksPopupMenu({
                   <Icon className={`${MENU_ROW_ICON} ${iconColorClass}`} />
                   <span className="truncate">{name}</span>
                 </button>
-                <div className={`${MENU_ROW_ACTIONS} ml-4`}>
+                <div className={`${MENU_ROW_ACTIONS} ml-6`}>
                   <button
                     type="button"
                     className={`${MENU_ICON_BTN} ${MENU_ICON_BTN_EDIT}`}
