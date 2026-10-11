@@ -342,13 +342,13 @@ function TreeFileRow({
     className += ' text-white hover:bg-slate-700';
   } //
   else if (node.isDirectory) {
-    className += ' text-slate-200 hover:bg-slate-700';
+    className += ' text-btn-accent-amber hover:bg-slate-700';
   } //
   else if (isSh) {
     className += ' text-green-400 hover:bg-slate-300/20';
   } //
   else {
-    className += ' text-slate-400 hover:bg-slate-700';
+    className += ' text-slate-300 hover:bg-slate-700';
   }
 
   // Every name span has a 2px border (transparent unless it marks something),
@@ -402,8 +402,8 @@ function TreeFileRow({
       >
         {node.isDirectory
           ? (node.isExpanded
-              ? <FolderOpenIcon className="w-5 h-5 text-amber-500" />
-              : <FolderIcon className="w-5 h-5 text-amber-500" />)
+              ? <FolderOpenIcon className="w-5 h-5 text-btn-accent-amber" />
+              : <FolderIcon className="w-5 h-5 text-btn-accent-amber" />)
           : <FileTypeIcon fileName={node.name} />
         }
       </span>
