@@ -377,6 +377,11 @@ export interface HtmlExportOptions {
   indexPages: boolean;
   /** Render typed object cards as collapsible `<details>` sections, titled by their first property. */
   collapsibleObjects: boolean;
+  /**
+   * The user confirmed replacing an existing output folder: its contents are deleted
+   * (recursively) before the export. Without it, an existing output folder is an error.
+   */
+  overwrite: boolean;
 }
 
 /** Outcome of an "Export to Folder (HTML)" run. */

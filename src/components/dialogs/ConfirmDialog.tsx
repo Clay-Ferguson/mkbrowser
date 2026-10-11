@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import Dialog from './common/Dialog';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_RED, DLG_FOOTER_CLASS } from '../../renderer/styles';
 
@@ -20,6 +21,11 @@ interface ConfirmDialogProps {
    * Link") so that dismissing can abort without taking either choice.
    */
   onDismiss?: () => void;
+  /**
+   * Shows the message as a red warning (icon, tinted box) for an action that
+   * destroys data, beyond the red confirm button every ConfirmDialog has.
+   */
+  danger?: boolean;
 }
 
 /**
@@ -38,6 +44,7 @@ function ConfirmDialog({
   cancelLabel = 'No',
   confirmClassName = BUTTON_CLASS_DLG_RED,
   onDismiss,
+  danger = false,
 }: ConfirmDialogProps) {
   // Focus the safe action ("No") on open so an accidental Enter doesn't trigger
   // the destructive "Yes". The dialog has no form fields, so without this focus
@@ -47,7 +54,14 @@ function ConfirmDialog({
   return (
     <Dialog title={title} onClose={onDismiss ?? onCancel} className="max-w-md" initialFocusRef={cancelButtonRef}>
       <div className="p-6">
-        <p className="text-slate-200 mb-6">{message}</p>
+        {danger ? (
+          <div className="mb-6 flex gap-3 rounded-md border border-red-500/60 bg-red-950/40 p-3" data-testid="confirm-dialog-danger">
+            <ExclamationTriangleIcon className="h-6 w-6 shrink-0 text-red-400" aria-hidden="true" />
+            <p className="min-w-0 whitespace-pre-line break-words text-red-200">{message}</p>
+          </div>
+        ) : (
+          <p className="text-slate-200 mb-6">{message}</p>
+        )}
         <div className={DLG_FOOTER_CLASS}>
           <button
             ref={cancelButtonRef}
