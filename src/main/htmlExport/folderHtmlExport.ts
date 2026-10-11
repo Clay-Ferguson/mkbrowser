@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck, TypeDefinitions } from '../../shared/shared';
+import { EXPORTS_FOLDER_ERROR, isUnderExportsFolder } from '../../shared/shared';
 import { buildExcludePredicate } from '../../shared/pathPattern';
 import { mapWithConcurrency } from '../../shared/asyncUtil';
 import { toErrorMessage } from '../../shared/logUtil';
@@ -119,9 +120,9 @@ async function realPathOf(p: string): Promise<string> {
 /**
  * Checks `out` (already absolute) as the output folder for exporting `root`, before
  * the user is ever asked to overwrite it. It can never be the source itself or a
- * folder inside it, and, when it exists, it is emptied first, so it must also be a
- * real folder (not a file or a symlink) that doesn't contain the source and isn't the
- * filesystem root or the home folder. Paths are compared both as given and with
+ * folder inside it, and must lie below a folder named `exports`. When it exists, it
+ * is emptied first, so it must also be a real folder (not a file or a symlink) that
+ * doesn't contain the source and isn't the filesystem root or the home folder. Paths are compared both as given and with
  * symlinks resolved, so no alias of the source folder gets through.
  */
 export async function checkExportTarget(root: string, out: string): Promise<HtmlExportTargetCheck> {
@@ -137,11 +138,12 @@ export async function checkExportTarget(root: string, out: string): Promise<Html
   }
 
   const outStat = await fs.promises.lstat(out).catch(() => null);
-  if (!outStat) return { error: null, exists: false };
-  if (!outStat.isDirectory()) return refuse(`The output path exists but is not a folder: ${out}`);
-  if (isInsideOrEqual(out, root) || isInsideOrEqual(realOut, realRoot)) {
+  if (outStat && !outStat.isDirectory()) return refuse(`The output path exists but is not a folder: ${out}`);
+  if (outStat && (isInsideOrEqual(out, root) || isInsideOrEqual(realOut, realRoot))) {
     return refuse('The output folder cannot contain the folder being exported.');
   }
+  if (!isUnderExportsFolder(out)) return refuse(EXPORTS_FOLDER_ERROR);
+  if (!outStat) return { error: null, exists: false };
   const home = await realPathOf(os.homedir());
   if (realOut === path.parse(realOut).root || realOut === home) {
     return refuse(`Refusing to overwrite ${out}: choose a dedicated output folder.`);

@@ -4,6 +4,7 @@ import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import { joinPath } from '../../renderer/pathUtil';
 import type { HtmlExportOptions } from '../../shared/shared';
+import { EXPORTS_FOLDER_ERROR, isUnderExportsFolder } from '../../shared/shared';
 import Dialog from './common/Dialog';
 import ConfirmDialog from './ConfirmDialog';
 import CheckboxField from './common/CheckboxField';
@@ -27,7 +28,9 @@ interface HtmlExportDialogProps {
  * appended to it. Export first has the main process check the output folder: one
  * that is, contains, or lies inside the source (symlinks resolved) is refused with
  * an inline error and no overwrite warning ever appears. Only a folder that passes
- * and already exists gets the red warning before its contents are replaced.
+ * and already exists gets the red warning before its contents are replaced. The
+ * folder must lie below one named `exports`; that rule is also checked live as the
+ * path is typed, disabling Export until it holds.
  * Returns the choice through onExport.
  */
 function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName, onExport, onCancel }: HtmlExportDialogProps) {
@@ -39,6 +42,9 @@ function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName
   const outputInputRef = useRef<HTMLInputElement>(null);
 
   const trimmedFolder = outputFolder.trim();
+  const inExportsFolder = isUnderExportsFolder(trimmedFolder);
+  // A server-side refusal wins; otherwise the live `exports` rule, once something is typed.
+  const shownError = folderError ?? (trimmedFolder && !inExportsFolder ? EXPORTS_FOLDER_ERROR : null);
 
   const handleSelectFolder = () => {
     api.selectExportFolder()
@@ -52,7 +58,7 @@ function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName
 
   const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
-    if (!trimmedFolder) return;
+    if (!trimmedFolder || !inExportsFolder) return;
     api.checkHtmlExportTarget(sourceFolder, trimmedFolder)
       .then(({ error, exists }) => {
         if (error) setFolderError(error);
@@ -101,13 +107,13 @@ function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName
                 <FolderIcon className="w-5 h-5" />
               </button>
             </div>
-            {folderError ? (
+            {shownError ? (
               <p className="text-xs text-red-400 mt-1 whitespace-pre-line break-words" data-testid="export-html-folder-error">
-                {folderError}
+                {shownError}
               </p>
             ) : (
               <p className="text-xs text-slate-500 mt-1">
-                This folder will be created. If it already exists, everything in it is replaced.
+                Must be inside a folder named <code>exports</code>. Created if missing; if it already exists, everything in it is replaced.
               </p>
             )}
           </div>
@@ -143,7 +149,7 @@ function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName
             </button>
             <button
               type="submit"
-              disabled={!trimmedFolder}
+              disabled={!trimmedFolder || !inExportsFolder}
               className={BUTTON_CLASS_DLG_BLUE}
               data-testid="export-html-submit-button"
             >

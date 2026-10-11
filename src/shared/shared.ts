@@ -384,6 +384,26 @@ export interface HtmlExportOptions {
   overwrite: boolean;
 }
 
+/**
+ * "Export to Folder (HTML)" only writes below a folder named this (`…/exports/<output>`):
+ * an opinionated guard so that an overwrite, which empties the output folder, can only
+ * ever hit a folder deliberately set aside for exports.
+ */
+export const EXPORTS_FOLDER_NAME = 'exports';
+
+/** Why an HTML export output folder breaks the `exports` rule, for the dialog and the export itself. */
+export const EXPORTS_FOLDER_ERROR =
+  `The output folder must be inside a folder named "${EXPORTS_FOLDER_NAME}" (for example …/${EXPORTS_FOLDER_NAME}/my-notes).`;
+
+/**
+ * True when one of `p`'s parent folders is named `exports` (exact name, either path
+ * separator). The output folder itself doesn't count: `…/exports` alone fails, since
+ * overwriting it would empty every export kept there.
+ */
+export function isUnderExportsFolder(p: string): boolean {
+  return p.split(/[\\/]+/).filter(Boolean).slice(0, -1).includes(EXPORTS_FOLDER_NAME);
+}
+
 /** Whether a folder can be an "Export to Folder (HTML)" output, checked before any overwrite warning. */
 export interface HtmlExportTargetCheck {
   /** Why this folder can never be the output (e.g. it is or contains the source); null when it can. */
