@@ -104,7 +104,7 @@ ${body}</body>
 `;
 }
 
-async function renderChunk(markdown: string, ctx: PageLinkContext, typeDefs: TypeDefinitions): Promise<string> {
+async function renderChunk(markdown: string, ctx: PageLinkContext, typeDefs: TypeDefinitions, collapsibleObjects: boolean): Promise<string> {
   // Built per chunk: the link plugin is bound to this page, and a fresh tree gets a
   // fresh heading slugger (as rehype-slug does per react-markdown instance in the app).
   const file = await unified()
@@ -116,7 +116,7 @@ async function renderChunk(markdown: string, ctx: PageLinkContext, typeDefs: Typ
     .use(rehypeKatex, { output: 'mathml' })
     .use(rehypeHeadingIds)
     .use(rehypeCallouts)
-    .use(rehypeObjectBlocks, typeDefs)
+    .use(rehypeObjectBlocks, typeDefs, collapsibleObjects)
     .use(rehypeExportLinks, ctx)
     .use(rehypeStringify)
     .process(markdown);
@@ -127,16 +127,18 @@ async function renderChunk(markdown: string, ctx: PageLinkContext, typeDefs: Typ
  * Converts one Markdown file to a complete HTML page for the export. Preprocessing
  * matches MarkdownView (HTML comments stripped, `\$` escapes, wikilinks, `|||`
  * columns); a generated TOC is kept, and its links land on the slugged headings.
+ * With `collapsibleObjects`, typed object cards are `<details>` sections.
  */
 export async function renderMarkdownPage(
   content: string,
   ctx: PageLinkContext,
   typeDefs: TypeDefinitions,
+  collapsibleObjects = false,
 ): Promise<string> {
   const { manifest, mdPath, indexPages } = ctx;
   const processed = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(content)));
   const chunks = splitOnColumnBreaks(processed);
-  const rendered = await Promise.all(chunks.map((c) => renderChunk(c.text, ctx, typeDefs)));
+  const rendered = await Promise.all(chunks.map((c) => renderChunk(c.text, ctx, typeDefs, collapsibleObjects)));
 
   const inner = rendered.length > 1
     ? `<div class="columns" style="grid-template-columns: repeat(${rendered.length}, minmax(0, 1fr))">\n${rendered.map((html) => `<div class="col">\n${html}\n</div>`).join('\n')}\n</div>`

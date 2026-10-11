@@ -153,6 +153,25 @@ describe('renderMarkdownPage', () => {
     expect(html).toContain('\n<div class="object-row"><span class="object-bullet">•</span><span class="object-label" title="Work email">email</span>');
   });
 
+  it('wraps a collapsible object\'s title and rows in details/summary inside the card', async () => {
+    const md = '```yaml\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\n```\n';
+    const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS, true);
+    expect(html).toMatch(/<div class="object-block" data-object-type="person">\n<div class="object-type">person<\/div>\n<details>\n<summary class="object-title" title="name">Ada Lovelace<\/summary>\n<div class="object-rows">[\s\S]*ada@example\.com[\s\S]*<\/div>\n<\/details>\n<\/div>/);
+  });
+
+  it('keeps a collapsible object with no other properties as a plain card', async () => {
+    const html = await renderMarkdownPage('```yaml\ntype: person\nname: Ada\n```\n', ctx(p('index.md')), TYPE_DEFS, true);
+    expect(html).toContain('<div class="object-title" title="name">Ada</div>');
+    expect(html).not.toContain('<details>');
+  });
+
+  it('renders no details/summary when objects are not collapsible', async () => {
+    const md = '```yaml\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\n```\n';
+    const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS, false);
+    expect(html).not.toContain('<details>');
+    expect(html).not.toContain('<summary');
+  });
+
   it('keeps an invalid object as code and adds the hint', async () => {
     const md = '```yaml\ntype: person\nname: [1, 2]\n```\n';
     const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS);
@@ -223,7 +242,7 @@ describe('exportFolderToHtml', () => {
 
   it('mirrors the tree: pages as .html, other files copied, style.css at the root', async () => {
     const out = path.join(tmpDir, 'out');
-    const result = await exportFolderToHtml(src, out, { indexPages: false }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false }, {}, []);
     expect(result).toMatchObject({ success: true, outputPath: out, pageCount: 3, fileCount: 3, warnings: [] });
     expect(result.entryPage).toBeUndefined();
 
@@ -257,7 +276,7 @@ describe('exportFolderToHtml', () => {
 
   it('writes an index page per folder when asked', async () => {
     const out = path.join(tmpDir, 'out');
-    const result = await exportFolderToHtml(src, out, { indexPages: true }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: true, collapsibleObjects: false }, {}, []);
     expect(result.entryPage).toBe(path.join(out, '_index.html'));
     for (const dir of ['', 'sub', path.join('sub', 'deeper')]) {
       expect(fs.existsSync(path.join(out, dir, '_index.html'))).toBe(true);
@@ -272,7 +291,7 @@ describe('exportFolderToHtml', () => {
 
   it('skips ignored paths', async () => {
     const out = path.join(tmpDir, 'out');
-    const result = await exportFolderToHtml(src, out, { indexPages: false }, {}, ['deeper']);
+    const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false }, {}, ['deeper']);
     expect(result.success).toBe(true);
     expect(fs.existsSync(path.join(out, 'sub', 'deeper'))).toBe(false);
   });
@@ -280,14 +299,14 @@ describe('exportFolderToHtml', () => {
   it('refuses an output folder that already exists', async () => {
     const out = path.join(tmpDir, 'existing');
     await fs.promises.mkdir(out);
-    const result = await exportFolderToHtml(src, out, { indexPages: true }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: true, collapsibleObjects: false }, {}, []);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/already exists/);
     expect(fs.readdirSync(out)).toEqual([]);
   });
 
   it('refuses an output folder inside the source', async () => {
-    const result = await exportFolderToHtml(src, path.join(src, 'export'), { indexPages: true }, {}, []);
+    const result = await exportFolderToHtml(src, path.join(src, 'export'), { indexPages: true, collapsibleObjects: false }, {}, []);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/cannot be inside/);
     expect(fs.existsSync(path.join(src, 'export'))).toBe(false);
@@ -305,7 +324,7 @@ describe('exportFolderToHtml', () => {
     await fs.promises.appendFile(path.join(src, 'home.md'), '\n[book alpha](book/Alpha.md)\n');
 
     const out = path.join(tmpDir, 'out');
-    const result = await exportFolderToHtml(src, out, { indexPages: true }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: true, collapsibleObjects: false }, {}, []);
     expect(result).toMatchObject({ success: true, warnings: [] });
 
     expect(fs.readdirSync(path.join(out, 'book')).sort()).toEqual(
@@ -336,7 +355,7 @@ describe('exportFolderToHtml', () => {
   it('lets a page win over a same-named .html file and reports it', async () => {
     await fs.promises.writeFile(path.join(src, 'home.html'), '<p>stale</p>');
     const out = path.join(tmpDir, 'out');
-    const result = await exportFolderToHtml(src, out, { indexPages: false }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false }, {}, []);
     expect(result.success).toBe(true);
     expect(result.warnings).toHaveLength(1);
     expect(fs.readFileSync(path.join(out, 'home.html'), 'utf8')).toContain('<h1 id="home">Home</h1>');

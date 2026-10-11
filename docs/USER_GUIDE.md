@@ -992,6 +992,7 @@ You can export the contents of the current folder into a single document.
 2. Configure the export:
     - **Output Folder**: The full path of the folder to create. It must **not** already exist — the export never overwrites anything — and it can't be inside the folder being exported. The folder button picks the parent folder; the new folder's name is added for you.
     - **Index Pages**: Adds a generated `_index.html` to every folder listing its subfolders and pages (in the same order MkBrowser shows them), plus a breadcrumb trail at the top of every page. When index pages are generated, the top-level `_index.html` opens in your browser once the export finishes.
+    - **Collapsible Objects** (on by default): Shows each [object](#objects-and-custom-types) as a collapsed section inside its usual border. Only the object's first property (its bold title) is visible; click it to expand the remaining properties. Turn it off to show every object fully expanded, as in MkBrowser.
 3. Click **Export**.
 
 What ends up in the output folder:

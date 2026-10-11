@@ -135,6 +135,9 @@ th { color: var(--heading); background: var(--surface); font-weight: 600; }
 }
 .object-title { font-weight: 600; color: var(--heading); overflow-wrap: anywhere; }
 .object-title.object-untitled { font-weight: normal; font-style: italic; color: var(--muted); }
+/* "Collapsible Objects": the title is the <summary> of a <details> holding the rows. */
+summary.object-title { cursor: pointer; }
+summary.object-title::marker { color: var(--muted); }
 /* Each row is a div of bullet / name / value; display: contents lets all rows share one grid,
    so names and values line up across rows. */
 .object-rows {

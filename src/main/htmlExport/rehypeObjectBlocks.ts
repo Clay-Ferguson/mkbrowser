@@ -13,8 +13,11 @@ import { classesOf, h, textOf, walkElements } from './hastUtil';
  * caption, a bold title line, then bulleted name / value rows, with keys the type
  * doesn't define listed last. A block whose values don't fit its type stays a code
  * block, followed by the same "Invalid <type>: …" hint the app shows.
+ *
+ * With `collapsible`, the title and rows go inside a `<details>` within the card's
+ * border: the title is the `<summary>`, so the rows stay hidden until it is clicked.
  */
-export function rehypeObjectBlocks(typeDefs: TypeDefinitions) {
+export function rehypeObjectBlocks(typeDefs: TypeDefinitions, collapsible = false) {
   return (tree: Root) => {
     walkElements(tree, (el, parent, index) => {
       if (el.tagName !== 'pre') return;
@@ -25,7 +28,7 @@ export function rehypeObjectBlocks(typeDefs: TypeDefinitions) {
 
       const resolved = resolveObjectBlock(language, textOf(code).replace(/\n$/, ''), typeDefs);
       if (resolved?.kind === 'object') {
-        parent.children[index] = objectCard(resolved.type, resolved.data);
+        parent.children[index] = objectCard(resolved.type, resolved.data, collapsible);
       } else if (resolved?.kind === 'invalid') {
         // A sibling after the block, not a wrapper around it: the walk descends into
         // whatever sits at `index`, and a wrapper would bring this <pre> round again.
@@ -75,20 +78,34 @@ function propertyRow(prop: ObjectRow): Element {
   );
 }
 
-function objectCard(type: string, { title, rows, unknown }: GenericObjectData): Element {
+/**
+ * The card for one object. When `collapsible` and the object has rows, the title becomes
+ * the `<summary>` of a `<details>` holding the rows; a card with no rows has nothing to
+ * hide, so it keeps the plain layout rather than showing a toggle that opens onto nothing.
+ */
+function objectCard(type: string, { title, rows, unknown }: GenericObjectData, collapsible: boolean): Element {
+  const hasRows = rows.length > 0 || unknown.length > 0;
+  const titleTag = collapsible && hasRows ? 'summary' : 'div';
   const titleText = title?.value
-    ? h('div', { className: ['object-title'], title: title.description || title.key }, [title.value])
-    : h('div', { className: ['object-title', 'object-untitled'] }, [`Untitled ${type}`]);
+    ? h(titleTag, { className: ['object-title'], title: title.description || title.key }, [title.value])
+    : h(titleTag, { className: ['object-title', 'object-untitled'] }, [`Untitled ${type}`]);
 
-  const children: Element[] = [h('div', { className: ['object-type'] }, [type]), titleText];
-  if (rows.length > 0 || unknown.length > 0) {
-    children.push(h('div', { className: ['object-rows'] }, onePerLine([
+  const children: Element[] = [h('div', { className: ['object-type'] }, [type])];
+  if (!hasRows) {
+    children.push(titleText);
+  } else {
+    const rowsEl = h('div', { className: ['object-rows'] }, onePerLine([
       ...rows.map(propertyRow),
       ...unknown.map(({ key, value }) => row(
         h('span', { className: ['object-label', 'object-unknown'], title: `"${key}" is not a ${type} property` }, [key]),
         h('span', { className: ['object-value'] }, [value]),
       )),
-    ])));
+    ]));
+    if (collapsible) {
+      children.push(h('details', {}, onePerLine([titleText, rowsEl])));
+    } else {
+      children.push(titleText, rowsEl);
+    }
   }
   return h('div', { className: ['object-block'], dataObjectType: type }, onePerLine(children));
 }

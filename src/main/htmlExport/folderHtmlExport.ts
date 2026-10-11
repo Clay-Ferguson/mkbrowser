@@ -124,7 +124,7 @@ async function validateFolders(root: string, out: string): Promise<string | null
 export async function exportFolderToHtml(
   sourceFolder: string,
   outputFolder: string,
-  { indexPages }: HtmlExportOptions,
+  { indexPages, collapsibleObjects }: HtmlExportOptions,
   typeDefs: TypeDefinitions,
   ignoredPaths: string[],
 ): Promise<HtmlExportResult> {
@@ -158,7 +158,7 @@ export async function exportFolderToHtml(
     try {
       if (isMarkdownPath(file)) {
         const content = await fs.promises.readFile(file, 'utf-8');
-        const html = await renderMarkdownPage(content, { manifest, mdPath: file, indexPages }, typeDefs);
+        const html = await renderMarkdownPage(content, { manifest, mdPath: file, indexPages }, typeDefs, collapsibleObjects);
         await fs.promises.writeFile(outFileOf(file), html, 'utf-8');
         pageCount++;
       } else if (reserved.has(toOut(file))) {

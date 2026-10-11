@@ -20,12 +20,13 @@ interface HtmlExportDialogProps {
 /**
  * Configures "Export to Folder (HTML)": the full path of the folder to create
  * (it must not exist yet — the export never overwrites) and whether each folder
- * gets a generated index page. Browse picks the parent folder; the new folder's
+ * gets a generated index page, and whether object cards are collapsible. Browse picks the parent folder; the new folder's
  * name is appended to it. Returns the choice through onExport.
  */
 function HtmlExportDialog({ defaultOutputFolder, defaultFolderName, onExport, onCancel }: HtmlExportDialogProps) {
   const [outputFolder, setOutputFolder] = useState(defaultOutputFolder);
   const [indexPages, setIndexPages] = useState(true);
+  const [collapsibleObjects, setCollapsibleObjects] = useState(true);
   const outputInputRef = useRef<HTMLInputElement>(null);
 
   const trimmedFolder = outputFolder.trim();
@@ -41,7 +42,7 @@ function HtmlExportDialog({ defaultOutputFolder, defaultFolderName, onExport, on
   const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     if (!trimmedFolder) return;
-    onExport(trimmedFolder, { indexPages });
+    onExport(trimmedFolder, { indexPages, collapsibleObjects });
   };
 
   return (
@@ -91,6 +92,16 @@ function HtmlExportDialog({ defaultOutputFolder, defaultFolderName, onExport, on
             onChange={setIndexPages}
             testId="export-html-index-pages"
             description="Add a navigation page (_index.html) to every folder, listing its subfolders and pages, plus a breadcrumb trail on every page."
+          />
+        </div>
+
+        <div className="mb-6">
+          <CheckboxField
+            label="Collapsible Objects"
+            checked={collapsibleObjects}
+            onChange={setCollapsibleObjects}
+            testId="export-html-collapsible-objects"
+            description="Show each object as a collapsed section titled by its first property; click the title to show the other properties."
           />
         </div>
 
