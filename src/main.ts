@@ -12,6 +12,7 @@ import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdge
 import { frontMatterFileSaved } from './main/frontMatterHandler';
 import { writeFileAtomic } from './main/atomicWrite';
 import { processTOC } from './shared/tocUtil';
+import { orderObjectFrontMatter } from './shared/objects/userTypes';
 import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
 import { findMarkdownById } from './main/findById';
 import { parseIgnoredPaths } from './shared/searchHelpers';
@@ -376,11 +377,12 @@ function setupIpcHandlers(): void {
       let finalContent = content;
       let savedStats: fs.Stats | null;
 
-      // The content is written as the user saved it (plus TOC regeneration) —
-      // the save path never adds a front-matter `id`. Ids are only ever added
-      // with the user's consent, by "Paste Link into Editor".
+      // The content is written as the user saved it (plus TOC regeneration, and an
+      // object's front matter put in canonical order) — the save path never adds a
+      // front-matter `id`. Ids are only ever added with the user's consent, by
+      // "Paste Link into Editor".
       if (filePath.toLowerCase().endsWith('.md')) {
-        finalContent = await processTOC(content);
+        finalContent = orderObjectFrontMatter(await processTOC(content), getConfig().types ?? {});
         // Take the per-directory index lock for the write itself: reconcile's
         // read → write-ids cycle for .md files (re-keying duplicate ids) runs
         // entirely inside this lock, so serializing the save's write against it

@@ -1,5 +1,6 @@
 import { findTopLevelKeys } from './objectBlock';
-import { splitFrontMatter } from '../frontMatterUtil';
+import { objectPropertyKeys } from './genericObject';
+import { assembleFrontMatter, splitFrontMatter } from '../frontMatterUtil';
 import { loadYaml } from '../yamlUtil';
 import type { TypeDefinitions } from '../shared';
 
@@ -132,4 +133,49 @@ export function planObjectInsertion(content: string, defs: TypeDefinitions, type
     insert,
     cursor: OPEN_FENCE.length + cursorInYaml,
   };
+}
+
+/**
+ * Puts the front matter of a file that holds an object into its canonical order: `id` first
+ * (when present), then `type` and the type's properties in definition order, then every other
+ * key alphabetically. Run on every Markdown save (the `write-file` handler), so the order the
+ * Types Editor gives a type's properties is the order they appear in the file.
+ *
+ * Front matter without an object is returned untouched, as is front matter already in order —
+ * a save never churns a block it doesn't need to change.
+ *
+ * Keys are moved as whole lines of text (a key's line plus everything up to the next top-level
+ * key: nested values, block scalars, trailing comments), never re-serialized, so every value
+ * keeps exactly the form the user wrote. Any lines before the first key stay at the top. The
+ * YAML is parsed only to find the object; a block whose parsed keys don't match the keys
+ * located in its text (flow style, unusual keys) is left alone rather than risked.
+ */
+export function orderObjectFrontMatter(content: string, defs: TypeDefinitions): string {
+  const split = splitFrontMatter(content);
+  if (!split) return content;
+  let parsed: unknown;
+  try {
+    parsed = loadYaml(split.yamlStr);
+  } catch {
+    return content;
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return content;
+  const objectKeys = objectPropertyKeys(parsed as Record<string, unknown>, defs);
+  if (objectKeys.size === 0) return content;
+
+  const yaml = `${split.yamlStr}\n`;
+  const located = findTopLevelKeys(yaml);
+  const keys = located.map(({ key }) => key);
+  const parsedKeys = Object.keys(parsed);
+  if (keys.length !== parsedKeys.length || !parsedKeys.every((key) => keys.includes(key))) return content;
+
+  const rank = (key: string) => (key === 'id' ? 0 : objectKeys.has(key) ? 1 : 2);
+  const objectOrder = [...objectKeys];
+  const ordered = [...keys].sort((a, b) => rank(a) - rank(b)
+    || (rank(a) === 1 ? objectOrder.indexOf(a) - objectOrder.indexOf(b) : a.localeCompare(b)));
+  if (ordered.every((key, i) => key === keys[i])) return content;
+
+  const chunkOf = new Map(located.map(({ key, from }, i) => [key, yaml.slice(from, located[i + 1]?.from ?? yaml.length)]));
+  const preamble = yaml.slice(0, located[0]!.from);
+  return assembleFrontMatter(preamble + ordered.map((key) => chunkOf.get(key)).join(''), split.body);
 }

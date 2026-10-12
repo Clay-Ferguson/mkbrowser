@@ -1146,6 +1146,8 @@ shows a card titled **Clay Ferguson**, with each of the other values on its own 
 
 **Editing an object.** When you start editing a file whose front matter names one of your types, the editor automatically switches to **Show Properties**, so the object's properties are visible at the top of the file. This switch is remembered: properties stay shown for every file until you turn them off with the **Hide Properties** button in the editor toolbar.
 
+**Property order.** You can type the properties in any order while editing. When you save, MkBrowser puts the front matter in a fixed order: `id` first (if the file has one), then `type` and the type's properties in the order the Types Editor lists them, then any other properties alphabetically. Only lines are moved — every value stays exactly as you wrote it — and files that don't hold an object are never reordered.
+
 Because an object is just front matter, your files stay plain, portable Markdown: any other editor or Markdown viewer shows the YAML properties (or hides them, as most do with front matter). The object's properties sit alongside the file's other front-matter properties, such as `tags`, `id`, or calendar dates, without getting in their way.
 
 ## Defining Your Own Types (Types Editor)
