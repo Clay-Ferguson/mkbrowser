@@ -116,6 +116,8 @@ export function removeUserDataDir(userDataDir: string): void {
  *
  * @param mainWindow - The Playwright Page object for the app's main window
  * @param options.aiEnabled - When true, enable AI features for this test
+ * @param options.expandedEditor - Edit in the maximized editor (default true);
+ *   pass false for tests that exercise inline editing in the folder listing
  *
  * @example
  * await resetSettings(mainWindow);
@@ -123,9 +125,9 @@ export function removeUserDataDir(userDataDir: string): void {
  */
 export async function resetSettings(
   mainWindow: Page,
-  { aiEnabled = false }: { aiEnabled?: boolean } = {}
+  { aiEnabled = false, expandedEditor = true }: { aiEnabled?: boolean; expandedEditor?: boolean } = {}
 ): Promise<void> {
-  await mainWindow.evaluate(async (aiEnabled) => {
+  await mainWindow.evaluate(async ({ aiEnabled, expandedEditor }) => {
     const api = (window as unknown as { electronAPI: {
       getConfig: () => Promise<{ settings?: Record<string, unknown> }>;
       updateConfig: (updates: Record<string, unknown>) => Promise<void>;
@@ -134,9 +136,9 @@ export async function resetSettings(
     await api.updateConfig({
       tagsPanelVisible: false,
       aiEnabled,
-      settings: { ...(config.settings ?? {}), showPropsInEditor: false },
+      settings: { ...(config.settings ?? {}), showPropsInEditor: false, expandedEditor },
     });
-  }, aiEnabled);
+  }, { aiEnabled, expandedEditor });
   await mainWindow.reload();
   await mainWindow.waitForLoadState('domcontentloaded');
 }

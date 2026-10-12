@@ -46,7 +46,9 @@ test.describe('Private: saved content survives creating another file', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
-    await resetSettings(mainWindow);
+    // Inline editing: step 2 needs file one's rendered content visible in the
+    // listing while file two's editor is open, which expanded mode would hide.
+    await resetSettings(mainWindow, { expandedEditor: false });
 
     let step = 1;
     const mainContent = mainWindow.getByTestId('browser-main-content');

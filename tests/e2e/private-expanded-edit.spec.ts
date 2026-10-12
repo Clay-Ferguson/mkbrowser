@@ -48,7 +48,7 @@ test.describe('Private: Expanded Editing', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
-    await resetSettings(mainWindow);
+    await resetSettings(mainWindow, { expandedEditor: false });
 
     // --- Seed on disk ------------------------------------------------------
     // A parent folder holding three markdown files plus a subfolder. The three
@@ -96,7 +96,7 @@ This folder holds two markdown files. Let's open one of them for editing.`
     );
 
     // --- Phase 1: editing inline, with the preference off -------------------
-    // resetSettings leaves expandedEditor at its default of false, so this first
+    // resetSettings is called with expandedEditor: false above, so this first
     // edit opens as a normal inline editor inside the listing.
     const targetEntry = listing
       .getByTestId('browser-entry-markdown')
