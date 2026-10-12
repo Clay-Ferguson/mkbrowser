@@ -8,7 +8,7 @@ import {
   canDropInto,
   completeEntryDrop,
 } from '../../renderer/dragAndDrop';
-import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED, ENTRY_DROP_TARGET } from '../../renderer/styles';
+import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED, ENTRY_DROP_TARGET, ROW_HOVER } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useEntry,
@@ -68,7 +68,7 @@ function FolderEntry(props: FolderEntryProps) {
         {...drop.dropProps}
         className={clsx(
           'w-full flex items-center gap-3 px-2 py-0.5 transition-colors text-left cursor-pointer',
-          drop.isDragOver ? ENTRY_DROP_TARGET : 'bg-transparent hover:bg-blue-700/70',
+          drop.isDragOver ? ENTRY_DROP_TARGET : `bg-transparent ${ROW_HOVER}`,
         )}
       >
         <SelectionCheckbox

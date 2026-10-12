@@ -4,7 +4,7 @@ import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { saveSettings } from '../../renderer/config';
 import { refreshDirectory } from '../../renderer/directoryLoader';
-import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_TB_NORMAL, ENTRY_DROP_TARGET } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_TB_NORMAL, ENTRY_DROP_TARGET, ROW_HOVER } from '../../renderer/styles';
 import { runOp } from '../../renderer/runOp';
 import { isImageFile } from '../../shared/fileTypes';
 import FileTypeIcon from '../FileTypeIcon';
@@ -261,8 +261,8 @@ function TreeHeadingRow({ node, depth, onClick, onContextMenu }: TreeHeadingRowP
   return (
     <div
       data-tree-path={node.path}
-      className="flex items-center gap-1 py-0.5 whitespace-nowrap select-none
-        text-blue-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700"
+      className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
+        text-blue-400 border-l-2 border-transparent cursor-pointer ${ROW_HOVER}`}
       style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px` }}
       onClick={() => onClick(node)}
       onContextMenu={e => onContextMenu(node, e)}
@@ -339,16 +339,16 @@ function TreeFileRow({
     className += ` text-white ${ENTRY_DROP_TARGET}`;
   } //
   else if (isHighlighted || isCurrentFolder) {
-    className += ' text-white hover:bg-slate-700';
+    className += ` text-white ${ROW_HOVER}`;
   } //
   else if (node.isDirectory) {
-    className += ' text-btn-accent-amber hover:bg-slate-700';
+    className += ` text-btn-accent-amber ${ROW_HOVER}`;
   } //
   else if (isSh) {
-    className += ' text-green-400 hover:bg-slate-300/20';
+    className += ` text-green-400 ${ROW_HOVER}`;
   } //
   else {
-    className += ' text-slate-300 hover:bg-slate-700';
+    className += ` text-slate-300 ${ROW_HOVER}`;
   }
 
   // Every name span has a 2px border (transparent unless it marks something),

@@ -301,12 +301,14 @@ export const HOVER_REVEAL = 'opacity-0 pointer-events-none [transition:opacity_1
 export const HOVER_REVEAL_PINNED = 'opacity-100 pointer-events-auto';
 /** Layout half of the entry header row, shared by its normal and drop-target states. */
 const ENTRY_HEADER_ROW_LAYOUT = 'flex items-center gap-3 px-2 py-0.5 transition-colors';
-export const ENTRY_HEADER_ROW = `${ENTRY_HEADER_ROW_LAYOUT} bg-blue-800/50 group-hover:bg-blue-700/70`;
+/** Hover background for every list row: file headers, FolderEntry rows and IndexTreeView rows. */
+export const ROW_HOVER = 'hover:bg-neutral-700';
+export const ENTRY_HEADER_ROW = `${ENTRY_HEADER_ROW_LAYOUT} bg-blue-800/50 ${ROW_HOVER}`;
 /**
  * Entry header row while collapsed (body not shown): transparent like FolderEntry's
  * row, so only expanded entries carry the blue bar. Same hover color as ENTRY_HEADER_ROW.
  */
-export const ENTRY_HEADER_ROW_COLLAPSED = `${ENTRY_HEADER_ROW_LAYOUT} bg-transparent group-hover:bg-blue-700/70`;
+export const ENTRY_HEADER_ROW_COLLAPSED = `${ENTRY_HEADER_ROW_LAYOUT} bg-transparent ${ROW_HOVER}`;
 export const ENTRY_HEADER_EXPANDED = 'border border-slate-500';
 /**
  * Frame for an expanded entry's body, continuing ENTRY_HEADER_EXPANDED's border down
