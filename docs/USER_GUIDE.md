@@ -1259,10 +1259,13 @@ address: |
   Dallas, TX 75001
 ```
 
+**Properties you already have are kept.** Insert Object never changes a property that is already in the front matter, whatever its value: it only adds the ones that are missing. If the file already has `name: Clay` and you insert a `person`, `name: Clay` stays as it is and becomes part of the object.
+
+**Inserting the same type again.** If the file already holds an object, choose **its own type** to add any of that type's properties the file doesn't have yet — handy after you add new properties to a type in the Types Editor. The missing properties are added, empty, after the existing ones; the cursor goes to the first property that has no value yet.
+
 **When Insert Object refuses.** Nothing in the file is changed, and a message explains why, when:
 
-- the file **already holds an object** (its front matter already has a `type:` with a value) — a file can hold only one object;
-- the front matter already has a **value** for one of the type's properties — for example, the file already has `name: Clay` and you insert a `person`. The message lists every such property; remove or rename them, then try again. (A property that is already there but **empty** is fine: it is left where it is and becomes part of the object.)
+- the file **already holds an object of a different type** (its front matter already has a `type:` naming another type) — a file can hold only one object;
 - the front matter isn't valid YAML, or isn't written as one `key: value` per line.
 
 **Insert Object** appears only when editing Markdown files, and only once at least one type has been defined.

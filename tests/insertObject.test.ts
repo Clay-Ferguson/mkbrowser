@@ -81,8 +81,8 @@ describe('planObjectInsertion', () => {
     expect(insert('---\nid: abc\nname:\n---\nBody')).toBe('---\ntype: person\nemail: \nnotes: \nid: abc\nname:|\n---\nBody');
   });
 
-  it('gives a blank type line the type name, in place', () => {
-    expect(insert('---\nid: abc\ntype:\n---\nBody', 'book')).toBe('---\ntitle: |\nid: abc\ntype: book\n---\nBody');
+  it('gives a blank type line the type name, in place, adding the missing properties after it', () => {
+    expect(insert('---\nid: abc\ntype:\n---\nBody', 'book')).toBe('---\nid: abc\ntype: book\ntitle: |\n---\nBody');
   });
 
   it('puts the cursor at the end of the type line for a type with no properties', () => {
@@ -110,23 +110,32 @@ describe('planObjectInsertion', () => {
     expect(yaml['id']).toBe('abc');
   });
 
-  it('refuses a second object', () => {
+  it('refuses an object of another type', () => {
     expect(refusal('---\ntype: book\ntitle: Dune\n---\nBody')).toMatch(/already holds an object \(type: book\)/);
-    // Even of the same type.
-    expect(refusal('---\ntype: person\n---\nBody')).toMatch(/already holds an object/);
+    expect(refusal('---\ntype: robot\n---\nBody')).toMatch(/already holds an object \(type: robot\)/);
+    expect(refusal('---\ntype: 5\n---\nBody')).toMatch(/already holds an object \(type: 5\)/);
   });
 
-  it('refuses when a property already has a value, naming every one', () => {
-    expect(refusal('---\nname: Clay\n---\nBody')).toMatch(/already has a value for "name"/);
-    expect(refusal('---\nnotes: x\nname: Clay\nemail:\n---\nBody')).toMatch(/"name", "notes"/);
+  it('fills in the missing properties of an object of the same type, after the existing ones', () => {
+    expect(insert('---\ntype: person\nname: Clay\n---\nBody'))
+      .toBe('---\ntype: person\nname: Clay\nemail: |\nnotes: \n---\nBody');
   });
 
-  it.each([
-    ['a number', 'name: 5'],
-    ['false', 'name: false'],
-    ['a list', 'name: [a]'],
-  ])('counts %s as a value', (_label, line) => {
-    expect(refusal(`---\n${line}\n---\nBody`)).toMatch(/"name"/);
+  it('matches the existing type ignoring surrounding whitespace', () => {
+    expect(insert('---\ntype: "person "\nname: Clay\n---\nBody'))
+      .toBe('---\ntype: "person "\nname: Clay\nemail: |\nnotes: \n---\nBody');
+  });
+
+  it('changes nothing but the cursor when the object already has every property', () => {
+    expect(insert('---\ntype: person\nname: Clay\nemail: c@x.com\nnotes: hi\n---\nBody'))
+      .toBe('---\ntype: person\nname: Clay|\nemail: c@x.com\nnotes: hi\n---\nBody');
+  });
+
+  it('keeps properties that already have a value, whatever it is', () => {
+    expect(insert('---\nname: Clay\n---\nBody'))
+      .toBe('---\ntype: person\nemail: |\nnotes: \nname: Clay\n---\nBody');
+    expect(insert('---\nnotes: [a, b]\nname: 5\nemail:\n---\nBody'))
+      .toBe('---\ntype: person\nnotes: [a, b]\nname: 5\nemail:|\n---\nBody');
   });
 
   it('refuses malformed front matter', () => {

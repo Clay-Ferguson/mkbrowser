@@ -56,7 +56,7 @@ interface UseEditorContextMenuProps {
  */
 export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesaurusCapable = false, revealFrontMatter }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
-  // Why Insert Object refused (e.g. the file already holds an object); shown in an alert.
+  // Why Insert Object refused (e.g. the file already holds an object of another type); shown in an alert.
   const [insertObjectError, setInsertObjectError] = useState<string | null>(null);
   const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
   const wordWrap = useAS(s => s.settings.wordWrap);
@@ -267,10 +267,11 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     setContextMenu(prev => ({ ...prev, submenu: 'insertObject' }));
   };
 
-  // Adds an empty object of the picked type to the file's front matter (a file holds at most
-  // one object, and it lives there): its `type:` line plus every property name with a blank
-  // value, creating the front matter if needed. Refuses — with an alert, changing nothing — when
-  // the front matter already has a value for any of those keys.
+  // Makes the file's front matter an object of the picked type (a file holds at most one object,
+  // and it lives there): adds its `type:` line and every property the front matter doesn't have
+  // yet, with a blank value, creating the front matter if needed. Existing values are kept, so
+  // picking the type the file's object already is just fills in its missing properties. Refuses
+  // — with an alert, changing nothing — when the file already holds an object of another type.
   //
   // The front matter is shown first, in this editor (revealFrontMatter) and in the setting, so
   // the user sees what was added; with it still hidden, the cursor guard would also clamp the
