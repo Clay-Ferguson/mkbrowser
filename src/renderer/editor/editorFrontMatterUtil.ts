@@ -1,9 +1,11 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder, RangeSet, Prec, StateField, EditorState, EditorSelection, Text } from '@codemirror/state';
+import { color } from '@codemirror/theme-one-dark';
 import { EDITOR_COLORS } from './editorColors';
 import { eachVisibleLine } from './editorViewportUtil';
 
-const frontMatterMark = Decoration.mark({ class: 'cm-front-matter' });
+const frontMatterKeyMark = Decoration.mark({ class: 'cm-front-matter-key' });
+const frontMatterValueMark = Decoration.mark({ class: 'cm-front-matter-value' });
 const frontMatterDelimMark = Decoration.mark({ class: 'cm-front-matter-delim' });
 const frontMatterIdMark = Decoration.mark({ class: 'cm-front-matter-id' });
 const hrLineDeco = Decoration.line({ class: 'cm-hr-line' });
@@ -12,6 +14,13 @@ const hrLineDeco = Decoration.line({ class: 'cm-hr-line' });
 // tested directly against line.text so we avoid the two `.trim()` string allocations per
 // line — this runs for every visible line on every keystroke.
 const HR_DELIM_RE = /^\s*(?:---|\|\|\|)\s*$/;
+
+// A YAML `key:` at the start of a front-matter line: optional indentation and an optional
+// `- ` list-item prefix (group 1), then the key up to its first `:`, which must be followed by
+// whitespace or end of line (group 2, colon included). The key can't contain a `:`, so in
+// `url: http://x:80` it stops at `url:`. Lines with no match (`  - item`, comments, block-scalar
+// continuation) are all value.
+const FM_KEY_RE = /^(\s*(?:-\s+)?)([^\s:#][^:]*?:)(?=\s|$)/;
 
 export interface FrontMatterRange {
   /** 1-based line number of the opening `---` (always 1 when present). */
@@ -55,13 +64,18 @@ function scanFrontMatterRange(doc: Text): FrontMatterRange | null {
 
 /**
  * Builds decorations for the YAML front-matter region at the top of the document.
- * The opening/closing `---` delimiters receive `cm-front-matter-delim`, the `id:`
- * line receives `cm-front-matter-id`, and all other content lines receive
- * `cm-front-matter`. Returns an empty set when no front matter is present.
+ * The opening/closing `---` delimiters receive `cm-front-matter-delim` and the `id:`
+ * line receives `cm-front-matter-id`. Every other content line is split into its
+ * `key:` (`cm-front-matter-key`) and the rest of the line (`cm-front-matter-value`);
+ * a line with no key is all value. Returns an empty set when no front matter is present.
  */
 export function createFrontMatterDecorations(view: EditorView): DecorationSet {
+  return buildFrontMatterDecorations(view.state.doc);
+}
+
+/** {@link createFrontMatterDecorations} over a bare doc, so it can be tested without a view. */
+export function buildFrontMatterDecorations(doc: Text): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
-  const doc = view.state.doc;
 
   const range = findFrontMatterRange(doc);
   if (!range) return builder.finish();
@@ -80,8 +94,18 @@ export function createFrontMatterDecorations(view: EditorView): DecorationSet {
       }
     } else if (closingLineNumber > 0 && i > 1 && i < closingLineNumber) {
       // Decorate front matter content lines
-      const mark = /^\s*id:\s/.test(line.text) ? frontMatterIdMark : frontMatterMark;
-      builder.add(line.from, line.to, mark);
+      if (/^\s*id:\s/.test(line.text)) {
+        builder.add(line.from, line.to, frontMatterIdMark);
+        continue;
+      }
+      const m = FM_KEY_RE.exec(line.text);
+      let valueFrom = line.from;
+      if (m) {
+        const keyFrom = line.from + m[1]!.length;
+        valueFrom = keyFrom + m[2]!.length;
+        builder.add(keyFrom, valueFrom, frontMatterKeyMark);
+      }
+      if (valueFrom < line.to) builder.add(valueFrom, line.to, frontMatterValueMark);
     }
   }
 
@@ -250,10 +274,19 @@ export const frontMatterEditGuard = EditorState.changeFilter.of((tr) => {
 
 /**
  * CodeMirror base theme for front-matter syntax highlighting and `---` HR lines.
+ *
+ * The Markdown parser reads `key: value` lines above the closing `---` as a setext heading,
+ * so the whole block inherits heading color and bold. The front-matter marks run at
+ * `Prec.highest`, which makes them the innermost spans, so their own color/weight win:
+ * keys show green (keeping the inherited bold) and values reset to the editor's normal text.
  */
 export const frontMatterTheme = EditorView.baseTheme({
-  '.cm-front-matter': {
+  '.cm-front-matter-key': {
     color: EDITOR_COLORS.green400,
+  },
+  '.cm-front-matter-value': {
+    color: color.ivory,
+    fontWeight: 'normal',
   },
   '.cm-front-matter-delim': {
     color: EDITOR_COLORS.gray400,
