@@ -14,7 +14,7 @@ import {
   useAS,
   useIsActiveView,
 } from '../../store';
-import { saveAiConfig } from '../../renderer/config';
+import { saveAiConfig, saveSettings } from '../../renderer/config';
 import { pinScrollToBottom } from '../../renderer/entryDom';
 import { runOp } from '../../renderer/runOp';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
@@ -202,7 +202,8 @@ function ThreadView() {
   useEffect(() => {
     if (!loaded || !isActive || !pendingEditFile || pendingEditView !== 'thread') return;
     setItemExpanded(pendingEditFile, true);
-    setItemEditing(pendingEditFile, true);
+    // An object file switches the editor to Show Properties (see editingPatch); persist that.
+    if (setItemEditing(pendingEditFile, true)) saveSettings();
     clearPendingEditFile();
     const el = mainContainerRef.current;
     if (el) pinScrollToBottom(el);

@@ -5,6 +5,8 @@ import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
 import { removeTOC } from '../shared/tocUtil';
+import { isMarkdownFile } from '../shared/fileTypes';
+import { hasObjectType } from '../shared/objects/genericObject';
 import { getParentPath, isPathInside, isSamePath, joinPath, remapMovedPath } from '../renderer/pathUtil';
 import { enterExpandedEditPatch, isExpandedEditOf } from './expandedEdit';
 import { withHistoryPruned, withHistoryPush, withHistoryRemapped } from './history';
@@ -127,6 +129,13 @@ export function withSelectionsCleared(items: Map<string, ItemData>): Map<string,
  * routing that goes with it), or null when the item isn't loaded. Shared by
  * setItemEditing and startEditing; `expand` also sets `isExpanded` on the same
  * entry clone.
+ *
+ * Starting an edit of a markdown file whose front matter holds an object (its
+ * `type:` names a user-defined type) also turns on Show Properties, so the
+ * object's properties are visible in the editor. It reads `item.props` — the
+ * front matter already parsed when the content was loaded — rather than
+ * re-parsing, and lands in the same `set()` so the editor mounts with the front
+ * matter already shown. It stays on until the user turns it off.
  */
 function editingPatch(
   state: AppState,
@@ -159,6 +168,9 @@ function editingPatch(
   // can land off screen. `path` is known to live in `currentPath` —
   // isExpandedEditOf checks exactly that — so BrowseView is guaranteed to
   // find the element and consume the request.
+  const showProps = editing && !state.settings.showPropsInEditor && isMarkdownFile(existing.name)
+    && hasObjectType(existing.props ?? {}, state.typeDefs);
+
   const routing = editing
     ? enterExpandedEditPatch(state, path)
     : (isExpandedEditOf(state, path) ? { browseFileName: null, pendingScrollToFile: path } : null);
@@ -168,6 +180,7 @@ function editingPatch(
   return {
     items: newItems,
     ...(editing ? { highlightItem: path, ...withHistoryPush(state, path) } : {}),
+    ...(showProps ? { settings: { ...state.settings, showPropsInEditor: true } } : {}),
     ...routing,
   };
 }
@@ -311,8 +324,8 @@ export interface ItemsSlice {
   clearAllCutItems: () => void;
   renameItem: (oldPath: string, newPath: string, newName: string) => boolean;
   deleteItems: (paths: string[]) => void;
-  setItemEditing: (path: string, editing: boolean, goToLine?: number) => void;
-  startEditing: (path: string, goToLine?: number) => void;
+  setItemEditing: (path: string, editing: boolean, goToLine?: number) => boolean;
+  startEditing: (path: string, goToLine?: number) => boolean;
   setItemReviewing: (path: string, reviewing: boolean, rewrittenContent?: string) => void;
   setItemEditContent: (path: string, editContent: string) => void;
   clearItemGoToLine: (path: string) => void;
@@ -853,20 +866,25 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * @param path - The full path of the item
      * @param editing - Whether the item is being edited
      * @param goToLine - Optional 1-based line number to scroll to when editing starts
+     * @returns true when starting the edit turned on Show Properties (see
+     *   editingPatch); the caller must then persist it with saveSettings().
      */
     setItemEditing: (path, editing, goToLine) => {
       const patch = editingPatch(get(), path, editing, goToLine);
       if (patch) set(patch);
+      return !!patch?.settings;
     },
 
     /**
      * Start editing a file from its entry, expanding it in the same update (one
      * Map clone, one notification) so the entry never renders expanded-but-not-
-     * editing in between.
+     * editing in between. Returns true when it turned on Show Properties, as
+     * setItemEditing does.
      */
     startEditing: (path, goToLine) => {
       const patch = editingPatch(get(), path, true, goToLine, true);
       if (patch) set(patch);
+      return !!patch?.settings;
     },
 
     /** Set the reviewing (diff review) state for a file. */
@@ -1047,12 +1065,14 @@ export function deleteItems(paths: string[]): void {
   getState().deleteItems(paths);
 }
 
-export function setItemEditing(path: string, editing: boolean, goToLine?: number): void {
-  getState().setItemEditing(path, editing, goToLine);
+/** Returns true when starting the edit turned on Show Properties — persist it with saveSettings(). */
+export function setItemEditing(path: string, editing: boolean, goToLine?: number): boolean {
+  return getState().setItemEditing(path, editing, goToLine);
 }
 
-export function startEditing(path: string, goToLine?: number): void {
-  getState().startEditing(path, goToLine);
+/** Returns true when starting the edit turned on Show Properties — persist it with saveSettings(). */
+export function startEditing(path: string, goToLine?: number): boolean {
+  return getState().startEditing(path, goToLine);
 }
 
 export function setItemReviewing(path: string, reviewing: boolean, rewrittenContent?: string): void {

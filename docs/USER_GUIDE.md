@@ -1144,6 +1144,8 @@ shows a card titled **Clay Ferguson**, with each of the other values on its own 
 
 **A file holds at most one object.** The note's body is free-form: write whatever you like around the record.
 
+**Editing an object.** When you start editing a file whose front matter names one of your types, the editor automatically switches to **Show Properties**, so the object's properties are visible at the top of the file. This switch is remembered: properties stay shown for every file until you turn them off with the **Hide Properties** button in the editor toolbar.
+
 Because an object is just front matter, your files stay plain, portable Markdown: any other editor or Markdown viewer shows the YAML properties (or hides them, as most do with front matter). The object's properties sit alongside the file's other front-matter properties, such as `tags`, `id`, or calendar dates, without getting in their way.
 
 ## Defining Your Own Types (Types Editor)

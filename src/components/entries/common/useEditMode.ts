@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { api, ipcErrorMessage } from '../../../renderer/api';
 import { useAS, getItem, setAppError, setItemContent, setItemEditing, startEditing, setItemEditContent, setItemReviewing } from '../../../store';
 import { removeTOC } from '../../../shared/tocUtil';
+import { saveSettings } from '../../../renderer/config';
 import { getFileName } from '../../../renderer/pathUtil';
 import type { EditModeState } from './types';
 
@@ -166,7 +167,8 @@ export function useEditMode({ path }: UseEditModeOptions): EditModeState {
       setItemEditContent(path, removeTOC(content));
     }
     editInitialized.current = true;
-    startEditing(path, goToLine);
+    // An object file switches the editor to Show Properties (see editingPatch); persist that.
+    if (startEditing(path, goToLine)) saveSettings();
   };
 
   const handleCancel = () => {

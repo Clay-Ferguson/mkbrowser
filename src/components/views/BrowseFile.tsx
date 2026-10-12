@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { runOp } from '../../renderer/runOp';
+import { saveSettings } from '../../renderer/config';
 import { api } from '../../renderer/api';
 import MarkdownEntry from '../entries/MarkdownEntry';
 import GenericEntry from '../entries/GenericEntry';
@@ -136,7 +137,8 @@ function BrowseFile() {
   const pendingEditFile = useAS(s => (s.pendingEditView === 'browser' ? s.pendingEditFile : null));
   useEffect(() => {
     if (!pendingEditFile || entryPath !== pendingEditFile) return;
-    setItemEditing(pendingEditFile, true);
+    // An object file switches the editor to Show Properties (see editingPatch); persist that.
+    if (setItemEditing(pendingEditFile, true)) saveSettings();
     clearPendingEditFile();
   }, [pendingEditFile, entryPath]);
 

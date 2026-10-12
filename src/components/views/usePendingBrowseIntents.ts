@@ -12,6 +12,7 @@ import {
 } from '../../store';
 import { holdScrollTop, scrollElementIntoView } from '../../renderer/entryDom';
 import { getParentPath } from '../../renderer/pathUtil';
+import { saveSettings } from '../../renderer/config';
 import { affectsBrowseListing } from '../../renderer/dragAndDrop';
 import { usePendingItemScroll } from './usePendingItemScroll';
 
@@ -130,7 +131,8 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     if (pendingEditFile && pendingEditView === 'browser') {
       if (useAS.getState().items.has(pendingEditFile)) {
         setItemExpanded(pendingEditFile, true);
-        setItemEditing(pendingEditFile, true);
+        // An object file switches the editor to Show Properties (see editingPatch); persist that.
+        if (setItemEditing(pendingEditFile, true)) saveSettings();
         clearPendingEditFile();
       } else if (!affectsBrowseListing(getParentPath(pendingEditFile), currentPath)) {
         clearPendingEditFile();

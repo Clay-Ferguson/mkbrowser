@@ -60,6 +60,15 @@ function objectTypeOf(props: Record<string, unknown>, defs: TypeDefinitions): { 
 }
 
 /**
+ * Whether the front matter's `type` names a defined type — only `type` is checked, not whether
+ * the other properties fit it. Starting an edit of such a file switches the editor to Show
+ * Properties (see `editingPatch` in store/items.ts).
+ */
+export function hasObjectType(props: Record<string, unknown>, defs: TypeDefinitions): boolean {
+  return objectTypeOf(props, defs) !== null;
+}
+
+/**
  * Checks front matter against a type definition. Every defined property is optional text (see
  * `readTextFields`); a value that isn't text fails with "<key> must be text". Keys the type
  * doesn't define are ignored — front matter legitimately holds others (`tags`, `id`, `due`, …).
