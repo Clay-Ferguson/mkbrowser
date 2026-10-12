@@ -30,7 +30,7 @@ export default function ObjectBlock({ type, source, children, onMouseUp }: Objec
     >
       {/* On a row of its own, right-aligned, so it takes vertical space rather than horizontal:
           the type's content below gets the card's full width and can never run under it. */}
-      <div className="mb-1 text-right text-xs leading-none uppercase tracking-wide text-slate-400 select-none">{type}</div>
+      <div className="mb-1 text-right text-xs leading-none uppercase tracking-wide text-sky-400 select-none">{type}</div>
       <ErrorBoundary label={`${type} object`} resetKeys={[source]}>
         {children}
       </ErrorBoundary>

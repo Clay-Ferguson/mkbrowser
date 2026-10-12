@@ -86,13 +86,13 @@ export default function GenericObject({ type, data }: { type: string; data: Gene
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
-        <CubeIcon className="h-5 w-5 shrink-0 text-sky-400" aria-hidden="true" />
+        <CubeIcon className="h-6 w-6 shrink-0 text-sky-400" aria-hidden="true" />
         {title?.value ? (
-          <span className="min-w-0 break-words text-base font-semibold text-slate-100" title={title.description || title.key}>
+          <span className="min-w-0 break-words text-lg font-semibold text-slate-100" title={title.description || title.key}>
             {title.value}
           </span>
         ) : (
-          <span className="text-base italic text-slate-400">Untitled {type}</span>
+          <span className="text-lg italic text-slate-400">Untitled {type}</span>
         )}
       </div>
       {rows.length > 0 && (

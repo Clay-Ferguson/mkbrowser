@@ -136,9 +136,9 @@ th { color: var(--heading); background: var(--surface); font-weight: 600; }
   line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: #38bdf8; /* sky-400, as the app card's type caption and icon */
 }
-.object-title { font-weight: 600; color: var(--heading); overflow-wrap: anywhere; }
+.object-title { font-size: 1.125rem; font-weight: 600; color: var(--heading); overflow-wrap: anywhere; }
 .object-title.object-untitled { font-weight: normal; font-style: italic; color: var(--muted); }
 /* "Collapsible Objects": the title is the <summary> of a <details> holding the rows. Sized as a
    large, muted-blue tap target (well over the ~44px touch minimum) for reading on a phone. */
