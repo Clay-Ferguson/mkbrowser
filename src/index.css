@@ -358,6 +358,15 @@ html[data-font-size="xlarge"] {
   --callout-icon: '🛑';
 }
 
+/* Dates (`01/12/26`, `01/12/2026`) wrapped in `md-date` spans by the local rehypeDates
+   plugin; mirrors the editor's `.cm-date` look (editorDateUtil.ts). */
+.prose .md-date {
+  color: #4ade80; /* green-400 */
+  border: 1px solid #4ade80;
+  border-radius: 3px;
+  padding: 1px 3px;
+}
+
 /* Green "saved" flash around the CodeMirror editor, played after the context menu's Save
    (which saves without leaving edit mode, so the border is the only confirmation the user
    gets). Drawn as an inset box-shadow on an absolutely-positioned overlay: it frames the

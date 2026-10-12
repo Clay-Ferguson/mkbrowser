@@ -10,6 +10,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import { rehypeCallouts } from '../../shared/rehypeCallouts';
+import { rehypeDates } from '../../shared/rehypeDates';
 import { removeTOC } from '../../shared/tocUtil';
 import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks, safeUrlTransform } from '../../shared/mkUtil';
 import { BlockClickContext, blockClickComponents } from '../blockClickComponents';
@@ -20,7 +21,8 @@ import CustomCode from '../CustomCode';
 import CustomPre from '../CustomPre';
 
 const REMARK_PLUGINS: PluggableList = [remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]];
-const REHYPE_PLUGINS: PluggableList = [rehypeKatex, rehypeSlug, rehypeCallouts];
+// rehypeDates runs before rehypeKatex so math is still a `code` element it skips.
+const REHYPE_PLUGINS: PluggableList = [rehypeDates, rehypeKatex, rehypeSlug, rehypeCallouts];
 
 // Module-stable components so react-markdown reconciles in place instead of remounting the
 // whole block tree each render. Per-render inputs reach them through context: onEditClick and
