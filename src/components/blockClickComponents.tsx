@@ -20,30 +20,39 @@ type BlockTag = 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'blockquote' | '
 type BlockProps<Tag extends BlockTag> = React.JSX.IntrinsicElements[Tag] & ExtraProps;
 
 /**
+ * Whether a mouseup on rendered content is a click-to-edit, applying the guards every
+ * click-to-edit target shares (the block elements below, and the front-matter object card in
+ * MarkdownEntry). Module-level, so it is a plain function the React Compiler leaves alone.
+ */
+export function isEditClick(e: React.MouseEvent): boolean {
+  // Only the left button initiates editing; right-click must fall through
+  // so the native context menu (Copy, etc.) can appear.
+  if (e.button !== 0) return false;
+  if ((e.target as HTMLElement).closest('a, button, input')) return false;
+
+  // A scrollable descendant (e.g. an overflowing fenced code block inside a list item
+  // or blockquote) bubbles its scrollbar presses up to here; using the scrollbar isn't
+  // a click-to-edit. Deliberately not stopPropagation'd — the entry content area runs
+  // the same check, so the press is ignored there too.
+  if (pressStartedOnScrollbar()) return false;
+
+  // this check for a selection is required to be able to allow the users to click and drag the mouse to
+  // select a region of text to copy, because without this check it would immediately assume that if
+  // you're even clicking to make a selection it would execute the click handler and we don't want that
+  // if the user is trying to simply select some text
+  return !window.getSelection()?.toString();
+}
+
+/**
  * Returns a mouseup handler that opens the editor at `line` (the source line within the current
- * column; the column's offset is added here). Shared by the block elements below and by
- * CustomPre's object-block cards, so every click-to-edit target applies the same guards.
+ * column; the column's offset is added here). Shared by the block elements below, so every
+ * click-to-edit target applies the same guards (isEditClick).
  */
 export function useBlockEditClick(line: number) {
   const { onEditClick, lineOffset } = useContext(BlockClickContext);
 
   return (e: React.MouseEvent) => {
-    // Only the left button initiates editing; right-click must fall through
-    // so the native context menu (Copy, etc.) can appear.
-    if (e.button !== 0) return;
-    if ((e.target as HTMLElement).closest('a, button, input')) return;
-
-    // A scrollable descendant (e.g. an overflowing fenced code block inside a list item
-    // or blockquote) bubbles its scrollbar presses up to here; using the scrollbar isn't
-    // a click-to-edit. Deliberately not stopPropagation'd — the entry content area runs
-    // the same check, so the press is ignored there too.
-    if (pressStartedOnScrollbar()) return;
-
-    // this check for a selection is required to be able to allow the users to click and drag the mouse to
-    // select a region of text to copy, because without this check it would immediately assume that if
-    // you're even clicking to make a selection it would execute the click handler and we don't want that
-    // if the user is trying to simply select some text
-    if (window.getSelection()?.toString()) return;
+    if (!isEditClick(e)) return;
     e.stopPropagation();
     void onEditClick(line + lineOffset);
   };

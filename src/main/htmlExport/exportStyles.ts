@@ -180,10 +180,9 @@ details[open] > summary.object-title { margin-bottom: 0.5rem; }
 .object-row { display: contents; }
 .object-bullet { color: var(--muted); }
 .object-label { white-space: nowrap; color: var(--muted); }
-.object-label.object-unknown { color: #fb923c; }
 .object-value { min-width: 0; overflow-wrap: anywhere; white-space: pre-line; color: var(--text); }
 a.object-value { color: var(--link); }
-.invalid-object-hint { margin: -0.75em 0 1em; font-size: 0.75rem; color: rgba(252, 211, 77, 0.9); }
+.invalid-object-hint { margin: 0 0 1em; font-size: 0.75rem; color: rgba(252, 211, 77, 0.9); }
 
 /* Generated folder index pages (_index.html) */
 .folder-index ul { list-style: none; padding-left: 0; }

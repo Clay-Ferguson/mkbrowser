@@ -6,10 +6,9 @@ import { logger } from '../../shared/logUtil';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { isMarkdownFile } from '../../shared/fileTypes';
 import { saveSettings } from '../../renderer/config';
-import { useAS, setEnableThesaurus, setWordWrap } from '../../store';
+import { useAS, setEnableThesaurus, setWordWrap, setShowPropsInEditor } from '../../store';
 import { wordAt, isSpellCheckExempt, type SpellingSuggestion } from './spellChecker';
-import { objectTypeOptions, userObjectTemplate } from '../../shared/objects/userTypes';
-import { objectInsertion } from '../../renderer/editor/editorObjectUtil';
+import { objectTypeOptions, planObjectInsertion } from '../../shared/objects/userTypes';
 
 export interface ContextMenuState {
   visible: boolean;
@@ -35,6 +34,12 @@ interface UseEditorContextMenuProps {
    * would do nothing.
    */
   thesaurusCapable?: boolean;
+  /**
+   * Shows the front matter in this editor right away (reconfigures its front-matter
+   * compartment), ahead of the store setting catching up. Insert Object needs it before it
+   * writes there — see handleInsertObject.
+   */
+  revealFrontMatter?: () => void;
 }
 
 /**
@@ -43,14 +48,16 @@ interface UseEditorContextMenuProps {
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
  * top of the menu. Also exposes save-in-place, cut/copy/paste, select-all, timestamp/date
- * insertion, the word-wrap and thesaurus on/off switches, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the user-defined object types from the Types Editor).
+ * insertion, the word-wrap and thesaurus on/off switches, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the user-defined object types from the Types Editor, and adds the picked one to the file's front matter).
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
  * `canSave`, `canToggleThesaurus`, `thesaurusEnabled`, `wordWrap`).
  */
-export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesaurusCapable = false }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesaurusCapable = false, revealFrontMatter }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
+  // Why Insert Object refused (e.g. the file already holds an object); shown in an alert.
+  const [insertObjectError, setInsertObjectError] = useState<string | null>(null);
   const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
   const wordWrap = useAS(s => s.settings.wordWrap);
   // Only `BrowseFile` (single-file mode) mounts the synonym strip, and that is what
@@ -260,16 +267,39 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     setContextMenu(prev => ({ ...prev, submenu: 'insertObject' }));
   };
 
-  // Inserts an empty block of the picked type (its `type:` line plus every property name with
-  // a blank value) at the cursor and leaves the cursor on its first property.
+  // Adds an empty object of the picked type to the file's front matter (a file holds at most
+  // one object, and it lives there): its `type:` line plus every property name with a blank
+  // value, creating the front matter if needed. Refuses — with an alert, changing nothing — when
+  // the front matter already has a value for any of those keys.
+  //
+  // The front matter is shown first, in this editor (revealFrontMatter) and in the setting, so
+  // the user sees what was added; with it still hidden, the cursor guard would also clamp the
+  // cursor out of the new lines. The cursor ends up on the first property, ready for its value.
   const handleInsertObject = (type: string) => {
     const view = viewRef.current;
-    const template = userObjectTemplate(typeDefs, type);
-    if (!view || !template) return;
-
-    view.dispatch(objectInsertion(view.state, template));
     closeContextMenu();
+    if (!view) return;
+
+    const plan = planObjectInsertion(view.state.doc.toString(), typeDefs, type);
+    if (!plan.ok) {
+      setInsertObjectError(plan.error);
+      return;
+    }
+
+    revealFrontMatter?.();
+    setShowPropsInEditor(true);
+    saveSettings();
+    view.dispatch({
+      changes: { from: plan.from, to: plan.to, insert: plan.insert },
+      selection: { anchor: plan.cursor },
+      scrollIntoView: true,
+    });
     view.focus();
+  };
+
+  const closeInsertObjectError = () => {
+    setInsertObjectError(null);
+    viewRef.current?.focus();
   };
 
   // The thesaurus master switch (`settings.enableThesaurus`). It lives here rather than in
@@ -351,6 +381,8 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     handleOpenInsertObject,
     handleInsertObject,
     objectTypes: objectTypeOptions(typeDefs),
+    insertObjectError,
+    closeInsertObjectError,
     handleToggleThesaurus,
     canToggleThesaurus: thesaurusCapable && singleFileMode,
     thesaurusEnabled,

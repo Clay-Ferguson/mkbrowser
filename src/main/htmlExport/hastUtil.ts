@@ -30,12 +30,6 @@ export function walkElements(parent: HastParent, cb: (el: Element, parent: HastP
   }
 }
 
-/** The element's class list (hast stores `className` as a token list). */
-export function classesOf(el: Element): string[] {
-  const value = el.properties.className;
-  return Array.isArray(value) ? value.map(String) : [];
-}
-
 /** Builds an element (a tiny stand-in for hastscript's `h`). */
 export function h(tagName: string, properties: Properties = {}, children: Array<ElementContent | string> = []): Element {
   return {

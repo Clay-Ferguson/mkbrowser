@@ -9,7 +9,7 @@
  * malformed YAML still throws.
  */
 import { describe, it, expect } from 'vitest';
-import { loadYaml } from '../src/shared/yamlUtil';
+import { loadYaml, dumpYaml } from '../src/shared/yamlUtil';
 
 describe('loadYaml', () => {
   describe('empty documents parse to undefined rather than throwing', () => {
@@ -48,5 +48,29 @@ describe('loadYaml', () => {
     // Load-bearing: the tag/front-matter editors use this throw to refuse an
     // edit that would otherwise silently drop one of the duplicated keys.
     expect(() => loadYaml('dup: 1\ndup: 2\n')).toThrow();
+  });
+});
+
+// An inserted object leaves its properties blank (`name: `), which parses to null. Every
+// front-matter rewrite goes through dumpYaml, so those must come back out blank rather than
+// spelled `null`.
+describe('dumpYaml', () => {
+  it('writes null values as nothing at all', () => {
+    expect(dumpYaml({ type: 'person', name: null, email: null })).toBe('type: person\nname:\nemail:\n');
+  });
+
+  it('writes nested nulls blank too, and they load back as null', () => {
+    const value = { a: { b: null }, list: [null, 1] };
+    expect(loadYaml(dumpYaml(value))).toEqual(value);
+    expect(dumpYaml(value)).not.toContain('null');
+  });
+
+  it('keeps an empty string distinct from null', () => {
+    expect(dumpYaml({ a: '' })).toBe("a: ''\n");
+  });
+
+  it('does not wrap long lines', () => {
+    const long = 'word '.repeat(40).trim();
+    expect(dumpYaml({ long })).toBe(`long: ${long}\n`);
   });
 });

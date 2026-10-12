@@ -1,4 +1,5 @@
 import { DEFAULT_PROPERTY_TYPE } from '../../shared/shared';
+import { CALENDAR_PROPS } from '../../shared/calendarUtil';
 import type { PropertyDefinition, PropertyType, TypeDefinition, TypeDefinitions } from '../../shared/shared';
 
 /**
@@ -15,8 +16,12 @@ import type { PropertyDefinition, PropertyType, TypeDefinition, TypeDefinitions 
  */
 export const TYPE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-/** Property name reserved because object blocks use `type:` as their discriminator. */
-export const RESERVED_PROPERTY_NAME = 'type';
+/**
+ * Property names a type may not use. An object's properties live in its file's front matter
+ * alongside keys the app already gives a meaning to: `type` (which type the object is), `id`
+ * (link repair), `tags` (the hashtag list), and the calendar properties.
+ */
+export const RESERVED_PROPERTY_NAMES: readonly string[] = ['type', 'id', 'tags', ...CALENDAR_PROPS];
 
 export interface EditorProperty {
   id: string;
@@ -118,7 +123,7 @@ export function dropBlankProperties(editor: EditorType[]): EditorType[] {
  * Returns the first validation problem as a user-facing message, or null when
  * the types are valid: type and property names must be non-empty, match
  * TYPE_NAME_PATTERN, and be unique (types globally, properties within their
- * type), and no property may use the reserved name `type`. Expects fully blank
+ * type), and no property may use a reserved name (RESERVED_PROPERTY_NAMES). Expects fully blank
  * properties to have been removed already (see dropBlankProperties).
  */
 export function validate(editor: EditorType[]): string | null {
@@ -133,7 +138,8 @@ export function validate(editor: EditorType[]): string | null {
     if (propNames.some((n) => n === '')) return `Properties in "${typeName}" that have a description need a name.`;
     const badProp = propNames.find((n) => !TYPE_NAME_PATTERN.test(n));
     if (badProp !== undefined) return `Invalid property name "${badProp}" in "${typeName}": use letters, digits, and underscores, not starting with a digit.`;
-    if (propNames.includes(RESERVED_PROPERTY_NAME)) return `"${RESERVED_PROPERTY_NAME}" is reserved and can't be used as a property name (in "${typeName}").`;
+    const reserved = propNames.find((n) => RESERVED_PROPERTY_NAMES.includes(n));
+    if (reserved !== undefined) return `"${reserved}" is reserved and can't be used as a property name (in "${typeName}"). Reserved names: ${RESERVED_PROPERTY_NAMES.join(', ')}.`;
     if (new Set(propNames).size !== propNames.length) return `Duplicate property names in type "${typeName}".`;
   }
   return null;

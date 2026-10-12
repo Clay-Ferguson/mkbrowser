@@ -14,7 +14,10 @@ import { isImageFile } from '../../shared/fileTypes';
 import { hrefBetween, isMarkdownPath, INDEX_PAGE_NAME } from './exportPaths';
 import type { ExportManifest, PageLinkContext } from './exportPaths';
 import { rehypeHeadingIds } from './rehypeHeadingIds';
-import { rehypeObjectBlocks } from './rehypeObjectBlocks';
+import { rehypeObjectCard } from './rehypeObjectCard';
+import { parseFrontMatter } from '../../shared/frontMatterUtil';
+import { resolveFrontMatterObject } from '../../shared/objects/genericObject';
+import type { ResolvedObject } from '../../shared/objects/genericObject';
 import { rehypeExportLinks } from './rehypeExportLinks';
 import { STYLE_CSS } from './exportStyles';
 
@@ -99,7 +102,7 @@ ${body}</body>
 `;
 }
 
-async function renderChunk(markdown: string, ctx: PageLinkContext, typeDefs: TypeDefinitions, collapsibleObjects: boolean): Promise<string> {
+async function renderChunk(markdown: string, ctx: PageLinkContext, object: ResolvedObject | null, collapsibleObjects: boolean): Promise<string> {
   // Built per chunk: the link plugin is bound to this page, and a fresh tree gets a
   // fresh heading slugger (as rehype-slug does per react-markdown instance in the app).
   const file = await unified()
@@ -111,7 +114,7 @@ async function renderChunk(markdown: string, ctx: PageLinkContext, typeDefs: Typ
     .use(rehypeKatex, { output: 'mathml' })
     .use(rehypeHeadingIds)
     .use(rehypeCallouts)
-    .use(rehypeObjectBlocks, typeDefs, collapsibleObjects)
+    .use(rehypeObjectCard, object, collapsibleObjects)
     .use(rehypeExportLinks, ctx)
     .use(rehypeStringify)
     .process(markdown);
@@ -133,7 +136,10 @@ export async function renderMarkdownPage(
   const { manifest, mdPath, indexPages } = ctx;
   const processed = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(content)));
   const chunks = splitOnColumnBreaks(processed);
-  const rendered = await Promise.all(chunks.map((c) => renderChunk(c.text, ctx, typeDefs, collapsibleObjects)));
+  // The page's object (typed front matter) is drawn once, as a card at the top of the first column.
+  const frontMatter = parseFrontMatter(content).yaml;
+  const object = frontMatter ? resolveFrontMatterObject(frontMatter, typeDefs) : null;
+  const rendered = await Promise.all(chunks.map((c, i) => renderChunk(c.text, ctx, i === 0 ? object : null, collapsibleObjects)));
 
   const inner = rendered.length > 1
     ? `<div class="columns" style="grid-template-columns: repeat(${rendered.length}, minmax(0, 1fr))">\n${rendered.map((html) => `<div class="col">\n${html}\n</div>`).join('\n')}\n</div>`

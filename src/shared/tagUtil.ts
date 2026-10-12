@@ -1,5 +1,4 @@
-import { dump } from 'js-yaml';
-import { loadYaml } from './yamlUtil';
+import { loadYaml, dumpYaml } from './yamlUtil';
 import { splitFrontMatter, assembleFrontMatter } from './frontMatterUtil';
 
 /** A single hashtag definition. `tag` is the bare tag name as stored in front matter (e.g. `"cooking"`). */
@@ -71,7 +70,7 @@ export function setTagsInYaml(yamlStr: string, tags: string[]): string {
   } else {
     delete parsed.tags;
   }
-  return Object.keys(parsed).length > 0 ? dump(parsed, { lineWidth: -1 }) : '';
+  return Object.keys(parsed).length > 0 ? dumpYaml(parsed) : '';
 }
 
 /** Removes a tag from a markdown document's front matter, leaving the rest unchanged. */
@@ -108,5 +107,5 @@ export function serializeTagsToYaml(categories: TagCategory[]): string {
       catMap[tag.tag] = { description: desc ? desc + '\n' : '\n' };
     }
   }
-  return dump({ hashtags }, { lineWidth: -1 });
+  return dumpYaml({ hashtags });
 }

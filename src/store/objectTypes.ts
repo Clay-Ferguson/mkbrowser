@@ -31,8 +31,3 @@ export function createObjectTypesSlice(set: StoreSet): ObjectTypesSlice {
 export function setTypeDefs(typeDefs: TypeDefinitions): void {
   getState().setTypeDefs(typeDefs);
 }
-
-/** Non-reactive read of the user-defined object types. */
-export function getTypeDefs(): TypeDefinitions {
-  return getState().typeDefs;
-}

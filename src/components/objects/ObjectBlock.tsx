@@ -4,21 +4,21 @@ import ErrorBoundary from '../ErrorBoundary';
 interface ObjectBlockProps {
   /** The object's `type` (e.g. "person"), shown as the card's caption. */
   type: string;
-  /** The block's YAML source. Editing it clears a render error left by the previous content. */
+  /** The file content the object was read from. A change clears a render error left by the previous content. */
   source: string;
   /** The card body (`GenericObject`), already bound to its validated data. */
   children: ReactNode;
-  /** Opens the editor at the block's source line (see useBlockEditClick). */
+  /** Opens the editor on the object's front matter. */
   onMouseUp: (e: React.MouseEvent) => void;
 }
 
 /**
- * The card every typed object block is rendered in: a bordered frame with the type name as a
+ * The card a file's object (its typed front matter) is rendered in: a bordered frame with the type name as a
  * caption line across the top, above the card body. `not-prose` keeps the Typography plugin's article
  * styles (paragraph margins, link colours, …) out of the card, so the body styles itself.
  *
- * A click (other than on a link) opens the editor with the cursor on the block's first property line,
- * the same way a click on a paragraph or heading does.
+ * A click (other than on a link) opens the editor with the front matter shown and the cursor on
+ * the object's first property line.
  */
 export default function ObjectBlock({ type, source, children, onMouseUp }: ObjectBlockProps) {
   return (
@@ -45,8 +45,8 @@ interface InvalidObjectHintProps {
 }
 
 /**
- * Shown under a YAML block whose `type` is a defined object type but whose values don't fit
- * it. The block itself still renders as ordinary code; this says why it isn't a card.
+ * Shown in place of the card when the front matter's `type` is a defined object type but its
+ * values don't fit it (e.g. a list where text is expected), saying why there is no card.
  */
 export function InvalidObjectHint({ type, error }: InvalidObjectHintProps) {
   return (

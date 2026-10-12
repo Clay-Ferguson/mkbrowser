@@ -2,11 +2,13 @@
  * Utilities for turning a markdown file into a calendar item via front matter injection.
  */
 
-import { dump } from 'js-yaml';
 import { splitFrontMatter, setFrontMatterProperty, assembleFrontMatter } from '../shared/frontMatterUtil';
-import { loadYaml } from '../shared/yamlUtil';
+import { loadYaml, dumpYaml } from '../shared/yamlUtil';
 import type { CalendarEventResult } from '../shared/shared';
 import type { CalendarEvent } from '../shared/types';
+
+/** The front-matter properties that make a file a calendar item (EditCalendarDialog owns them). */
+export const CALENDAR_PROPS: ReadonlySet<string> = new Set(['due', 'start', 'duration', 'rrule']);
 
 /**
  * Convert the IPC wire form of calendar events (epoch milliseconds, so they
@@ -354,7 +356,7 @@ export function setRRuleProperty(content: string, rrule: RRuleProps | null): str
   }
   // An empty mapping (rrule was the only key, now removed) yields '' so assembleFrontMatter
   // drops the fences entirely rather than leaving `---\n{}\n---` behind.
-  const dumped = Object.keys(yaml).length ? dump(yaml, { lineWidth: -1 }) : '';
+  const dumped = Object.keys(yaml).length ? dumpYaml(yaml) : '';
   return assembleFrontMatter(dumped, parsed.body);
 }
 
@@ -403,7 +405,7 @@ export function injectCalendarFrontMatter(content: string, repeating: boolean): 
   try {
     const obj = loadYaml(parsed.yamlStr);
     if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-      const redumped = dump(obj, { lineWidth: -1 }).trim();
+      const redumped = dumpYaml(obj).trim();
       return `---\n${calendarBlock}\n${redumped}\n---\n${parsed.body}`;
     }
   } catch {

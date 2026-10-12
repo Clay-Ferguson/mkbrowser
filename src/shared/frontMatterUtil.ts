@@ -1,5 +1,4 @@
-import { dump } from 'js-yaml';
-import { loadYaml } from './yamlUtil';
+import { loadYaml, dumpYaml } from './yamlUtil';
 import { logger } from './logUtil';
 
 export interface FrontMatterResult {
@@ -103,7 +102,7 @@ export function assembleFrontMatter(yamlContent: string, body: string): string {
 export function setFrontMatterProperty(content: string, key: string, value: unknown): string {
   const parts = splitFrontMatter(content);
   if (!parts) {
-    return assembleFrontMatter(dump({ [key]: value }, { lineWidth: -1 }), content);
+    return assembleFrontMatter(dumpYaml({ [key]: value }), content);
   }
   let parsed: unknown;
   try {
@@ -114,7 +113,7 @@ export function setFrontMatterProperty(content: string, key: string, value: unkn
   if (typeof parsed !== 'object' || Array.isArray(parsed)) return content;
   const yaml = parsed as Record<string, unknown>;
   yaml[key] = value;
-  return assembleFrontMatter(dump(yaml, { lineWidth: -1 }), parts.body);
+  return assembleFrontMatter(dumpYaml(yaml), parts.body);
 }
 
 /** Returns all front matter properties except 'tags', preserving their parsed types. */
@@ -164,6 +163,6 @@ export function removeFrontMatterExceptId(content: string): RemovePropsResult {
   const yaml = parsed as Record<string, unknown>;
   const hasId = Object.hasOwn(yaml, 'id');
   if (hasId && Object.keys(yaml).length === 1) return { status: 'unchanged' };
-  const kept = hasId ? dump({ id: yaml['id'] }, { lineWidth: -1 }) : '';
+  const kept = hasId ? dumpYaml({ id: yaml['id'] }) : '';
   return { status: 'changed', content: assembleFrontMatter(kept, parts.body) };
 }

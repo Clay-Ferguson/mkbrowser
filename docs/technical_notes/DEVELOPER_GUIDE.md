@@ -51,7 +51,7 @@
   * [Stale render closures — consumers read the buffer at call time](#stale-render-closures--consumers-read-the-buffer-at-call-time)
   * [Roads not taken](#roads-not-taken)
   * [Editor rules of thumb (the short list)](#editor-rules-of-thumb-the-short-list)
-* [Typed Object Blocks (YAML → custom rendering)](#typed-object-blocks-yaml--custom-rendering)
+* [Typed Objects (front matter → card)](#typed-objects-front-matter--card)
   * [What makes a block an object](#what-makes-a-block-an-object)
   * [How it is wired](#how-it-is-wired)
   * [Editing objects](#editing-objects)
@@ -636,63 +636,58 @@ Design alternatives we considered (or that a future refactor might be tempted by
 - **Don't remove the `suppressOnChangeRef` bracket, the `cancelPendingOnChange` call, or the `lastDelivered` skip in the sync effect** without re-reading this section — each one closes a distinct data-loss or stale-overwrite race, and all three failure modes are timing-dependent and invisible in casual testing.
 - **Manual smoke test for any change here:** type a few characters and hit Ctrl-S in the same instant (then re-open the file); type and immediately click Save; type and immediately press Escape; accept an AI rewrite mid-typing. In all cases the final characters must never be lost.
 
-## Typed Object Blocks (YAML → custom rendering)
+## Typed Objects (front matter → card)
 
-A fenced `yaml` block in a markdown file whose `type:` names a user-defined type renders as a card instead of as source code. **What the feature does for users** — the Types Editor, property types, Insert Object, how cards look, unknown-property warnings — is documented in the User Guide's [Objects and Custom Types](../USER_GUIDE.md#objects-and-custom-types) section; this section covers only how it is built.
+A markdown file holds **at most one object**, and it lives in the file's **front matter**: a `type:` naming a user-defined type, plus that type's properties as sibling keys. Such a file shows a card for the object at the top of its rendered view. **What the feature does for users** — the Types Editor, property types, Insert Object, how cards look, the reserved property names — is documented in the User Guide's [Objects and Custom Types](../USER_GUIDE.md#objects-and-custom-types) section; this section covers only how it is built.
 
 Types live under `types:` in `config.yaml` and are mirrored in the store as `typeDefs` (see [Type definitions](#type-definitions-config-and-store)). There are no built-in types, and every type renders through the one generic card, `GenericObject`.
 
-### What makes a block an object
+Objects used to be fenced ` ```yaml ` blocks anywhere in the body (several per file). That was replaced by front matter: one object per file is simpler, it reuses the front-matter machinery the app already had (pills, the show/hide-properties toggle, the parse/write helpers), and a body YAML fence is now just code again — no special casing in `CustomPre` or the editor.
 
-All of these must hold, otherwise the block renders exactly as it always has:
+### What makes front matter an object
 
-1. The fence language is `yaml` or `yml`.
-2. The YAML parses, and the document is a single mapping (not a list, a scalar, or several `---` documents).
-3. The mapping has a non-empty string `type`.
-4. That `type` is defined in the Types Editor (matched exactly — `Person` is not `person`).
-
-A block that passes all four is then checked against its type's definition, which gives three possible outcomes:
+The front matter must parse as a mapping (`parseFrontMatter` / `getPropsFromYaml`), its `type` must be a non-empty string, and that string (trimmed) must name a defined type — matched exactly, `Person` is not `person`. Otherwise there is no object and nothing changes. When there is one:
 
 | Outcome | Rendered as |
 |---|---|
-| Not an object (any of 1–4 fails) | The ordinary highlighted code block + copy button. |
-| Defined type, values fit | The generic card. No code, no copy button. |
-| Defined type, values don't fit | The ordinary code block, plus a small amber hint underneath: `Invalid person: address must be text`. |
+| Defined type, values fit | The generic card — even with nothing filled in yet ("Untitled person"). |
+| Defined type, values don't fit | A small amber hint in place of the card: `Invalid person: address must be text`. |
 
-Malformed YAML is silently "not an object" rather than an error — a code block that doesn't parse is still a perfectly good code block. The hint is reserved for the case where the user clearly *meant* an object (they named a defined type) and would otherwise be left guessing why the card vanished.
+Every defined property is optional text: a number is stringified, a list or mapping fails with "\<key\> must be text". Front-matter keys the type doesn't define are **not** part of the object — `tags`, `id`, `due`, … are legitimate there — so there is no "unknown property" concept any more; a typo (`nmae`) simply shows as an ordinary pill.
 
 ### How it is wired
 
 | File | Role |
 |---|---|
-| `src/shared/objects/objectBlock.ts` | Pure, React-free. `parseObjectBlock(language, code)` does checks 1–3; `readTextFields(data, keys)` reads optional text fields off the parsed mapping; `buildObjectTemplate(type, fields)` builds an empty block; `findTopLevelKeys` locates keys by line. |
-| `src/shared/objects/genericObject.ts` | Pure. Resolves a block against the type definitions: `parseGenericObject(def, data)` validates and lays out the data (title, rows, unknown keys); `resolveObjectBlock(language, code, defs)` returns `{kind: 'object', data}`, `{kind: 'invalid', error}`, or `null`; `unknownObjectKeys(language, code, defs)` for the editor underlines. |
-| `src/shared/objects/userTypes.ts` | `objectTypeOptions(defs)` and `userObjectTemplate(defs, type)` — the editor's Insert Object menu and the block it inserts. |
+| `src/shared/objects/genericObject.ts` | Pure. `resolveFrontMatterObject(props, defs)` returns `{kind: 'object', type, data}`, `{kind: 'invalid', type, error}`, or `null`; `parseGenericObject(def, data)` validates and lays out the data (title, rows); `objectPropertyKeys(props, defs)` is `type` + the type's property keys (empty when there is no object) — the keys the pills leave out. |
+| `src/shared/objects/objectBlock.ts` | Pure, React-free helpers: `readTextFields(data, keys)` reads optional text fields off the parsed mapping; `findTopLevelKeys` locates keys in YAML text by line. |
+| `src/shared/objects/userTypes.ts` | `objectTypeOptions(defs)` (the Insert Object menu) and `planObjectInsertion(content, defs, type)` (what Insert Object writes — see below). |
 | `src/components/objects/ObjectBlock.tsx` | The shared card frame (border, type caption, `ErrorBoundary`), and `InvalidObjectHint`. |
 | `src/components/objects/GenericObject.tsx` | The card body for every type. |
-| `src/components/CustomPre.tsx` | The one call site: selects `typeDefs` from the store, calls `resolveObjectBlock`, and picks the card, the code block + hint, or the code block. |
+| `src/components/entries/MarkdownEntry.tsx` | The one call site: selects `typeDefs`, resolves the object from `meta.props` (the already-parsed front matter, minus `tags`), filters the object's keys out of the pills, and renders the card between `PropsDisplay` and `MarkdownView` in view mode only. |
+| `src/main/htmlExport/rehypeObjectCard.ts` | The folder HTML export's static card, prepended to the page's first column (`renderMarkdownPage` resolves the object from the page's front matter). |
 
-**The generic card.** `parseGenericObject` shapes the data the card needs — `title` (the type's first property), `rows` (the other filled properties, in definition order), and `unknown` (keys not in the definition, in block order) — so `GenericObject` only lays it out. **Property types live only in the type definition**, never in the block, and are looked up per row; `GenericObject`'s `TYPE_ICONS` and `hrefFor` map each one to its icon and (for `email`, `address`, `url`) its link, built from the templates in `src/shared/objects/objectUrls.ts` (shared so the HTML folder export can build the same links). Adding a property type means adding it to `PROPERTY_TYPES` in `shared.ts`, a label in `TypesEditorView`'s `PROPERTY_TYPE_LABELS` (a `Record`, so the compiler insists), and optionally an icon/href in `GenericObject`.
-
-**Validation.** Every defined property is optional text: a number is stringified, a list or mapping fails with "\<key\> must be text". A block with none of its type's properties filled in is rejected (`needs at least one of …`), so a freshly inserted block shows as code + hint until something is typed. Unknown keys never make a block invalid.
+**The generic card.** `parseGenericObject` shapes the data the card needs — `title` (the type's first property) and `rows` (the other filled properties, in definition order) — so `GenericObject` only lays it out. **Property types live only in the type definition**, never in the front matter, and are looked up per row; `GenericObject`'s `TYPE_ICONS` and `hrefFor` map each one to its icon and (for `email`, `address`, `url`, `phone`) its link, built from the templates in `src/shared/objects/objectUrls.ts` (shared so the HTML folder export can build the same links). Adding a property type means adding it to `PROPERTY_TYPES` in `shared.ts`, a label in `TypesEditorView`'s `PROPERTY_TYPE_LABELS` (a `Record`, so the compiler insists), and optionally an icon/href in `GenericObject` and `rehypeObjectCard`.
 
 Points worth knowing before changing any of it:
 
-- **The dispatch lives in `CustomPre`, not `CustomCode`.** `<pre>` owns the whole block — the wrapper and the copy button — so deciding there means the YAML is parsed once and the copy button is suppressed in the same place. (Mermaid is dispatched in `CustomCode`, which is why `CustomPre` has to re-derive `isMermaid` just to hide the button.) When the block is an object, `CustomPre` never renders its children, so `CustomCode` doesn't run for it at all.
-- **`CustomPre` subscribes to `typeDefs` itself**, so saving a type in the Types Editor re-renders the affected blocks without re-rendering the (memoized) `MarkdownView`.
+- **The card is rendered by `MarkdownEntry`, not `MarkdownView`.** `MarkdownEntry` already owns the front matter (pills, `clickOnProp`, the show-properties setting), and a card click needs the same "open the editor at this front-matter line with the properties shown" behavior (`openFrontMatterAt`). It also keeps `MarkdownView` (memoized, expensive) free of store subscriptions.
+- **Clicks open the editor, except on links.** The card's `onMouseUp` applies the same guards as every other click-to-edit target (`isEditClick` in `blockClickComponents.tsx`: left button only, not on a link/button, not a scrollbar press, not a text selection), then opens the editor at the title property's line. The link values stop `mouseup` (not just `click`) from reaching the entry, as the copy button in `CustomPre` does.
 - **Type lookups use `Object.hasOwn`.** The type name comes from the user's file: `type: toString` must not find `Object.prototype.toString`.
 - **Validation is hand-written, not zod.** `zod` is deliberately kept out of the renderer bundle (see the note in `src/main/configSchema.ts`). For flat objects `readTextFields` is all that's needed.
-- **Field values are untrusted text.** They come from arbitrary markdown files, so render them as React text children — never through `dangerouslySetInnerHTML`. `tests/customPreObjectBlock.test.ts` pins that markup in a value is escaped.
-- **Clicks open the editor, except on links.** A click on the card falls through to the entry's content area and opens the editor, exactly as a click on a code block does. The link values stop `mouseup` (not just `click`) from reaching the entry, as the copy button in `CustomPre` does.
+- **Field values are untrusted text.** They come from arbitrary markdown files, so render them as React text children — never through `dangerouslySetInnerHTML`. `tests/objectCard.test.ts` pins that markup in a value is escaped.
+- **Blank values stay blank.** An inserted object is all `key: ` lines, which parse to null. Every front-matter rewrite (tags, calendar, `setFrontMatterProperty`, …) dumps through `dumpYaml` (`src/shared/yamlUtil.ts`), which writes null as nothing (`name:`) instead of `name: null`.
 
 ### Editing objects
 
-Objects are edited as plain YAML in CodeMirror — there is no form editor (see below). Three things make that comfortable:
+Objects are edited as plain YAML front matter in CodeMirror — there is no form editor (see below).
 
-- **YAML colours in fenced blocks.** `markdown({ codeLanguages: fencedCodeLanguage })` (`src/renderer/editor/editorCodeLanguages.ts`) parses `yaml`/`yml` fences as YAML, so keys and values are coloured apart. This applies to every YAML fence, not just object blocks.
-- **Insert Object.** Clicking the context-menu item does not act directly: it sets `contextMenu.submenu`, and `EditorContextMenu` re-renders the same floating menu as `objectTypeOptions(typeDefs)` (`useEditorContextMenu` selects `typeDefs` from the store). Picking a type dispatches `objectInsertion(state, userObjectTemplate(typeDefs, type))` (`src/renderer/editor/editorObjectUtil.ts`), which pads the block with line breaks so the fence stands on its own lines with a blank line either side, and puts the cursor on the first property's value.
-
-- **Unknown-property underlines.** `objectKeyPlugin` (`src/components/editor/objectKeyChecker.ts`) puts an amber wavy underline, with a tooltip, under any key in an object block that the type's definition doesn't include — the typo case (`nmae`). It walks the Markdown syntax tree for `FencedCode` nodes in the viewport and asks `unknownObjectKeys(language, code, defs)`, reading the definitions with `getTypeDefs()` (a change to them is picked up on the plugin's next update). Which keys a block *has* comes from the real YAML parse; `findTopLevelKeys` only locates them by line, so a line it misreads can at worst go unreported. A block whose YAML doesn't currently parse (mid-typing) is simply not flagged.
+- **Insert Object.** Clicking the context-menu item does not act directly: it sets `contextMenu.submenu`, and `EditorContextMenu` re-renders the same floating menu as `objectTypeOptions(typeDefs)` (`useEditorContextMenu` selects `typeDefs` from the store). Picking a type calls `planObjectInsertion(doc, typeDefs, type)`, a pure string function that returns either a replacement of the front-matter region (`[0, end of closing fence)`; the body is never touched) plus a cursor position, or a user-facing refusal shown in an `AlertDialog`:
+  - Lines for the keys the front matter lacks (`type: T`, then each property as `key: `) go at the top of the block; the rest of the block is kept verbatim (comments included). A key present but blank stays where it is; a blank `type:` gets its value in place.
+  - Any of those keys with a **value** is a conflict and nothing changes — in particular a second object can never overwrite a first.
+  - Malformed, non-mapping, or flow-style front matter is refused; the new block is re-parsed before it is offered, as `injectCalendarFrontMatter` does.
+- **Showing the front matter first.** Before dispatching, `handleInsertObject` calls `revealFrontMatter()` (from `CodeMirrorEditor`: reconfigures the `frontMatter` compartment to its visible extensions), then sets `showPropsInEditor` in the store. The order matters: while the hide extensions are installed, `frontMatterCursorGuard` would clamp the new cursor out of the inserted lines. The store prop then round-trips and re-applies the same configuration (idempotent).
+- **YAML colours.** Front matter has its own colouring (`frontMatterPlugin`). `markdown({ codeLanguages: fencedCodeLanguage })` (`src/renderer/editor/editorCodeLanguages.ts`) separately colours `yaml`/`yml` fences in the body.
 
 ### Type definitions (config and store)
 
@@ -710,17 +705,17 @@ types:
 
 - **Schema.** `TypeDefinitions` / `TypeDefinition` / `PropertyDefinition` in `src/shared/shared.ts`; validated tolerantly on load by `configSchema.ts` (`tolerantRecord` drops a malformed entry and keeps the rest; a missing or unrecognized property `type` reads as `text`).
 - **Room to grow.** The `properties:` level and per-property maps leave space for type-level metadata and per-property attributes (e.g. a future `domain`/`range`). Unknown keys at both levels survive a load→save round-trip — the schema is `.loose()` and the editor model (`typesEditorModel.ts`) carries them in an `extra` bag.
-- **Names** must match `TYPE_NAME_PATTERN` (`[A-Za-z_][A-Za-z0-9_]*`, which also rules out integer-like keys, so JS key order is always insertion order); `type` is a reserved property name because it is the object-block discriminator. Enforced by `validate` in `typesEditorModel.ts` on Save.
-- **Store mirror.** `store/objectTypes.ts` holds `typeDefs`: seeded by `loadConfig` (`src/renderer/config.ts`), replaced by `TypesEditorView` after each successful `api.updateConfig({ types })`. Readers: `CustomPre` and `useEditorContextMenu` (reactive selectors), `objectKeyPlugin` (`getTypeDefs()`). No new IPC — the generic `getConfig`/`updateConfig` handlers carry it.
+- **Names** must match `TYPE_NAME_PATTERN` (`[A-Za-z_][A-Za-z0-9_]*`, which also rules out integer-like keys, so JS key order is always insertion order). `RESERVED_PROPERTY_NAMES` (`type`, `id`, `tags`, and the calendar keys `CALENDAR_PROPS` from `calendarUtil.ts`) can't be property names, because an object's properties share the front matter with the keys the app already gives a meaning to. Enforced by `validate` in `typesEditorModel.ts` on Save (loading stays tolerant).
+- **Store mirror.** `store/objectTypes.ts` holds `typeDefs`: seeded by `loadConfig` (`src/renderer/config.ts`), replaced by `TypesEditorView` after each successful `api.updateConfig({ types })`. Readers: `MarkdownEntry` and `useEditorContextMenu` (reactive selectors), and the main process's HTML export (which reads the config directly). No new IPC — the generic `getConfig`/`updateConfig` handlers carry it.
 
 ### Fenced blocks are literal — the preprocessing rule
 
 Before parsing, `MarkdownView` runs three text passes over the raw document (`stripHtmlComments`, `preprocessMathEscapes`, `preprocessWikiLinks` in `src/shared/mkUtil.ts`). All three go through `replaceOutsideFences`, which leaves fenced code blocks byte-for-byte intact. Without that, the wikilink pass turned a YAML nested list `[[1, 2]]` (or a bash `[[ -f foo ]]`) into a markdown link *before* the block was parsed.
 
-**Any new preprocessing pass must also go through `replaceOutsideFences`.** A pass that rewrites the whole string will corrupt object data, and nothing downstream can detect it — the object block just receives altered text. Inline code spans (single backticks) are *not* protected; only fences are.
+**Any new preprocessing pass must also go through `replaceOutsideFences`.** A pass that rewrites the whole string will corrupt code blocks, and nothing downstream can detect it. Inline code spans (single backticks) are *not* protected; only fences are.
 
 ### Deliberately not done (yet)
 
-- **HTML export** (`src/shared/exportMDtoHTML.ts`) is a separate string pipeline in the main process and cannot run React components. Exported files show object blocks as plain YAML code.
-- **Lists of objects.** One object per block.
+- **More than one object per file.** By design: the front matter holds one object.
+- **Migrating old body blocks.** Fenced ` ```yaml ` objects from before the move to front matter now render as plain code; they were not converted automatically.
 - **A form editor.** Replacing the YAML with an inline form inside CodeMirror (block widgets) was considered and rejected as too complex for the gain: widget identity across keystrokes, focus and shortcut handling inside the widget, undo routing, and comment loss when rewriting the YAML. Locking the keys while leaving values editable was rejected too — it needs exception rules for every structural edit and still can't guarantee a valid object.

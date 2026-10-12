@@ -24,9 +24,9 @@ import { fencedCodeLanguage } from '../../renderer/editor/editorCodeLanguages';
 import { minimalDiff } from '../../renderer/editor/editorDiffUtil';
 import { createThesaurusPlugin } from '../../renderer/editor/editorThesaurusUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
-import { objectKeyPlugin, objectKeyTheme } from './objectKeyChecker';
 import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
+import AlertDialog from '../dialogs/AlertDialog';
 import { createFontSizeTheme } from './editorTheme';
 import { logger } from '../../shared/logUtil';
 import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN, BUTTON_CLASS_SM_NEUTRAL } from '../../renderer/styles';
@@ -89,6 +89,16 @@ interface EditorCompartments {
   spellCheck: Compartment;
   merge: Compartment;
   wordWrap: Compartment;
+}
+
+/**
+ * What the `frontMatter` compartment holds: front-matter colouring when the front matter is
+ * shown, or the extensions that collapse it and keep the cursor and edits out of it when hidden.
+ */
+function frontMatterExtensions(show: boolean) {
+  return show
+    ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin]
+    : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterEditGuard, hrLinePlugin, frontMatterTheme];
 }
 
 function createCompartments(): EditorCompartments {
@@ -489,6 +499,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     handleOpenInsertObject,
     handleInsertObject,
     objectTypes,
+    insertObjectError,
+    closeInsertObjectError,
     handleToggleThesaurus,
     canToggleThesaurus,
     thesaurusEnabled,
@@ -503,6 +515,11 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     // The same gate the extension list below applies: the menu offers the thesaurus switch
     // only on editors that actually have the plugin installed.
     thesaurusCapable: !readOnly && !isCodeLanguage(language),
+    // Insert Object writes into the front matter, so it has to be visible first: with the hide
+    // extensions still installed, the cursor guard would clamp the cursor out of the new lines.
+    revealFrontMatter: () => {
+      viewRef.current?.dispatch({ effects: compartments.frontMatter.reconfigure(frontMatterExtensions(true)) });
+    },
   });
 
   // Build the EditorView exactly once, on mount, from the mountConfigRef snapshot (see its
@@ -558,9 +575,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       spellCheckTheme,
       // AI-review merge view, swapped in/out by the review effect below. Empty when not reviewing.
       compartments.merge.of([]),
-      compartments.frontMatter.of(
-        cfg.showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterEditGuard, hrLinePlugin, frontMatterTheme]
-      ),
+      compartments.frontMatter.of(frontMatterExtensions(cfg.showPropsInEditor)),
       hashtagPlugin,
       hashtagTheme,
       datePlugin,
@@ -684,8 +699,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // highlights honest about what the app actually renders. `codeLanguages` gives fenced
       // blocks in the listed languages (YAML) their own syntax colours.
       extensions.push(markdown({ base: markdownLanguage, codeLanguages: fencedCodeLanguage }), ...headingSizeExtensions);
-      // Underlines properties an object block's type doesn't define (reads the Markdown tree).
-      extensions.push(objectKeyPlugin, objectKeyTheme);
     } else if (cfg.language === 'javascript') {
       extensions.push(javascript());
     } else if (cfg.language === 'typescript') {
@@ -896,9 +909,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
 
     view.dispatch({
       effects: [
-        compartments.frontMatter.reconfigure(
-          showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterEditGuard, hrLinePlugin, frontMatterTheme]
-        ),
+        compartments.frontMatter.reconfigure(frontMatterExtensions(showPropsInEditor)),
         ...(turningOn ? [EditorView.scrollIntoView(0, { y: 'start' })] : []),
       ],
     });
@@ -1019,6 +1030,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         onSearchReplace={handleSearchReplace}
         isMarkdown={isMarkdown}
       />
+      {insertObjectError && (
+        <AlertDialog title="Insert Object" message={insertObjectError} onClose={closeInsertObjectError} />
+      )}
     </div>
   );
 }

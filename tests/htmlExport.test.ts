@@ -158,50 +158,65 @@ const TYPE_DEFS: TypeDefinitions = {
 } as unknown as TypeDefinitions;
 
 describe('renderMarkdownPage', () => {
-  it('renders a typed object block as a card with linked values', async () => {
-    const md = '```yaml\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\nphone: +1 (555) 123-4567\nnickname: Ada\n```\n';
+  it('renders the front matter\'s object as a card at the top of the page, with linked values', async () => {
+    const md = '---\nid: X1\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\nphone: +1 (555) 123-4567\nnickname: Ada\n---\n# Heading\n';
     const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS);
     expect(html).toContain('class="object-block"');
     expect(html).toContain('data-object-type="person"');
     expect(html).toContain('Ada Lovelace');
     expect(html).toContain('<a class="object-value" href="mailto:ada@example.com" title="Work email">ada@example.com</a>');
-    expect(html).toContain('class="object-label object-unknown"');
     expect(html).toContain('<a class="object-value" href="tel:+15551234567" title="phone">+1 (555) 123-4567</a>');
-    expect(html).not.toContain('<pre>');
+    // Front-matter keys the type doesn't define are not part of the object.
+    expect(html).not.toContain('nickname');
+    expect(html).not.toContain('X1');
+    // The card comes before the body.
+    expect(bodyOf(html).indexOf('object-block')).toBeLessThan(bodyOf(html).indexOf('<h1'));
     // No inline SVG: rows are marked with a plain bullet and laid out one per source line.
     expect(html).not.toContain('<svg');
     expect(html).toContain('\n<div class="object-row"><span class="object-bullet">•</span><span class="object-label" title="Work email">email</span>');
   });
 
+  it('draws the card once, in the first column only', async () => {
+    const md = '---\ntype: person\nname: Ada\n---\nleft\n|||\nright\n';
+    const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS);
+    const body = bodyOf(html);
+    expect(body.match(/class="object-block"/g)).toHaveLength(1);
+    expect(body.indexOf('object-block')).toBeLessThan(body.indexOf('<p>left'));
+  });
+
   it('wraps a collapsible object\'s title and rows in details/summary inside the card', async () => {
-    const md = '```yaml\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\n```\n';
+    const md = '---\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\n---\n';
     const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS, true);
     expect(html).toMatch(/<div class="object-block" data-object-type="person">\n<div class="object-type">person<\/div>\n<details>\n<summary class="object-title" title="name">Ada Lovelace<\/summary>\n<div class="object-rows">[\s\S]*ada@example\.com[\s\S]*<\/div>\n<\/details>\n<\/div>/);
   });
 
   it('keeps a collapsible object with no other properties as a plain card', async () => {
-    const html = await renderMarkdownPage('```yaml\ntype: person\nname: Ada\n```\n', ctx(p('index.md')), TYPE_DEFS, true);
+    const html = await renderMarkdownPage('---\ntype: person\nname: Ada\n---\n', ctx(p('index.md')), TYPE_DEFS, true);
     expect(html).toContain('<div class="object-title" title="name">Ada</div>');
     expect(bodyOf(html)).not.toContain('<details>');
   });
 
   it('renders no details/summary when objects are not collapsible', async () => {
-    const md = '```yaml\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\n```\n';
+    const md = '---\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\n---\n';
     const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS, false);
     expect(bodyOf(html)).not.toContain('<details>');
     expect(bodyOf(html)).not.toContain('<summary');
   });
 
-  it('keeps an invalid object as code and adds the hint', async () => {
-    const md = '```yaml\ntype: person\nname: [1, 2]\n```\n';
-    const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS);
-    expect(html).toContain('<pre>');
+  it('shows the hint instead of a card for an invalid object', async () => {
+    const html = await renderMarkdownPage('---\ntype: person\nname: [1, 2]\n---\nBody\n', ctx(p('index.md')), TYPE_DEFS);
+    expect(bodyOf(html)).not.toContain('object-block');
     expect(html).toContain('class="invalid-object-hint"');
-    expect(html).toContain('Invalid person:');
+    expect(html).toContain('Invalid person: name must be text');
   });
 
-  it('leaves a block of an undefined type as an ordinary code block', async () => {
-    const html = await renderMarkdownPage('```yaml\ntype: robot\nname: R2\n```\n', ctx(p('index.md')), TYPE_DEFS);
+  it('draws no card for front matter of an undefined type', async () => {
+    const html = await renderMarkdownPage('---\ntype: robot\nname: R2\n---\nBody\n', ctx(p('index.md')), TYPE_DEFS);
+    expect(bodyOf(html)).not.toContain('object-block');
+  });
+
+  it('leaves a typed yaml block in the body as an ordinary code block', async () => {
+    const html = await renderMarkdownPage('```yaml\ntype: person\nname: Ada\n```\n', ctx(p('index.md')), TYPE_DEFS);
     expect(html).toContain('<pre><code class="language-yaml">');
     expect(bodyOf(html)).not.toContain('object-block');
   });

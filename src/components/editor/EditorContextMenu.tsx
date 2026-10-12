@@ -17,7 +17,7 @@ interface EditorContextMenuProps {
   onInsertDate: () => void;
   /** "Insert Object" clicked: switch the menu to the list of object types. */
   onOpenInsertObject: () => void;
-  /** An object type picked from that list: insert an empty block of it at the cursor. */
+  /** An object type picked from that list: add an empty object of it to the file's front matter. */
   onInsertObject: (type: string) => void;
   /** The user-defined object types (Types Editor), as listed after "Insert Object" is clicked. */
   objectTypes: readonly ObjectTypeOption[];
@@ -46,7 +46,7 @@ const VIEWPORT_MARGIN = 8;
  * Escape.
  *
  * Insert Object does not act directly: it replaces the menu's items, in place, with the list
- * of registered object types (`contextMenu.submenu`), and picking one inserts it.
+ * of registered object types (`contextMenu.submenu`), and picking one adds it to the front matter.
  */
 export function EditorContextMenu({
   contextMenu,

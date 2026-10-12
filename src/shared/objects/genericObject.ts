@@ -1,18 +1,19 @@
-import { parseObjectBlock, readTextFields, findTopLevelKeys } from './objectBlock';
-import type { ObjectParseResult, KeyRange } from './objectBlock';
+import { readTextFields } from './objectBlock';
+import type { ObjectParseResult } from './objectBlock';
 import type { PropertyType, TypeDefinition, TypeDefinitions } from '../shared';
 
 /**
- * Typed object blocks resolved against the user-defined types (the `types:` config, edited in
- * the Types Editor): a fenced `yaml` block whose `type` names a defined type renders as a
- * generic card (`GenericObject`) laid out from that type's properties, in definition order.
- * Property types (`email`, `address`, `url`) live only in the definition — never in the block —
- * and are looked up here to decide how each value is presented.
+ * A file's object resolved against the user-defined types (the `types:` config, edited in the
+ * Types Editor). A markdown file holds at most one object, and it lives in the file's front
+ * matter: a `type:` naming a defined type, plus that type's properties as sibling keys. It
+ * renders as a generic card (`GenericObject`) laid out from the type's properties, in
+ * definition order. Property types (`email`, `address`, `url`) live only in the definition —
+ * never in the front matter — and are looked up here to decide how each value is presented.
  *
  * Pure (no React), so it runs under plain Node in tests.
  */
 
-/** One defined property of an object, with the value the block gives it. */
+/** One defined property of an object, with the value the front matter gives it. */
 export interface ObjectRow {
   key: string;
   /** The value as text: trimmed, numbers stringified, line breaks of a `|` scalar kept. */
@@ -22,29 +23,21 @@ export interface ObjectRow {
   description: string;
 }
 
-/** A key the block has but its type doesn't define (most often a typo), and its value. */
-export interface UnknownRow {
-  key: string;
-  value: string;
-}
-
 /** A validated object, ready for `GenericObject` to lay out. */
 export interface GenericObjectData {
   /**
    * The type's first property, shown as the card's bold title line. Its value is '' when the
-   * block leaves it blank. Null only for a type with no properties.
+   * object leaves it blank. Null only for a type with no properties.
    */
   title: ObjectRow | null;
   /** The remaining defined properties that have a value, in definition order. */
   rows: ObjectRow[];
-  /** Keys not in the type definition (other than `type`), in block order. */
-  unknown: UnknownRow[];
 }
 
-export type ResolvedObjectBlock =
+export type ResolvedObject =
   /** A valid object of a defined type. */
   | { kind: 'object'; type: string; data: GenericObjectData }
-  /** A defined type whose values don't fit — render the code block plus a hint. */
+  /** A defined type whose values don't fit — render a hint instead of the card. */
   | { kind: 'invalid'; type: string; error: string };
 
 /** The definition of `type`, or undefined. hasOwn: `type: toString` must not find a prototype member. */
@@ -52,86 +45,67 @@ function definitionOf(defs: TypeDefinitions, type: string): TypeDefinition | und
   return Object.hasOwn(defs, type) ? defs[type] : undefined;
 }
 
-/** An unknown key's value as display text. Anything goes here — it isn't validated. */
-function displayValue(raw: unknown): string {
-  if (raw === null || raw === undefined) return '';
-  if (typeof raw === 'string') return raw.trim();
-  if (typeof raw === 'number' || typeof raw === 'bigint' || typeof raw === 'boolean') return String(raw);
-  return JSON.stringify(raw);
+/**
+ * The front matter's object type and its definition, or null when the front matter has no
+ * `type`, its `type` isn't a non-empty string, or it names no defined type (matched exactly —
+ * `Person` is not `person`).
+ */
+function objectTypeOf(props: Record<string, unknown>, defs: TypeDefinitions): { type: string; def: TypeDefinition } | null {
+  // hasOwn, not `props.type`: never read an inherited property off parsed, untrusted data.
+  const raw = Object.hasOwn(props, 'type') ? props['type'] : undefined;
+  if (typeof raw !== 'string') return null;
+  const type = raw.trim();
+  const def = type === '' ? undefined : definitionOf(defs, type);
+  return def ? { type, def } : null;
 }
 
 /**
- * Checks a parsed mapping against a type definition. Every defined property is optional
- * text (see `readTextFields`); a value that isn't text fails with "<key> must be text". A
- * block with none of its type's properties filled in is rejected rather than rendered as an
- * empty card — a freshly inserted block stays code (with a hint) until something is typed.
+ * Checks front matter against a type definition. Every defined property is optional text (see
+ * `readTextFields`); a value that isn't text fails with "<key> must be text". Keys the type
+ * doesn't define are ignored — front matter legitimately holds others (`tags`, `id`, `due`, …).
+ * An object with nothing filled in yet is still valid: its card is titled "Untitled <type>".
  */
 export function parseGenericObject(def: TypeDefinition, data: Record<string, unknown>): ObjectParseResult<GenericObjectData> {
   const keys = Object.keys(def.properties);
   const read = readTextFields(data, keys);
   if (!read.ok) return read;
   const values = read.value;
-  if (keys.length > 0 && Object.keys(values).length === 0) {
-    return { ok: false, error: `needs at least one of ${keys.join(', ')}` };
-  }
 
   const toRow = (key: string): ObjectRow => {
     const prop = def.properties[key]!;
     return { key, value: values[key] ?? '', propertyType: prop.type, description: prop.description };
   };
   const [titleKey, ...rest] = keys;
-  const unknown = Object.keys(data)
-    .filter((key) => key !== 'type' && !Object.hasOwn(def.properties, key))
-    .map((key) => ({ key, value: displayValue(data[key]) }));
 
   return {
     ok: true,
     value: {
       title: titleKey === undefined ? null : toRow(titleKey),
       rows: rest.filter((key) => values[key] !== undefined).map(toRow),
-      unknown,
     },
   };
 }
 
 /**
- * Decides how a fenced code block should render. Returns null for everything that should stay
- * an ordinary code block: a non-YAML language, YAML that isn't a typed mapping, or a `type`
- * that isn't defined.
+ * Decides whether a file's front matter (parsed to a mapping) is an object, and if so how it
+ * renders. Returns null when there is no object: no `type`, or a `type` that isn't defined.
  */
-export function resolveObjectBlock(language: string, code: string, defs: TypeDefinitions): ResolvedObjectBlock | null {
-  const block = parseObjectBlock(language, code);
-  if (!block) return null;
-  const def = definitionOf(defs, block.type);
-  if (!def) return null;
+export function resolveFrontMatterObject(props: Record<string, unknown>, defs: TypeDefinitions): ResolvedObject | null {
+  const found = objectTypeOf(props, defs);
+  if (!found) return null;
 
-  const result = parseGenericObject(def, block.data);
+  const result = parseGenericObject(found.def, props);
   return result.ok
-    ? { kind: 'object', type: block.type, data: result.value }
-    : { kind: 'invalid', type: block.type, error: result.error };
-}
-
-/** A property of an object block that its type does not have. */
-export interface UnknownObjectKey extends KeyRange {
-  /** The block's (defined) type, e.g. "person". */
-  type: string;
+    ? { kind: 'object', type: found.type, data: result.value }
+    : { kind: 'invalid', type: found.type, error: result.error };
 }
 
 /**
- * Finds the properties of an object block that its type doesn't define — most often a typo
- * (`nmae`). Returns nothing for a block whose type isn't defined, including one whose YAML
- * doesn't currently parse.
- *
- * Which keys the block has comes from the real YAML parse; `findTopLevelKeys` only supplies
- * their positions. `type` itself is never reported.
+ * The front-matter keys that belong to the file's object — `type` plus every property its type
+ * defines — or an empty set when the front matter has no object. The property pills leave these
+ * out, since the object's card already shows them.
  */
-export function unknownObjectKeys(language: string, code: string, defs: TypeDefinitions): UnknownObjectKey[] {
-  const block = parseObjectBlock(language, code);
-  if (!block) return [];
-  const def = definitionOf(defs, block.type);
-  if (!def) return [];
-
-  return findTopLevelKeys(code)
-    .filter(({ key }) => key !== 'type' && Object.hasOwn(block.data, key) && !Object.hasOwn(def.properties, key))
-    .map((range) => ({ ...range, type: block.type }));
+export function objectPropertyKeys(props: Record<string, unknown>, defs: TypeDefinitions): Set<string> {
+  const found = objectTypeOf(props, defs);
+  return found ? new Set(['type', ...Object.keys(found.def.properties)]) : new Set();
 }

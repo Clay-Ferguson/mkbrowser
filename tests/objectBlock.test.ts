@@ -1,56 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseObjectBlock, readTextFields } from '../src/shared/objects/objectBlock';
-
-// ---------------------------------------------------------------------------
-// parseObjectBlock
-// ---------------------------------------------------------------------------
-
-describe('parseObjectBlock', () => {
-  it('reads a yaml mapping with a string type', () => {
-    const code = 'type: person\nname: Clay Ferguson';
-    expect(parseObjectBlock('yaml', code)).toEqual({
-      type: 'person',
-      data: { type: 'person', name: 'Clay Ferguson' },
-    });
-  });
-
-  it.each(['yml', 'YAML', 'Yml'])('accepts the %s language tag', (language) => {
-    expect(parseObjectBlock(language, 'type: person')?.type).toBe('person');
-  });
-
-  it('accepts JSON-style flow syntax, which is valid YAML', () => {
-    expect(parseObjectBlock('yaml', '{"type": "person", "name": "Clay"}')).toEqual({
-      type: 'person',
-      data: { type: 'person', name: 'Clay' },
-    });
-  });
-
-  it('trims the type', () => {
-    expect(parseObjectBlock('yaml', 'type: "  person  "')?.type).toBe('person');
-  });
-
-  it.each(['', 'json', 'js', 'mermaid', 'yamlish'])('ignores a "%s" block', (language) => {
-    expect(parseObjectBlock(language, 'type: person')).toBeNull();
-  });
-
-  it.each([
-    ['no type property', 'name: Clay'],
-    ['a numeric type', 'type: 5'],
-    ['a boolean type', 'type: true'],
-    ['a null type', 'type:'],
-    ['a blank type', 'type: "   "'],
-    ['a list type', 'type: [person]'],
-    ['a mapping type', 'type:\n  name: person'],
-    ['a top-level list', '- type: person'],
-    ['a top-level scalar', 'person'],
-    ['an empty block', ''],
-    ['a comment-only block', '# type: person'],
-    ['malformed yaml', 'type: person\n  name: [unclosed'],
-    ['several documents', 'type: person\n---\ntype: person'],
-  ])('returns null for %s', (_label, code) => {
-    expect(parseObjectBlock('yaml', code)).toBeNull();
-  });
-});
+import { findTopLevelKeys, readTextFields } from '../src/shared/objects/objectBlock';
 
 // ---------------------------------------------------------------------------
 // readTextFields
@@ -89,5 +38,46 @@ describe('readTextFields', () => {
 
   it('does not read inherited properties', () => {
     expect(readTextFields({}, ['toString', 'constructor'] as const)).toEqual({ ok: true, value: {} });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// findTopLevelKeys
+// ---------------------------------------------------------------------------
+
+describe('findTopLevelKeys', () => {
+  /** The located keys, each as the exact text its range covers. */
+  const located = (code: string) => findTopLevelKeys(code).map(({ key, from, to }) => [key, code.slice(from, to)]);
+
+  it('locates each key at the start of a line', () => {
+    expect(located('type: person\nname: Clay\nemail:')).toEqual([
+      ['type', 'type'],
+      ['name', 'name'],
+      ['email', 'email'],
+    ]);
+  });
+
+  it('skips indented lines: block scalar bodies, nested mappings and list items', () => {
+    const code = 'address: |\n  street: 1 Main St\n  city: Dallas\nnested:\n  inner: 1\nlist:\n  - a: 1\nlast: x';
+    expect(located(code).map(([key]) => key)).toEqual(['address', 'nested', 'list', 'last']);
+  });
+
+  it('covers the quotes of a quoted key but reports the key without them', () => {
+    expect(located('"full name": Clay\n\'nick\': C')).toEqual([
+      ['full name', '"full name"'],
+      ['nick', "'nick'"],
+    ]);
+  });
+
+  it('allows spaces before the colon and stops at the first colon', () => {
+    expect(located('web site : http://example.com')).toEqual([['web site', 'web site']]);
+  });
+
+  it('ignores comments, blank lines, document markers and flow syntax', () => {
+    expect(located('# note: x\n\n---\n{a: 1}\n- item: 1\nplain text')).toEqual([]);
+  });
+
+  it('does not treat a colon without a following space as a key', () => {
+    expect(located('time:12:30\nurl:http://x')).toEqual([]);
   });
 });

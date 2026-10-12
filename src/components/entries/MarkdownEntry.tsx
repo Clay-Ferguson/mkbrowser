@@ -8,6 +8,7 @@ import type { FileEntry } from '../../global';
 import type { AppView } from '../../shared/types';
 import { splitFrontMatter, getPropsFromYaml } from '../../shared/frontMatterUtil';
 import { getTagsFromYaml } from '../../shared/tagUtil';
+import { CALENDAR_PROPS } from '../../shared/calendarUtil';
 import {
   useAS,
   hasAnyCutItems,
@@ -28,6 +29,10 @@ import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import TagsPicker from '../TagsPicker';
 import PropsDisplay from '../PropsDisplay';
+import ObjectBlock, { InvalidObjectHint } from '../objects/ObjectBlock';
+import GenericObject from '../objects/GenericObject';
+import { isEditClick } from '../blockClickComponents';
+import { resolveFrontMatterObject, objectPropertyKeys } from '../../shared/objects/genericObject';
 import MarkdownView from './MarkdownView';
 import ErrorBoundary from '../ErrorBoundary';
 import { logger } from '../../shared/logUtil';
@@ -86,9 +91,6 @@ async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<v
   }
 }
 
-
-/** Front-matter properties that EditCalendarDialog owns — clicking any of them opens that dialog. */
-const CALENDAR_PROPS = new Set(['due', 'start', 'duration', 'rrule']);
 
 /** The one property whose two pill halves do different things (edit vs. show on the calendar). */
 const DUE_PROP = 'due';
@@ -165,6 +167,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   const showToc = useAS(s => s.settings.showToc);
   const showPropsInEditor = useAS(s => s.settings.showPropsInEditor);
+  // The user-defined object types: the file's front matter may hold an object of one of them.
+  const typeDefs = useAS(s => s.typeDefs);
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const { aiEnabled, selectedPromptName, tagsVisible, setTagsVisible } = useAiConfig();
 
@@ -450,6 +454,11 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       setShowCalendarDialog(true);
       return;
     }
+    openFrontMatterAt(key);
+  };
+
+  /** Opens the editor with the front matter shown and the cursor on the `key:` line (if there is one). */
+  const openFrontMatterAt = (key: string): void => {
     if (edit.isEditing) {
       // Already in the editor — just reveal the front matter. Calling handleEditClick here would
       // re-seed the edit buffer from disk and throw away any unsaved changes.
@@ -511,15 +520,44 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // tag pills are dropped here to avoid showing them twice (property pills still show).
   const pickerShowing = edit.isEditing && !reviewing && tagsVisible;
   const pillTags = pickerShowing ? [] : meta.tags;
-  const propsDisplay = (pillTags.length > 0 || Object.keys(meta.props).filter(k => k !== 'id').length > 0) ? (
+
+  // The file's object (see DEVELOPER_GUIDE § "Typed Objects"): a front matter whose `type:` names a
+  // user-defined type. Its card shows the object's properties, so they are left out of the pills.
+  const frontMatterObject = resolveFrontMatterObject(meta.props, typeDefs);
+  const objectKeys = objectPropertyKeys(meta.props, typeDefs);
+  const pillProps = objectKeys.size > 0
+    ? Object.fromEntries(Object.entries(meta.props).filter(([key]) => !objectKeys.has(key)))
+    : meta.props;
+
+  const propsDisplay = (pillTags.length > 0 || Object.keys(pillProps).filter(k => k !== 'id').length > 0) ? (
     <PropsDisplay
       tags={pillTags}
-      props={meta.props}
+      props={pillProps}
       onTagClick={clickOnTag}
       onPropClick={clickOnProp}
       onPropValueClick={clickOnPropValue}
       propValueTitle={propValueTitle}
     />
+  ) : null;
+
+  // A click on the object's card (other than on a link) opens the editor with the front matter
+  // shown and the cursor on the card's title property, as a click on its pill would.
+  const handleObjectMouseUp = (e: React.MouseEvent) => {
+    if (!isEditClick(e)) return;
+    e.stopPropagation();
+    openFrontMatterAt(frontMatterObject?.kind === 'object' ? (frontMatterObject.data.title?.key ?? 'type') : 'type');
+  };
+
+  // Shown in view mode only, between the pills and the Markdown; while editing, the object is
+  // its front-matter YAML. An object whose values don't fit its type shows why instead of a card.
+  const objectCard = frontMatterObject?.kind === 'object' ? (
+    <ObjectBlock type={frontMatterObject.type} source={content} onMouseUp={handleObjectMouseUp}>
+      <GenericObject type={frontMatterObject.type} data={frontMatterObject.data} />
+    </ObjectBlock>
+  ) : frontMatterObject?.kind === 'invalid' ? (
+    <div className="mb-4" onMouseUp={handleObjectMouseUp}>
+      <InvalidObjectHint type={frontMatterObject.type} error={frontMatterObject.error} />
+    </div>
   ) : null;
 
   // During an in-place AI review (the CodeMirror unified merge view inside the live editor) the
@@ -584,6 +622,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
           ) : (
             <>
               {propsDisplay}
+              {objectCard}
               <ErrorBoundary label="markdown content" resetKeys={[content]}>
                 <MarkdownView
                   content={content || ''}

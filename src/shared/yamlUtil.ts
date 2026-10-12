@@ -1,4 +1,4 @@
-import { load } from 'js-yaml';
+import { dump, load, visit } from 'js-yaml';
 
 /**
  * True when a YAML string holds no document at all — empty, whitespace only, or
@@ -30,4 +30,26 @@ function isEmptyYamlDocument(yamlStr: string): boolean {
 export function loadYaml(yamlStr: string): unknown {
   if (isEmptyYamlDocument(yamlStr)) return undefined;
   return load(yamlStr);
+}
+
+const NULL_TAG = 'tag:yaml.org,2002:null';
+
+/**
+ * `js-yaml`'s `dump()` for front matter: no line wrapping, and a null value is written as
+ * nothing at all (`name:`) instead of `name: null`.
+ *
+ * An inserted object leaves its properties blank (`name: `), which parses to null. Without
+ * this, the next rewrite of the front matter (a tag edit, a calendar save, …) would spell
+ * every one of them out as `null`. Both forms load back as null, so nothing else changes.
+ * Use this for every front-matter write.
+ */
+export function dumpYaml(value: unknown): string {
+  return dump(value, {
+    lineWidth: -1,
+    transform: (documents) => {
+      visit(documents, (node) => {
+        if (node.kind === 'scalar' && node.tag === NULL_TAG) node.value = '';
+      });
+    },
+  });
 }

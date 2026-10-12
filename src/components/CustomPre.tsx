@@ -4,11 +4,6 @@ import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon } from '@heroicons/re
 import { logger } from '../shared/logUtil';
 import { nodeToString } from '../renderer/reactUtil';
 import { BUTTON_CLASS_CODE_COPY } from '../renderer/styles';
-import { resolveObjectBlock } from '../shared/objects/genericObject';
-import { useAS } from '../store';
-import ObjectBlock, { InvalidObjectHint } from './objects/ObjectBlock';
-import GenericObject from './objects/GenericObject';
-import { useBlockEditClick } from './blockClickComponents';
 
 /**
  * Custom <pre> renderer for react-markdown that adds a copy-to-clipboard button.
@@ -18,25 +13,15 @@ import { useBlockEditClick } from './blockClickComponents';
  * the copy button without duplicating the <pre> tag. Mermaid blocks suppress the
  * copy button since the diagram is an SVG, not copyable source text. Plain (untagged)
  * pre blocks get a normal <pre> with the copy button overlaid.
- *
- * This is also where typed object blocks are dispatched: a `yaml` block whose `type` names a
- * user-defined type (Types Editor; see shared/objects/genericObject.ts) renders as a
- * `GenericObject` card instead of as code. Subscribing to `typeDefs` here re-renders the
- * affected blocks as soon as a type is saved. The decision is made here rather than in CustomCode because <pre> owns the whole
- * block — wrapper and copy button included — so the YAML is parsed once, in one place.
  */
 // `node` is react-markdown's internal hast node; destructure it out so it isn't
 // spread onto the DOM <pre> element (React warns on unknown DOM props).
-export default function CustomPre({ children, node, ...props }: React.HTMLAttributes<HTMLPreElement> & ExtraProps) {
+export default function CustomPre({ children, node: _node, ...props }: React.HTMLAttributes<HTMLPreElement> & ExtraProps) {
   const [copied, setCopied] = useState(false);
-  const typeDefs = useAS(s => s.typeDefs);
   // Pending "Copied!" reset, tracked so a repeat click restarts the 2s window (instead of
   // the earlier click's timer cutting it short) and so unmount cancels it.
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(copiedTimerRef.current), []);
-  // Object cards open the editor at their first property line (the one after the opening
-  // fence) rather than falling through to the entry's generic click-to-edit (which has no line).
-  const handleObjectMouseUp = useBlockEditClick((node?.position?.start.line ?? 0) + 2);
 
   const codeElement = children as React.ReactElement;
   const codeProps = codeElement?.props as { className?: string; children?: React.ReactNode } | undefined;
@@ -44,9 +29,8 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
   const language = languageMatch?.[1] ?? '';
   const hasLanguage = !!languageMatch;
   const isMermaid = language === 'mermaid';
-  // The block's source text: what the copy button copies, and what an object block is parsed from.
+  // The block's source text: what the copy button copies.
   const codeText = nodeToString(codeProps?.children).replace(/\n$/, '');
-  const objectBlock = hasLanguage ? resolveObjectBlock(language, codeText, typeDefs) : null;
 
   // Writes the block's source text to the clipboard.
   // Stops propagation so the click doesn't bubble to the parent entry and trigger edit mode.
@@ -84,21 +68,11 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
     </button>
   );
 
-  if (objectBlock?.kind === 'object') {
-    return (
-      <ObjectBlock type={objectBlock.type} source={codeText} onMouseUp={handleObjectMouseUp}>
-        <GenericObject type={objectBlock.type} data={objectBlock.data} />
-      </ObjectBlock>
-    );
-  }
-
   if (hasLanguage) {
     return (
       <div className="relative group not-prose mb-4">
         {children}
         {!isMermaid && copyButton}
-        {/* A defined object type whose values don't fit: still code, plus the reason why. */}
-        {objectBlock?.kind === 'invalid' && <InvalidObjectHint type={objectBlock.type} error={objectBlock.error} />}
       </div>
     );
   }

@@ -101,8 +101,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [Naming Rules](#naming-rules)
   * [Inserting an Object into a Document](#inserting-an-object-into-a-document)
   * [How Objects Are Displayed](#how-objects-are-displayed)
-    * [Misspelled or Unknown Properties](#misspelled-or-unknown-properties)
-    * [When a Block Shows as Code Instead of a Card](#when-a-block-shows-as-code-instead-of-a-card)
+    * [When There Is No Card](#when-there-is-no-card)
   * [Changing a Type Later](#changing-a-type-later)
 * [AI Chat](#ai-chat)
   * [Chat Thread View](#chat-thread-view)
@@ -295,7 +294,7 @@ If the path contains spaces, the link target is wrapped in angle brackets (stand
 
 ### Inserting Objects
 
-Right-click in the editor of a Markdown file and choose **Insert Object ▸** to insert an empty record of one of your custom types (a contact, a book, …) at the cursor. See [Objects and Custom Types](#objects-and-custom-types).
+Right-click in the editor of a Markdown file and choose **Insert Object ▸** to turn the file into a record of one of your custom types (a contact, a book, …): the type's empty properties are added to the file's front matter. See [Objects and Custom Types](#objects-and-custom-types).
 
 ### Editor Keyboard Shortcuts
 
@@ -1003,7 +1002,7 @@ What ends up in the output folder:
 - Hidden files and folders (names starting with `.`) and anything matching your **Ignored Paths** setting are left out.
 - Inside a **Document Mode** folder (one with an `.INDEX.yaml`), every file and subfolder is renamed with an ordinal prefix that follows the document's order (`Intro.md` → `0001_Intro.html`, `Chapter 1` → `0002_Chapter 1`, …). This keeps the document order in any plain folder listing (a file manager, or Google Drive after uploading the export). Pages, index pages and breadcrumbs still show the original names, and every link is rewritten to the prefixed names. Other folders keep their names unchanged.
 
-Pages render much as they do in MkBrowser: tables, task lists, callouts, math, `|||` columns, and object blocks of your custom types (see **Types Editor**) all carry over. Links between your Markdown files are rewritten to point at the matching `.html` pages (heading links like `Plan.md#goals` included), links to folders go to that folder's index page, and images and other linked files point at their copies. Links to anything outside the exported folder are left as written.
+Pages render much as they do in MkBrowser: tables, task lists, callouts, math, `|||` columns, and the object cards of your custom types (see [Objects and Custom Types](#objects-and-custom-types)) all carry over. Links between your Markdown files are rewritten to point at the matching `.html` pages (heading links like `Plan.md#goals` included), links to folders go to that folder's index page, and images and other linked files point at their copies. Links to anything outside the exported folder are left as written.
 
 The exported pages are fully self-contained and work offline, so code blocks — including Mermaid diagrams — appear as plain, unhighlighted text.
 
@@ -1031,7 +1030,7 @@ MkBrowser renders Markdown using **GitHub Flavored Markdown (GFM)**, which inclu
 - **Wikilinks** — `[[filename]]` and `[[filename|alias]]` syntax for linking between files (see [Wikilinks](#wikilinks) below).
 - **Syntax highlighting** — fenced code blocks with a language tag (e.g., ` ```python `) are rendered with syntax colors.
 - **Mermaid diagrams** — fenced code blocks tagged ` ```mermaid ` are rendered as diagrams.
-- **Objects** — fenced ` ```yaml ` blocks with a `type:` line that names one of your custom types are rendered as cards (see [Objects and Custom Types](#objects-and-custom-types)).
+- **Objects** — a file whose front matter has a `type:` naming one of your custom types shows that object as a card above its content (see [Objects and Custom Types](#objects-and-custom-types)).
 - **Escaped dollar signs** — use `\$` to display a literal `$` without triggering math mode.
 
 ## Column Layout (`|||`)
@@ -1121,12 +1120,12 @@ This course costs $99.
 
 # Objects and Custom Types
 
-MkBrowser lets you put structured records — a contact, a book, a piece of equipment, anything you like — directly inside your Markdown notes, and shows each one as a neat **card** instead of raw text. You decide what kinds of records exist and what information each one holds by defining your own **types**. Nothing is built in: you design the types that suit your notes.
+MkBrowser lets you turn a Markdown note into a structured record — a contact, a book, a piece of equipment, anything you like — and shows that record as a neat **card** at the top of the note. You decide what kinds of records exist and what information each one holds by defining your own **types**. Nothing is built in: you design the types that suit your notes.
 
-An object is simply a YAML code block with a `type:` line. For example, once you have defined a `person` type, this block in a Markdown file:
+An object lives in the file's **front matter** (the `---` block at the very top of the file): a `type:` line naming the type, plus the type's properties. For example, once you have defined a `person` type, a file starting like this:
 
-````markdown
-```yaml
+```markdown
+---
 type: person
 name: Clay Ferguson
 birthday: 1980-05-12
@@ -1135,12 +1134,17 @@ email: clay@example.com
 address: |
   1 Main St
   Dallas, TX 75001
+tags:
+  - friend
+---
+Met at the 2024 conference. Prefers email.
 ```
-````
 
-is displayed as a card titled **Clay Ferguson**, with each of the other values on its own labeled line. The email address opens a new message, and the address opens a map.
+shows a card titled **Clay Ferguson**, with each of the other values on its own labeled line, above the rest of the note. The email address opens a new message, and the address opens a map.
 
-Because an object is ordinary YAML inside an ordinary code block, your files stay plain, portable Markdown: any other editor or Markdown viewer just shows the YAML text.
+**A file holds at most one object.** The note's body is free-form: write whatever you like around the record.
+
+Because an object is just front matter, your files stay plain, portable Markdown: any other editor or Markdown viewer shows the YAML properties (or hides them, as most do with front matter). The object's properties sit alongside the file's other front-matter properties, such as `tags`, `id`, or calendar dates, without getting in their way.
 
 ## Defining Your Own Types (Types Editor)
 
@@ -1214,28 +1218,36 @@ Type names and property names:
 - are case-sensitive (`Person` and `person` are different types);
 - must be unique — no two types with the same name, and no two properties with the same name within one type.
 
-The property name `type` is reserved, because every object block already uses `type:` to say which type it is.
+Because an object's properties live in the front matter, a few property names are **reserved** for the front-matter properties MkBrowser already uses, and can't be used in a type:
+
+| Reserved name | Already used for |
+|---------------|------------------|
+| `type` | Saying which type the object is |
+| `id` | The file's ID, used to keep links working when files move |
+| `tags` | The file's hashtags |
+| `due`, `start`, `duration`, `rrule` | [Calendar](#calendar) dates and repeats |
 
 ## Inserting an Object into a Document
 
-You can type an object block by hand, but the easiest way is to let MkBrowser insert an empty one for you:
+You can type an object's properties into the front matter by hand, but the easiest way is to let MkBrowser add them for you:
 
-1. Open a Markdown file for editing and place the cursor where the object should go.
-2. **Right-click** inside the editor and choose **Insert Object ▸**.
+1. Open a Markdown file for editing.
+2. **Right-click** anywhere inside the editor and choose **Insert Object ▸**.
 3. The menu changes to a list of your types (each shown by its description; hover over an item to see the type's name). Click the type you want.
 
-MkBrowser inserts a YAML block containing the `type:` line followed by every property name of that type with an empty value, in the order you arranged them, and places the cursor on the first property so you can start typing. For a `person` type it looks like this:
+MkBrowser adds the `type:` line followed by every property name of that type with an empty value, in the order you arranged them, at the **top of the file's front matter** (creating the front matter if the file has none). Where the cursor was doesn't matter. The front matter is shown in the editor (the same as clicking the **Show properties** button), and the cursor is placed on the first property so you can start typing. For a `person` type, a file that only had an `id` ends up looking like this:
 
-````markdown
-```yaml
+```markdown
+---
 type: person
 name: 
 birthday: 
 cell_phone: 
 email: 
 address: 
+id: 2a7c19
+---
 ```
-````
 
 Fill in the values you know and leave the rest empty — empty properties are simply not shown on the card. To give a property a value spanning several lines (an address, for instance), write `|` after the colon and put the lines underneath, indented:
 
@@ -1245,48 +1257,43 @@ address: |
   Dallas, TX 75001
 ```
 
+**When Insert Object refuses.** Nothing in the file is changed, and a message explains why, when:
+
+- the file **already holds an object** (its front matter already has a `type:` with a value) — a file can hold only one object;
+- the front matter already has a **value** for one of the type's properties — for example, the file already has `name: Clay` and you insert a `person`. The message lists every such property; remove or rename them, then try again. (A property that is already there but **empty** is fine: it is left where it is and becomes part of the object.)
+- the front matter isn't valid YAML, or isn't written as one `key: value` per line.
+
 **Insert Object** appears only when editing Markdown files, and only once at least one type has been defined.
 
 ## How Objects Are Displayed
 
-When you view the file, each object block whose `type:` names one of your types is drawn as a card:
+When you view a file whose front matter's `type:` names one of your types, its object is drawn as a card at the top of the file, just below the property and tag pills and above the rest of the content:
 
 - The **type name** appears in small capitals in the card's top-right corner.
 - The value of the type's **first property** is the bold title. If it is empty, the card is titled "Untitled *type*".
-- Every other property that has a value follows on its own line: an icon for its property type (if it has one), the property name, and the value — in the order defined in the Types Editor, regardless of the order in the block. Hover over a line to see the property's description.
-- Email, address, and URL values are links (see [Property Types](#property-types)). Clicking anywhere else on the card opens the file for editing, just as clicking any other content does.
+- Every other property that has a value follows on its own line: an icon for its property type (if it has one), the property name, and the value — in the order defined in the Types Editor, regardless of the order in the front matter. Hover over a line to see the property's description.
+- Email, address, and URL values are links (see [Property Types](#property-types)). Clicking anywhere else on the card opens the editor with the front matter shown and the cursor on the object's title property.
 
-Cards are shown only inside MkBrowser. When a file is [exported](#exporting) to HTML, its objects appear as their YAML code.
+The object's properties (and its `type`) are left out of the property pills, since the card already shows them. The file's other front-matter properties — tags, calendar dates, anything else — still show as pills as usual. That includes a misspelled property: if you type `nmae` instead of `name`, it appears as an ordinary `nmae` pill rather than on the card, which is a good hint to fix the spelling.
 
-### Misspelled or Unknown Properties
+Cards also appear in the [HTML folder export](#exporting), at the top of each exported page.
 
-If an object block contains a property its type doesn't define — usually a typo such as `nmae` instead of `name` — nothing is hidden from you:
+A YAML code block (` ```yaml `) in the body of a file is always displayed as ordinary code, even if it has a `type:` line — only the front matter can hold an object.
 
-- On the **card**, the unknown property is listed at the bottom, with its name in **orange**.
-- In the **editor**, its name has an amber wavy underline; hover over it to see which type it doesn't belong to.
+### When There Is No Card
 
-Fix the spelling (or add the property to the type in the Types Editor) and the warning goes away.
+A file shows no card when its front matter has no `type:`, or its `type:` doesn't match any of your types (check the spelling and capitalization — `Person` and `person` are different types).
 
-### When a Block Shows as Code Instead of a Card
-
-A YAML block is displayed as ordinary code when:
-
-- its `type:` doesn't match any of your types (check the spelling and capitalization), or
-- it isn't valid YAML, or it is not tagged as `yaml` (or `yml`).
-
-If the type *does* match but the block can't be shown as a card, it stays as code with a short amber note underneath explaining why:
-
-- **"… must be text"** — a property's value is a list or a nested set of values instead of plain text.
-- **"needs at least one of …"** — none of the type's properties has a value yet. This is normal for an object you have just inserted; it becomes a card as soon as you fill in a value.
+If the type *does* match but a value can't be shown — a property's value is a list or a nested set of values instead of plain text — a short amber note is shown in place of the card, explaining which property is the problem (for example, **"Invalid person: address must be text"**).
 
 ## Changing a Type Later
 
 You can edit your types at any time, and every document using them is displayed according to the new definition:
 
 - **Added properties** are simply absent from existing objects until you add them.
-- **Renamed or deleted properties** — existing objects still contain the old name, which is then shown in orange as an unknown property. Update those objects (with **Replace in Files**, for example) if you want them to match.
+- **Renamed or deleted properties** — existing objects still contain the old name in their front matter, which is then shown as an ordinary property pill instead of on the card. Update those files (with **Replace in Files**, for example) if you want them to match.
 - **Reordering** properties changes the order lines appear on every card, and which property is used as the title.
-- **Deleting a type** makes its object blocks display as plain YAML code again. Your files are never modified, so defining the type again brings the cards back.
+- **Deleting a type** removes its cards: the properties show as ordinary property pills instead. Your files are never modified, so defining the type again brings the cards back.
 
 # AI Chat
 

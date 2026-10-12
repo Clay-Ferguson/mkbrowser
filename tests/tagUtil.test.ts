@@ -167,6 +167,11 @@ describe('insertTagIntoText', () => {
     expect(insertTagIntoText('hello world', 'foo')).toBe('---\ntags:\n  - foo\n---\nhello world');
   });
 
+  it('keeps blank properties (an inserted object\'s) blank rather than writing `null`', () => {
+    expect(insertTagIntoText('---\ntype: person\nname: \n---\nBody', 'foo'))
+      .toBe('---\ntype: person\nname:\ntags:\n  - foo\n---\nBody');
+  });
+
 
   it('inserts a tag name into a new front matter block', () => {
     expect(insertTagIntoText('body', 'cooking')).toBe('---\ntags:\n  - cooking\n---\nbody');

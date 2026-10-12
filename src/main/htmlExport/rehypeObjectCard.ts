@@ -1,41 +1,29 @@
 import type { Element, ElementContent, Root } from 'hast';
-import type { PropertyType, TypeDefinitions } from '../../shared/shared';
-import { resolveObjectBlock } from '../../shared/objects/genericObject';
-import type { GenericObjectData, ObjectRow } from '../../shared/objects/genericObject';
+import type { PropertyType } from '../../shared/shared';
+import type { GenericObjectData, ObjectRow, ResolvedObject } from '../../shared/objects/genericObject';
 import { buildEmailUrl, buildMapUrl, buildPhoneUrl, buildWebUrl } from '../../shared/objects/objectUrls';
-import { classesOf, h, textOf, walkElements } from './hastUtil';
+import { h } from './hastUtil';
 
 /**
- * Rehype plugin for the folder HTML export: renders typed object blocks (a fenced
- * `yaml` block whose `type` is defined in the Types Editor) as static cards. The
- * block is classified by `resolveObjectBlock`, the same function the app's CustomPre
- * uses, and the card mirrors the app's ObjectBlock + GenericObject layout: the type
- * caption, a bold title line, then bulleted name / value rows, with keys the type
- * doesn't define listed last. A block whose values don't fit its type stays a code
- * block, followed by the same "Invalid <type>: …" hint the app shows.
+ * Rehype plugin for the folder HTML export: renders the page's object (its front matter, when
+ * the front matter's `type` is defined in the Types Editor) as a static card at the top of the
+ * page. The object is resolved by the caller with `resolveFrontMatterObject`, the same function
+ * the app's MarkdownEntry uses, and the card mirrors the app's ObjectBlock + GenericObject
+ * layout: the type caption, a bold title line, then bulleted name / value rows. An object whose
+ * values don't fit its type gets the same "Invalid <type>: …" hint the app shows instead.
  *
  * With `collapsible`, the title and rows go inside a `<details>` within the card's
  * border: the title is the `<summary>`, so the rows stay hidden until it is clicked.
+ *
+ * Use it on the page's first column only — the front matter belongs to the page, not a column.
  */
-export function rehypeObjectBlocks(typeDefs: TypeDefinitions, collapsible = false) {
+export function rehypeObjectCard(object: ResolvedObject | null, collapsible = false) {
   return (tree: Root) => {
-    walkElements(tree, (el, parent, index) => {
-      if (el.tagName !== 'pre') return;
-      const code = el.children.find((c): c is Element => c.type === 'element' && c.tagName === 'code');
-      if (!code) return;
-      const language = classesOf(code).find((c) => c.startsWith('language-'))?.slice('language-'.length);
-      if (!language) return;
-
-      const resolved = resolveObjectBlock(language, textOf(code).replace(/\n$/, ''), typeDefs);
-      if (resolved?.kind === 'object') {
-        parent.children[index] = objectCard(resolved.type, resolved.data, collapsible);
-      } else if (resolved?.kind === 'invalid') {
-        // A sibling after the block, not a wrapper around it: the walk descends into
-        // whatever sits at `index`, and a wrapper would bring this <pre> round again.
-        const hint = h('div', { className: ['invalid-object-hint'] }, [`Invalid ${resolved.type}: ${resolved.error}`]);
-        parent.children.splice(index + 1, 0, hint);
-      }
-    });
+    if (!object) return;
+    const el = object.kind === 'object'
+      ? objectCard(object.type, object.data, collapsible)
+      : h('div', { className: ['invalid-object-hint'] }, [`Invalid ${object.type}: ${object.error}`]);
+    tree.children.unshift(el, { type: 'text', value: '\n' });
   };
 }
 
@@ -83,8 +71,8 @@ function propertyRow(prop: ObjectRow): Element {
  * the `<summary>` of a `<details>` holding the rows; a card with no rows has nothing to
  * hide, so it keeps the plain layout rather than showing a toggle that opens onto nothing.
  */
-function objectCard(type: string, { title, rows, unknown }: GenericObjectData, collapsible: boolean): Element {
-  const hasRows = rows.length > 0 || unknown.length > 0;
+function objectCard(type: string, { title, rows }: GenericObjectData, collapsible: boolean): Element {
+  const hasRows = rows.length > 0;
   const titleTag = collapsible && hasRows ? 'summary' : 'div';
   const titleText = title?.value
     ? h(titleTag, { className: ['object-title'], title: title.description || title.key }, [title.value])
@@ -94,13 +82,7 @@ function objectCard(type: string, { title, rows, unknown }: GenericObjectData, c
   if (!hasRows) {
     children.push(titleText);
   } else {
-    const rowsEl = h('div', { className: ['object-rows'] }, onePerLine([
-      ...rows.map(propertyRow),
-      ...unknown.map(({ key, value }) => row(
-        h('span', { className: ['object-label', 'object-unknown'], title: `"${key}" is not a ${type} property` }, [key]),
-        h('span', { className: ['object-value'] }, [value]),
-      )),
-    ]));
+    const rowsEl = h('div', { className: ['object-rows'] }, onePerLine(rows.map(propertyRow)));
     if (collapsible) {
       children.push(h('details', {}, onePerLine([titleText, rowsEl])));
     } else {

@@ -2,7 +2,7 @@ import type { TypeDefinitions } from '../../src/shared/shared';
 
 /**
  * A user-defined `person` type equivalent to the old built-in Person object (same seven
- * properties, same order), for tests that render or validate object blocks. `email` and
+ * properties, same order), for tests that render or validate objects. `email` and
  * `address` carry their property types; everything else is plain text.
  */
 export const PERSON_DEFS: TypeDefinitions = {

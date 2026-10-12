@@ -278,6 +278,11 @@ describe('setFrontMatterProperty', () => {
     expect(result).toBe('---\ntitle: hi\nduration: 2\n---\nBody.');
   });
 
+  it('keeps blank properties blank (not `null`) when rewriting the block', () => {
+    const result = setFrontMatterProperty('---\ntype: person\nname: \nemail:\n---\nBody.', 'due', '1/1/2027');
+    expect(result).toBe('---\ntype: person\nname:\nemail:\ndue: 1/1/2027\n---\nBody.');
+  });
+
   it('creates a front matter block when none exists', () => {
     const result = setFrontMatterProperty('Just body text.', 'due', '1/1/2027');
     expect(result).toBe('---\ndue: 1/1/2027\n---\nJust body text.');

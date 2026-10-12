@@ -6,7 +6,7 @@
  * The inverse of `splitFile` in `splitUtil.ts`.
  */
 
-import { dump } from 'js-yaml';
+import { dumpYaml } from '../shared/yamlUtil';
 import { parseFrontMatter, splitFrontMatter } from '../shared/frontMatterUtil';
 import { isMarkdownFile } from '../shared/fileTypes';
 import { getFileName, getParentPath } from './pathUtil';
@@ -31,7 +31,7 @@ function prepareMarkdownForAppend(filePath: string, rawContent: string): string 
   // useless ```yaml {} ``` fence between every joined part.
   if (Object.keys(rest).length === 0) return content;
 
-  const yamlStr = dump(rest, { lineWidth: -1 }).trimEnd();
+  const yamlStr = dumpYaml(rest).trimEnd();
   const fencedBlock = '```yaml\n' + yamlStr + '\n```\n';
   return fencedBlock + content;
 }

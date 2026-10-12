@@ -76,14 +76,13 @@ function PropertyRow({ row }: { row: ObjectRow }) {
 }
 
 /**
- * Card body for an object block of any user-defined type. The type's first property is the
+ * Card body for a file's object, of any user-defined type. The type's first property is the
  * bold title line; the other properties that have a value follow as icon / name / value rows in
- * definition order. Keys the type doesn't define (usually typos) are listed last with the name
- * in orange, so nothing in the block is silently dropped. A click anywhere but a link opens the
- * editor.
+ * definition order. Other front-matter keys aren't part of the object and stay in the property
+ * pills. A click anywhere but a link opens the editor.
  */
 export default function GenericObject({ type, data }: { type: string; data: GenericObjectData }) {
-  const { title, rows, unknown } = data;
+  const { title, rows } = data;
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
@@ -96,16 +95,9 @@ export default function GenericObject({ type, data }: { type: string; data: Gene
           <span className="text-base italic text-slate-400">Untitled {type}</span>
         )}
       </div>
-      {(rows.length > 0 || unknown.length > 0) && (
+      {rows.length > 0 && (
         <div className="grid grid-cols-[1rem_auto_minmax(0,1fr)] items-start gap-x-2 gap-y-1.5 text-sm">
           {rows.map((row) => <PropertyRow key={row.key} row={row} />)}
-          {unknown.map(({ key, value }) => (
-            <div key={`unknown-${key}`} className="contents" data-testid="object-unknown-property">
-              <span />
-              <span className="whitespace-nowrap text-orange-400" title={`"${key}" is not a ${type} property`}>{key}</span>
-              <span className={PLAIN_VALUE_CLASS}>{value}</span>
-            </div>
-          ))}
         </div>
       )}
     </div>

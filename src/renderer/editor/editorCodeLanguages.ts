@@ -10,8 +10,7 @@ const yamlLanguage = StreamLanguage.define(yaml);
  * Languages highlighted inside a Markdown document's fenced code blocks, keyed by the fence's
  * info string (the word after the opening ```), lower-cased.
  *
- * YAML is here because typed object blocks (see DEVELOPER_GUIDE § "Typed Object Blocks") are
- * edited as YAML: colouring keys apart from values makes a block read as fields and values.
+ * YAML is here so a YAML block reads as fields and values: keys are coloured apart from them.
  */
 const FENCED_CODE_LANGUAGES = new Map<string, Language>([
   ['yaml', yamlLanguage],
