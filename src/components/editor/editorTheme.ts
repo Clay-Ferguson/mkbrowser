@@ -9,6 +9,12 @@ export const FONT_SIZE_MAP: Record<FontSize, string> = {
   xlarge: '18px',
 };
 
+// Inset between the editor's edges and its text. Hosts render the editor flush against their
+// edges (so the scrollbars sit on the border rather than floating inside padding), and this
+// stands in for the padding they dropped. Matches the entry body's `px-6 py-4` — the 18px
+// sides plus CodeMirror's stock 6px/2px `.cm-line` padding make 24px.
+const EDITOR_CONTENT_INSET = '16px 22px 16px 18px';
+
 // Font-size / base theme for CodeMirrorEditor. Returns a fresh theme so callers can swap it
 // in a compartment when the font-size setting changes.
 export function createFontSizeTheme(fontSize: FontSize) {
@@ -32,6 +38,7 @@ export function createFontSizeTheme(fontSize: FontSize) {
     },
     '.cm-content': {
       caretColor: 'white',
+      padding: EDITOR_CONTENT_INSET,
     },
     '&.cm-focused': {
       outline: 'none',

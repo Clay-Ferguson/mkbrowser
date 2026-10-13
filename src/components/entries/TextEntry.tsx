@@ -22,7 +22,7 @@ import {
   type AttachMenuProps,
 } from './common';
 import { getTextFileLanguage } from '../../shared/fileTypes';
-import { ENTRY_CONTENT_AREA, ENTRY_LOADING } from '../../renderer/styles';
+import { ENTRY_CONTENT_AREA, ENTRY_BODY_BORDER, ENTRY_CONTENT_BG_APP, ENTRY_LOADING } from '../../renderer/styles';
 
 
 type TextEntryProps = BaseEntryProps & AttachMenuProps;
@@ -118,7 +118,9 @@ function TextEntry(props: TextEntryProps) {
         headerRight={headerRight}
         className={maximized ? 'flex-1 min-h-0 flex flex-col' : undefined}
       >
-        <div className={clsx(ENTRY_CONTENT_AREA, maximized && 'flex-1 min-h-0 flex flex-col')}>
+        {/* Unpadded once the editor shows, so its scrollbars sit flush against the body's
+            border; the editor insets its own text (see editorTheme.ts). */}
+        <div className={clsx(loading && !content ? ENTRY_CONTENT_AREA : [ENTRY_BODY_BORDER, ENTRY_CONTENT_BG_APP], maximized && 'flex-1 min-h-0 flex flex-col')}>
           {loading && !content ? (
             <div className={ENTRY_LOADING}>Loading...</div>
           ) : edit.isEditing ? (

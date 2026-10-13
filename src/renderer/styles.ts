@@ -351,6 +351,14 @@ export const SHOW_MARKDOWN_BORDER = false;
 /** MarkdownEntry's body: ENTRY_CONTENT_AREA, minus the border when SHOW_MARKDOWN_BORDER is off. */
 export const MARKDOWN_CONTENT_AREA = SHOW_MARKDOWN_BORDER ? ENTRY_CONTENT_AREA : ENTRY_CONTENT_PADDING;
 /**
+ * Body of an entry that is showing a CodeMirror editor: MARKDOWN_CONTENT_AREA without the
+ * padding, so the editor's scrollbars sit flush against the body's edges instead of floating
+ * inside it. The editor pads its own text to match (EDITOR_CONTENT_INSET in editorTheme.ts).
+ */
+export const MARKDOWN_EDIT_AREA = SHOW_MARKDOWN_BORDER ? ENTRY_BODY_BORDER : '';
+/** Keeps the props/tags rows above a flush editor (MARKDOWN_EDIT_AREA) at the usual inset. */
+export const MARKDOWN_EDIT_HEADER = 'px-6 pt-4';
+/**
  * Feature flag: draw a visible 1px border around the CodeMirror editor (gray idle, blue while
  * focused). Off, the border stays in place but transparent, so the editor blends into the
  * page and toggling this never shifts the layout. The amber AI-review border always shows.

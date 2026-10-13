@@ -55,7 +55,7 @@ import {
   type BaseEntryProps,
   type AttachMenuProps,
 } from './common';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, MARKDOWN_CONTENT_AREA, ENTRY_CONTENT_BG_APP, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN, ENTRY_EDITOR_ICON_BTN_ACTIVE } from '../../renderer/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, MARKDOWN_CONTENT_AREA, MARKDOWN_EDIT_AREA, MARKDOWN_EDIT_HEADER, ENTRY_CONTENT_BG_APP, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN, ENTRY_EDITOR_ICON_BTN_ACTIVE } from '../../renderer/styles';
 
 
 interface MarkdownEntryProps extends BaseEntryProps, AttachMenuProps {
@@ -584,7 +584,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         className={maximized ? 'flex-1 min-h-0 flex flex-col' : undefined}
       >
         <div
-          className={clsx(MARKDOWN_CONTENT_AREA, ENTRY_CONTENT_BG_APP, maximized && 'flex-1 min-h-0 flex flex-col')}
+          className={clsx(edit.isEditing ? MARKDOWN_EDIT_AREA : MARKDOWN_CONTENT_AREA, ENTRY_CONTENT_BG_APP, maximized && 'flex-1 min-h-0 flex flex-col')}
           // onMouseDown feeds the scrollbar check: dragging a code block's scrollbar
           // must not count as a click-to-edit (see scrollbarPress.ts).
           onMouseDown={!edit.isEditing ? trackScrollbarPress : undefined}
@@ -594,8 +594,12 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             <div className={ENTRY_LOADING}>Loading...</div>
           ) : edit.isEditing ? (
             <>
-              {!reviewing && propsDisplay}
-              {pickerShowing && <TagsPicker filePath={entry.path} />}
+              {((!reviewing && propsDisplay) || pickerShowing) && (
+                <div className={MARKDOWN_EDIT_HEADER}>
+                  {!reviewing && propsDisplay}
+                  {pickerShowing && <TagsPicker filePath={entry.path} />}
+                </div>
+              )}
               <CodeMirrorEditor
                 ref={editorRef}
                 onReady={handleEditorReady}
