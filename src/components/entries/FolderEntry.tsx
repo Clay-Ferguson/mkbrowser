@@ -106,9 +106,7 @@ function FolderEntry(props: FolderEntryProps) {
             <span className="flex-1" />
           </>
         )}
-        {isRenaming ? (
-          <div className="flex-shrink-0" />
-        ) : (
+        {isRenaming ? null : (
           <>
             <EntryActionBar
               path={entry.path}
