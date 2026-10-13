@@ -351,6 +351,14 @@ export const SHOW_MARKDOWN_BORDER = false;
 /** MarkdownEntry's body: ENTRY_CONTENT_AREA, minus the border when SHOW_MARKDOWN_BORDER is off. */
 export const MARKDOWN_CONTENT_AREA = SHOW_MARKDOWN_BORDER ? ENTRY_CONTENT_AREA : ENTRY_CONTENT_PADDING;
 /**
+ * Feature flag: draw a visible 1px border around the CodeMirror editor (gray idle, blue while
+ * focused). Off, the border stays in place but transparent, so the editor blends into the
+ * page and toggling this never shifts the layout. The amber AI-review border always shows.
+ */
+export const SHOW_EDITOR_BORDER = false;
+/** CodeMirrorEditor container's border color outside of AI review (see SHOW_EDITOR_BORDER). */
+export const EDITOR_BORDER = SHOW_EDITOR_BORDER ? 'border-slate-600 focus-within:border-blue-500' : 'border-transparent';
+/**
  * Markdown body background: the app's own background (App.tsx's `bg-slate-900`) rather
  * than ENTRY_OUTER_EXPANDED's gray, so rendered Markdown reads as if drawn directly on
  * the page. Applied to the body only, so the header bar keeps its usual tint.

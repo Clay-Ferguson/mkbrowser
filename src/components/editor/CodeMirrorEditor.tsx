@@ -29,7 +29,7 @@ import { EditorContextMenu } from './EditorContextMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import { createFontSizeTheme } from './editorTheme';
 import { logger } from '../../shared/logUtil';
-import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN, BUTTON_CLASS_SM_NEUTRAL } from '../../renderer/styles';
+import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN, BUTTON_CLASS_SM_NEUTRAL, EDITOR_BORDER } from '../../renderer/styles';
 
 // Debounce window for the onChange callback. Collapses rapid keystroke bursts (e.g. speech-to-text
 // or held keys) into a single store update without a perceptible lag.
@@ -157,15 +157,20 @@ const searchMatchTheme = EditorView.theme({
 });
 
 const cursorOverrideTheme = EditorView.theme({
+  // Replaces one-dark's stock #282c34 background (editor body and gutter) with the app's own
+  // background (App.tsx's `bg-slate-900`), so the editor reads as drawn directly on the page.
+  '&, & .cm-gutters': {
+    backgroundColor: 'var(--color-slate-900) !important',
+  },
   '& .cm-cursor, & .cm-dropCursor': {
     borderLeftColor: 'white !important',
     borderLeftWidth: '3px !important',
   },
   '& .cm-activeLine': {
-    backgroundColor: 'rgba(255, 255, 255, 0.15) !important',
+    backgroundColor: 'rgba(255, 255, 255, 0.10) !important',
   },
   '& .cm-activeLineGutter': {
-    backgroundColor: 'rgba(255, 255, 255, 0.15) !important',
+    backgroundColor: 'rgba(255, 255, 255, 0.10) !important',
   },
   '& .cm-selectionBackground, &.cm-focused .cm-selectionBackground, & .cm-content ::selection': {
     backgroundColor: '#1d4ed8 !important',
@@ -952,7 +957,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   return (
     <div
       ref={containerRef}
-      className={`relative w-full border ${reviewing ? 'border-amber-600' : 'border-slate-600 focus-within:border-blue-500'} overflow-hidden flex flex-col${fillHeight ? ' flex-1 min-h-0' : ''}`}
+      className={`relative w-full border ${reviewing ? 'border-amber-600' : EDITOR_BORDER} overflow-hidden flex flex-col${fillHeight ? ' flex-1 min-h-0' : ''}`}
       style={
         fillHeight
           ? ({ '--cm-max-height': '100%', '--cm-height': '100%' } as CSSProperties)
