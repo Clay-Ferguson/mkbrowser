@@ -299,8 +299,14 @@ export const ENTRY_HIGHLIGHTED = 'border-2 border-purple-500 relative z-10';
 export const HOVER_REVEAL = 'opacity-0 pointer-events-none [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:pointer-events-auto group-hover:[transition:opacity_200ms_ease_400ms]';
 /** Replaces HOVER_REVEAL to keep the buttons shown regardless of hover (e.g. while their popup menu is open). */
 export const HOVER_REVEAL_PINNED = 'opacity-100 pointer-events-auto';
+/**
+ * Padding of an entry header row. Its height is this plus the tallest child — the
+ * SIZE_ICON action buttons — so any other list row carrying those same buttons
+ * (e.g. SearchResultsView's result rows) uses this to come out the same height.
+ */
+export const ENTRY_HEADER_ROW_PADDING = 'px-2 py-0.5';
 /** Layout half of the entry header row, shared by its normal and drop-target states. */
-const ENTRY_HEADER_ROW_LAYOUT = 'flex items-center gap-3 px-2 py-0.5 transition-colors';
+const ENTRY_HEADER_ROW_LAYOUT = `flex items-center gap-3 ${ENTRY_HEADER_ROW_PADDING} transition-colors`;
 /** Hover background for every list row: file headers, FolderEntry rows and IndexTreeView rows. */
 export const ROW_HOVER = 'hover:bg-neutral-700';
 export const ENTRY_HEADER_ROW = `${ENTRY_HEADER_ROW_LAYOUT} bg-blue-800/50 ${ROW_HOVER}`;

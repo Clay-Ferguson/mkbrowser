@@ -25,7 +25,7 @@ import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilde
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
 import type { CalendarSource } from '../../shared/types';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, ENTRY_HEADER_ROW_PADDING, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import FileTypeIcon from '../FileTypeIcon';
 import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
@@ -322,12 +322,17 @@ function SearchResultsView() {
               // without changing the shared borders between rows.
               const highlightClass = highlighted
                 ? 'outline-2 -outline-offset-2 outline-purple-500' : '';
+              // The horizontal dividers are inset shadows rather than borders so
+              // they take no layout space, keeping each row exactly the height of
+              // a Browse-view entry header (see ENTRY_HEADER_ROW_PADDING). The
+              // side borders are kept: they add width, not height.
+              const dividerClass = 'shadow-[inset_0_1px_0_var(--color-slate-700)] last:shadow-[inset_0_1px_0_var(--color-slate-700),inset_0_-1px_0_var(--color-slate-700)]';
 
               return (
               <div
                 key={result.path}
                 onClick={() => handleResultClick(result.path, result.isDirectory === true)}
-                className={`group bg-slate-800/50 hover:bg-slate-700/60 border-x border-t last:border-b border-slate-700 ${highlightClass} px-2 py-1.5 transition-colors cursor-pointer`}
+                className={`group bg-slate-800/50 hover:bg-slate-700/60 border-x border-slate-700 ${dividerClass} ${highlightClass} ${ENTRY_HEADER_ROW_PADDING} transition-colors cursor-pointer`}
               >
                 <div className="flex items-center gap-2">
                   {/* Folder or file-type icon */}
