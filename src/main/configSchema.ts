@@ -134,16 +134,20 @@ const nonNegNumber = z.preprocess(coerceNonNegativeNumber, z.number());
 //     is silently stripped on the next save until the schema is updated.
 
 /**
- * Legacy migration: saved searches once stored the target (content/filenames)
- * as `searchTarget` and the match type (literal/wildcard/advanced) as
- * `searchMode`. Move them to `target` / `matchType` and drop the old keys, which
- * `.loose()` would otherwise carry forward on every save. A value already under
- * the new key wins.
+ * Legacy migration: saved searches once stored the match type
+ * (literal/wildcard/advanced) as `searchMode`; move it to `matchType`. A value
+ * already under the new key wins.
+ *
+ * The search target was once a single enum (`target`, earlier `searchTarget`:
+ * 'content' | 'filenames'), since replaced by the `searchContents` /
+ * `searchNames` booleans. Those old keys are not converted — a definition
+ * lacking the booleans just reads back as a File Contents search — but they are
+ * dropped here, since `.loose()` would otherwise carry them forward on every save.
  */
 function migrateLegacySearchKeys(value: unknown): unknown {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return value;
-  const { searchTarget, searchMode, ...rest } = value as Record<string, unknown>;
-  return { target: searchTarget, matchType: searchMode, ...rest };
+  const { searchTarget, target, searchMode, ...rest } = value as Record<string, unknown>;
+  return { matchType: searchMode, ...rest };
 }
 
 // Enum defaults mirror the Search dialog defaults (newSearchDefinition in shared/searchHelpers.ts).
@@ -154,7 +158,8 @@ const SearchDefinitionSchema = z.preprocess(migrateLegacySearchKeys, z
     // encoded as a `{{nl}}` token. They are now stored with real newlines (YAML
     // handles multi-line strings), so decode any old tokens on load.
     searchText: z.string().transform((s) => s.replace(/\{\{nl\}\}/g, '\n')),
-    target: z.enum(['content', 'filenames']).catch('content'),
+    searchContents: z.boolean().catch(true),
+    searchNames: z.boolean().catch(false),
     matchType: z.enum(['literal', 'wildcard', 'advanced']).catch('literal'),
     sortBy: z.enum(['modified-time', 'created-time', 'file-name']).catch('modified-time'),
     sortDirection: z.enum(['asc', 'desc']).catch('desc'),

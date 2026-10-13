@@ -13,8 +13,6 @@ export type ImageCols = 1 | 2 | 3 | 4;
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 /** Folder tree sidebar visibility and width options. */
 export type IndexTreeWidth = 'hidden' | 'narrow' | 'medium' | 'wide';
-/** What a search looks at: file contents (plus names), or file and folder names only. */
-export type SearchTarget = 'content' | 'filenames';
 /** How the query is matched: plain text, `*` wildcards, or a JavaScript expression. */
 export type SearchMatchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
@@ -80,7 +78,11 @@ export interface ImageDimensions {
 export interface SearchDefinition {
   name: string;
   searchText: string;
-  target: SearchTarget;
+  /** Whether to match the query against file contents ("File Contents" checkbox). */
+  searchContents: boolean;
+  /** Whether to match the query against file names ("File Names" checkbox). Alone,
+   *  it also matches folder names; see searchFolderWithTotal for the combinations. */
+  searchNames: boolean;
   matchType: SearchMatchType;
   sortBy: SearchSortBy;
   /** Ascending (oldest first) or descending (newest first). */
@@ -342,7 +344,7 @@ export interface SearchResult {
    * contents were never read — matchCount counts occurrences within the file name
    * rather than the body. The results view shows "name match" instead of a count. */
   nameMatch?: boolean;
-  /** Set when the result is a folder (only 'filenames' mode returns folders). */
+  /** Set when the result is a folder (only a names-only search returns folders). */
   isDirectory?: boolean;
 }
 

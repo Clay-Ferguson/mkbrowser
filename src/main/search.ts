@@ -4,15 +4,19 @@
  * This module implements folder-level search across .md and .txt files,
  * supporting literal, wildcard, and advanced (JavaScript expression) search types.
  *
- * Two search targets ("Search Target" in the Search dialog):
- *  - 'content' — "File Contents+Names": a file is a hit when the query matches its
- *    NAME *or* its CONTENTS. Contents are only read for .md/.txt (plus images when
- *    searchImageExif is on), but the *name* half covers every file extension —
- *    except under mostRecent/calendarItemsOnly, where both halves run inside a
- *    window drawn from those content files only. The name test is pure CPU, so it
- *    runs first and short-circuits: a name-matched file is never read. Folders are
+ * What is searched is set by two independent flags (the "Search Target"
+ * checkboxes in the Search dialog), giving three useful combinations:
+ *  - searchContents only — "File Contents": a file is a hit when the query matches
+ *    its CONTENTS. Contents are only read for .md/.txt (plus images when
+ *    searchImageExif is on).
+ *  - searchContents + searchNames — a file is a hit when the query matches its
+ *    NAME *or* its CONTENTS. The *name* half covers every file extension — except
+ *    under mostRecent/calendarItemsOnly, where both halves run inside a window
+ *    drawn from the content files only. The name test is pure CPU, so it runs
+ *    first and short-circuits: a name-matched file is never read. Folders are
  *    never matched in this mode.
- *  - 'filenames' — "File Names": names only, but including folder names.
+ *  - searchNames only — "File Names": names only, but including folder names.
+ * With neither flag set there is nothing to search, so the search returns no results.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -83,8 +87,8 @@ const EXIF_IMAGE_EXTENSIONS = new Set([
 ]);
 
 /**
- * True if a file's *contents* are searchable in 'content' mode. The name half of
- * that mode deliberately does NOT consult this — every extension can match by
+ * True if a file's *contents* are searchable in a contents search. The name half
+ * of a contents+names search deliberately does NOT consult this — every extension can match by
  * name. Shared by the crawl filter and the candidate partition so the two can
  * never disagree about what "readable" means.
  */
@@ -108,11 +112,11 @@ export interface SearchResult {
   matchCount: number;
   modifiedTime?: number;
   createdTime?: number;
-  /** Set (in 'content' mode only) when this file matched on its NAME, meaning its
+  /** Set (in a contents+names search only) when this file matched on its NAME, meaning its
    * contents were never read — so matchCount counts occurrences within the file
    * name, not within the body. The renderer shows "name match" rather than a count. */
   nameMatch?: boolean;
-  /** Set when the result is a folder (only 'filenames' mode returns folders). */
+  /** Set when the result is a folder (only a names-only search returns folders). */
   isDirectory?: boolean;
 }
 
@@ -259,11 +263,11 @@ export function createMatchPredicate(
 }
 
 /**
- * Predicate for a Wild Card search in the File Names target: a glob over the
+ * Predicate for a Wild Card search of file names only: a glob over the
  * WHOLE name, where `*` matches any number of characters — `*.md` matches names
  * ending in .md (not `notes.md.bak`), `report*` names starting with "report".
- * Case-insensitive. Content wildcards (and the name half of a File
- * Contents+Names search) stay unanchored substring matches; see
+ * Case-insensitive. Content wildcards (and the name half of a contents+names
+ * search) stay unanchored substring matches; see
  * createMatchPredicate.
  */
 export function createFileNameGlobPredicate(pattern: string): (name: string) => MatchResult {
@@ -478,19 +482,20 @@ export type SearchFolderOptions = Partial<Omit<SearchDefinition, 'name' | 'searc
  * @param query        - Search text or JavaScript expression (empty = match everything)
  * @param options      - Every field is optional and defaults to the Search dialog's default:
  * - `matchType` — 'literal' | 'wildcard' | 'advanced'
- * - `target` — 'content' (file bodies OR file names — see the module header;
- *   the name half is skipped for 'advanced', which stays content-only) or 'filenames'
- *   (file *and folder* names only)
+ * - `searchContents` / `searchNames` — what the query is matched against (see
+ *   the module header). Default: contents only. Contents + names matches file
+ *   bodies OR file names, but the name half is skipped for 'advanced', which stays
+ *   content-only; names alone matches file *and folder* names. Neither: no results.
  * - `ignoredPaths` — path patterns to exclude (supports wildcards)
  * - `searchImageExif` — whether to include image files and search their EXIF metadata
  * - `mostRecent` — whether to limit search to the 500 most recently modified files.
- *   In 'content' mode those are the 500 newest content files (.md/.txt, plus images
- *   with searchImageExif), and both name and content matching run inside that set;
- *   in 'filenames' mode, the 500 newest files and folders.
+ *   In a contents search those are the 500 newest content files (.md/.txt, plus
+ *   images with searchImageExif), and both name and content matching run inside
+ *   that set; in a names-only search, the 500 newest files and folders.
  * - `calendarItemsOnly` — whether to restrict the search to calendar files (markdown
  *   with a parseable `due:` front-matter property). Applied *before* the mostRecent trim,
  *   and it also makes searchImageExif moot since an image can never be a calendar file.
- *   Ignored in 'filenames' mode (the Search dialog disables the option there).
+ *   Ignored in a names-only search (the Search dialog disables the option there).
  * - `sortBy` — result order (see compareSearchResults); decides which
  *   results survive the cap
  * - `sortDirection` — 'asc' or 'desc'
@@ -505,7 +510,8 @@ export async function searchFolderWithTotal(
   query: string,
   {
     matchType = 'literal',
-    target = 'content',
+    searchContents = true,
+    searchNames = false,
     ignoredPaths = [],
     searchImageExif = false,
     mostRecent = false,
@@ -516,6 +522,7 @@ export async function searchFolderWithTotal(
   }: SearchFolderOptions = {},
 ): Promise<{ results: SearchResult[]; totalMatches: number }> {
   signal?.throwIfAborted();
+  if (!searchContents && !searchNames) return { results: [], totalMatches: 0 };
   // fdir's withAbortSignal needs a real signal; one that never aborts stands in.
   const abortSignal = signal ?? new AbortController().signal;
   const yamlCache: YamlCache = new Map();
@@ -524,7 +531,7 @@ export async function searchFolderWithTotal(
   const hasQuery = query.trim().length > 0;
   const basePredicate: ((content: string, filePath?: string) => MatchResult) | null = !hasQuery
     ? null
-    : target === 'filenames' && matchType === 'wildcard'
+    : !searchContents && matchType === 'wildcard'
       ? createFileNameGlobPredicate(query)
       : createMatchPredicate(query, matchType, yamlCache);
 
@@ -548,8 +555,8 @@ export async function searchFolderWithTotal(
     return result;
   });
 
-  if (target === 'filenames') {
-    // Search file and folder names
+  if (!searchContents) {
+    // Names only: search file and folder names
     const filesApi = new fdir()
       .withFullPaths()
       .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
@@ -635,14 +642,15 @@ export async function searchFolderWithTotal(
       if (r) results.push(r);
     }
   } else {
-    // "File Contents+Names": match on the file NAME or the file CONTENTS.
+    // Match on the file CONTENTS, plus — when searchNames is also on — the file
+    // NAME (a file is a hit if either matches).
     //
     // The name half applies to literal/wildcard queries only. An 'advanced' query
     // is a JavaScript expression written against file content: evaluating it
     // against a bare filename is meaningless for prop()/the date helpers, and a
     // negated expression (e.g. !$("draft")) would match nearly every file in the
     // tree. So advanced searches are content-only.
-    const nameMatchActive = matchPredicate !== null && matchType !== 'advanced';
+    const nameMatchActive = searchNames && matchPredicate !== null && matchType !== 'advanced';
 
     // The candidate set is narrowed to a "window" when calendarItemsOnly or
     // mostRecent is on, and BOTH halves of the search — name and content — then

@@ -27,7 +27,7 @@ interface SearchDialogProps {
 /**
  * The full search dialog: a left panel of saved search definitions
  * (SearchDefinitionsPanel) and a right panel of search options — the query, the
- * target (file contents vs. names), the match type (literal/wildcard/advanced),
+ * target (file contents and/or names), the match type (literal/wildcard/advanced),
  * the EXIF / recent-files / calendar-items-only toggles, and result sorting. The
  * form edits one SearchDefinition, which it can run (onSearch — which never
  * saves, even when the search is named), save under its name (onSave, the Save
@@ -42,7 +42,9 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const [def, setDef] = useState(() =>
     initialSearchDefinition(initialDefinition, globalHighlight.getGlobalHighlightText())
   );
-  const { name: searchName, searchText: searchQuery, matchType, target, sortBy, sortDirection } = def;
+  const { name: searchName, searchText: searchQuery, matchType, searchContents, searchNames, sortBy, sortDirection } = def;
+  /** Neither target is checked, so there is nothing to search. */
+  const noTarget = !searchContents && !searchNames;
   const searchImageExif = def.searchImageExif ?? false;
   const mostRecent = def.mostRecent ?? false;
   const calendarItemsOnly = def.calendarItemsOnly ?? false;
@@ -70,7 +72,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
   const handleSearch = () => {
     const query = searchQuery.trim();
-    if (!query && !mostRecent) return;
+    if ((!query && !mostRecent) || noTarget) return;
 
     // The highlighter matches within single DOM text nodes, so it can't match
     // across a line break; highlight the query with its newlines flattened.
@@ -130,7 +132,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               {matchType === 'advanced'
                 ? 'JavaScript expression'
                 : matchType === 'wildcard'
-                  ? (target === 'filenames'
+                  ? (!searchContents
                       ? 'File name pattern (* matches any characters; must match the whole name)'
                       : 'Search text (use * as wildcard, matches up to 25 characters)')
                   : 'Search text'}
@@ -143,7 +145,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               data-testid="search-query-input"
               rows={4}
               className={`w-full ${DLG_INPUT_CLASS_BASE} font-mono resize-none border-slate-600 focus:border-blue-500 min-h-[80px]`}
-              placeholder={matchType === 'advanced' ? 'Functions: $, tag, prop, past, future, today' : matchType === 'wildcard' ? (target === 'filenames' ? '*.md' : 'intro*duction') : 'Enter search text...'}
+              placeholder={matchType === 'advanced' ? 'Functions: $, tag, prop, past, future, today' : matchType === 'wildcard' ? (!searchContents ? '*.md' : 'intro*duction') : 'Enter search text...'}
             />
 
             <div className="flex items-center gap-6 mb-3 mt-3">
@@ -152,7 +154,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 checked={searchImageExif}
                 onChange={set('searchImageExif')}
                 // Images can never be calendar items, so the two are mutually exclusive.
-                disabled={target === 'filenames' || calendarItemsOnly}
+                disabled={!searchContents || calendarItemsOnly}
                 testId="search-image-exif"
                 inputClassName={SEARCH_CHECKBOX_CLASS}
               />
@@ -169,25 +171,36 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 onChange={set('calendarItemsOnly')}
                 // Calendar-ness is a front-matter property, so it only means
                 // something for a content search (see searchFolder, which
-                // likewise ignores the flag in filenames mode).
-                disabled={target === 'filenames'}
+                // likewise ignores the flag in a names-only search).
+                disabled={!searchContents}
                 testId="search-calendar-items-only"
                 inputClassName={SEARCH_CHECKBOX_CLASS}
               />
             </div>
 
-            <RadioGroup
-              legend="Search Target"
-              name="target"
-              value={target}
-              onChange={set('target')}
-              className="mb-3"
-              inputClassName={SEARCH_RADIO_CLASS}
-              options={[
-                { value: 'content', label: 'File Contents+Names', testId: 'search-mode-content' },
-                { value: 'filenames', label: 'File Names', testId: 'search-mode-filenames' },
-              ]}
-            />
+            <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
+              <legend className="text-xs text-slate-400 px-2">Search Target</legend>
+              <div className="flex items-center gap-6">
+                <CheckboxField
+                  label="File Contents"
+                  checked={searchContents}
+                  onChange={set('searchContents')}
+                  testId="search-target-contents"
+                  inputClassName={SEARCH_CHECKBOX_CLASS}
+                />
+                <CheckboxField
+                  label="File Names"
+                  checked={searchNames}
+                  onChange={set('searchNames')}
+                  testId="search-target-names"
+                  inputClassName={SEARCH_CHECKBOX_CLASS}
+                />
+              </div>
+              {/* Folders are only matched by a names-only search (see searchFolder). */}
+              <p className="text-xs text-slate-500 mt-2">
+                Choose &apos;File Names&apos; by itself to include folder names in the search.
+              </p>
+            </fieldset>
 
             <RadioGroup
               legend="Search Mode"
@@ -232,23 +245,26 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             </div>
 
             <p className="text-xs text-slate-500 mt-2">
-              {/* Scope sentence — what gets searched. The 'content' target matches
-                  file names as well as contents, but only for literal/wildcard: an
-                  advanced expression is JavaScript evaluated against file content,
-                  so it never matches names (in the 'filenames' target it is applied
-                  to the name instead, which is why that branch comes first). */}
-              {target === 'filenames' ? (
+              {/* Scope sentence — what gets searched. With File Names also checked, a
+                  contents search matches file names too, but only for
+                  literal/wildcard: an advanced expression is JavaScript evaluated
+                  against file content, so it never matches names there (in a
+                  names-only search it is applied to the name instead, which is why
+                  that branch comes first). */}
+              {noTarget ? (
+                <>Check File Contents, File Names, or both to choose what to search.</>
+              ) : !searchContents ? (
                 <>Searches file and folder names recursively (case-insensitive).</>
-              ) : matchType === 'advanced' ? (
+              ) : searchNames && matchType === 'advanced' ? (
                 <>Searches file contents only — advanced expressions never match file names.</>
               ) : calendarItemsOnly ? (
-                <>Searches only calendar items — .md files with a <code className="bg-slate-700 px-1 rounded">due:</code> front matter property — matching their contents or their file name (case-insensitive).</>
+                <>Searches only calendar items — .md files with a <code className="bg-slate-700 px-1 rounded">due:</code> front matter property — matching their contents{searchNames && ' or their file name'} (case-insensitive).</>
               ) : searchImageExif ? (
-                <>Searches the contents of .md, .txt, and image EXIF metadata, plus every file name, recursively (case-insensitive).</>
+                <>Searches the contents of .md, .txt, and image EXIF metadata{searchNames && ', plus every file name,'} recursively (case-insensitive).</>
               ) : (
-                <>Searches the contents of .md and .txt files, plus every file name, recursively (case-insensitive).</>
+                <>Searches the contents of .md and .txt files{searchNames && ', plus every file name,'} recursively (case-insensitive).</>
               )}
-              {matchType === 'wildcard' && (target === 'filenames' ? (
+              {matchType === 'wildcard' && !noTarget && (!searchContents ? (
                 <> The pattern must match the whole name: <code className="bg-slate-700 px-1 rounded">*.md</code> finds names ending in .md, <code className="bg-slate-700 px-1 rounded">report*</code> names starting with &quot;report&quot;.</>
               ) : (
                 <> Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters.</>
@@ -278,7 +294,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 <button
                   type="button"
                   onClick={handleSearch}
-                  disabled={!searchQuery.trim() && !mostRecent}
+                  disabled={(!searchQuery.trim() && !mostRecent) || noTarget}
                   data-testid="execute-search-button"
                   className={BUTTON_CLASS_DLG_BLUE}
                 >

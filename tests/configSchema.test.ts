@@ -111,7 +111,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const good = {
       name: 'recent',
       searchText: 'foo',
-      target: 'content',
+      searchContents: true,
+      searchNames: false,
       matchType: 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',
@@ -130,7 +131,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const legacy = {
       name: 'TODOs - Today',
       searchText: "prop('tags')?.includes('todo')",
-      target: 'content',
+      searchContents: true,
+      searchNames: false,
       matchType: 'advanced',
       sortBy: 'line-time',
       sortDirection: 'desc',
@@ -155,7 +157,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const legacy = {
       name: 'legacy',
       searchText: 'foo',
-      target: 'content',
+      searchContents: true,
+      searchNames: false,
       matchType: 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',
@@ -171,7 +174,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const def = {
       name: 'cal',
       searchText: 'standup',
-      target: 'content',
+      searchContents: true,
+      searchNames: false,
       matchType: 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',
@@ -187,7 +191,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const legacy = {
       name: 'multi',
       searchText: "$('a') &&{{nl}}$('b'){{nl}}{{nl}}|| $('c')",
-      target: 'content',
+      searchContents: true,
+      searchNames: false,
       matchType: 'advanced',
       sortBy: 'modified-time',
       sortDirection: 'desc',
@@ -200,7 +205,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const def = {
       name: 'multi',
       searchText: 'line one\nline two',
-      target: 'content',
+      searchContents: true,
+      searchNames: false,
       matchType: 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',
@@ -209,7 +215,7 @@ describe('parseConfigYaml — settings tolerance', () => {
     expect(cfg?.settings?.searchDefinitions?.[0]).toEqual(def);
   });
 
-  it('migrates the legacy searchTarget/searchMode keys to target/matchType', () => {
+  it('migrates the legacy searchMode key to matchType and drops the old target keys', () => {
     const legacy = {
       name: 'names',
       searchText: '*.md',
@@ -219,32 +225,62 @@ describe('parseConfigYaml — settings tolerance', () => {
       sortDirection: 'asc',
     };
     const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [legacy] } });
-    // The old keys are gone (not carried forward by the loose schema).
+    // The old keys are gone (not carried forward by the loose schema), and the
+    // old target is not converted: the definition reads back as a File Contents search.
     expect(cfg?.settings?.searchDefinitions).toEqual([{
       name: 'names',
       searchText: '*.md',
-      target: 'filenames',
+      searchContents: true,
+      searchNames: false,
       matchType: 'wildcard',
       sortBy: 'file-name',
       sortDirection: 'asc',
     }]);
   });
 
-  it('prefers target/matchType over legacy keys when both are present', () => {
+  it('drops the old target enum and defaults to a File Contents search', () => {
+    const def = {
+      name: 'old',
+      searchText: 'foo',
+      target: 'filenames',
+      matchType: 'literal',
+      sortBy: 'modified-time',
+      sortDirection: 'desc',
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
+    const saved = cfg?.settings?.searchDefinitions?.[0] as unknown as Record<string, unknown>;
+    expect(saved).toMatchObject({ searchContents: true, searchNames: false });
+    expect(saved).not.toHaveProperty('target');
+  });
+
+  it('round-trips the searchContents/searchNames flags', () => {
+    const def = {
+      name: 'names',
+      searchText: 'readme',
+      searchContents: false,
+      searchNames: true,
+      matchType: 'literal',
+      sortBy: 'modified-time',
+      sortDirection: 'desc',
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
+    expect(cfg?.settings?.searchDefinitions?.[0]).toEqual(def);
+  });
+
+  it('prefers matchType over the legacy searchMode key when both are present', () => {
     const def = {
       name: 'both',
       searchText: 'foo',
-      target: 'content',
+      searchContents: true,
+      searchNames: true,
       matchType: 'advanced',
-      searchTarget: 'filenames',
       searchMode: 'wildcard',
       sortBy: 'modified-time',
       sortDirection: 'desc',
     };
     const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
     const saved = cfg?.settings?.searchDefinitions?.[0] as unknown as Record<string, unknown>;
-    expect(saved).toMatchObject({ target: 'content', matchType: 'advanced' });
-    expect(saved).not.toHaveProperty('searchTarget');
+    expect(saved).toMatchObject({ matchType: 'advanced' });
     expect(saved).not.toHaveProperty('searchMode');
   });
 
@@ -252,7 +288,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const def = {
       name: 'X',
       searchText: 'foo',
-      target: 'content',
+      searchContents: true,
+      searchNames: false,
       matchType: 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',

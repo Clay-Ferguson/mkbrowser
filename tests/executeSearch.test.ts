@@ -26,7 +26,8 @@ function deferred<T>() {
 const def = (searchText: string): SearchDefinition => ({
   name: '',
   searchText,
-  target: 'content',
+  searchContents: true,
+  searchNames: false,
   matchType: 'literal',
   sortBy: 'modified-time',
   sortDirection: 'desc',

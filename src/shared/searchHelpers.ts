@@ -53,7 +53,8 @@ export function newSearchDefinition(searchText = ''): SearchDefinition {
   return {
     name: '',
     searchText,
-    target: 'content',
+    searchContents: true,
+    searchNames: false,
     matchType: 'literal',
     sortBy: 'modified-time',
     sortDirection: 'desc',

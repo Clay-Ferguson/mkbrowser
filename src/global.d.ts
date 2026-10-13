@@ -4,7 +4,6 @@ export type {
   FontSize,
   SortOrder,
   ContentWidth,
-  SearchTarget,
   SearchMatchType,
   SearchSortBy,
   SearchSortDirection,
