@@ -367,6 +367,12 @@ export const SHOW_EDITOR_BORDER = false;
 /** CodeMirrorEditor container's border color outside of AI review (see SHOW_EDITOR_BORDER). */
 export const EDITOR_BORDER = SHOW_EDITOR_BORDER ? 'border-slate-600 focus-within:border-blue-500' : 'border-transparent';
 /**
+ * Top border the CodeMirror editor draws while the tags picker sits above it, marking where the
+ * editor's scrolled content is clipped and separating it from the picker. Overrides EDITOR_BORDER's
+ * top edge only; the amber AI-review border still wins while reviewing.
+ */
+export const EDITOR_TOP_DIVIDER = 'border-t-2 border-t-slate-500';
+/**
  * Markdown body background: the app's own background (App.tsx's `bg-slate-900`) rather
  * than ENTRY_OUTER_EXPANDED's gray, so rendered Markdown reads as if drawn directly on
  * the page. Applied to the body only, so the header bar keeps its usual tint.

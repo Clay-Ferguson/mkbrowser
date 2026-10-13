@@ -619,6 +619,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                 onSelectionChange={setHasSelection}
                 showPropsInEditor={showPropsInEditor || reviewing}
                 fillHeight={maximized}
+                showTopBorder={pickerShowing}
                 fileName={entry.name}
                 {...chrome.reviewProps}
               />

@@ -29,7 +29,7 @@ import { EditorContextMenu } from './EditorContextMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import { createFontSizeTheme } from './editorTheme';
 import { logger } from '../../shared/logUtil';
-import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN, BUTTON_CLASS_SM_NEUTRAL, EDITOR_BORDER } from '../../renderer/styles';
+import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN, BUTTON_CLASS_SM_NEUTRAL, EDITOR_BORDER, EDITOR_TOP_DIVIDER } from '../../renderer/styles';
 
 // Debounce window for the onChange callback. Collapses rapid keystroke bursts (e.g. speech-to-text
 // or held keys) into a single store update without a perceptible lag.
@@ -232,6 +232,12 @@ interface CodeMirrorEditorProps {
    */
   fillHeight?: boolean;
   /**
+   * If true, draw a visible top border (EDITOR_TOP_DIVIDER) even when the rest of the editor's
+   * border is hidden — set while the tags picker is shown above the editor, so the line marks
+   * where scrolled content is clipped and separates the editor from the picker.
+   */
+  showTopBorder?: boolean;
+  /**
    * Called when the user plainly clicks the text of a read-only view — i.e. a left click inside
    * the content DOM (so scrollbar clicks never fire it) that was not a drag and left no text
    * selected. Receives the 1-based line number clicked, so the caller can open the editor there.
@@ -368,7 +374,7 @@ function applyPostMountFocus(
  * (value, fontSize, showPropsInEditor, reviewText) are applied through separate effects or
  * compartments so that undo history, cursor position, and the async spell checker are preserved.
  */
-function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSaveKeepEditing, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, onReady, fillHeight = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSaveKeepEditing, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, onReady, fillHeight = false, showTopBorder = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -957,7 +963,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   return (
     <div
       ref={containerRef}
-      className={`relative w-full border ${reviewing ? 'border-amber-600' : EDITOR_BORDER} overflow-hidden flex flex-col${fillHeight ? ' flex-1 min-h-0' : ''}`}
+      className={`relative w-full border ${reviewing ? 'border-amber-600' : EDITOR_BORDER}${showTopBorder && !reviewing ? ` ${EDITOR_TOP_DIVIDER}` : ''} overflow-hidden flex flex-col${fillHeight ? ' flex-1 min-h-0' : ''}`}
       style={
         fillHeight
           ? ({ '--cm-max-height': '100%', '--cm-height': '100%' } as CSSProperties)
