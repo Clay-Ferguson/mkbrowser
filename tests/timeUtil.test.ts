@@ -362,31 +362,31 @@ describe('getDaysFromToday', () => {
 });
 
 describe('formatDaysDisplay', () => {
-  it('returns "(today)" for 0', () => {
-    expect(formatDaysDisplay(0)).toBe('(today)');
+  it('returns "today" for 0', () => {
+    expect(formatDaysDisplay(0)).toBe('today');
   });
 
-  it('formats a single day with singular noun', () => {
-    expect(formatDaysDisplay(1)).toBe('+(1 day)');
-    expect(formatDaysDisplay(-1)).toBe('-(1 day)');
+  it('returns "tomorrow" / "yesterday" for +1 / -1', () => {
+    expect(formatDaysDisplay(1)).toBe('tomorrow');
+    expect(formatDaysDisplay(-1)).toBe('yesterday');
   });
 
-  it('formats small day counts with plural noun and sign', () => {
-    expect(formatDaysDisplay(5)).toBe('+(5 days)');
-    expect(formatDaysDisplay(-3)).toBe('-(3 days)');
-    expect(formatDaysDisplay(30)).toBe('+(30 days)');
+  it('formats small day counts with plural noun and ago/away suffix', () => {
+    expect(formatDaysDisplay(5)).toBe('5 days away');
+    expect(formatDaysDisplay(-3)).toBe('3 days ago');
+    expect(formatDaysDisplay(30)).toBe('30 days away');
   });
 
   it('breaks values >= 31 days into years/months/days', () => {
     // 365 + 60 + 5 = 430 days -> 1y 2m 5d
-    expect(formatDaysDisplay(430)).toBe('+(1y 2m 5d)');
-    expect(formatDaysDisplay(-430)).toBe('-(1y 2m 5d)');
+    expect(formatDaysDisplay(430)).toBe('1y 2m 5d away');
+    expect(formatDaysDisplay(-430)).toBe('1y 2m 5d ago');
   });
 
   it('omits zero-valued components', () => {
-    expect(formatDaysDisplay(365)).toBe('+(1y)'); // exactly one year
-    expect(formatDaysDisplay(60)).toBe('+(2m)'); // exactly two 30-day months
-    expect(formatDaysDisplay(31)).toBe('+(1m 1d)');
+    expect(formatDaysDisplay(365)).toBe('1y away'); // exactly one year
+    expect(formatDaysDisplay(60)).toBe('2m away'); // exactly two 30-day months
+    expect(formatDaysDisplay(31)).toBe('1m 1d away');
   });
 });
 

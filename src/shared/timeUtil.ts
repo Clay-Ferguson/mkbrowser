@@ -235,17 +235,19 @@ export function getDaysFromToday(timestamp: number): number {
 
 /**
  * Format a days-from-today value as a human-readable string.
- * Examples: "(today)", "-(3 days)", "+(1y 2m 5d)".
+ * Examples: "today", "yesterday", "tomorrow", "3 days ago", "1y 2m 5d away".
  */
 export function formatDaysDisplay(days: number): string {
-  if (days === 0) return '(today)';
+  if (days === 0) return 'today';
+  if (days === -1) return 'yesterday';
+  if (days === 1) return 'tomorrow';
 
   const absDays = Math.abs(days);
-  const sign = days < 0 ? '-' : '+';
+  const suffix = days < 0 ? 'ago' : 'away';
 
   // For small values (< 31 days), just show days
   if (absDays < 31) {
-    return `${sign}(${absDays} day${absDays !== 1 ? 's' : ''})`;
+    return `${absDays} day${absDays !== 1 ? 's' : ''} ${suffix}`;
   }
 
   // Calculate years, months, and remaining days
@@ -260,7 +262,7 @@ export function formatDaysDisplay(days: number): string {
   if (months > 0) parts.push(`${months}m`);
   if (remainingDays > 0) parts.push(`${remainingDays}d`);
 
-  return `${sign}(${parts.join(' ')})`;
+  return `${parts.join(' ')} ${suffix}`;
 }
 
 /** Generates a folder name from the current date/time in `YYYY-MM-DD--HH-MM-SS-AM/PM` format. */
