@@ -315,6 +315,14 @@ export interface LinkIdMismatch {
 
 export interface AppState {
   /**
+   * True when the app was launched with `--readonly` (the Help instance does this).
+   * Fixed for the process lifetime: seeded once from the preload bridge, never set.
+   * Read it with `useAS(s => s.readOnly)` in components, or `getState().readOnly`
+   * elsewhere, to disable editing features.
+   */
+  readOnly: boolean;
+
+  /**
    * Collection of all items (files/folders) encountered during browsing.
    * Keyed by full file path for fast lookup.
    */

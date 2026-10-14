@@ -150,6 +150,8 @@ export function useEditMode({ path }: UseEditModeOptions): EditModeState {
   // every unrelated item change (selection, expand/collapse, editing, ...) and force a full
   // markdown re-parse.
   const handleEditClick = async (goToLine?: number) => {
+    // Read-only mode (`--readonly`): clicking a file never opens the editor
+    if (useAS.getState().readOnly) return;
     const item = getItem(path);
     const content = item?.content ?? '';
     // Check the file's current mtime on disk to detect external modifications.

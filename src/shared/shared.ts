@@ -167,6 +167,12 @@ export interface AppSettings {
 /** Command-line switch main passes to the renderer (via `additionalArguments`) when unpackaged; see ElectronAPI.testHooksEnabled. */
 export const TEST_HOOKS_ARG = '--mkb-test-hooks';
 
+/**
+ * Command-line switch that runs the app in read-only mode (used by the Help instance).
+ * Main forwards it to the renderer via `additionalArguments`; see ElectronAPI.readOnly.
+ */
+export const READONLY_ARG = '--readonly';
+
 /** Supported AI providers. Single source of truth for both the {@link AIProvider}
  *  union type and any UI that lists providers (e.g. the model editor dropdown). */
 export const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
@@ -501,6 +507,8 @@ export interface ElectronAPI {
    * never ship in the packaged app.
    */
   testHooksEnabled: boolean;
+  /** True when the app was launched with `--readonly` (READONLY_ARG). Fixed for the process lifetime. */
+  readOnly: boolean;
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
   lookupThesaurus: (word: string) => Promise<ThesaurusLookup>;

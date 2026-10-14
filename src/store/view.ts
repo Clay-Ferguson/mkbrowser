@@ -39,6 +39,7 @@ export interface ViewSlice {
   setFolderGraphFileLinks: (links: FolderGraphLink[] | null) => void;
   setShowGraphFileLinks: (show: boolean) => void;
   setRootPath: (path: string) => void;
+  setReadOnly: (readOnly: boolean) => void;
   openRootFolder: (folder: string) => void;
   showTab: (tab: AppView) => void;
   hideTab: (tab: AppView) => void;
@@ -270,6 +271,12 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       set({ rootPath: path });
     },
 
+    /** Enter/leave read-only mode. Called once at startup from the `--readonly` flag. */
+    setReadOnly: (readOnly) => {
+      if (get().readOnly === readOnly) return;
+      set({ readOnly });
+    },
+
     /**
      * Open `folder` as the new root and browse it, in a single state update:
      * `rootPath` and `currentPath` change together (so nothing ever sees the new
@@ -433,6 +440,10 @@ export function setShowGraphFileLinks(show: boolean): void {
 
 export function setRootPath(path: string): void {
   getState().setRootPath(path);
+}
+
+export function setReadOnly(readOnly: boolean): void {
+  getState().setReadOnly(readOnly);
 }
 
 export function openRootFolder(folder: string): void {

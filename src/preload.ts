@@ -1,11 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { AppConfig, ElectronAPI, CalendarEventResult, HtmlExportOptions, OcrTarget, SearchDefinition } from './shared/shared';
-import { TEST_HOOKS_ARG } from './shared/shared';
+import { READONLY_ARG, TEST_HOOKS_ARG } from './shared/shared';
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
   pathSep: process.platform === 'win32' ? '\\' : '/',
   testHooksEnabled: process.argv.includes(TEST_HOOKS_ARG),
+  readOnly: process.argv.includes(READONLY_ARG),
   quit: () => ipcRenderer.invoke('quit'),
   getConfig: () => ipcRenderer.invoke('get-config'),
   getHomeDir: () => ipcRenderer.invoke('get-home-dir'),

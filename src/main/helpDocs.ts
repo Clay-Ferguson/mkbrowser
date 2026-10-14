@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { app } from 'electron';
 import { logger } from '../shared/logUtil';
 import { OPEN_FILE_ARG } from './openFileArg';
+import { READONLY_ARG } from '../shared/shared';
 
 /**
  * Command-line flag that launches MkBrowser as a "Help instance": a separate app
@@ -57,14 +58,14 @@ export function isolateHelpInstanceProfile(): void {
 
 /**
  * Launch a new, independent MkBrowser process that browses the Help documents,
- * starting on HELP_START_FILE in single-file mode.
+ * starting on HELP_START_FILE in single-file mode, in read-only mode.
  * Multiple Help instances are allowed. In dev, `process.execPath` is the electron
  * binary, so the app path must be passed as well.
  */
 export function launchHelpInstance(): void {
   const args = app.isPackaged ? [] : [app.getAppPath()];
   if (process.argv.includes('--no-sandbox')) args.push('--no-sandbox');
-  args.push(HELP_DOCS_ARG, `${OPEN_FILE_ARG}=${HELP_START_FILE}`);
+  args.push(HELP_DOCS_ARG, READONLY_ARG, `${OPEN_FILE_ARG}=${HELP_START_FILE}`);
 
   const child = spawn(process.execPath, args, { detached: true, stdio: 'ignore' });
   child.on('error', (err) => logger.error('Failed to launch Help instance:', err));

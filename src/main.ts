@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig, defaultSettings } from './main/configMgr';
 import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
-import { TEST_HOOKS_ARG } from './shared/shared';
+import { READONLY_ARG, TEST_HOOKS_ARG } from './shared/shared';
 
 import { readDirectory, isFolderEmpty, deleteEmptyFolder } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
@@ -107,9 +107,12 @@ const createWindow = () => {
       // NPAPI/Flash plugins are gone — so this is limited to PDF display and is
       // compatible with the sandbox/contextIsolation settings above.
       plugins: true,
-      // Tells the preload to enable test-only renderer hooks (see ElectronAPI.testHooksEnabled).
-      // Never set in the packaged app.
-      additionalArguments: app.isPackaged ? [] : [TEST_HOOKS_ARG],
+      // Tells the preload to enable test-only renderer hooks (see ElectronAPI.testHooksEnabled),
+      // never set in the packaged app, and forwards `--readonly` (see ElectronAPI.readOnly).
+      additionalArguments: [
+        ...(app.isPackaged ? [] : [TEST_HOOKS_ARG]),
+        ...(process.argv.includes(READONLY_ARG) ? [READONLY_ARG] : []),
+      ],
     },
   });
 
