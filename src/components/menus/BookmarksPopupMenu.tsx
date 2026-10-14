@@ -140,22 +140,30 @@ export default function BookmarksPopupMenu({
             const Icon = folder ? FolderIcon : DocumentIcon;
             const iconColorClass = folder ? MENU_FOLDER_ICON : MENU_FILE_ICON;
             return (
+              // The whole row (padding and gaps included) is the click target, not
+              // just the label; the label stays a <button> so keyboard activation
+              // still works, its click bubbling up to this handler.
               <div
                 key={fullPath}
-                className={MENU_ROW}
+                className={`${MENU_ROW} cursor-pointer`}
+                onClick={() => handleClick(bookmark, false)}
+                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); handleClick(bookmark, true); }}
+                title="Click to browse; right-click to reveal in folder tree"
               >
                 <button
                   type="button"
                   className={MENU_ROW_LABEL}
-                  onClick={() => handleClick(bookmark, false)}
-                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); handleClick(bookmark, true); }}
-                  title="Click to browse; right-click to reveal in folder tree"
                   data-testid={`bookmark-item-${name}`}
                 >
                   <Icon className={`${MENU_ROW_ICON} ${iconColorClass}`} />
                   <span className="truncate">{name}</span>
                 </button>
-                <div className={`${MENU_ROW_ACTIONS} ml-6`}>
+                {/* Keep clicks and right-clicks on the action icons from reaching the row. */}
+                <div
+                  className={`${MENU_ROW_ACTIONS} ml-6`}
+                  onClick={(e) => e.stopPropagation()}
+                  onContextMenu={(e) => e.stopPropagation()}
+                >
                   <button
                     type="button"
                     className={`${MENU_ICON_BTN} ${MENU_ICON_BTN_EDIT}`}
