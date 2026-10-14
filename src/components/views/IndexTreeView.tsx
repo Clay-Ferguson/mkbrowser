@@ -517,7 +517,7 @@ function IndexTreeView() {
   /**
    * Expands every ancestor folder from the root down to the pending-reveal
    * path, loading directory contents on demand for any node that hasn't been
-   * opened yet, then scrolls the target node into the center of the tree panel.
+   * opened yet, expands the target itself when it is a folder, then scrolls the target node into the center of the tree panel.
    * `expandToPath` lives inside the effect (its only caller) so it doesn't need
    * memoization to be a valid dependency.
    */
@@ -564,6 +564,19 @@ function IndexTreeView() {
         }
 
         ancestorPath = joinPath(ancestorPath, segment);
+      }
+
+      // A revealed folder is opened too, not just its ancestors.
+      const latest = getIndexTreeRoot();
+      const target = latest && findNodeByPath(latest, targetPath);
+      if (target && target.isDirectory && (!target.isExpanded || target.children === null)) {
+        try {
+          const entries = await api.readDirectory(targetPath);
+          if (token !== revealTokenRef.current) return;
+          expandIndexTreeNode(targetPath, mergeNodes(entries, target.children));
+        } catch {
+          // Still scroll to the (collapsed) folder below.
+        }
       }
 
       // Scroll once the expanded tree has rendered — see the layout effect below.
