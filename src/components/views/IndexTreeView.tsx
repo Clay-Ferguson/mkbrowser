@@ -296,6 +296,7 @@ function TreeFileRow({
   // Primitive per-row selectors: only the rows whose answer flips re-render
   // when the highlight moves or the browse view navigates.
   const isHighlighted = useAS(s => s.highlightItem === node.path);
+  const readOnly = useAS(s => s.readOnly);
   const relation = useAS(s => folderRelation(node, s.currentPath));
 
   const isSh = isShellScript(node);
@@ -380,9 +381,10 @@ function TreeFileRow({
         onDrop: (e: React.DragEvent) => onDropOnFolder(node, e),
       } : {})}
     >
+      {/* The icon is the drag source for moving the node (not in read-only mode) */}
       <span
-        className="shrink-0 flex items-center mr-1 cursor-grab"
-        draggable
+        className={readOnly ? 'shrink-0 flex items-center mr-1' : 'shrink-0 flex items-center mr-1 cursor-grab'}
+        draggable={!readOnly}
         onDragStart={makeEntryDragStartHandler({ path: node.path, name: node.name, isDirectory: node.isDirectory })}
       >
         {node.isDirectory
@@ -425,6 +427,8 @@ function IndexTreeView() {
   const foldersOnTop = useAS(s => s.settings.foldersOnTop);
   const bookmarks = useAS(s => s.settings.bookmarks);
   const pendingReveal = useAS(s => s.pendingIndexTreeReveal);
+  // A reveal waits for the tree of the current root to load (e.g. one queued at startup)
+  const treeReady = !!rootPath && treeRoot?.path === rootPath;
   // Subscribing to the cut *paths* (not just "is anything cut") keeps the tree in
   // step when one pending cut replaces another: the boolean would stay true
   // across that swap and leave the newly cut node still on screen.
@@ -498,12 +502,15 @@ function IndexTreeView() {
   /**
    * Expands every ancestor folder from the root down to the pending-reveal
    * path, loading directory contents on demand for any node that hasn't been
-   * opened yet, expands the target itself when it is a folder, then scrolls the target node into the center of the tree panel.
+   * opened yet, expands the target itself when it is a folder (or a file, when the
+   * reveal asks for it), then scrolls the target node into the center of the tree panel.
+   * Waits until the tree for the current root has loaded.
    * `expandToPath` lives inside the effect (its only caller) so it doesn't need
    * memoization to be a valid dependency.
    */
   useEffect(() => {
-    if (!pendingReveal) return;
+    if (!pendingReveal || !treeReady) return;
+    const expandFile = useAS.getState().pendingIndexTreeRevealExpandsFile;
     clearPendingIndexTreeReveal();
     // Not an effect-cleanup `ignore` flag: clearing the pending reveal above
     // re-runs this effect, whose cleanup would cancel this very reveal.
@@ -558,6 +565,10 @@ function IndexTreeView() {
         } catch {
           // Still scroll to the (collapsed) folder below.
         }
+      } else if (expandFile && target && !target.isDirectory && !target.isExpanded) {
+        // Show the file's headings (and attachment folder), as a click on it would.
+        await expandFileNode(target);
+        if (token !== revealTokenRef.current) return;
       }
 
       // Scroll once the expanded tree has rendered — see the layout effect below.
@@ -565,7 +576,7 @@ function IndexTreeView() {
     };
 
     void expandToPath(pendingReveal);
-  }, [pendingReveal, rootPath]);
+  }, [pendingReveal, rootPath, treeReady]);
 
   // Scrolls the revealed node into view on the first commit that renders it.
   // Its row exists as soon as the last `expandIndexTreeNode` above has

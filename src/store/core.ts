@@ -123,6 +123,7 @@ const initialState: AppState = {
   visibleTabs: new Set<AppState['currentView']>(['browser']),
   indexTreeRoot: null,
   pendingIndexTreeReveal: null,
+  pendingIndexTreeRevealExpandsFile: false,
   hasIndexFile: false,
   indexYaml: null,
   calendarSource: null,

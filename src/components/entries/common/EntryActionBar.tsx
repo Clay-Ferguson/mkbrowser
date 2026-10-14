@@ -47,6 +47,8 @@ interface EntryActionBarProps {
  * hamburger button opening EntryPopupMenu — which holds the remaining actions
  * (open with OS app, view file, bookmark, and the three "Attach:" items) as
  * text items, so the hover bar doesn't grow unbounded.
+ *
+ * In read-only mode (`--readonly`) only the "Reveal in folder tree" button is shown.
  */
 export function EntryActionBar({
   path,
@@ -65,6 +67,7 @@ export function EntryActionBar({
   isFolder = false,
 }: EntryActionBarProps) {
   const indexTreeHidden = useAS(s => s.settings.indexTreeWidth === 'hidden');
+  const readOnly = useAS(s => s.readOnly);
   // In single-file browsing mode this exact file is already the one on screen,
   // so the "View File" button would be a no-op — hide it. Computed inside the
   // selector so only this row re-renders when the browsed file changes.
@@ -119,16 +122,18 @@ export function EntryActionBar({
           leaves the entry — otherwise the menu's own anchor would fade out from
           under it. */}
       <div className={`${showMenu ? HOVER_REVEAL_PINNED : HOVER_REVEAL} flex items-center gap-1`}>
-      <button
-        type="button"
-        onClick={onDeleteClick}
-        disabled={deleting}
-        className={BUTTON_CLASS_RED}
-        title="Delete"
-        data-testid="entry-delete-button"
-      >
-        <TrashIcon className="w-5 h-5" />
-      </button>
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={onDeleteClick}
+          disabled={deleting}
+          className={BUTTON_CLASS_RED}
+          title="Delete"
+          data-testid="entry-delete-button"
+        >
+          <TrashIcon className="w-5 h-5" />
+        </button>
+      )}
       {!isAttachment && !indexTreeHidden && (
         <button
           type="button"
@@ -143,7 +148,7 @@ export function EntryActionBar({
           <ViewfinderCircleIcon className="w-5 h-5" />
         </button>
       )}
-      {onMoveUp && (
+      {onMoveUp && !readOnly && (
         <button
           type="button"
           onClick={(e) => {
@@ -161,7 +166,7 @@ export function EntryActionBar({
           <ArrowUpIcon className="w-5 h-5" />
         </button>
       )}
-      {onMoveDown && (
+      {onMoveDown && !readOnly && (
         <button
           type="button"
           onClick={(e) => {
@@ -180,17 +185,19 @@ export function EntryActionBar({
         </button>
       )}
       {/* Always last: the overflow menu for actions without a dedicated icon. */}
-      <button
-        ref={menuButtonRef}
-        type="button"
-        onClick={(e) => { e.stopPropagation(); setShowMenu(prev => !prev); }}
-        className={BUTTON_CLASS_NORMAL}
-        title="More actions"
-        aria-label="More actions"
-        data-testid="entry-menu-button"
-      >
-        <Bars3Icon className="w-5 h-5" />
-      </button>
+      {!readOnly && (
+        <button
+          ref={menuButtonRef}
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setShowMenu(prev => !prev); }}
+          className={BUTTON_CLASS_NORMAL}
+          title="More actions"
+          aria-label="More actions"
+          data-testid="entry-menu-button"
+        >
+          <Bars3Icon className="w-5 h-5" />
+        </button>
+      )}
       </div>
     </div>
     {/* Rendered outside the hover-fade wrapper (a display:contents pass-through,

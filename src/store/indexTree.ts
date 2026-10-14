@@ -135,7 +135,7 @@ export interface IndexTreeSlice {
   expandIndexTreeNode: (path: string, children: TreeNode[]) => void;
   collapseAllIndexTreeNodes: () => void;
   collapseIndexTreeNode: (path: string) => void;
-  setPendingIndexTreeReveal: (path: string) => void;
+  setPendingIndexTreeReveal: (path: string, expandFile?: boolean) => void;
   revealInTree: (path: string) => void;
   clearPendingIndexTreeReveal: () => void;
   setIndexYaml: (indexYaml: AppState['indexYaml']) => void;
@@ -200,8 +200,15 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
       set({ indexTreeRoot: newRoot });
     },
 
-    /** Signal IndexTree to expand to the given path and scroll it into view. */
-    setPendingIndexTreeReveal: (path) => set({ pendingIndexTreeReveal: path }),
+    /**
+     * Signal IndexTree to expand to the given path and scroll it into view. With
+     * `expandFile`, a file target's own node is expanded too (see
+     * pendingIndexTreeRevealExpandsFile).
+     */
+    setPendingIndexTreeReveal: (path, expandFile = false) => set({
+      pendingIndexTreeReveal: path,
+      pendingIndexTreeRevealExpandsFile: expandFile,
+    }),
 
     /**
      * Reveal `path` in the index tree from an entry's action bar, in a single
@@ -212,13 +219,14 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
       highlightItem: path,
       currentView: 'browser',
       pendingIndexTreeReveal: path,
+      pendingIndexTreeRevealExpandsFile: false,
       ...withHistoryPush(get(), path),
     }),
 
     /** Clear the pending reveal signal (called by IndexTree when it picks it up). */
     clearPendingIndexTreeReveal: () => {
       if (get().pendingIndexTreeReveal === null) return;
-      set({ pendingIndexTreeReveal: null });
+      set({ pendingIndexTreeReveal: null, pendingIndexTreeRevealExpandsFile: false });
     },
 
     /** Set the parsed .INDEX.yaml for the current directory. */
@@ -252,8 +260,8 @@ export function collapseIndexTreeNode(path: string): void {
   getState().collapseIndexTreeNode(path);
 }
 
-export function setPendingIndexTreeReveal(path: string): void {
-  getState().setPendingIndexTreeReveal(path);
+export function setPendingIndexTreeReveal(path: string, expandFile?: boolean): void {
+  getState().setPendingIndexTreeReveal(path, expandFile);
 }
 
 export function revealInTree(path: string): void {

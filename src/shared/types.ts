@@ -528,6 +528,13 @@ export interface AppState {
   pendingIndexTreeReveal: string | null;
 
   /**
+   * When true, a pending reveal whose target is a file also expands that file's
+   * tree node (its headings and attachment folder), as clicking it would. Set
+   * together with `pendingIndexTreeReveal`; cleared with it.
+   */
+  pendingIndexTreeRevealExpandsFile: boolean;
+
+  /**
    * When true, ThreadView should scroll to the bottom after a short delay.
    * Set by actions like "Reply" that append new content to the thread.
    */

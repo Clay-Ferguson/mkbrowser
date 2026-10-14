@@ -99,6 +99,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
   const rootPath = useAS(s => s.rootPath);
   const currentPath = useAS(s => s.currentPath);
   const hasIndexFile = useAS(s => s.hasIndexFile);
+  const readOnly = useAS(s => s.readOnly);
   const sortOrder = useAS(s => s.settings.sortOrder);
   const imageCols = useAS(s => s.settings.imageCols);
   const searchDefinitions = useAS(s => s.settings.searchDefinitions);
@@ -223,140 +224,145 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
         </div>
 
         <div data-testid="browser-header-actions" className="flex-1 flex items-center justify-end gap-2">
-          {/* Cut button - shown when items are selected and no items are cut */}
-          {hasSelectedItems && !hasCutItems && (
-            <button
-              type="button"
-              onClick={handleCutClick}
-              className={BUTTON_CLASS_BAR_BLUE}
-              title="Cut selected items"
-              data-testid="cut-button"
-            >
-              Cut
-            </button>
-          )}
-
-          {/* Delete button - shown when items are selected and no items are cut */}
-          {hasSelectedItems && !hasCutItems && (
-            <button
-              type="button"
-              onClick={() => onOpenOverlay({ kind: 'deleteConfirm', count: selectedCount })}
-              className={BUTTON_CLASS_BAR_RED}
-              title="Delete selected items"
-              data-testid="delete-button"
-            >
-              Del
-            </button>
-          )}
-
-          {/* Paste button - shown whenever items are cut; pastes into the folder being browsed */}
-          {hasCutItems && currentPath && (
-            <button
-              type="button"
-              onClick={() => onPasteIntoFolder(currentPath)}
-              className={BUTTON_CLASS_BAR_BLUE}
-              title="Paste cut items into this folder"
-              data-testid="paste-button"
-            >
-              Paste
-            </button>
-          )}
-
-          {/* Undo Cut button - shown whenever items are cut */}
-          {hasCutItems && (
-            <button
-              type="button"
-              onClick={() => clearAllCutItems()}
-              className={BUTTON_CLASS_BAR_BLUE}
-              title="Undo cut (cancel pending move)"
-              data-testid="undo-cut-button"
-            >
-              Undo Cut
-            </button>
-          )}
-
-          {/* Create file/folder buttons — hidden in index-ordered mode (inline insert bars replace them) */}
-          {!hasIndexFile && (
+          {/* Read-only mode (--readonly) shows only the Search button */}
+          {!readOnly && (
             <>
+            {/* Cut button - shown when items are selected and no items are cut */}
+            {hasSelectedItems && !hasCutItems && (
               <button
                 type="button"
-                onClick={() => onOpenOverlay({ kind: 'createFile', insertAt: null })}
-                className={BUTTON_CLASS_TB_BLUE}
-                title="Create file"
-                data-testid="create-file-button"
+                onClick={handleCutClick}
+                className={BUTTON_CLASS_BAR_BLUE}
+                title="Cut selected items"
+                data-testid="cut-button"
               >
-                <DocumentPlusIcon className="w-6 h-6 text-blue-400" />
+                Cut
               </button>
+            )}
+
+            {/* Delete button - shown when items are selected and no items are cut */}
+            {hasSelectedItems && !hasCutItems && (
               <button
                 type="button"
-                onClick={() => onOpenOverlay({ kind: 'createFolder', insertAt: null })}
-                className={BUTTON_CLASS_TB_AMBER}
-                title="Create folder"
-                data-testid="create-folder-button"
+                onClick={() => onOpenOverlay({ kind: 'deleteConfirm', count: selectedCount })}
+                className={BUTTON_CLASS_BAR_RED}
+                title="Delete selected items"
+                data-testid="delete-button"
               >
-                <FolderPlusIcon className="w-6 h-6 text-amber-500" />
+                Del
               </button>
+            )}
+
+            {/* Paste button - shown whenever items are cut; pastes into the folder being browsed */}
+            {hasCutItems && currentPath && (
+              <button
+                type="button"
+                onClick={() => onPasteIntoFolder(currentPath)}
+                className={BUTTON_CLASS_BAR_BLUE}
+                title="Paste cut items into this folder"
+                data-testid="paste-button"
+              >
+                Paste
+              </button>
+            )}
+
+            {/* Undo Cut button - shown whenever items are cut */}
+            {hasCutItems && (
+              <button
+                type="button"
+                onClick={() => clearAllCutItems()}
+                className={BUTTON_CLASS_BAR_BLUE}
+                title="Undo cut (cancel pending move)"
+                data-testid="undo-cut-button"
+              >
+                Undo Cut
+              </button>
+            )}
+
+            {/* Create file/folder buttons — hidden in index-ordered mode (inline insert bars replace them) */}
+            {!hasIndexFile && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onOpenOverlay({ kind: 'createFile', insertAt: null })}
+                  className={BUTTON_CLASS_TB_BLUE}
+                  title="Create file"
+                  data-testid="create-file-button"
+                >
+                  <DocumentPlusIcon className="w-6 h-6 text-blue-400" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenOverlay({ kind: 'createFolder', insertAt: null })}
+                  className={BUTTON_CLASS_TB_AMBER}
+                  title="Create folder"
+                  data-testid="create-folder-button"
+                >
+                  <FolderPlusIcon className="w-6 h-6 text-amber-500" />
+                </button>
+              </>
+            )}
+
+            {/* Edit menu button */}
+            <button
+              type="button"
+              ref={editButtonRef}
+              onClick={() => toggleMenu('edit')}
+              className={BUTTON_CLASS_TB_NORMAL}
+              title="Edit"
+              data-testid="edit-menu-button"
+            >
+              <Squares2X2Icon className="w-6 h-6" />
+            </button>
+
+            {/* Tools menu button */}
+            <button
+              type="button"
+              ref={toolsButtonRef}
+              onClick={() => toggleMenu('tools')}
+              className={BUTTON_CLASS_TB_NORMAL}
+              title="Tools"
+              data-testid="tools-menu-button"
+            >
+              <WrenchIcon className="w-6 h-6" />
+            </button>
+
+            {/* Calendar button */}
+            <button
+              type="button"
+              onClick={() => { if (currentPath) showFolderCalendar(currentPath); }}
+              className={BUTTON_CLASS_TB_NORMAL}
+              title="Show Calendar"
+              data-testid="calendar-button"
+            >
+              <CalendarDaysIcon className="w-6 h-6" />
+            </button>
+
+            {/* Sort order menu button */}
+            {!hasIndexFile && (<button
+              type="button"
+              ref={sortButtonRef}
+              onClick={() => toggleMenu('sort')}
+              className={BUTTON_CLASS_TB_NORMAL}
+              title="Sort order"
+              data-testid="sort-menu-button"
+            >
+              <BarsArrowDownIcon className="w-6 h-6" />
+            </button>)}
+
+            {/* Image columns menu button — shown only when this folder has images; its items are disabled in Document Mode */}
+            {hasImages && (<button
+              type="button"
+              ref={imageColsButtonRef}
+              onClick={() => toggleMenu('imageCols')}
+              className={BUTTON_CLASS_TB_NORMAL}
+              title="Image columns"
+              data-testid="image-cols-menu-button"
+            >
+              <ViewColumnsIcon className="w-6 h-6" />
+            </button>)}
             </>
           )}
-
-          {/* Edit menu button */}
-          <button
-            type="button"
-            ref={editButtonRef}
-            onClick={() => toggleMenu('edit')}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Edit"
-            data-testid="edit-menu-button"
-          >
-            <Squares2X2Icon className="w-6 h-6" />
-          </button>
-
-          {/* Tools menu button */}
-          <button
-            type="button"
-            ref={toolsButtonRef}
-            onClick={() => toggleMenu('tools')}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Tools"
-            data-testid="tools-menu-button"
-          >
-            <WrenchIcon className="w-6 h-6" />
-          </button>
-
-          {/* Calendar button */}
-          <button
-            type="button"
-            onClick={() => { if (currentPath) showFolderCalendar(currentPath); }}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Show Calendar"
-            data-testid="calendar-button"
-          >
-            <CalendarDaysIcon className="w-6 h-6" />
-          </button>
-
-          {/* Sort order menu button */}
-          {!hasIndexFile && (<button
-            type="button"
-            ref={sortButtonRef}
-            onClick={() => toggleMenu('sort')}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Sort order"
-            data-testid="sort-menu-button"
-          >
-            <BarsArrowDownIcon className="w-6 h-6" />
-          </button>)}
-
-          {/* Image columns menu button — shown only when this folder has images; its items are disabled in Document Mode */}
-          {hasImages && (<button
-            type="button"
-            ref={imageColsButtonRef}
-            onClick={() => toggleMenu('imageCols')}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Image columns"
-            data-testid="image-cols-menu-button"
-          >
-            <ViewColumnsIcon className="w-6 h-6" />
-          </button>)}
 
           {/* Search button */}
           <button
@@ -370,30 +376,34 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
             <MagnifyingGlassIcon className="w-6 h-6" />
           </button>
 
-          {/* Expand all button */}
-          {showExpandAll && (
-            <button
-              type="button"
-              onClick={expandAllItems}
-              className={BUTTON_CLASS_TB_NORMAL}
-              title="Expand all"
-              data-testid="expand-all-button"
-            >
-              <ChevronDownIcon className="w-6 h-6" />
-            </button>
-          )}
+          {!readOnly && (
+            <>
+            {/* Expand all button */}
+            {showExpandAll && (
+              <button
+                type="button"
+                onClick={expandAllItems}
+                className={BUTTON_CLASS_TB_NORMAL}
+                title="Expand all"
+                data-testid="expand-all-button"
+              >
+                <ChevronDownIcon className="w-6 h-6" />
+              </button>
+            )}
 
-          {/* Collapse all button */}
-          {showCollapseAll && (
-            <button
-              type="button"
-              onClick={collapseAllItems}
-              className={BUTTON_CLASS_TB_NORMAL}
-              title="Collapse all"
-              data-testid="collapse-all-button"
-            >
-              <ChevronUpIcon className="w-6 h-6" />
-            </button>
+            {/* Collapse all button */}
+            {showCollapseAll && (
+              <button
+                type="button"
+                onClick={collapseAllItems}
+                className={BUTTON_CLASS_TB_NORMAL}
+                title="Collapse all"
+                data-testid="collapse-all-button"
+              >
+                <ChevronUpIcon className="w-6 h-6" />
+              </button>
+            )}
+            </>
           )}
 
         </div>

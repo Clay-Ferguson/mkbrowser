@@ -58,6 +58,7 @@ function SearchResultsView() {
   const searchSortBy = useAS(s => s.searchSortBy);
   const searchSortDirection = useAS(s => s.searchSortDirection);
   const lastSearchDefinition = useAS(s => s.lastSearchDefinition);
+  const readOnly = useAS(s => s.readOnly);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -362,7 +363,9 @@ function SearchResultsView() {
 
                   {/* Action buttons, revealed only while the row is hovered so a
                       long result list isn't cluttered with icons (same behavior
-                      as EntryActionBar in the Browse view). */}
+                      as EntryActionBar in the Browse view). Not rendered at all
+                      in read-only mode, since both actions modify files. */}
+                  {!readOnly && (
                   <div className={`${HOVER_REVEAL} flex items-center gap-2 flex-shrink-0`}>
                   {/* Edit button — hidden (but still taking its space, so the
                       Delete buttons stay aligned) for results that can't be edited */}
@@ -388,6 +391,7 @@ function SearchResultsView() {
                     <TrashIcon className="w-5 h-5" />
                   </button>
                   </div>
+                  )}
                 </div>
               </div>
               );

@@ -54,6 +54,7 @@ function AppTabButtons({ onSelectFolder, onBrowseHelpDocs, onOpenHelpWindow, onQ
   const hasSearched = useAS(s => s.lastSearchDefinition !== null);
   const currentPath = useAS(s => s.currentPath);
   const rootPath = useAS(s => s.rootPath);
+  const readOnly = useAS(s => s.readOnly);
   const backEnabled = useAS(canGoBack);
   const forwardEnabled = useAS(canGoForward);
   const logoRef = useRef<HTMLButtonElement>(null);
@@ -183,17 +184,20 @@ function AppTabButtons({ onSelectFolder, onBrowseHelpDocs, onOpenHelpWindow, onQ
         })}
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <button
-          ref={systemMenuRef}
-          type="button"
-          onClick={() => setShowSystemMenu((prev) => !prev)}
-          className={BUTTON_CLASS_TB_NORMAL}
-          aria-label="System menu"
-          title="System menu"
-          data-testid="system-menu-button"
-        >
-          <Bars3Icon className="w-5 h-5" />
-        </button>
+        {/* Hidden in read-only mode: the System menu only leads to settings/editors */}
+        {!readOnly && (
+          <button
+            ref={systemMenuRef}
+            type="button"
+            onClick={() => setShowSystemMenu((prev) => !prev)}
+            className={BUTTON_CLASS_TB_NORMAL}
+            aria-label="System menu"
+            title="System menu"
+            data-testid="system-menu-button"
+          >
+            <Bars3Icon className="w-5 h-5" />
+          </button>
+        )}
         <button
           type="button"
           onClick={goBack}

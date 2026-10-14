@@ -22,6 +22,7 @@ import {
   navigateToBrowserPath,
   setRootPath,
   openRootFolder,
+  setPendingIndexTreeReveal,
   useAS,
   setEntriesLoading,
   getEditingItem,
@@ -178,10 +179,14 @@ function App() {
       } else if (result.rootPath) {
         setRootPath(result.rootPath);
         // A `--open-file` command-line file opens in single-file mode, exactly as
-        // if it had been clicked in the index tree.
+        // if it had been clicked in the index tree — including expanding its tree
+        // node so its headings are visible.
         const startupFile = await api.getStartupFile();
         if (cancelled) return;
-        if (startupFile) openFileSingle(startupFile);
+        if (startupFile) {
+          openFileSingle(startupFile);
+          setPendingIndexTreeReveal(startupFile, true);
+        }
       } else {
         setEntriesLoading(false);
       }
