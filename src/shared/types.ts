@@ -626,6 +626,13 @@ export interface AppState {
   /** Index into `navHistory` of the current entry, or -1 when it is empty. */
   navHistoryIndex: number;
 
+  /**
+   * True when the current entry was deleted: the position then sits just
+   * after `navHistory[navHistoryIndex]` rather than on it (-1 = before the
+   * first entry), so Back returns to that entry and Forward to the next one.
+   */
+  navHistoryDetached: boolean;
+
 }
 
 /**

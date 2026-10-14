@@ -19,6 +19,7 @@ describe('navigation history', () => {
       items: new Map(),
       navHistory: [],
       navHistoryIndex: -1,
+      navHistoryDetached: false,
       highlightItem: null,
       currentPath: '/notes',
       browseFileName: null,
@@ -128,8 +129,10 @@ describe('navigation history', () => {
     deleteItems(['/notes/sub']);
     expect(history()).toEqual({ navHistory: [A, B], navHistoryIndex: 0 });
 
-    deleteItems([A]);
-    expect(history()).toEqual({ navHistory: [B], navHistoryIndex: 0 });
+    deleteItems([A]); // the current entry: the position now sits before B
+    expect(history()).toEqual({ navHistory: [B], navHistoryIndex: -1 });
+    expect(canGoBack(useAS.getState())).toBe(false);
+    expect(canGoForward(useAS.getState())).toBe(true);
 
     deleteItems([B]);
     expect(history()).toEqual({ navHistory: [], navHistoryIndex: -1 });

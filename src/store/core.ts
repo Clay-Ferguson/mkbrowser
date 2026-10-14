@@ -135,6 +135,7 @@ const initialState: AppState = {
   typeDefs: {},
   navHistory: [],
   navHistoryIndex: -1,
+  navHistoryDetached: false,
 };
 
 /**

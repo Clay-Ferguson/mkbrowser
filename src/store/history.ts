@@ -15,8 +15,8 @@ import { getFileName, getParentPath, isPathInside, remapMovedPath } from '../ren
 /** Oldest entries are dropped once the history grows past this. */
 export const MAX_HISTORY = 200;
 
-type HistoryState = Pick<AppState, 'navHistory' | 'navHistoryIndex' | 'items'>;
-type HistoryPatch = Pick<AppState, 'navHistory' | 'navHistoryIndex'>;
+type HistoryState = Pick<AppState, 'navHistory' | 'navHistoryIndex' | 'navHistoryDetached' | 'items'>;
+type HistoryPatch = Pick<AppState, 'navHistory' | 'navHistoryIndex'> & Partial<Pick<AppState, 'navHistoryDetached'>>;
 
 /**
  * The patch that records `path` as the newest history entry, or null when
@@ -27,9 +27,13 @@ type HistoryPatch = Pick<AppState, 'navHistory' | 'navHistoryIndex'>;
 export function withHistoryPush(state: HistoryState, path: string | null): HistoryPatch | null {
   if (!path) return null;
   if (state.items.get(path)?.isDirectory) return null;
-  if (state.navHistory[state.navHistoryIndex] === path) return null;
+  if (state.navHistory[state.navHistoryIndex] === path) {
+    if (!state.navHistoryDetached) return null;
+    // Re-visiting the entry the detached position sits after lands back on it.
+    return { navHistory: state.navHistory, navHistoryIndex: state.navHistoryIndex, navHistoryDetached: false };
+  }
   const navHistory = [...state.navHistory.slice(0, state.navHistoryIndex + 1), path].slice(-MAX_HISTORY);
-  return { navHistory, navHistoryIndex: navHistory.length - 1 };
+  return { navHistory, navHistoryIndex: navHistory.length - 1, navHistoryDetached: false };
 }
 
 /**
@@ -51,8 +55,9 @@ export function withHistoryRemapped(state: HistoryState, oldRoot: string, newRoo
 /**
  * The patch that drops history entries at or under any of the deleted `roots`,
  * or null when no entry is affected. Neighbors left adjacent by a removal are
- * collapsed when equal, and the current position falls back to the nearest
- * surviving entry at or before it (or the first entry, if none precede it).
+ * collapsed when equal. When the current entry itself is deleted the position
+ * becomes detached (see `navHistoryDetached`): it sits between the surviving
+ * entries that surrounded it, so Back and Forward still reach both of them.
  */
 export function withHistoryPruned(state: HistoryState, roots: string[]): HistoryPatch | null {
   const isDeleted = (p: string) => roots.some(root => isPathInside(root, p));
@@ -68,13 +73,14 @@ export function withHistoryPruned(state: HistoryState, roots: string[]): History
       navHistoryIndex = navHistory.length - 1;
     }
   });
-  if (navHistoryIndex === -1 && navHistory.length > 0) navHistoryIndex = 0;
-  return { navHistory, navHistoryIndex };
+  if (navHistory.length === 0) return { navHistory, navHistoryIndex: -1, navHistoryDetached: false };
+  const currentDeleted = !state.navHistoryDetached && isDeleted(state.navHistory[state.navHistoryIndex] ?? '');
+  return { navHistory, navHistoryIndex, navHistoryDetached: state.navHistoryDetached || currentDeleted };
 }
 
 /** Whether there is an entry before the current one. */
-export function canGoBack(s: Pick<AppState, 'navHistoryIndex'>): boolean {
-  return s.navHistoryIndex > 0;
+export function canGoBack(s: Pick<AppState, 'navHistoryIndex' | 'navHistoryDetached'>): boolean {
+  return s.navHistoryDetached ? s.navHistoryIndex >= 0 : s.navHistoryIndex > 0;
 }
 
 /** Whether there is an entry after the current one. */
@@ -105,13 +111,15 @@ export function createHistorySlice(set: StoreSet, get: StoreGet): HistorySlice {
   const goTo = (index: number) => {
     const target = get().navHistory[index];
     if (target === undefined) return;
-    set({ navHistoryIndex: index, highlightItem: target });
+    set({ navHistoryIndex: index, navHistoryDetached: false, highlightItem: target });
     get().setBrowseFile(getParentPath(target), getFileName(target));
   };
 
   return {
     goBack: () => {
-      if (canGoBack(get())) goTo(get().navHistoryIndex - 1);
+      // A detached position sits just after its index, so Back lands on it.
+      const s = get();
+      if (canGoBack(s)) goTo(s.navHistoryDetached ? s.navHistoryIndex : s.navHistoryIndex - 1);
     },
     goForward: () => {
       if (canGoForward(get())) goTo(get().navHistoryIndex + 1);
