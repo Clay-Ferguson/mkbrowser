@@ -509,6 +509,12 @@ export interface ElectronAPI {
   getHomeDir: () => Promise<string>;
   updateConfig: (updates: Partial<AppConfig>) => Promise<void>;
   selectFolder: () => Promise<string | null>;
+  /** The bundled Help documents folder (a copy of the repo's `docs/`), or null if missing. */
+  getHelpDocsPath: () => Promise<string | null>;
+  /** Launches a separate MkBrowser instance (own config) that browses the Help documents. */
+  openHelpWindow: () => Promise<void>;
+  /** Absolute path of the `--open-file` command-line file to open at startup, or null. */
+  getStartupFile: () => Promise<string | null>;
   /** Shows the OS single-file picker; resolves to the chosen path, or null if cancelled. */
   selectFile: (title: string) => Promise<string | null>;  readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<ReadFileResult>;

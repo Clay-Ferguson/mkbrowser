@@ -11,6 +11,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getHomeDir: () => ipcRenderer.invoke('get-home-dir'),
   updateConfig: (updates: Partial<AppConfig>) => ipcRenderer.invoke('update-config', updates),
   selectFolder: () => ipcRenderer.invoke('select-folder'),
+  getHelpDocsPath: () => ipcRenderer.invoke('get-help-docs-path'),
+  openHelpWindow: () => ipcRenderer.invoke('open-help-window'),
+  getStartupFile: () => ipcRenderer.invoke('get-startup-file'),
   selectFile: (title: string) => ipcRenderer.invoke('select-file', title),  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
     ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),

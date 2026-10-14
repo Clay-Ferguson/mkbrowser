@@ -19,9 +19,11 @@ import type { AppConfig, AIModelConfig } from '../shared/shared';
 import { logger } from '../shared/logUtil';
 import { writeFileAtomic } from './atomicWrite';
 
-// Config file location — resolved per OS by Electron (Linux: ~/.config/mk-browser)
-const CONFIG_DIR = app.getPath('userData');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
+// Config file location — resolved per OS by Electron (Linux: ~/.config/mk-browser).
+// Resolved lazily, not at module load: a Help instance (see helpDocs.ts) redirects
+// `userData` in main.ts, which runs only after this module has been imported.
+const configDir = () => app.getPath('userData');
+const configFile = () => path.join(configDir(), 'config.yaml');
 
 // `defaultSettings` is defined in and re-exported from configSchema (the schema
 // references it, so it lives there to avoid a circular import).
@@ -129,11 +131,11 @@ let _configLoadError: { error: string; backupPath: string | null } | null = null
  */
 function ensureConfigDir(): void {
   try {
-    if (!fs.existsSync(CONFIG_DIR)) {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    if (!fs.existsSync(configDir())) {
+      fs.mkdirSync(configDir(), { recursive: true });
     }
   } catch (err) {
-    logger.error('[configMgr] Failed to create config directory (continuing; config will not persist):', CONFIG_DIR, err);
+    logger.error('[configMgr] Failed to create config directory (continuing; config will not persist):', configDir(), err);
   }
 }
 
@@ -177,8 +179,8 @@ function persistConfig(): Promise<void> {
   // as of this call, regardless of later mutations.
   const data = yaml.dump(toPersistedConfig(_config));
   const run = _writeChain.then(async () => {
-    await fs.promises.mkdir(CONFIG_DIR, { recursive: true });
-    await writeFileAtomic(CONFIG_FILE, data);
+    await fs.promises.mkdir(configDir(), { recursive: true });
+    await writeFileAtomic(configFile(), data);
   });
   _writeChain = run.then(
     () => {},
@@ -222,7 +224,7 @@ async function persistConfigAtInit(): Promise<void> {
   try {
     await persistConfig();
   } catch (err) {
-    logger.error('[configMgr] Failed to write config during init — continuing with in-memory config:', CONFIG_FILE, err);
+    logger.error('[configMgr] Failed to write config during init — continuing with in-memory config:', configFile(), err);
   }
 }
 
@@ -232,9 +234,9 @@ async function persistConfigAtInit(): Promise<void> {
  * or `null` when the copy itself fails (e.g. the file is unreadable).
  */
 function backupBadConfig(): string | null {
-  const backupPath = `${CONFIG_FILE}.bak-${Date.now()}`;
+  const backupPath = `${configFile()}.bak-${Date.now()}`;
   try {
-    fs.copyFileSync(CONFIG_FILE, backupPath);
+    fs.copyFileSync(configFile(), backupPath);
     logger.warn(`[configMgr] Backed up unreadable config to: ${backupPath}`);
     return backupPath;
   } catch (err) {
@@ -276,7 +278,7 @@ export async function initConfig(): Promise<void> {
   ensureConfigDir();
   _configLoadError = null;
 
-  if (!fs.existsSync(CONFIG_FILE)) {
+  if (!fs.existsSync(configFile())) {
     // First-run: no config file on disk yet — write defaults. The write is
     // best-effort (see persistConfigAtInit): the in-memory defaults are
     // already set, so a failed seed write must not reject initConfig().
@@ -292,7 +294,7 @@ export async function initConfig(): Promise<void> {
     // The config file is untrusted (hand-editable, syncable, corruptible), so
     // validate it through the zod schema rather than casting. Malformed fields
     // degrade to defaults; a non-object top level returns null.
-    const parsed = parseConfigYaml(loadYaml(fs.readFileSync(CONFIG_FILE, 'utf-8')));
+    const parsed = parseConfigYaml(loadYaml(fs.readFileSync(configFile(), 'utf-8')));
     if (parsed) {
       const base = { ...parsed, settings: { ...cloneDefaultSettings(), ...parsed.settings } };
       const { config: withAI, changed } = withDefaultAISettings(base);
@@ -309,12 +311,12 @@ export async function initConfig(): Promise<void> {
 
     // Parsed as valid YAML but top-level value isn't an object.
     const errorMsg = 'Config file top-level value is not an object';
-    logger.error(`[configMgr] ${errorMsg} — running on in-memory defaults. File: ${CONFIG_FILE}`);
+    logger.error(`[configMgr] ${errorMsg} — running on in-memory defaults. File: ${configFile()}`);
     _configLoadError = { error: errorMsg, backupPath: backupBadConfig() };
 
   } catch (err) {
     // YAML syntax error, I/O error (EACCES, EBUSY, …), or any other read failure.
-    logger.error('[configMgr] Failed to read/parse config file — running on in-memory defaults.', CONFIG_FILE, err);
+    logger.error('[configMgr] Failed to read/parse config file — running on in-memory defaults.', configFile(), err);
     _configLoadError = { error: String(err), backupPath: backupBadConfig() };
   }
 

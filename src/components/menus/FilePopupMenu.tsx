@@ -7,6 +7,14 @@ interface FilePopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   onSelectFolder: () => void;
+  /**
+   * Opens the bundled Help documents folder as the browse root, in this window.
+   * Currently unused: its menu item is commented out below, in favour of
+   * "Browse Help (new window)", but kept so it can be re-enabled.
+   */
+  onBrowseHelpDocs: () => void;
+  /** Launches a separate app instance that browses the Help documents. */
+  onOpenHelpWindow: () => void;
   onQuit: () => void;
   /** Ordered list of recently visited folder paths (most-recent first). */
   recentFolders: string[];
@@ -14,14 +22,16 @@ interface FilePopupMenuProps {
 }
 
 /**
- * Popup menu for the File toolbar button. Shows "Open Folder", an optional
- * list of recently visited folders, and "Quit". Recent folders that resolve
- * to the root ("/") are omitted since the root has its own dedicated nav icon.
+ * Popup menu for the File toolbar button. Shows "Open Folder", "Browse Help
+ * (new window)", an optional list of recently visited folders, and "Quit". Recent
+ * folders that resolve to the root ("/") are omitted since the root has its own
+ * dedicated nav icon.
  */
 export default function FilePopupMenu({
   anchorRef,
   onClose,
   onSelectFolder,
+  onOpenHelpWindow,
   onQuit,
   recentFolders,
   onOpenRecentFolder,
@@ -56,6 +66,19 @@ export default function FilePopupMenu({
         label="Open Folder"
         onClick={() => { onSelectFolder(); onClose(); }}
         data-testid="menu-open-folder"
+      />
+      {/* Hidden for now in favour of "Browse Help (new window)"; kept for possible future use.
+          To re-enable, also add `onBrowseHelpDocs` back to the destructured props.
+      <PopupMenuItem
+        label="Browse Help Documents"
+        onClick={() => { onBrowseHelpDocs(); onClose(); }}
+        data-testid="menu-browse-help"
+      />
+      */}
+      <PopupMenuItem
+        label="Browse Help (new window)"
+        onClick={() => { onOpenHelpWindow(); onClose(); }}
+        data-testid="menu-browse-help-window"
       />
       {recentItems.length > 0 && (
         <>

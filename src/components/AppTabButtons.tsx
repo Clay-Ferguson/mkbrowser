@@ -16,6 +16,8 @@ interface TabConfig {
 
 interface AppTabButtonsProps {
   onSelectFolder: () => void;
+  onBrowseHelpDocs: () => void;
+  onOpenHelpWindow: () => void;
   onQuit: () => void;
   recentFolders: string[];
   onOpenRecentFolder: (folder: string) => void;
@@ -43,7 +45,7 @@ const allTabs: TabConfig[] = [
  * data is available (search results, analysis, graph, AI thread) and disappear
  * when closed — clearing the underlying data.
  */
-function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
+function AppTabButtons({ onSelectFolder, onBrowseHelpDocs, onOpenHelpWindow, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
   const currentView = useAS(s => s.currentView);
   const hasFolderAnalysis = useAS(s => s.folderAnalysis !== null);
   const hasFolderGraph = useAS(s => s.folderGraph !== null);
@@ -125,6 +127,8 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
           anchorRef={logoRef}
           onClose={() => setShowFileMenu(false)}
           onSelectFolder={onSelectFolder}
+          onBrowseHelpDocs={onBrowseHelpDocs}
+          onOpenHelpWindow={onOpenHelpWindow}
           onQuit={onQuit}
           recentFolders={recentFolders}
           onOpenRecentFolder={onOpenRecentFolder}

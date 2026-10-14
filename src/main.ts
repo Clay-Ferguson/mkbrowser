@@ -35,6 +35,8 @@ import { logger, toErrorMessage } from './shared/logUtil';
 import { exportFolderContents, exportToPdf } from './main/exportUtil';
 import { checkExportTarget, exportFolderToHtml } from './main/htmlExport/folderHtmlExport';
 import { runShellScript, runOcrInTerminal } from './main/launcherUtil';
+import { getOpenFileArg, resolveOpenFile } from './main/openFileArg';
+import { findHelpDocsFolder, getHelpDocsPath, HELP_WINDOW_TITLE, isHelpInstance, isolateHelpInstanceProfile, launchHelpInstance } from './main/helpDocs';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
 const ENABLE_STREAM_RESPONSE: boolean = true;
@@ -43,6 +45,9 @@ const ENABLE_STREAM_RESPONSE: boolean = true;
 if (started) {
   app.quit();
 }
+
+// A Help instance gets its own profile/config folder (must be done before app ready)
+isolateHelpInstanceProfile();
 
 // Register custom protocol for serving local files (must be done before app ready)
 protocol.registerSchemesAsPrivileged([
@@ -53,6 +58,9 @@ import type { FileEntry } from './global';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from './shared/specialFiles';
 
 let mainWindow: BrowserWindow | null = null;
+
+// File named by `--open-file`, resolved at startup; the renderer opens it in single-file mode
+let startupFile: string | null = null;
 
 // Setup the local-file protocol handler
 function setupLocalFileProtocol(): void {
@@ -78,6 +86,7 @@ const createWindow = () => {
     width: 1200,
     height: 800,
     icon: icon,
+    ...(isHelpInstance ? { title: HELP_WINDOW_TITLE } : {}),
 
     // need transparent backgrount to fix the classic Linux "ghost border" syndrome
     transparent: true, // This often snaps the border out of existence
@@ -124,6 +133,11 @@ const createWindow = () => {
       Menu.buildFromTemplate(items).popup();
     }
   });
+
+  // A Help instance keeps its fixed title: don't let the page's <title> replace it
+  if (isHelpInstance) {
+    mainWindow.on('page-title-updated', (event) => event.preventDefault());
+  }
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -250,7 +264,8 @@ function setupIpcHandlers(): void {
   // Set window title
   ipcMain.handle('set-window-title', (_event, title: string): void => {
     if (mainWindow) {
-      mainWindow.setTitle(title);
+      // A Help instance keeps its fixed title instead of the browsed-folder title
+      mainWindow.setTitle(isHelpInstance ? HELP_WINDOW_TITLE : title);
     }
   });
 
@@ -266,6 +281,15 @@ function setupIpcHandlers(): void {
     }
     return null;
   });
+
+  // Location of the bundled Help documents folder (null if missing)
+  ipcMain.handle('get-help-docs-path', (): Promise<string | null> => findHelpDocsFolder());
+
+  // Absolute path of the `--open-file` startup file (null if none or invalid)
+  ipcMain.handle('get-startup-file', (): string | null => startupFile);
+
+  // Launch a separate MkBrowser instance that browses the Help documents
+  ipcMain.handle('open-help-window', (): void => launchHelpInstance());
 
   // Open file selection dialog (single file)
   ipcMain.handle('select-file', async (_event, title: string): Promise<string | null> => {
@@ -1102,8 +1126,11 @@ async function handleCommandLineArgs(): Promise<void> {
   const args = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
   logger.log('User args:', args);
 
-  // Filter out flags and electron-specific arguments, find first path-like argument
-  const folderPath = args.find(arg => !arg.startsWith('-') && arg !== '.');
+  // A Help instance always browses the Help documents. Otherwise, filter out flags
+  // and electron-specific arguments and use the first path-like argument.
+  const folderPath = isHelpInstance
+    ? getHelpDocsPath()
+    : args.find(arg => !arg.startsWith('-') && arg !== '.');
   logger.log('Detected folder path:', folderPath ?? '(none)');
 
   if (folderPath) {
@@ -1122,6 +1149,19 @@ async function handleCommandLineArgs(): Promise<void> {
       }
     } catch (_error) {
       logger.warn(`Command-line folder does not exist: ${folderPath}`);
+    }
+  }
+
+  // `--open-file=<path>`: resolved against the folder being opened (the one set
+  // above, or else the saved browse folder) and opened by the renderer at startup.
+  const openFile = getOpenFileArg(args);
+  const { browseFolder } = getConfig();
+  if (openFile && browseFolder) {
+    startupFile = await resolveOpenFile(browseFolder, openFile);
+    if (startupFile) {
+      logger.log(`Opening file from command line: ${startupFile}`);
+    } else {
+      logger.warn(`Command-line --open-file is not a file inside ${browseFolder}: ${openFile}`);
     }
   }
 }

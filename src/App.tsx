@@ -177,6 +177,11 @@ function App() {
         setEntriesLoading(false);
       } else if (result.rootPath) {
         setRootPath(result.rootPath);
+        // A `--open-file` command-line file opens in single-file mode, exactly as
+        // if it had been clicked in the index tree.
+        const startupFile = await api.getStartupFile();
+        if (cancelled) return;
+        if (startupFile) openFileSingle(startupFile);
       } else {
         setEntriesLoading(false);
       }
@@ -232,6 +237,30 @@ function App() {
         setError('Failed to open folder: ' + errorMessage(err));
       }
     })();
+  };
+
+  // Opens the bundled Help documents (a copy of docs/) as the root folder, exactly
+  // as if the user had picked it with Open Folder.
+  const handleBrowseHelpDocs = () => {
+    void (async () => {
+      try {
+        const folder = await api.getHelpDocsPath();
+        if (!folder) {
+          setError('Help documents folder not found.');
+          return;
+        }
+        await api.updateConfig({ browseFolder: folder, curSubFolder: undefined });
+        openRootFolder(folder);
+      } catch (err) {
+        setError('Failed to open Help documents: ' + errorMessage(err));
+      }
+    })();
+  };
+
+  const handleOpenHelpWindow = () => {
+    api.openHelpWindow().catch((err: unknown) => {
+      setError('Failed to open Help window: ' + errorMessage(err));
+    });
   };
 
   const handleOpenRecentFolder = (folder: string) => {
@@ -335,7 +364,7 @@ function App() {
 
   return (
     <>
-      <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
+      <AppTabButtons onSelectFolder={handleSelectFolder} onBrowseHelpDocs={handleBrowseHelpDocs} onOpenHelpWindow={handleOpenHelpWindow} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
 
       <div className="flex-1 flex flex-col min-h-0">
         {hasFolderGraph && (
