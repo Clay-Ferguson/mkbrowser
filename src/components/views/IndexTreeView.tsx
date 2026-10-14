@@ -237,15 +237,18 @@ interface TreeHeadingRowProps {
   onContextMenu: (node: MarkdownHeadingNode, e: React.MouseEvent) => void;
 }
 
-/** Heading rows (text, triangles and bullet) take the Markdown file icon's blue (FileTypeIcon). */
+/**
+ * Heading rows (text, triangles and bullet) take their level's colour from the shared
+ * `--md-heading-N` ramp in index.css, matching the rendered Markdown and the editor.
+ */
 function TreeHeadingRow({ node, depth, onClick, onContextMenu }: TreeHeadingRowProps) {
   const hasChildren = node.children && node.children.length > 0;
   return (
     <div
       data-tree-path={node.path}
       className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
-        text-blue-400 border-l-2 border-transparent cursor-pointer ${ROW_HOVER}`}
-      style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px` }}
+        border-l-2 border-transparent cursor-pointer ${ROW_HOVER}`}
+      style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px`, color: `var(--md-heading-${node.depth})` }}
       onClick={() => onClick(node)}
       onContextMenu={e => onContextMenu(node, e)}
     >
@@ -257,7 +260,7 @@ function TreeHeadingRow({ node, depth, onClick, onContextMenu }: TreeHeadingRowP
           : <span className="text-[0.85em] align-middle">●</span>
         }
       </span>
-      <span className="italic">{node.heading}</span>
+      <span>{node.heading}</span>
     </div>
   );
 }
