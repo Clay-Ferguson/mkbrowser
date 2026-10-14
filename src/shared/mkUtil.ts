@@ -142,3 +142,18 @@ export function splitOnColumnBreaks(content: string): ColumnChunk[] {
   chunks.push({ text: joined.trim(), lineOffset: currentStart + leadingBlanks });
   return chunks;
 }
+
+/**
+ * Removes blank (empty or whitespace-only) lines from the end of `content`.
+ * A file that ended with a line break keeps exactly one, so the last line stays
+ * newline-terminated; one that didn't end with a line break is left unterminated.
+ * Applied to the editor buffer on every save.
+ */
+export function trimTrailingBlankLines(content: string): string {
+  const match = /(?:\r?\n[ \t]*)+$/.exec(content);
+  if (!match) return content;
+  const head = content.slice(0, match.index);
+  // Content that is nothing but blank lines collapses to empty.
+  if (head.trim() === '') return '';
+  return head + (match[0].startsWith('\r\n') ? '\r\n' : '\n');
+}

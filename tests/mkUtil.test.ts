@@ -4,6 +4,7 @@ import {
   stripHtmlComments,
   preprocessWikiLinks,
   splitOnColumnBreaks,
+  trimTrailingBlankLines,
 } from '../src/shared/mkUtil';
 
 // ---------------------------------------------------------------------------
@@ -239,5 +240,44 @@ describe('splitOnColumnBreaks', () => {
     const result = splitOnColumnBreaks('a\n|||\nb\n|||\nc');
     expect(result).toHaveLength(3);
     expect(result.map(c => c.text)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// trimTrailingBlankLines
+// ---------------------------------------------------------------------------
+
+describe('trimTrailingBlankLines', () => {
+  it('collapses trailing blank lines to a single final newline', () => {
+    expect(trimTrailingBlankLines('abc\n\n\n')).toBe('abc\n');
+  });
+
+  it('removes whitespace-only trailing lines', () => {
+    expect(trimTrailingBlankLines('abc\n  \n\t\n   ')).toBe('abc\n');
+  });
+
+  it('leaves a single final newline alone', () => {
+    expect(trimTrailingBlankLines('abc\n')).toBe('abc\n');
+  });
+
+  it('leaves content without a final newline alone', () => {
+    expect(trimTrailingBlankLines('abc')).toBe('abc');
+  });
+
+  it('keeps trailing spaces on the last non-blank line', () => {
+    expect(trimTrailingBlankLines('abc  \n\n')).toBe('abc  \n');
+  });
+
+  it('keeps interior blank lines', () => {
+    expect(trimTrailingBlankLines('a\n\n\nb\n\n')).toBe('a\n\n\nb\n');
+  });
+
+  it('preserves CRLF line endings', () => {
+    expect(trimTrailingBlankLines('abc\r\n\r\n\r\n')).toBe('abc\r\n');
+  });
+
+  it('reduces content that is only blank lines to empty', () => {
+    expect(trimTrailingBlankLines('\n\n  \n')).toBe('');
+    expect(trimTrailingBlankLines('')).toBe('');
   });
 });

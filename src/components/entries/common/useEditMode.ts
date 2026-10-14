@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { api, ipcErrorMessage } from '../../../renderer/api';
 import { useAS, getItem, setAppError, setItemContent, setItemEditing, startEditing, setItemEditContent, setItemReviewing } from '../../../store';
 import { removeTOC } from '../../../shared/tocUtil';
+import { trimTrailingBlankLines } from '../../../shared/mkUtil';
 import { saveSettings } from '../../../renderer/config';
 import { getFileName } from '../../../renderer/pathUtil';
 import type { EditModeState } from './types';
@@ -21,7 +22,7 @@ function reportSaveFailure(path: string, reason: string | undefined): void {
 }
 
 /**
- * Writes the file via IPC and, on success, commits the saved content to the
+ * Writes the file via IPC (trailing blank lines trimmed) and, on success, commits the saved content to the
  * store and exits edit mode. Module-level (not in the hook) so its
  * try/catch/finally doesn't make the React Compiler bail out on useEditMode.
  * A failed write (thrown or `ok: false`) is reported through the app error
@@ -31,7 +32,7 @@ function reportSaveFailure(path: string, reason: string | undefined): void {
  */
 async function writeFileAndExitEditMode(path: string, editContent: string): Promise<void> {
   try {
-    const result = await api.writeFile(path, editContent);
+    const result = await api.writeFile(path, trimTrailingBlankLines(editContent));
     if (result.ok) {
       // Stamp the cache with the file's real post-write mtime from the main
       // process — a renderer Date.now() is generally at or ahead of the disk
@@ -56,8 +57,9 @@ async function writeFileAndExitEditMode(path: string, editContent: string): Prom
  * the store exactly like writeFileAndExitEditMode (the mtime/size/createdTime stamping
  * matters just as much here) but leaves `editing` — and the edit buffer — alone.
  *
- * The edit buffer is re-seeded from what actually landed on disk because the main process
- * can rewrite the content it saves (TOC regeneration); without this the buffer would drift from the file, and the next
+ * The edit buffer is re-seeded from what actually landed on disk because the content saved
+ * can differ from the buffer (trailing blank lines are trimmed, and the main process
+ * regenerates the TOC); without this the buffer would drift from the file, and the next
  * Escape-if-unmodified check would compare against — and a later save would re-write —
  * stale text. In the common case the saved content matches the buffer, so nothing is
  * dispatched into the editor at all.
@@ -79,7 +81,9 @@ async function writeFileKeepEditing(
   getLiveDoc: (() => string | null) | undefined,
 ): Promise<boolean> {
   try {
-    const result = await api.writeFile(path, editContent);
+    // editContent itself (untrimmed) stays the reference for the re-seed checks below: it is
+    // what the store and the live editor hold, so the trimmed save re-seeds the buffer too.
+    const result = await api.writeFile(path, trimTrailingBlankLines(editContent));
     if (!result.ok) {
       reportSaveFailure(path, result.error);
       return false;
