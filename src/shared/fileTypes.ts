@@ -1,5 +1,6 @@
 import type { FileEntry } from "../global";
 import type { SortOrder } from "../store";
+import { getDaysFromToday, formatDaysDisplay } from "./timeUtil";
 
 // Common image file extensions
 export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);
@@ -119,8 +120,13 @@ export function sortEntries(entries: FileEntry[], sortOrder: SortOrder, foldersO
   }
 }
 
-/** Formats a file's created/modified timestamps as a multi-line tooltip string. */
+/**
+ * Formats a file's created/modified timestamps as a multi-line tooltip string,
+ * each shown as a date plus its relative delta (e.g. "10/8/2026 — 5 days ago").
+ */
 export function formatFlyoverInfo(entry: FileEntry): string {
-  const fmt = (ms: number) => ms ? new Date(ms).toLocaleString() : 'Unknown';
-  return `File Info\n─────────────\nCreated: ${fmt(entry.createdTime)}\nModified: ${fmt(entry.modifiedTime)}`;
+  const fmt = (ms: number) => ms
+    ? `${new Date(ms).toLocaleDateString()} — ${formatDaysDisplay(getDaysFromToday(ms))}`
+    : 'Unknown';
+  return `Created: ${fmt(entry.createdTime)}\nModified: ${fmt(entry.modifiedTime)}`;
 }
