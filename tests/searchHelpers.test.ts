@@ -55,7 +55,8 @@ describe('search store slice', () => {
   const definition: SearchDefinition = {
     name: 'saved',
     searchText: 'needle',
-    target: 'content',
+    searchContents: true,
+    searchNames: false,
     matchType: 'literal',
     sortBy: 'file-name',
     sortDirection: 'asc',
@@ -106,7 +107,8 @@ describe('initialSearchDefinition', () => {
   const saved = (searchText: string): SearchDefinition => ({
     name: 'saved',
     searchText,
-    target: 'filenames',
+    searchContents: false,
+    searchNames: true,
     matchType: 'wildcard',
     sortBy: 'file-name',
     sortDirection: 'asc',
