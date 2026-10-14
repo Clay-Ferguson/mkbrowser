@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, native
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
-import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
+import { initConfig, getConfig, updateConfig, flushConfig, defaultSettings } from './main/configMgr';
 import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
@@ -1125,6 +1125,13 @@ async function handleCommandLineArgs(): Promise<void> {
   // In packaged apps, user args start at index 1; in dev mode, they start at index 2
   const args = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
   logger.log('User args:', args);
+
+  // A Help instance hides the in-document Table of Contents: the index tree
+  // already shows the Help documents' headings. Forced on every launch, in the
+  // Help instance's own config (see isolateHelpInstanceProfile).
+  if (isHelpInstance) {
+    await updateConfig({ settings: { ...defaultSettings, ...getConfig().settings, showToc: false } });
+  }
 
   // A Help instance always browses the Help documents. Otherwise, filter out flags
   // and electron-specific arguments and use the first path-like argument.
