@@ -12,8 +12,6 @@ interface IndexTreeContextMenuProps {
   onRun?: () => void;
   /** When provided, a "New File" item is shown. */
   onNewFile?: () => void;
-  /** When provided, a "New TODO" item is shown. */
-  onNewTodo?: () => void;
   /** When provided, a "New Folder" item is shown. */
   onNewFolder?: () => void;
   /** When provided, a "Rename" item is shown. */
@@ -31,8 +29,6 @@ interface IndexTreeContextMenuProps {
   onPasteLink?: () => void;
   /** When provided, a "Copy Path" item is shown. */
   onCopyPath?: () => void;
-  /** When provided, a "Copy Relative Path" item is shown. */
-  onCopyRelativePath?: () => void;
 }
 
 /**
@@ -44,7 +40,7 @@ interface IndexTreeContextMenuProps {
  * to the folder's *contents* rather than acting on the clicked node itself.
  * A markdown heading row passes only `onPasteLink`, so its menu is that one item.
  */
-export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewTodo, onNewFolder, onRename, onDelete, onCut, onPaste, onPasteLink, onCopyPath, onCopyRelativePath }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewFolder, onRename, onDelete, onCut, onPaste, onPasteLink, onCopyPath }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       {onBrowse && (
@@ -61,19 +57,12 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
           data-testid="tree-run-script"
         />
       )}
-      {(onNewFile || onNewTodo || onNewFolder || onRename || onDelete) && <PopupMenuDivider />}
+      {(onNewFile || onNewFolder || onRename || onDelete) && <PopupMenuDivider />}
       {onNewFile && (
         <PopupMenuItem
           label="New File"
           onClick={() => { onNewFile(); onClose(); }}
           data-testid="tree-new-file"
-        />
-      )}
-      {onNewTodo && (
-        <PopupMenuItem
-          label="New TODO"
-          onClick={() => { onNewTodo(); onClose(); }}
-          data-testid="tree-new-todo"
         />
       )}
       {onNewFolder && (
@@ -82,7 +71,7 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
           onClick={() => { onNewFolder(); onClose(); }}
         />
       )}
-      {(onNewFile || onNewTodo || onNewFolder) && <PopupMenuDivider />}
+      {(onNewFile || onNewFolder) && <PopupMenuDivider />}
       {onRename && (
         <PopupMenuItem
           label="Rename"
@@ -116,17 +105,11 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
         disabled={!onPasteLink}
         data-testid="tree-paste-link"
       />
-      {(onCopyPath || onCopyRelativePath) && <PopupMenuDivider />}
+      {onCopyPath && <PopupMenuDivider />}
       {onCopyPath && (
         <PopupMenuItem
           label="Copy Path"
           onClick={() => { onCopyPath(); onClose(); }}
-        />
-      )}
-      {onCopyRelativePath && (
-        <PopupMenuItem
-          label="Copy Relative Path"
-          onClick={() => { onCopyRelativePath(); onClose(); }}
         />
       )}
     </PopupMenu>

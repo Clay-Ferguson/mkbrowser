@@ -517,8 +517,6 @@ async function createItemOp(
  * @param sortedEntries - The current sorted list of folder entries, used to resolve the
  *   "insert after" sibling name when insertAtIndex is set.
  * @param onCloseDialog - Callback invoked to close the "new file" dialog.
- * @param initialContent - Content to seed the new file with. Defaults to empty; the index
- *   tree's "New TODO" uses it to pre-fill calendar + tag front matter.
  * @param refresh - Brings the view up to date once the file exists. Defaults to
  *   `refreshDirectory`; the index tree passes a navigation to the file's folder instead,
  *   which loads the listing itself.
@@ -529,7 +527,6 @@ export async function createFileOp(
   insertAtIndex: number | null,
   sortedEntries: FileEntry[],
   onCloseDialog: () => void,
-  initialContent = '',
   refresh: () => void = refreshDirectory
 ): Promise<void> {
   if (!currentPath) return;
@@ -538,7 +535,7 @@ export async function createFileOp(
     currentPath,
     insertAtIndex,
     sortedEntries,
-    (filePath) => api.createFile(filePath, initialContent),
+    (filePath) => api.createFile(filePath, ''),
     'Failed to create file',
     onCloseDialog,
     refresh,
