@@ -148,7 +148,7 @@ Zustand's `set` only replaces the *top-level* state object (shallow merge). It d
 | `scroll.ts` | Browser-view scroll positions per folder — a **non-reactive** module-level store (see below), not part of the Zustand store. |
 | `index.ts` | The **barrel**: re-exports `useAS` and every slice's actions, getters, and helpers, plus the shared store types. This is the single public import surface for the rest of the app. |
 
-**Always import from the barrel**, e.g. `import { useAS, upsertItems, setCurrentPath } from '../../store'`. Components should not reach into individual slice files. The barrel also re-exports the store *type* interfaces (`AppState`, `AppSettings`, `AiConfigState`, `ItemData`, `TreeNode`, `FileNode`, etc.), all of which are actually declared in `src/shared/types.ts` and simply passed through `index.ts`.
+**Always import from the barrel**, e.g. `import { useAS, upsertItems, setCurrentPath } from '../../store'`. Components should not reach into individual slice files. The barrel also re-exports the store *type* interfaces (`AppState`, `AppSettings`, `AiConfigState`, `ItemData`, `FileNode`, etc.), all of which are actually declared in `src/shared/types.ts` and simply passed through `index.ts`.
 
 #### Anatomy of a slice
 
@@ -440,7 +440,7 @@ and in both cases **only when every prop at every call site is stable**. A stabl
 
 - `MarkdownView` (rule 2).
 - `BrowseEntryRow`, one per row of BrowseView's folder listing (rule 1).
-- `TreeHeadingRow` and `TreeFileRow` in `IndexTreeView.tsx`, one per visible tree row (rule 1).
+- `TreeFileRow` in `IndexTreeView.tsx`, one per visible tree row (rule 1).
 
 Each row component builds its own per-row handlers from stable props and selects its own per-row flags from the store (`useAS(s => s.highlightItem === node.path)`, whether its owner file is expanded, and so on). They are the model to copy for any new list.
 

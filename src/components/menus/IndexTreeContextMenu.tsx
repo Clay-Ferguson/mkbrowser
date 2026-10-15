@@ -6,7 +6,7 @@ interface IndexTreeContextMenuProps {
   /** True when the right-clicked node is a directory (reserved for future use). */
   isDirectory: boolean;
   onClose: () => void;
-  /** When provided, a "Browse" item is shown (every file/folder row; not headings). */
+  /** When provided, a "Browse" item is shown. */
   onBrowse?: () => void;
   /** When provided (shell scripts only), a "Run" item is shown. */
   onRun?: () => void;
@@ -38,7 +38,6 @@ interface IndexTreeContextMenuProps {
  * "Paste Link into Editor", which is always shown and disabled instead. The
  * three create items are fenced off in their own divider section, since they add
  * to the folder's *contents* rather than acting on the clicked node itself.
- * A markdown heading row passes only `onPasteLink`, so its menu is that one item.
  */
 export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewFolder, onRename, onDelete, onCut, onPaste, onPasteLink, onCopyPath }: IndexTreeContextMenuProps) {
   return (

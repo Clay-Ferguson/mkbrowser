@@ -144,7 +144,7 @@ const ONE_SHOT_SCROLL_DELAY_MS = 1000;
 /**
  * Scrolls an arbitrary DOM element (identified by id) into view within the
  * main content area, then holds it there while the page settles. Used to
- * scroll to a specific markdown heading after navigating from the IndexTree.
+ * scroll to a specific markdown heading after following a `file.md#slug` link.
  *
  * Two problems make a one-shot scroll unreliable, and this handles both:
  * - The target may not exist yet (the markdown entry is still expanding/

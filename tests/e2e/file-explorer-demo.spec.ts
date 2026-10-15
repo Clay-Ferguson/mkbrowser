@@ -4,7 +4,7 @@ import { takeScreenshot, writeNarration, demoClick, demoRightClick, findActionBa
 
 // Override testDataPath so the app browses the mkbrowser repo itself rather than
 // the usual mkbrowser-test fixture folder — this demo needs a real, deeply nested
-// markdown document (docs/USER_GUIDE.md) to show off the tree's heading expansion.
+// folder structure and a real markdown document (docs/USER_GUIDE.md).
 // Resolved from __dirname so it works on any clone, at any location.
 const test = baseTest.extend({
   // eslint-disable-next-line no-empty-pattern
@@ -56,7 +56,7 @@ Here we can see the docs folder. Let's click to expand it.`
     writeNarration(
       screenshotDir,
       step++,
-      `One of the files listed is the User Guide. Let's click on it to see something special — MkBrowser can expand markdown files to show their heading structure right inside the tree.`
+      `One of the files listed is the User Guide. Let's click on it to open it.`
     );
 
     // --- Click the "USER_GUIDE.md" file ---
@@ -67,27 +67,20 @@ Here we can see the docs folder. Let's click to expand it.`
       screenshotDir,
       step++,
       `Here is the user guide file in the explorer tree.
-Let's click on it to expand it and reveal its internal heading structure.`
+Let's click on it to open it on its own in the right-hand panel.`
     );
 
     await demoClick(userGuideFile);
     await mainWindow.waitForTimeout(1200);
 
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'user-guide-expanded-headings');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'user-guide-opened');
     writeNarration(
       screenshotDir,
       step++,
-      `The markdown file has expanded to show its heading structure directly inside the File Explorer Tree.
-Each heading from the document appears as a clickable node, letting you right-click to jump straight to any section of the file without scrolling.
-This is one of the most powerful navigation features of MkBrowser.`
+      `The user guide is now open by itself in the right-hand panel, ready to read.`
     );
 
     // --- Phase 2 ---
-
-    // Silently scroll the "Searching" heading into view before interacting with it
-    const searchingHeading = tree.getByText('Searching').first();
-    await searchingHeading.scrollIntoViewIfNeeded();
-    await mainWindow.waitForTimeout(500);
 
     // --- Right-click USER_GUIDE.md to open its containing folder on the right ---
     const userGuideFileAgain = tree.getByText('USER_GUIDE.md').first();
@@ -134,54 +127,6 @@ To open the file's containing folder in the main content area, we'll click the "
 You can see the file listing for the docs folder on the right side.`
     );
 
-    // --- Click the "Searching" heading to expand its sub-headings ---
-    await searchingHeading.scrollIntoViewIfNeeded();
-    await takeScreenshot(mainWindow, searchingHeading, screenshotDir, step++, 'about-to-click-searching-heading');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Back in the File Explorer Tree we can see the headings in the user guide.
-Let's click on the "Searching" heading to expand it and reveal its sub-headings inside the tree.`
-    );
-
-    await demoClick(searchingHeading);
-    await mainWindow.waitForTimeout(800);
-
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'searching-heading-expanded');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `The Searching heading is now expanded and its sub-headings are visible in the tree.
-We can drill into any section of the document directly from the file explorer.`
-    );
-
-    // --- Click the "Saving Search Definitions" sub-heading ---
-    // Heading rows are click-only: commit 4655289 ("making markdown index
-    // heading clicks scroll markdown heading to view") removed
-    // handleHeadingContextMenu and the heading row's onContextMenu, so a
-    // right-click here opens nothing. The left-click IS the whole interaction —
-    // handleHeadingClick scrolls the document straight to that section.
-    const savingSearchNode = tree.getByText('Saving Search Definitions').first();
-    await savingSearchNode.scrollIntoViewIfNeeded();
-    await takeScreenshot(mainWindow, savingSearchNode, screenshotDir, step++, 'about-to-click-saving-search-definitions');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `We can see the sub-heading "Saving Search Definitions" in the tree.
-Let's click it to jump straight to that section of the document.`
-    );
-
-    await demoClick(savingSearchNode);
-    await mainWindow.waitForTimeout(1200);
-
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'saving-search-definitions-scrolled');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `The right-hand panel has scrolled directly to the "Saving Search Definitions" section of the USER_GUIDE document.
-Clicking a heading in the File Explorer Tree is a fast way to jump to that exact section in the reader.`
-    );
-
     // --- Phase 3 ---
 
     // --- Collapse the tree ---
@@ -191,8 +136,7 @@ Clicking a heading in the File Explorer Tree is a fast way to jump to that exact
     writeNarration(
       screenshotDir,
       step++,
-      `We just jumped from the File Explorer Tree directly to a section in the document.
-But navigation also works in reverse — from any document on the right, you can jump back to find it in the tree.
+      `Navigation also works in reverse — from any document on the right, you can jump back to find it in the tree.
 First, let's collapse the tree completely by clicking the collapse button at the top of the tree panel.`
     );
 
@@ -204,23 +148,7 @@ First, let's collapse the tree completely by clicking the collapse button at the
       screenshotDir,
       step++,
       `The File Explorer Tree is now fully collapsed and out of the way.
-Now let's scroll the right-hand panel back to the top so we can access the file controls.`
-    );
-
-    // --- Scroll the main content panel to the top ---
-    // Clicking a heading in the tree (above) opens the file in single-file mode
-    // (commit a213599), so the scrolling pane is BrowseFile's <main>, not
-    // BrowseView's 'browser-main-content' — which is unmounted at this point.
-    const mainContent = mainWindow.getByTestId('browse-file-main-content');
-    await mainContent.evaluate((el) => el.scrollTo({ top: 0}));
-    await mainWindow.waitForTimeout(800);
-
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'main-content-scrolled-to-top');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `The content panel is scrolled back to the top and we can see the file header for user guide file.
-Hovering over a file title reveals a row of action icons. Let's click the "Reveal in Folder Tree" icon to locate this file in the tree.`
+In the docs folder listing on the right, hovering over a file title reveals a row of action icons. Let's click the "Reveal in Folder Tree" icon on the user guide to locate it in the tree.`
     );
 
     // --- Click the "Reveal in Folder Tree" button for USER_GUIDE.md ---

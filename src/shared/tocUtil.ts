@@ -2,9 +2,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
 import { toc } from 'mdast-util-toc';
-import type { Root, Heading, List, Nodes, RootContent } from 'mdast';
-import GithubSlugger from 'github-slugger';
-import type { MarkdownHeadingNode } from './types';
+import type { Root, List, Nodes, RootContent } from 'mdast';
 
 const START_TAG = '<!-- TOC -->';
 const END_TAG = '<!-- /TOC -->';
@@ -284,62 +282,4 @@ function walkTocTags(node: Nodes, levelOffset: number): void {
     const child = children[i];
     if (child?.type === 'html' && isTocTagComment(child.value)) children.splice(i, 1);
   }
-}
-
-/** Extracts the plain text of a heading node by concatenating its inline children. */
-function headingText(node: Heading): string {
-  return node.children
-    .map(child => ('value' in child ? child.value : ''))
-    .join('');
-}
-
-/**
- * Parse a markdown string and return a tree of MarkdownHeadingNode objects.
- * Heading nesting follows depth (H1 > H2 > H3 …).
- * The synthetic `path` for each node is `filePath + '#' + flatIndex`.
- */
-export function extractHeadingTree(filePath: string, content: string): MarkdownHeadingNode[] {
-  content = sanitizeForTOC(content);
-  const ast = unified().use(remarkParse).parse(content) as Root;
-  const headings = ast.children.filter((n): n is Heading => n.type === 'heading');
-
-  const slugger = new GithubSlugger();
-
-  // Build nodes in order, assign synthetic paths and rehype-slug-compatible slugs
-  const nodes: MarkdownHeadingNode[] = headings.map((h, i) => {
-    const text = headingText(h);
-    return {
-      path: `${filePath}#${i}`,
-      heading: text,
-      slug: slugger.slug(text),
-      depth: h.depth,
-      isExpanded: false,
-      isLoading: false,
-      children: null,
-    };
-  });
-
-  // Stack-based tree assembly: stack holds ancestors by depth
-  const roots: MarkdownHeadingNode[] = [];
-  const stack: MarkdownHeadingNode[] = [];
-
-  for (const node of nodes) {
-    // Pop stack until top has a lower depth than current node
-    let top = stack[stack.length - 1];
-    while (top && top.depth >= node.depth) {
-      stack.pop();
-      top = stack[stack.length - 1];
-    }
-
-    if (!top) {
-      roots.push(node);
-    } else {
-      if (!top.children) top.children = [];
-      top.children.push(node);
-    }
-
-    stack.push(node);
-  }
-
-  return roots;
 }

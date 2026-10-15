@@ -1,8 +1,7 @@
 import { api } from './api';
-import type { FileNode, TreeNode } from '../shared/types';
+import type { FileNode } from '../shared/types';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
-import { extractHeadingTree } from '../shared/tocUtil';
 import { logger } from '../shared/logUtil';
 
 // ============================================================================
@@ -61,42 +60,29 @@ function makeAttachNode(file: FileNode): FileNode {
 }
 
 /**
- * The children of an expanded file node: its attachment folder (when it has one)
- * first, then `headings` (a markdown file's heading tree; empty for other files).
- * The one place a file's child list is assembled.
+ * The children of an expanded file node: its attachment folder when it has one,
+ * otherwise none. The one place a file's child list is assembled.
  */
-export function makeFileChildren(file: FileNode, headings: TreeNode[]): TreeNode[] {
-  return file.hasAttachFolder ? [makeAttachNode(file), ...headings] : headings;
+export function makeFileChildren(file: FileNode): FileNode[] {
+  return file.hasAttachFolder ? [makeAttachNode(file)] : [];
 }
 
 /**
  * Re-syncs an already-loaded file's children after its `hasAttachFolder` flag flipped
- * on disk: drops the old attachment-folder node and, when the folder now exists, puts a
- * fresh one first. Heading children are kept. Unloaded children (null) stay unloaded —
- * the first expand builds them with makeFileChildren.
+ * on disk: drops the old attachment-folder node and, when the folder now exists, adds a
+ * fresh one. Unloaded children (null) stay unloaded — the first expand builds them with
+ * makeFileChildren.
  */
-function syncAttachChild(children: TreeNode[] | null, file: FileNode): TreeNode[] | null {
-  if (!children) return children;
-  return makeFileChildren(file, children.filter(c => !('isDirectory' in c)));
+function syncAttachChild(children: FileNode[] | null, file: FileNode): FileNode[] | null {
+  return children ? makeFileChildren(file) : children;
 }
 
 /**
  * Expands a file node in the tree. Children already loaded are simply shown again;
- * otherwise they are built — a markdown file's headings read from disk, plus the
- * attachment folder node. A markdown file that can't be read is left collapsed.
+ * otherwise they are built (the attachment folder node, if any).
  */
-export async function expandFileNode(node: FileNode): Promise<void> {
-  if (node.children !== null) {
-    expandIndexTreeNode(node.path, node.children);
-    return;
-  }
-  let headings: TreeNode[] = [];
-  if (node.name.toLowerCase().endsWith('.md')) {
-    const result = await api.readFile(node.path).catch(() => null);
-    if (!result?.ok) return;
-    headings = extractHeadingTree(node.path, result.content);
-  }
-  expandIndexTreeNode(node.path, makeFileChildren(node, headings));
+export function expandFileNode(node: FileNode): void {
+  expandIndexTreeNode(node.path, node.children ?? makeFileChildren(node));
 }
 
 /**
@@ -114,17 +100,12 @@ export async function expandFileNode(node: FileNode): Promise<void> {
  */
 export function mergeTreeNodes(
   entries: TreeEntry[],
-  previousChildren: TreeNode[] | null | undefined
+  previousChildren: FileNode[] | null | undefined
 ): FileNode[] {
   const fresh = makeTreeNodes(entries);
   if (!previousChildren) return fresh;
 
-  // Heading nodes (no isDirectory) can't match a directory entry, so they never
-  // participate in the merge.
-  const oldByPath = new Map<string, FileNode>();
-  for (const child of previousChildren) {
-    if ('isDirectory' in child) oldByPath.set(child.path, child as FileNode);
-  }
+  const oldByPath = new Map(previousChildren.map(child => [child.path, child]));
 
   const merged = fresh.map(node => {
     const existing = oldByPath.get(node.path);
@@ -138,7 +119,7 @@ export function mergeTreeNodes(
     return { ...node, isExpanded: existing.isExpanded, children };
   });
   const unchanged = merged.length === previousChildren.length && merged.every((n, i) => n === previousChildren[i]);
-  return unchanged ? (previousChildren as FileNode[]) : merged;
+  return unchanged ? previousChildren : merged;
 }
 
 /**
@@ -149,8 +130,7 @@ export function findTreeNodeByPath(root: FileNode, path: string): FileNode | nul
   if (root.path === path) return root;
   if (!root.children) return null;
   for (const child of root.children) {
-    if (!('isDirectory' in child)) continue;
-    const found = findTreeNodeByPath(child as FileNode, path);
+    const found = findTreeNodeByPath(child, path);
     if (found) return found;
   }
   return null;
@@ -211,13 +191,13 @@ export async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
 }
 
 /**
- * The file-node half of refreshExpandedNodes: an expanded file's only directory
- * child is its attachment folder, which is refreshed like any folder; heading
- * children pass through. Returns `file` itself when nothing under it changed.
+ * The file-node half of refreshExpandedNodes: an expanded file's only child is its
+ * attachment folder, which is refreshed like any folder. Returns `file` itself when
+ * nothing under it changed.
  */
 async function refreshFileChildren(file: FileNode): Promise<FileNode> {
   const old = file.children;
   if (!old) return file;
-  const children = await Promise.all(old.map(c => ('isDirectory' in c ? refreshExpandedNodes(c as FileNode) : c)));
+  const children = await Promise.all(old.map(refreshExpandedNodes));
   return children.every((c, i) => c === old[i]) ? file : { ...file, children };
 }

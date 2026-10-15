@@ -22,8 +22,7 @@ interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement
  *     otherwise to the file on its own (single-file mode). A `.md` link whose title is
  *     `"id:…"` (the target's front-matter id) repairs itself when its target has been
  *     renamed or moved — see linkRepair.ts. A `.md` link may end in a heading fragment
- *     (`file.md#heading-slug`, as written by the index tree's heading "Paste Link into
- *     Editor"), which also scrolls to that heading, as clicking it in the tree does.
+ *     (`file.md#heading-slug`), which also scrolls to that heading.
  *
  * Also stops mouseup propagation so link clicks don't trigger the parent's edit-mode handler.
  */

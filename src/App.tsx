@@ -181,7 +181,7 @@ function App() {
         setRootPath(result.rootPath);
         // A file named on the command line opens in single-file mode, exactly as
         // if it had been clicked in the index tree — including expanding its tree
-        // node so its headings are visible.
+        // node so its attachment folder (if any) is visible.
         const startupFile = await api.getStartupFile();
         if (cancelled) return;
         if (startupFile) {

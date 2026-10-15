@@ -21,9 +21,8 @@ import {
  * the behaviors that carry real regression risk:
  *
  *   1. Clicking a file swaps BrowseView out for BrowseFile, showing only that
- *      file — a sibling file in the same folder must NOT be visible. For a
- *      markdown file the same click ALSO expands its headings in the tree;
- *      both halves are asserted, since either could regress alone.
+ *      file — a sibling file in the same folder must NOT be visible. The tree
+ *      shows only files and folders, so no heading rows appear under the file.
  *   2. Click-to-edit still works there. This is the assertion that matters:
  *      the entry components render their own CodeMirror, so editing is meant
  *      to work identically outside the list. Verified through to disk.
@@ -65,9 +64,8 @@ test.describe('Private: Browse File', () => {
     const siblingName = 'my-browse-sibling.md';
     fs.rmSync(folderPath, { recursive: true, force: true });
     fs.mkdirSync(folderPath);
-    // Sub-headings below the title are deliberate: the Phase 1 tree-expansion
-    // assertion below looks for heading nodes nested under the file, so the
-    // fixture needs a heading structure with more than one level.
+    // Headings are deliberate: Phase 1 asserts none of them shows up as a
+    // node in the tree, which lists only files and folders.
     fs.writeFileSync(
       path.join(folderPath, targetName),
       `# Browse Target\n\nThe file we view on its own.\n\n## First Section\n\nSection one body.\n\n## Second Section\n\nSection two body.\n`
@@ -130,13 +128,9 @@ Let's pull one of them up on its own.`
     await expect(single.getByRole('heading', { name: 'Browse Target' })).toBeVisible({ timeout: 10000 });
     await expect(single.getByText(siblingName, { exact: true })).toHaveCount(0);
 
-    // The same click also expanded the file's headings in the tree. Asserted
-    // separately from the browse half: the two behaviors share one click but
-    // are independent code paths, so either could regress on its own.
-    // The tree mirrors the file's headings exactly, so the document's own title
-    // heading is the single top-level node; the `##` sections sit collapsed
-    // beneath it until that node is expanded in turn.
-    await expect(tree.getByText('Browse Target', { exact: true })).toBeVisible({ timeout: 10000 });
+    // The tree lists only files and folders: the click must not add the
+    // file's headings as nodes beneath it.
+    await expect(tree.getByText('Browse Target', { exact: true })).toHaveCount(0);
 
     // The breadcrumb header is here too, exactly as in the folder listing — it
     // is how you jump to an ancestor folder in one click without first leaving

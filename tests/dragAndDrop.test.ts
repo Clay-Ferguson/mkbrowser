@@ -14,10 +14,8 @@ import {
 import { makeTreeNodes, makeFileChildren, mergeTreeNodes, refreshExpandedNodes } from '../src/renderer/treeNodes';
 import { useAS } from '../src/store/core';
 import { collapseAllIndexTreeNodes } from '../src/store/indexTree';
-import { setItemContent } from '../src/store/items';
-import { extractHeadingTree } from '../src/shared/tocUtil';
 import { api } from '../src/renderer/api';
-import type { FileNode, MarkdownHeadingNode, TreeNode } from '../src/shared/types';
+import type { FileNode } from '../src/shared/types';
 
 vi.mock('../src/renderer/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../src/renderer/api')>()),
@@ -181,7 +179,7 @@ function entry(path: string, isDirectory: boolean, indexOrder?: number, hasAttac
   };
 }
 
-function node(path: string, isDirectory: boolean, isExpanded: boolean, children: TreeNode[] | null): FileNode {
+function node(path: string, isDirectory: boolean, isExpanded: boolean, children: FileNode[] | null): FileNode {
   return {
     path,
     name: path.slice(path.lastIndexOf('/') + 1),
@@ -282,12 +280,8 @@ describe('refreshExpandedNodes — structural sharing', () => {
 // Attachment folders — shown as the first child of their owning file
 // ---------------------------------------------------------------------------
 
-function heading(path: string): MarkdownHeadingNode {
-  return { path, heading: 'H', slug: 'h', depth: 1, isExpanded: false, isLoading: false, children: null };
-}
-
 /** A file node that owns an attach folder. */
-function owner(path: string, isExpanded: boolean, children: TreeNode[] | null): FileNode {
+function owner(path: string, isExpanded: boolean, children: FileNode[] | null): FileNode {
   return { ...node(path, false, isExpanded, children), hasAttachFolder: true };
 }
 
@@ -309,33 +303,29 @@ describe('makeTreeNodes / makeFileChildren — attachment folders', () => {
     expect(nodes[0]).not.toHaveProperty('isOwnedAttach');
   });
 
-  it('puts the attach folder first, before headings, keeping its real name', () => {
-    const h = heading('/root/a.md#0');
-    const [attach, ...rest] = makeFileChildren(owner('/root/a.md', false, null), [h]) as FileNode[];
-    expect(attach).toEqual({ ...node('/root/a.md.attach', true, false, null), isOwnedAttach: true });
-    expect(rest).toEqual([h]);
+  it('makes the attach folder the file\'s only child, keeping its real name', () => {
+    expect(makeFileChildren(owner('/root/a.md', false, null))).toEqual([
+      { ...node('/root/a.md.attach', true, false, null), isOwnedAttach: true },
+    ]);
   });
 
-  it('adds nothing for a file without an attach folder', () => {
-    const h = heading('/root/b.md#0');
-    expect(makeFileChildren(node('/root/b.md', false, false, null), [h])).toEqual([h]);
+  it('gives a file without an attach folder no children', () => {
+    expect(makeFileChildren(node('/root/b.md', false, false, null))).toEqual([]);
   });
 });
 
 describe('mergeTreeNodes — attachment folder appearing / disappearing', () => {
-  it('prepends the attach node to an expanded file when its folder appears, keeping headings', () => {
-    const h = heading('/root/a.md#0');
-    const [merged] = mergeTreeNodes([entry('/root/a.md', false, undefined, true)], [node('/root/a.md', false, true, [h])]);
+  it('adds the attach node to an expanded file when its folder appears', () => {
+    const [merged] = mergeTreeNodes([entry('/root/a.md', false, undefined, true)], [node('/root/a.md', false, true, [])]);
     expect(merged!.isExpanded).toBe(true);
-    expect(merged!.children!.map(c => c.path)).toEqual(['/root/a.md.attach', '/root/a.md#0']);
+    expect(merged!.children!.map(c => c.path)).toEqual(['/root/a.md.attach']);
   });
 
   it('removes the attach node when its folder is gone', () => {
-    const h = heading('/root/a.md#0');
-    const previous = [owner('/root/a.md', true, [node('/root/a.md.attach', true, true, []), h])];
+    const previous = [owner('/root/a.md', true, [node('/root/a.md.attach', true, true, [])])];
     const [merged] = mergeTreeNodes([entry('/root/a.md', false)], previous);
     expect(merged!.hasAttachFolder).toBeUndefined();
-    expect(merged!.children).toEqual([h]);
+    expect(merged!.children).toEqual([]);
   });
 
   it('reuses the node (and its expanded attach child) when nothing changed', () => {
@@ -380,10 +370,9 @@ describe('refreshExpandedNodes — attach folder under an expanded file', () => 
 
 describe('collapseAllIndexTreeNodes', () => {
   it('collapses expanded files and the attach folders under them', () => {
-    const h = heading('/r/a.md#0');
     useAS.setState({
       indexTreeRoot: node('/r', true, true, [
-        owner('/r/a.md', true, [node('/r/a.md.attach', true, true, []), h]),
+        owner('/r/a.md', true, [node('/r/a.md.attach', true, true, [])]),
       ]),
     });
     collapseAllIndexTreeNodes();
@@ -392,64 +381,5 @@ describe('collapseAllIndexTreeNodes', () => {
     const file = root.children![0] as FileNode;
     expect(file.isExpanded).toBe(false);
     expect((file.children![0] as FileNode).isExpanded).toBe(false);
-    expect(file.children![1]).toBe(h);
-  });
-});
-
-describe('setItemContent — keeps an expanded file\'s headings in the tree current', () => {
-  const FILE = '/r/a.md';
-  const NESTED = '/r/a.md.attach/b.md';
-
-  /** /r -> a.md (expanded: attach folder + headings of `content`) -> a.md.attach (expanded) -> b.md */
-  function seed(content: string, nestedChildren: TreeNode[] | null = null): void {
-    useAS.setState({
-      items: new Map(),
-      indexTreeRoot: node('/r', true, true, [
-        owner(FILE, true, [
-          node('/r/a.md.attach', true, true, [node(NESTED, false, nestedChildren !== null, nestedChildren)]),
-          ...extractHeadingTree(FILE, content),
-        ]),
-      ]),
-    });
-  }
-  const fileNode = () => useAS.getState().indexTreeRoot!.children![0] as FileNode;
-  const headingTexts = (children: TreeNode[]) => children.filter(c => 'heading' in c).map(c => (c as MarkdownHeadingNode).heading);
-
-  it('rebuilds the headings from the saved content, keeping the attach folder child', () => {
-    seed('# One\n');
-    const attach = fileNode().children![0];
-    setItemContent(FILE, '# One\n# Two\n', 1);
-    expect(fileNode().children![0]).toBe(attach);
-    expect(headingTexts(fileNode().children!)).toEqual(['One', 'Two']);
-  });
-
-  it('keeps heading expansion and skips the store write when the headings are unchanged', () => {
-    seed('# One\n## Sub\n');
-    const top = fileNode().children![1] as MarkdownHeadingNode;
-    const rootBefore = useAS.getState().indexTreeRoot;
-    setItemContent(FILE, '# One\n## Sub\nbody text\n', 1);
-    expect(useAS.getState().indexTreeRoot).toBe(rootBefore);
-    expect(fileNode().children![1]).toBe(top);
-
-    // An expanded heading stays expanded across an edit that adds a sibling.
-    const expanded = { ...top, isExpanded: true };
-    useAS.setState({ indexTreeRoot: node('/r', true, true, [{ ...fileNode(), children: [fileNode().children![0]!, expanded] }]) });
-    setItemContent(FILE, '# One\n## Sub\n# Two\n', 1);
-    expect((fileNode().children![1] as MarkdownHeadingNode).isExpanded).toBe(true);
-    expect(headingTexts(fileNode().children!)).toEqual(['One', 'Two']);
-  });
-
-  it('updates a loaded file inside an attach folder', () => {
-    seed('# One\n', []);
-    setItemContent(NESTED, '# Nested\n', 1);
-    const nested = (fileNode().children![0] as FileNode).children![0] as FileNode;
-    expect(headingTexts(nested.children!)).toEqual(['Nested']);
-  });
-
-  it('leaves a file whose children were never loaded alone', () => {
-    seed('# One\n');
-    const rootBefore = useAS.getState().indexTreeRoot;
-    setItemContent(NESTED, '# Nested\n', 1);
-    expect(useAS.getState().indexTreeRoot).toBe(rootBefore);
   });
 });

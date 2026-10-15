@@ -10,7 +10,6 @@ import { hasObjectType } from '../shared/objects/genericObject';
 import { getParentPath, isPathInside, isSamePath, joinPath, remapMovedPath } from '../renderer/pathUtil';
 import { enterExpandedEditPatch, isExpandedEditOf } from './expandedEdit';
 import { withHistoryPruned, withHistoryPush, withHistoryRemapped } from './history';
-import { withFileHeadings } from './indexTree';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
 
@@ -439,16 +438,8 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      */
     setItemContent: (path, content, modifiedTime, size, createdTime) => {
       const state = get();
-      // Keep an expanded markdown file's headings in the index tree in step with its
-      // content, in the same store write — even for a file not in the item cache
-      // (e.g. a link repair in a folder that was never browsed).
-      const indexTreeRoot = withFileHeadings(state.indexTreeRoot, path, content);
-      const treePatch = indexTreeRoot !== state.indexTreeRoot ? { indexTreeRoot } : {};
       const existing = state.items.get(path);
-      if (!existing) {
-        if (indexTreeRoot !== state.indexTreeRoot) set(treePatch);
-        return;
-      }
+      if (!existing) return;
 
       const fmParts = splitFrontMatter(content);
       const tags = fmParts ? getTagsFromYaml(fmParts.yamlStr).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })) : [];
@@ -466,7 +457,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
         props,
       });
 
-      set({ items: newItems, ...treePatch });
+      set({ items: newItems });
     },
 
     /** Toggle the selected state of an item. */

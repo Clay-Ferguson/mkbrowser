@@ -36,7 +36,7 @@ import {
   setIndexTreeWidth,
   getItem,
 } from '../../store';
-import type { TreeNode, FileNode, MarkdownHeadingNode } from '../../store';
+import type { FileNode } from '../../store';
 import type { FileEntry } from '../../shared/shared';
 import { pasteCutItems, runCutPasteExclusive } from '../../renderer/edit';
 import {
@@ -57,9 +57,9 @@ import {
 import { createFileOp } from '../../renderer/fileOpsUtil';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
-import { appendLinkFragment, formatLinkDestination, formatLinkTitle } from '../../renderer/linkUtil';
+import { formatLinkDestination, formatLinkTitle } from '../../renderer/linkUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
-import { addLinkTargetId, openFileSingle, readLinkTargetId } from '../../renderer/linkRepair';
+import { addLinkTargetId, readLinkTargetId } from '../../renderer/linkRepair';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 const INDENT_SIZE = 20;
@@ -81,19 +81,6 @@ function computeRelativePath(fromDir: string, toFile: string): string {
 
 // ── Type guards ──────────────────────────────────────────────────────────────
 
-function isFileNode(node: TreeNode): node is FileNode {
-  return 'isDirectory' in node;
-}
-
-function isMarkdownHeadingNode(node: TreeNode): node is MarkdownHeadingNode {
-  return 'heading' in node;
-}
-
-/** The Markdown file a heading node belongs to (its synthetic path is `file#index`). */
-function headingFilePath(node: MarkdownHeadingNode): string {
-  return node.path.substring(0, node.path.lastIndexOf('#'));
-}
-
 function isShellScript(node: FileNode): boolean {
   return !node.isDirectory && node.name.toLowerCase().endsWith('.sh');
 }
@@ -101,39 +88,32 @@ function isShellScript(node: FileNode): boolean {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function isAnyExpanded(nodes: TreeNode[]): boolean {
+function isAnyExpanded(nodes: FileNode[]): boolean {
   return nodes.some(n => n.isExpanded);
 }
 
 /**
  * Flattens the visible portion of the tree into a flat array of `{node, depth}`
  * pairs for virtual list rendering. Collapsed nodes are included but their
- * children are omitted; cut nodes are skipped entirely. A file's children (its
- * attachment folder first, then any headings), heading sub-trees and
- * index-ordered (document mode) nodes preserve their existing order; all other
- * nodes are sorted alphabetically with optional folders-on-top.
+ * children are omitted; cut nodes are skipped entirely. Index-ordered (document
+ * mode) nodes preserve their existing order; all other nodes are sorted
+ * alphabetically with optional folders-on-top.
  */
 function flattenVisible(
-  nodes: TreeNode[],
+  nodes: FileNode[],
   cutPaths: ReadonlySet<string>,
   foldersOnTop: boolean,
   depth = 0
-): Array<{ node: TreeNode; depth: number }> {
-  // A file's children (attach folder + headings), heading nodes and Document Mode
-  // (indexed) nodes must preserve their existing order.
-  const isHeadings = nodes.some(isMarkdownHeadingNode);
-  const hasIndexOrder = !isHeadings && nodes.some(n => isFileNode(n) && (n as FileNode).indexOrder !== undefined);
-  const sorted = (isHeadings || hasIndexOrder) ? nodes : [...nodes].sort((a, b) => {
-    const aIsDir = isFileNode(a) && a.isDirectory;
-    const bIsDir = isFileNode(b) && b.isDirectory;
-    if (foldersOnTop && aIsDir !== bIsDir) return aIsDir ? -1 : 1;
-    const aName = isFileNode(a) ? a.name : '';
-    const bName = isFileNode(b) ? b.name : '';
-    return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+): Array<{ node: FileNode; depth: number }> {
+  // Document Mode (indexed) nodes must preserve their existing order.
+  const hasIndexOrder = nodes.some(n => n.indexOrder !== undefined);
+  const sorted = hasIndexOrder ? nodes : [...nodes].sort((a, b) => {
+    if (foldersOnTop && a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
   });
-  const result: Array<{ node: TreeNode; depth: number }> = [];
+  const result: Array<{ node: FileNode; depth: number }> = [];
   for (const node of sorted) {
-    if (isFileNode(node) && cutPaths.has(node.path)) continue;
+    if (cutPaths.has(node.path)) continue;
     result.push({ node, depth });
     if (node.isExpanded && node.children) {
       result.push(...flattenVisible(node.children, cutPaths, foldersOnTop, depth + 1));
@@ -167,32 +147,24 @@ type MarkdownEditor = NonNullable<ReturnType<typeof getActiveMarkdownEditor>>;
 interface PendingIdLink {
   editor: MarkdownEditor;
   targetPath: string;
-  heading?: MarkdownHeadingNode;
 }
 
 /**
  * Inserts a relative link to the Markdown file `targetPath` at `editor`'s cursor —
- * `[README](../a/README.md "id:36F7385CA")`, or with `heading` (a heading row's
- * "Paste Link into Editor") `[README — Requirements](../a/README.md#requirements "id:36F7385CA")`,
- * labelled with the file name, an em dash and the heading text. With an empty `id`
- * the link has no title.
+ * `[README](../a/README.md "id:36F7385CA")`, labelled with the file name. With an
+ * empty `id` the link has no title.
  *
  * The target's front-matter id rides in the link title, so any Markdown parser
  * returns it with the link and a broken link can be auto-repaired (linkRepair.ts).
  *
- * The fragment is the heading's GitHub-style slug (lowercased, spaces → hyphens,
- * punctuation dropped, `-1`/`-2` suffixes on repeats) — the id rehype-slug gives the
- * rendered heading, so it is what the link click scrolls to (see CustomAnchor).
- *
- * Square brackets and backslashes in the label are backslash-escaped, since heading
- * text (and file names) may contain them and an unescaped `]` would end the label.
+ * Square brackets and backslashes in the label are backslash-escaped, since file
+ * names may contain them and an unescaped `]` would end the label.
  */
-function insertMarkdownLinkWithId(editor: MarkdownEditor, targetPath: string, heading: MarkdownHeadingNode | undefined, id: string): void {
+function insertMarkdownLinkWithId(editor: MarkdownEditor, targetPath: string, id: string): void {
   const dest = formatLinkDestination(computeRelativePath(getParentPath(editor.path), targetPath));
-  const fileLabel = getFileName(targetPath).replace(/\.md$/, '');
-  const label = (heading ? `${fileLabel} — ${heading.heading}` : fileLabel).replace(/[[\]\\]/g, '\\$&');
+  const label = getFileName(targetPath).replace(/\.md$/, '').replace(/[[\]\\]/g, '\\$&');
   const title = id ? ` ${formatLinkTitle(`id:${id}`)}` : '';
-  editor.handle.insertAtCursor(`[${label}](${appendLinkFragment(dest, heading?.slug ?? '')}${title})`);
+  editor.handle.insertAtCursor(`[${label}](${dest}${title})`);
 }
 
 /**
@@ -207,12 +179,11 @@ function insertMarkdownLinkWithId(editor: MarkdownEditor, targetPath: string, he
 function insertMarkdownFileLink(
   editor: MarkdownEditor,
   targetPath: string,
-  heading: MarkdownHeadingNode | undefined,
   onNeedsId: (pending: PendingIdLink) => void,
 ): void {
   void readLinkTargetId(targetPath).then((id) => {
-    if (id || getItem(targetPath)?.editing) insertMarkdownLinkWithId(editor, targetPath, heading, id);
-    else onNeedsId({ editor, targetPath, heading });
+    if (id || getItem(targetPath)?.editing) insertMarkdownLinkWithId(editor, targetPath, id);
+    else onNeedsId({ editor, targetPath });
   });
 }
 
@@ -230,43 +201,6 @@ function insertMarkdownFileLink(
 // that node changes, the flags are primitives, and the handlers are compiled
 // in IndexTreeView on inputs that change only on navigation or a cut.
 
-interface TreeHeadingRowProps {
-  node: MarkdownHeadingNode;
-  depth: number;
-  onClick: (node: MarkdownHeadingNode) => void;
-  onContextMenu: (node: MarkdownHeadingNode, e: React.MouseEvent) => void;
-}
-
-/**
- * Heading rows (text, triangles and bullet) take their level's colour from the shared
- * `--md-heading-N` ramp in index.css, matching the rendered Markdown and the editor.
- */
-function TreeHeadingRow({ node, depth, onClick, onContextMenu }: TreeHeadingRowProps) {
-  const hasChildren = node.children && node.children.length > 0;
-  return (
-    <div
-      data-tree-path={node.path}
-      className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
-        border-l-2 border-transparent cursor-pointer ${ROW_HOVER}`}
-      style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px`, color: `var(--md-heading-${node.depth})` }}
-      onClick={() => onClick(node)}
-      onContextMenu={e => onContextMenu(node, e)}
-    >
-      <span className="shrink-0 w-3 text-center mr-1">
-        {hasChildren
-          ? (node.isExpanded ? '▼' : '▶')
-          // A solid circle from the same Unicode block as the triangles, scaled to
-          // sit at their visual weight (the old middle dot was ~2px wide).
-          : <span className="text-[0.85em] align-middle">●</span>
-        }
-      </span>
-      <span>{node.heading}</span>
-    </div>
-  );
-}
-
-const MemoTreeHeadingRow = memo(TreeHeadingRow);
-
 /** How a directory row relates to the folder the browse view is showing. */
 type FolderRelation = 'current' | 'ancestor' | 'none';
 
@@ -282,7 +216,7 @@ interface TreeFileRowProps {
   isDragOver: boolean;
   isRunning: boolean;
   isContextTarget: boolean;
-  onNodeClick: (node: TreeNode) => Promise<void>;
+  onNodeClick: (node: FileNode) => Promise<void>;
   onContextMenu: (node: FileNode, e: React.MouseEvent) => void;
   onDragOverFolder: (node: FileNode, e: React.DragEvent) => void;
   onDragLeaveFolder: (path: string) => void;
@@ -412,9 +346,9 @@ const MemoTreeFileRow = memo(TreeFileRow);
  * Collapsible file-explorer sidebar showing the full folder tree rooted at the
  * app's root path. Supports expand/collapse (lazy-loading children on first
  * expand), drag-and-drop reordering between folders, cut/paste, rename, delete,
- * bookmarks, and a right-click context menu. Markdown files expand to reveal
- * their heading tree. Clicking a heading or file navigates the browse view to
- * that item; a shell script's context menu has a "Run" item. The "Paste Link into
+ * bookmarks, and a right-click context menu. A file with an attachment folder
+ * expands to reveal it. Clicking a file opens it in the browse view; a shell
+ * script's context menu has a "Run" item. The "Paste Link into
  * Editor" context-menu action inserts a relative Markdown link at the active editor's
  * cursor.
  */
@@ -543,10 +477,7 @@ function IndexTreeView() {
         if (segment.endsWith(ATTACH_SUFFIX)) {
           const latest = getIndexTreeRoot();
           const owner = latest && findNodeByPath(latest, joinPath(ancestorPath, segment.slice(0, -ATTACH_SUFFIX.length)));
-          if (owner && !owner.isDirectory && !owner.isExpanded) {
-            await expandFileNode(owner);
-            if (token !== revealTokenRef.current) return;
-          }
+          if (owner && !owner.isDirectory && !owner.isExpanded) expandFileNode(owner);
         }
 
         ancestorPath = joinPath(ancestorPath, segment);
@@ -564,9 +495,8 @@ function IndexTreeView() {
           // Still scroll to the (collapsed) folder below.
         }
       } else if (expandFile && target && !target.isDirectory && !target.isExpanded) {
-        // Show the file's headings (and attachment folder), as a click on it would.
-        await expandFileNode(target);
-        if (token !== revealTokenRef.current) return;
+        // Show the file's attachment folder, as a click on it would.
+        expandFileNode(target);
       }
 
       // Scroll once the expanded tree has rendered — see the layout effect below.
@@ -596,36 +526,21 @@ function IndexTreeView() {
 
   /**
    * Handles a click on any tree row. Behavior depends on node type:
-   * - Heading node: toggles expansion of the heading's child headings.
    * - Any file: opens it on its own in the right-hand pane (see BrowseFile),
-   *   and toggles its children in the tree — its attachment folder, plus a
-   *   markdown file's headings (read from disk on first expand) — so one click
-   *   both opens the document and reveals its structure.
+   *   and toggles its attachment folder (if it has one) in the tree.
    * - Directory (including an attachment folder): toggles expansion; reads
    *   directory contents on first expand.
    */
-  const handleNodeClick = async (node: TreeNode) => {
-    if (isMarkdownHeadingNode(node)) {
-      // Toggle heading expansion
-      if (node.isExpanded) {
-        collapseIndexTreeNode(node.path);
-      } else if (node.children && node.children.length > 0) {
-        expandIndexTreeNode(node.path, node.children);
-      }
-      return;
-    }
-
-    if (!isFileNode(node)) return;
-
+  const handleNodeClick = async (node: FileNode) => {
     // Every file — markdown or not — opens in single-file browsing, alongside
-    // toggling its children (attachment folder, headings) in the tree.
+    // toggling its attachment folder in the tree.
     if (!node.isDirectory) {
       setHighlightItem(node.path);
       setBrowseFile(getParentPath(node.path), node.name);
       if (node.isExpanded) {
         collapseIndexTreeNode(node.path);
       } else {
-        await expandFileNode(node);
+        expandFileNode(node);
       }
       return;
     }
@@ -966,43 +881,6 @@ function IndexTreeView() {
   };
 
   /**
-   * Handles a click on a heading row: opens the heading's file in single-file
-   * mode scrolled to the heading (openFileSingle — the same thing clicking a
-   * `file.md#heading` link does) and toggles the heading's child headings.
-   * Single-file rather than the folder listing because a user jumping to a
-   * heading is interested in that one document. openFileSingle reads the
-   * browse state at call time rather than this handler subscribing to it: the
-   * handler is passed to every heading row, so closing over that state would
-   * re-render all of those rows on each navigation.
-   */
-  const handleHeadingClick = (node: MarkdownHeadingNode) => {
-    openFileSingle(headingFilePath(node), node.slug);
-
-    const hasChildren = node.children && node.children.length > 0;
-    if (hasChildren) void handleNodeClick(node);
-  };
-
-  /**
-   * Shows the context menu for a heading row. Its one item is "Paste Link into
-   * Editor" (disabled unless a markdown file is being edited), which inserts a
-   * link to the heading's file with the heading's slug as the fragment — see
-   * insertMarkdownFileLink.
-   */
-  const handleHeadingContextMenu = (node: MarkdownHeadingNode, e: React.MouseEvent) => {
-    e.preventDefault();
-    const activeEditor = isEditingMarkdown() ? getActiveMarkdownEditor() : null;
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      path: node.path,
-      isDirectory: false,
-      ...(activeEditor ? {
-        onPasteLink: () => insertMarkdownFileLink(activeEditor, headingFilePath(node), node, setPendingIdLink),
-      } : {}),
-    });
-  };
-
-  /**
    * Shows the context menu for a file or directory row. Available actions depend
    * on node type: directories get Browse/New File/New Folder/Rename/Delete and (when cut
    * items exist) Paste; files get Browse/Rename/Delete and (when a markdown file
@@ -1050,7 +928,7 @@ function IndexTreeView() {
           const name = getFileName(node.path);
           const label = node.isDirectory ? name : name.replace(/\.md$/, '');
           if (!node.isDirectory && node.path.endsWith('.md')) {
-            insertMarkdownFileLink(activeEditor, node.path, undefined, setPendingIdLink);
+            insertMarkdownFileLink(activeEditor, node.path, setPendingIdLink);
           } else if (!node.isDirectory && isImageFile(node.name)) {
             activeEditor.handle.insertAtCursor(`![${label}](${relPath})`);
           } else {
@@ -1183,14 +1061,14 @@ function IndexTreeView() {
           cancelLabel="Plain Link"
           confirmClassName={BUTTON_CLASS_DLG_BLUE}
           onConfirm={() => {
-            const { editor, targetPath, heading } = pendingIdLink;
+            const { editor, targetPath } = pendingIdLink;
             setPendingIdLink(null);
-            void addLinkTargetId(targetPath).then((id) => insertMarkdownLinkWithId(editor, targetPath, heading, id));
+            void addLinkTargetId(targetPath).then((id) => insertMarkdownLinkWithId(editor, targetPath, id));
           }}
           onCancel={() => {
-            const { editor, targetPath, heading } = pendingIdLink;
+            const { editor, targetPath } = pendingIdLink;
             setPendingIdLink(null);
-            insertMarkdownLinkWithId(editor, targetPath, heading, '');
+            insertMarkdownLinkWithId(editor, targetPath, '');
           }}
           onDismiss={() => setPendingIdLink(null)}
         />
@@ -1208,27 +1086,21 @@ function IndexTreeView() {
       )}
       <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
       <div className="py-1 min-w-max">
-        {rows.map(({ node, depth }) => {
-          if (isMarkdownHeadingNode(node)) {
-            return <MemoTreeHeadingRow key={node.path} node={node} depth={depth} onClick={handleHeadingClick} onContextMenu={handleHeadingContextMenu} />;
-          }
-          if (!isFileNode(node)) return null;
-          return (
-            <MemoTreeFileRow
-              key={node.path}
-              node={node}
-              depth={depth}
-              isDragOver={node.isDirectory && dragOverPath === node.path}
-              isRunning={runningScript === node.path}
-              isContextTarget={contextMenu?.path === node.path}
-              onNodeClick={handleNodeClick}
-              onContextMenu={handleFileNodeContextMenu}
-              onDragOverFolder={handleDragOverFolder}
-              onDragLeaveFolder={handleDragLeaveFolder}
-              onDropOnFolder={handleDropOnFolder}
-            />
-          );
-        })}
+        {rows.map(({ node, depth }) => (
+          <MemoTreeFileRow
+            key={node.path}
+            node={node}
+            depth={depth}
+            isDragOver={node.isDirectory && dragOverPath === node.path}
+            isRunning={runningScript === node.path}
+            isContextTarget={contextMenu?.path === node.path}
+            onNodeClick={handleNodeClick}
+            onContextMenu={handleFileNodeContextMenu}
+            onDragOverFolder={handleDragOverFolder}
+            onDragLeaveFolder={handleDragLeaveFolder}
+            onDropOnFolder={handleDropOnFolder}
+          />
+        ))}
       </div>
       </div>
     </div>

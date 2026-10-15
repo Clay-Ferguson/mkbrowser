@@ -13,7 +13,7 @@
   * [Badge Hidden While the Editor Is Maximized](#badge-hidden-while-the-editor-is-maximized)
 * [What `BrowseFile` Renders](#what-browsefile-renders)
 * [Always-Expanded Editing (`alwaysExpandedEditor`)](#always-expanded-editing-alwaysexpandededitor)
-* [Heading Clicks in Single-File Mode](#heading-clicks-in-single-file-mode)
+* [Heading Links in Single-File Mode](#heading-links-in-single-file-mode)
 * [Invariants](#invariants)
 * [Code Locations](#code-locations)
 
@@ -76,10 +76,7 @@ if (!node.isDirectory) {
 }
 ```
 
-Two behaviors intentionally share that one click:
-
-- **Every file** opens in the right pane.
-- **Markdown files additionally** fall through to the heading-expansion branch below it, so the same click also expands/collapses the file's headings in the tree.
+Every file opens in the right pane. The same click also toggles the file's tree node, which shows its attachment folder when it has one.
 
 There is no context menu item for this; an earlier "Browse File" menu entry was removed in favor of the click. Folders are unaffected — clicking a folder expands/collapses it and never enters single-file mode.
 
@@ -175,13 +172,13 @@ This is a **per-call prop, not a setting write.** It deliberately neither reads 
 
 Layout note: the maximized entry expects a flexed ancestor, so `BrowseFile` conditionally applies a nested flex-column chain (`overflow-hidden flex flex-col` on `<main>`, `flex-1 min-h-0 flex flex-col` on the wrapper). This is the only place that chain exists. Plain-text files get it in *view* mode too, not just while editing — `TextEntry`'s CodeMirror otherwise caps itself at ~60% of the scroll area, which is right for a row in a list and wasteful for the one file that owns the view.
 
-## Heading Clicks in Single-File Mode
+## Heading Links in Single-File Mode
 
-`handleHeadingClick` (`IndexTreeView.tsx:572`) scrolls in place when the heading's document is already on screen, which keeps single-file mode intact while hopping between a document's headings. The check is:
+Clicking a `file.md#heading-slug` link calls `openFileSingle(path, slug)` (`src/renderer/linkRepair.ts`), which scrolls in place when the heading's document is already on screen, keeping single-file mode intact while hopping between a document's headings. The check is:
 
 ```ts
-const showingThisFile = browseFileName === null || joinPath(currentPath, browseFileName) === filePath;
-if (showingThisFile && document.getElementById(node.slug)) { … }
+const showingThisFile = browseFileName !== null && joinPath(currentPath, browseFileName) === path;
+if (showingThisFile && getVisibleElementById(headingSlug)) { … }
 ```
 
 `browseFileName` must be tested *as well as* the slug: two documents can produce the same slug, and in single-file mode only the one open file is rendered — so a bare slug hit for any other file is a false positive that would scroll to the wrong document's heading.
@@ -214,7 +211,7 @@ Things to preserve when touching this area:
 | Single-file pane | `src/components/views/BrowseFile.tsx` |
 | Folder listing pane | `src/components/views/BrowseView.tsx` |
 | Tree click → single-file mode | `src/components/views/IndexTreeView.tsx` (`handleNodeClick`) |
-| Heading click / in-place scroll | `src/components/views/IndexTreeView.tsx` (`handleHeadingClick`) |
+| Heading link / in-place scroll | `src/renderer/linkRepair.ts` (`openFileSingle`) |
 | Breadcrumb (rendered by both panes) | `src/components/PathBreadcrumb.tsx` |
 | `alwaysExpandedEditor` prop | `src/components/entries/common/types.ts`, `MarkdownEntry.tsx`, `TextEntry.tsx`, `EntryEditToolbar.tsx` |
 | e2e coverage — single-file browsing | `tests/e2e/private-browse-file.spec.ts` |

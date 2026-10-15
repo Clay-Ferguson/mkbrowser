@@ -3,7 +3,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
-import { removeTOC, processTOC, extractHeadingTree, remarkTocList, TOC_LIST_CLASS } from '../src/shared/tocUtil';
+import { removeTOC, processTOC, remarkTocList, TOC_LIST_CLASS } from '../src/shared/tocUtil';
 import { stripHtmlComments } from '../src/shared/mkUtil';
 
 describe('removeTOC', () => {
@@ -207,113 +207,6 @@ describe('processTOC', () => {
     const edited = removeTOC(original);
     expect(edited).toBe('# Title\n\n<!-- TOC -->\n\n## Alpha\n');
     expect(await processTOC(edited)).toBe(original);
-  });
-});
-
-describe('extractHeadingTree', () => {
-  it('returns empty array for content with no headings', () => {
-    expect(extractHeadingTree('file.md', 'just text')).toEqual([]);
-  });
-
-  it('returns the leading H1 as the root with the H2s beneath it', () => {
-    const content = '# Title\n\n## Alpha\n\n## Beta\n';
-    const tree = extractHeadingTree('file.md', content);
-    expect(tree.map(n => n.heading)).toEqual(['Title']);
-    expect(tree[0].children?.map(n => n.heading)).toEqual(['Alpha', 'Beta']);
-  });
-
-  it('builds nested children for deeper headings', () => {
-    const content = '# Title\n\n## Section\n\n### Sub\n';
-    const tree = extractHeadingTree('file.md', content);
-    expect(tree).toHaveLength(1);
-    expect(tree[0].heading).toBe('Title');
-    expect(tree[0].children).toHaveLength(1);
-    expect(tree[0].children?.[0].heading).toBe('Section');
-    expect(tree[0].children?.[0].children?.[0].heading).toBe('Sub');
-  });
-
-  it('assigns correct depth values', () => {
-    const content = '# Title\n\n## H2\n\n### H3\n';
-    const tree = extractHeadingTree('f.md', content);
-    expect(tree[0].depth).toBe(1);
-    expect(tree[0].children?.[0].depth).toBe(2);
-    expect(tree[0].children?.[0].children?.[0].depth).toBe(3);
-  });
-
-  it('generates slugs for headings', () => {
-    const content = '# Title\n\n## Hello World\n';
-    const tree = extractHeadingTree('f.md', content);
-    expect(tree[0].slug).toBe('title');
-    expect(tree[0].children?.[0].slug).toBe('hello-world');
-  });
-
-  it('sets path using filePath and flat index', () => {
-    const content = '# Title\n\n## Alpha\n\n## Beta\n';
-    const tree = extractHeadingTree('notes/file.md', content);
-    expect(tree[0].path).toBe('notes/file.md#0');
-    expect(tree[0].children?.[0].path).toBe('notes/file.md#1');
-    expect(tree[0].children?.[1].path).toBe('notes/file.md#2');
-  });
-
-  it('ignores headings inside fenced code blocks', () => {
-    // ## Fake lives in a code block and is excluded
-    const content = '# Title\n\n## Real\n\n```\n## Fake\n```\n';
-    const tree = extractHeadingTree('f.md', content);
-    expect(tree.map(n => n.heading)).toEqual(['Title']);
-    expect(tree[0].children?.map(n => n.heading)).toEqual(['Real']);
-  });
-
-  it('ignores headings in front matter', () => {
-    const content = '---\ntitle: X\n---\n\n## Section\n';
-    const tree = extractHeadingTree('f.md', content);
-    expect(tree.map(n => n.heading)).toEqual(['Section']);
-  });
-
-  it('handles multiple root-level headings (no parent)', () => {
-    // Same-depth H1s are all roots, each with no children
-    const content = '# A\n\n# B\n\n# C\n';
-    const tree = extractHeadingTree('f.md', content);
-    expect(tree).toHaveLength(3);
-    tree.forEach(n => expect(n.children).toBeNull());
-  });
-
-  it('pops the stack so a sibling after nesting returns to the root level', () => {
-    // ## A has child ### A1; ## B is a sibling of A with no children
-    const content = '# Title\n\n## A\n\n### A1\n\n## B\n';
-    const tree = extractHeadingTree('f.md', content);
-    expect(tree.map(n => n.heading)).toEqual(['Title']);
-    expect(tree[0].children?.map(n => n.heading)).toEqual(['A', 'B']);
-    expect(tree[0].children?.[0].children?.map(n => n.heading)).toEqual(['A1']);
-    expect(tree[0].children?.[1].children).toBeNull();
-  });
-
-  it('retains headings deeper than H3 (no maxDepth cap)', () => {
-    // Unlike processTOC (maxDepth 3), the tree keeps H4 and beyond
-    const content = '# Title\n\n## A\n\n### B\n\n#### C\n';
-    const tree = extractHeadingTree('f.md', content);
-    const a = tree[0].children?.[0];
-    expect(a?.heading).toBe('A');
-    expect(a?.children?.[0].heading).toBe('B');
-    expect(a?.children?.[0].children?.[0].heading).toBe('C');
-    expect(a?.children?.[0].children?.[0].depth).toBe(4);
-  });
-
-  it('ignores headings inside tilde-fenced code blocks', () => {
-    const content = '# Title\n\n## Real\n\n~~~\n## Fake\n~~~\n';
-    const tree = extractHeadingTree('f.md', content);
-    expect(tree.map(n => n.heading)).toEqual(['Title']);
-    expect(tree[0].children?.map(n => n.heading)).toEqual(['Real']);
-  });
-
-  it('attaches a deeper heading directly under a shallower ancestor (skipped level)', () => {
-    // ## A then #### Deep (no H3 between) attaches Deep directly under A
-    const content = '# Title\n\n## A\n\n#### Deep\n';
-    const tree = extractHeadingTree('f.md', content);
-    expect(tree).toHaveLength(1);
-    const a = tree[0].children?.[0];
-    expect(a?.heading).toBe('A');
-    expect(a?.children?.[0].heading).toBe('Deep');
-    expect(a?.children?.[0].depth).toBe(4);
   });
 });
 

@@ -245,27 +245,19 @@ export type HighlightedSearchResult = { path: string };
 export type CalendarViewType = 'month' | 'week' | 'work_week' | 'day' | 'agenda';
 
 /**
- * Base node in the IndexTree hierarchy. Holds the path key (used by the store's
- * path-based updater), expansion/loading state, and children. Concrete node types
- * (e.g. FileNode) extend this with their own identity fields.
+ * A file or directory node in the IndexTree file/folder hierarchy. Holds the path key
+ * (used by the store's path-based updater), expansion/loading state, and children.
+ * A directory's children are its listing; a file's only possible child is its
+ * attachment folder (see makeFileChildren in treeNodes.ts).
  */
-export interface TreeNode {
-  /** Unique key for store lookup: a file/dir path, or `filePath#index` for headings. */
-  path: string;
-  isExpanded: boolean;
-  isLoading: boolean;
-  /** null = never loaded; populated array = loaded (may be empty) */
-  children: TreeNode[] | null;
-}
-
-/**
- * A file or directory node in the IndexTree file/folder hierarchy.
- */
-export interface FileNode extends TreeNode {
+export interface FileNode {
   path: string;
   name: string;
   isDirectory: boolean;
-  children: TreeNode[] | null;
+  isExpanded: boolean;
+  isLoading: boolean;
+  /** null = never loaded; populated array = loaded (may be empty) */
+  children: FileNode[] | null;
   indexOrder?: number;
   /** File nodes only: a sibling `<name>.attach` folder exists (from FileEntry.hasAttachFolder). */
   hasAttachFolder?: boolean;
@@ -274,27 +266,6 @@ export interface FileNode extends TreeNode {
    * orphaned `.attach` folder is an ordinary folder node and shows its real name.
    */
   isOwnedAttach?: boolean;
-}
-
-/**
- * A markdown file node. Structurally identical to FileNode. When expanded, any
- * file node's children are its attachment-folder FileNode (if it has one) followed,
- * for markdown, by its MarkdownHeadingNode[] — see makeFileChildren in treeNodes.ts.
- */
-export interface MarkdownFileNode extends FileNode {
-  isDirectory: false;
-}
-
-/**
- * A heading node inside an expanded markdown file. Uses a synthetic path key
- * (filePath + '#' + flatIndex) so the store's path-based updater can locate it.
- */
-export interface MarkdownHeadingNode extends TreeNode {
-  path: string;
-  heading: string;
-  slug: string;
-  depth: number;
-  children: MarkdownHeadingNode[] | null;
 }
 
 /**
@@ -381,8 +352,8 @@ export interface AppState {
 
   /**
    * Heading slug to scroll to after the file entry finishes rendering.
-   * Set alongside pendingScrollToFile when navigating from a heading node
-   * in the IndexTree; cleared after the heading scroll completes.
+   * Set when following a `file.md#slug` link (see openFileSingle);
+   * cleared after the heading scroll completes.
    */
   pendingScrollToHeadingSlug: string | null;
 
@@ -521,7 +492,7 @@ export interface AppState {
 
   /**
    * When true, a pending reveal whose target is a file also expands that file's
-   * tree node (its headings and attachment folder), as clicking it would. Set
+   * tree node (showing its attachment folder), as clicking it would. Set
    * together with `pendingIndexTreeReveal`; cleared with it.
    */
   pendingIndexTreeRevealExpandsFile: boolean;

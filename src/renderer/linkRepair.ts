@@ -23,7 +23,7 @@ const LINK_WITH_TITLE_RE = /\]\(\s*(<[^<>\n]*>|[^\s<]\S*?)\s+"((?:[^"\\\n]|\\.)*
 /**
  * Opens a file on its own in BrowseView (single-file mode), as from the index tree.
  *
- * With `headingSlug` (the rendered heading's id — see tocUtil's extractHeadingTree)
+ * With `headingSlug` (the rendered heading's id, the GitHub-style slug rehype-slug assigns)
  * it also scrolls to that heading: in place when this file is already the one on
  * screen and the heading is rendered, so hopping between a document's headings
  * doesn't remount it; otherwise by queueing `pendingScrollToHeadingSlug`, which

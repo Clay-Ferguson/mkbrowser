@@ -142,7 +142,7 @@ function BrowseFile() {
     clearPendingEditFile();
   }, [pendingEditFile, entryPath]);
 
-  // Consume a pending heading scroll (the index tree's heading click opens the
+  // Consume a pending heading scroll (a `file.md#slug` link click opens the
   // heading's file here and queues its slug). BrowseView's handler for the same
   // request is unmounted while this view is showing. Waits until the entry for
   // the current folder's file is found — `entries` can briefly still hold the

@@ -201,7 +201,7 @@ and so on. The node keeps its real name and path (`notes.md.attach`) — only th
 is rewritten (`TreeFileRow`), because drag, rename, cut and paste all need the real name.
 
 Clicking any file in the tree still opens it in single-file mode, and now also **toggles the
-file's expansion** — showing its attach folder and, for Markdown, its headings.
+file's expansion** — showing its attach folder.
 
 ### Where the data comes from — no extra I/O
 
@@ -217,27 +217,21 @@ All tree-children construction lives in this one module:
 | Function | Role |
 |----------|------|
 | `makeTreeNodes` / `mergeTreeNodes` | A folder's children. An `.attach` folder whose owning file is in the listing is dropped here (it shows under the file); an **orphaned** one — its file was moved away or deleted — stays as an ordinary folder under its real name, so it never disappears from the tree. |
-| `makeFileChildren(file, headings)` | A file's children: `[attachNode?, ...headings]`. The one place they are assembled. |
-| `expandFileNode(node)` | Expands a file on click or reveal: re-shows cached children, otherwise reads a Markdown file's headings and calls `makeFileChildren`. |
+| `makeFileChildren(file)` | A file's children: `[attachNode]`, or `[]` without one. The one place they are assembled. |
+| `expandFileNode(node)` | Expands a file on click or reveal: re-shows cached children, otherwise calls `makeFileChildren`. No I/O. |
 
-A file's children are built **lazily, on its first expand**, not in `makeTreeNodes`, because
-Markdown nodes use `children === null` to mean "headings not loaded yet".
+A file's children are built **lazily, on its first expand**, not in `makeTreeNodes`: a file
+node's `children === null` means "never expanded".
 
 Keeping it in sync:
 
 - **`mergeTreeNodes`** treats a flipped `hasAttachFolder` as a change. An already-loaded file
-  gets its attach child added or removed (`syncAttachChild`) with its headings and expansion
-  kept, so deleting the attach folder from the tree, or creating one by drag-and-drop or the
+  gets its attach child added or removed (`syncAttachChild`) with its expansion kept, so deleting the attach folder from the tree, or creating one by drag-and-drop or the
   "Attach:" menu items, shows up under an expanded file on the next reload of its folder.
 - **`refreshExpandedNodes`** also recurses into expanded *file* nodes, refreshing an expanded
-  attach folder beneath them; heading children pass through.
+  attach folder beneath them.
 - **`findTreeNodeByPath`** already walks every `FileNode` child, so `reloadExpandedTreeFolder`
   on an attach folder path (e.g. from `completeEntryDrop`) finds it under its file.
-- **Headings follow saves.** `setItemContent` (`src/store/items.ts`), which every save and
-  reload passes through, folds in `withFileHeadings` (`src/store/indexTree.ts`): if the file's
-  tree children are loaded, its headings are rebuilt from the new content in the same store
-  write, keeping the attach child, heading expansion, and unchanged subtrees. The lookup
-  descends only the one branch that can hold the file, so it is cheap on every content update.
 - **Collapse All** collapses file nodes too, so attach folders under files fold away.
 - **Reveal in tree** (`expandToPath` in `IndexTreeView`) expands the owning file when the next
   path segment is an attach folder, so revealing an attachment reaches it.
@@ -252,9 +246,8 @@ Every path that puts folder children into the tree still goes through the builde
 
 Membership and display order are decided in one place each, which is what keeps the tree from
 disagreeing with itself. The builders decide **which entries exist**; `flattenVisible`
-(`IndexTreeView.tsx`) decides **what order rows appear in**, at render time — a file's children
-(attach folder first, then headings), heading lists, and index-ordered (Document Mode) sibling
-lists keep the order they were built with, and every other list is sorted there, with the
+(`IndexTreeView.tsx`) decides **what order rows appear in**, at render time — index-ordered
+(Document Mode) sibling lists keep the order they were built with, and every other list is sorted there, with the
 folders-on-top setting applied. So no builder sorts.
 
 **Why it is written this way.** `refreshExpandedNodes` originally built its child nodes by hand,
