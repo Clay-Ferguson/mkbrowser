@@ -1,6 +1,11 @@
 import { createContext, useContext } from 'react';
 import type { Components, ExtraProps } from 'react-markdown';
 import { pressStartedOnScrollbar } from '../renderer/scrollbarPress';
+import { getPathRelativeToDir } from '../renderer/linkUtil';
+import { isPathInside } from '../renderer/pathUtil';
+import { MarkdownEntryContext } from './markdownEntryContext';
+import { setAppError, setAppMessage, useAS } from '../store';
+import { logger } from '../shared/logUtil';
 
 type EditClickHandler = (goToLine?: number) => void | Promise<void>;
 
@@ -16,7 +21,8 @@ export const BlockClickContext = createContext<{ onEditClick: EditClickHandler; 
   lineOffset: 0,
 });
 
-type BlockTag = 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'blockquote' | 'li';
+type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+type BlockTag = 'p' | HeadingTag | 'blockquote' | 'li';
 type BlockProps<Tag extends BlockTag> = React.JSX.IntrinsicElements[Tag] & ExtraProps;
 
 /**
@@ -69,13 +75,58 @@ function BlockElement<Tag extends BlockTag>({ tag, node, children, ...props }: B
   return <Component {...props} onMouseUp={handleMouseUp}>{children}</Component>;
 }
 
+/**
+ * Copies `link` to the clipboard and confirms it (or reports the failure) in App's
+ * message dialog. Module-level, so it is a plain function the React Compiler leaves alone.
+ */
+function copyHeadingLink(link: string): void {
+  navigator.clipboard.writeText(link)
+    .then(() => setAppMessage({ title: 'Link Copied', message: `Copied to clipboard:\n\n${link}` }))
+    .catch((err: unknown) => {
+      logger.warn('[blockClickComponents] Failed to copy heading link:', err);
+      setAppError('Failed to copy the link to the clipboard.');
+    });
+}
+
+/**
+ * A heading block that, besides click-to-edit, copies a link to itself on right-click:
+ * the file's path relative to the browsing root (the breadcrumb's Home folder) plus the
+ * heading's slug (`docs/file.md#heading-slug`, the id rehype-slug assigns). Files outside
+ * the root (e.g. the bundled User Guide in HelpView) have no such path, so they render
+ * as plain block elements and keep the native context menu.
+ */
+function BlockHeading<Tag extends HeadingTag>({ tag, ...props }: BlockProps<Tag> & { tag: Tag }) {
+  const entryPath = useContext(MarkdownEntryContext);
+  const rootPath = useAS(s => s.rootPath);
+  const slug = props.id;
+
+  if (!slug || !entryPath || !rootPath || !isPathInside(rootPath, entryPath)) {
+    return <BlockElement tag={tag} {...props} />;
+  }
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    copyHeadingLink(`${getPathRelativeToDir(rootPath, entryPath)}#${slug}`);
+  };
+
+  return (
+    <BlockElement
+      tag={tag}
+      {...props}
+      title="Right-click to copy link"
+      onContextMenu={handleContextMenu}
+    />
+  );
+}
+
 function BlockP(props: BlockProps<'p'>) { return <BlockElement tag="p" {...props} />; }
-function BlockH1(props: BlockProps<'h1'>) { return <BlockElement tag="h1" {...props} />; }
-function BlockH2(props: BlockProps<'h2'>) { return <BlockElement tag="h2" {...props} />; }
-function BlockH3(props: BlockProps<'h3'>) { return <BlockElement tag="h3" {...props} />; }
-function BlockH4(props: BlockProps<'h4'>) { return <BlockElement tag="h4" {...props} />; }
-function BlockH5(props: BlockProps<'h5'>) { return <BlockElement tag="h5" {...props} />; }
-function BlockH6(props: BlockProps<'h6'>) { return <BlockElement tag="h6" {...props} />; }
+function BlockH1(props: BlockProps<'h1'>) { return <BlockHeading tag="h1" {...props} />; }
+function BlockH2(props: BlockProps<'h2'>) { return <BlockHeading tag="h2" {...props} />; }
+function BlockH3(props: BlockProps<'h3'>) { return <BlockHeading tag="h3" {...props} />; }
+function BlockH4(props: BlockProps<'h4'>) { return <BlockHeading tag="h4" {...props} />; }
+function BlockH5(props: BlockProps<'h5'>) { return <BlockHeading tag="h5" {...props} />; }
+function BlockH6(props: BlockProps<'h6'>) { return <BlockHeading tag="h6" {...props} />; }
 function BlockBlockquote(props: BlockProps<'blockquote'>) { return <BlockElement tag="blockquote" {...props} />; }
 function BlockLi(props: BlockProps<'li'>) { return <BlockElement tag="li" {...props} />; }
 

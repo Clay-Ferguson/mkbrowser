@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRelativePath, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath, splitHeadingFragment, appendLinkFragment, isFileLinkHref } from '../src/renderer/linkUtil';
+import { getRelativePath, getPathRelativeToDir, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath, splitHeadingFragment, appendLinkFragment, isFileLinkHref } from '../src/renderer/linkUtil';
 
 describe('getRelativePath', () => {
   it('returns just the file name when target is in the same directory', () => {
@@ -42,6 +42,20 @@ describe('getRelativePath', () => {
 
   it('keeps POSIX path segments case-sensitive', () => {
     expect(getRelativePath('/a/Notes/note.md', '/a/notes/pic.png')).toBe('../notes/pic.png');
+  });
+});
+
+describe('getPathRelativeToDir', () => {
+  it('returns the path below the folder', () => {
+    expect(getPathRelativeToDir('/root', '/root/docs/file.md')).toBe('docs/file.md');
+  });
+
+  it('returns just the file name for a file directly in the folder', () => {
+    expect(getPathRelativeToDir('/root/', '/root/file.md')).toBe('file.md');
+  });
+
+  it('uses forward slashes for Windows paths', () => {
+    expect(getPathRelativeToDir('C:\\root', 'C:\\root\\docs\\file.md')).toBe('docs/file.md');
   });
 });
 

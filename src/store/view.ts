@@ -1,4 +1,4 @@
-import type { AppState, AppView, BrowseFileMode, FolderAnalysisState, FolderGraphLink, FolderGraphState, LinkIdMismatch } from '../shared/types';
+import type { AppState, AppView, BrowseFileMode, FolderAnalysisState, FolderGraphLink, FolderGraphState, LinkIdMismatch, AppMessage } from '../shared/types';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
 import { withItemExpanded, withSelectionsCleared } from './items';
@@ -31,6 +31,7 @@ export interface ViewSlice {
   clearPendingExpandFile: () => void;
   requestDirectoryRefresh: () => void;
   setAppError: (message: string | null) => void;
+  setAppMessage: (message: AppMessage | null) => void;
   setLinkIdMismatch: (mismatch: LinkIdMismatch | null) => void;
   setPendingThreadScrollToBottom: () => void;
   clearPendingThreadScrollToBottom: () => void;
@@ -235,6 +236,9 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       set({ appError: message });
     },
 
+    /** Show (or, with null, dismiss) the application-level informational message dialog. */
+    setAppMessage: (message) => set({ appMessage: message }),
+
     /** Show (or, with null, dismiss) the id-link mismatch warning. */
     setLinkIdMismatch: (mismatch) => set({ linkIdMismatch: mismatch }),
 
@@ -393,6 +397,10 @@ export function requestDirectoryRefresh(): void {
 
 export function setAppError(message: string | null): void {
   getState().setAppError(message);
+}
+
+export function setAppMessage(message: AppMessage | null): void {
+  getState().setAppMessage(message);
 }
 
 export function setLinkIdMismatch(mismatch: LinkIdMismatch | null): void {

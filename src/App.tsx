@@ -33,6 +33,7 @@ import {
   deleteCalendarEventsUnderPath,
   setCalendarWatcherWarning,
   setLinkIdMismatch,
+  setAppMessage,
   // Aliased at the import (rather than bound inside App) so it stays a module-scope
   // reference: a local `const setError = setAppError` would read as component state
   // to react-hooks/exhaustive-deps and be demanded in every effect's dep array.
@@ -75,6 +76,7 @@ function App() {
   // and drag-and-drop code can report a failure without an error callback
   // threaded down to it; App remains the only place that renders it.
   const error = useAS(s => s.appError);
+  const appMessage = useAS(s => s.appMessage);
   const linkIdMismatch = useAS(s => s.linkIdMismatch);
   const [lastExportFolder, setLastExportFolder] = useState<string>('');
   const [recentFolders, setRecentFolders] = useState<string[]>([]);
@@ -450,6 +452,15 @@ function App() {
       </div>
 
       {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
+      {appMessage && (
+        <AlertDialog
+          scrollable
+          preserveWhitespace
+          title={appMessage.title}
+          message={appMessage.message}
+          onClose={() => setAppMessage(null)}
+        />
+      )}
       {linkIdMismatch && (
         <LinkIdMismatchDialog
           mismatch={linkIdMismatch}

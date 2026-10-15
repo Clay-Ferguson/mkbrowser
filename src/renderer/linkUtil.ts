@@ -104,6 +104,15 @@ export function getRelativePath(fromFilePath: string, toPath: string): string {
 }
 
 /**
+ * Compute the path of `toPath` relative to the folder `dirPath` itself (rather than to a
+ * file's parent, as {@link getRelativePath} does), with forward slashes — e.g. a file's
+ * path relative to the browsing root.
+ */
+export function getPathRelativeToDir(dirPath: string, toPath: string): string {
+  return relativePathFromParts({ parts: splitPathSegments(dirPath), root: pathRoot(dirPath) }, toPath);
+}
+
+/**
  * Percent-encode one path segment for use inside a markdown link destination.
  * `encodeURIComponent` leaves parentheses literal, and an unbalanced `)` in a
  * file name would terminate the `(...)` destination early, so those are encoded

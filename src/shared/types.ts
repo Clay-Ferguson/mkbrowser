@@ -271,6 +271,12 @@ export interface FileNode {
 /**
  * Global application state
  */
+/** An informational message shown by App in an AlertDialog (see `AppState.appMessage`). */
+export interface AppMessage {
+  title: string;
+  message: string;
+}
+
 /**
  * A clicked Markdown link titled `"id:<linkId>"` opened a file whose front-matter id
  * is different (or missing), so it may not be the file the link was made for.
@@ -430,6 +436,14 @@ export interface AppState {
    * surface a failure without an error callback threaded down to it.
    */
   appError: string | null;
+
+  /**
+   * Application-level informational message (e.g. "Link copied") shown in App's
+   * AlertDialog, or null when there is nothing to show. The non-error sibling of
+   * `appError`, for the same reason: renderers deep in the markdown tree can
+   * surface it without a dialog of their own.
+   */
+  appMessage: AppMessage | null;
 
   /** Warning shown by App when a clicked id link opened a file with another id (see LinkIdMismatch). */
   linkIdMismatch: LinkIdMismatch | null;
