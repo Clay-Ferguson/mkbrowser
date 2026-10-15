@@ -39,6 +39,8 @@ export interface ContextMenuState {
    * which shows the "Paste Link" item. Cleared whenever the menu is opened afresh.
    */
   pasteLink?: PasteLinkTarget;
+  /** Whether the editor had a non-empty selection when the menu opened — shows "Make Link". */
+  hasSelection?: boolean;
 }
 
 /**
@@ -91,6 +93,8 @@ interface UseEditorContextMenuProps {
    * URL headed for the "Insert link" dialog — see useUrlPaste), so Paste inserts nothing.
    */
   interceptPaste?: (text: string) => boolean;
+  /** "Make Link": opens the "Insert link" dialog for the selection (see useUrlPaste). Omitted where links can't be made. */
+  makeLink?: () => void;
 }
 
 /**
@@ -105,7 +109,7 @@ interface UseEditorContextMenuProps {
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
  * `canSave`, `canToggleThesaurus`, `thesaurusEnabled`, `wordWrap`).
  */
-export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = true, onSave, thesaurusCapable = false, revealFrontMatter, interceptPaste }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = true, onSave, thesaurusCapable = false, revealFrontMatter, interceptPaste, makeLink }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   // Why Insert Object refused (e.g. the file already holds an object of another type); shown in an alert.
   const [insertObjectError, setInsertObjectError] = useState<string | null>(null);
@@ -160,7 +164,8 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     }
 
     const { clientX: x, clientY: y } = e;
-    setContextMenu({ visible: true, x, y, spelling });
+    const hasSelection = !!view && !view.state.selection.main.empty;
+    setContextMenu({ visible: true, x, y, spelling, hasSelection });
 
     // The clipboard check is async (a clipboard read plus a stat or two), so like the spelling
     // suggestions it fills in after the menu is up — unless the menu has since closed or reopened
@@ -284,6 +289,12 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
       });
       view.focus();
     });
+  };
+
+  // "Make Link" — turns the selection into a Markdown link via the "Insert link" dialog.
+  const handleMakeLink = () => {
+    closeContextMenu();
+    makeLink?.();
   };
 
   // "Save" — unlike Ctrl+S (save and exit), this writes the file and leaves the user in the
@@ -461,6 +472,8 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     handleCopy,
     handlePaste,
     handlePasteMarkdownLink,
+    handleMakeLink,
+    canMakeLink: makeLink !== undefined,
     handleSelectAll,
     handleSpellingSuggestion,
     handleInsertTimestamp,

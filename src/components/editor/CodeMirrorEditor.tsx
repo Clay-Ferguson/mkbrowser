@@ -500,10 +500,12 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       .catch((err: unknown) => logger.error('Failed to save file:', err));
   };
 
-  // Pasting a lone URL into an editable Markdown editor opens the "Insert link" dialog.
-  const { pendingUrlPaste, beginUrlPaste, confirmUrlPaste, cancelUrlPaste } = useUrlPaste({
+  // Pasting a lone URL into an editable Markdown editor, or "Make Link" on a selection, opens
+  // the "Insert link" dialog.
+  const linksEnabled = language === 'markdown' && !readOnly && !reviewing;
+  const { pendingUrlPaste, beginUrlPaste, beginMakeLink, confirmUrlPaste, cancelUrlPaste } = useUrlPaste({
     viewRef,
-    enabled: language === 'markdown' && !readOnly && !reviewing,
+    enabled: linksEnabled,
   });
   // Ctrl+V (and every other native paste) — called from the mount-time DOM handler below.
   const urlPasteEvent = useEffectEvent((text: string): boolean => beginUrlPaste(text));
@@ -517,6 +519,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     handleCopy,
     handlePaste,
     handlePasteMarkdownLink,
+    handleMakeLink,
+    canMakeLink,
     handleSelectAll,
     handleSpellingSuggestion,
     handleInsertTimestamp,
@@ -547,6 +551,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       viewRef.current?.dispatch({ effects: compartments.frontMatter.reconfigure(frontMatterExtensions(true)) });
     },
     interceptPaste: beginUrlPaste,
+    makeLink: linksEnabled ? beginMakeLink : undefined,
   });
 
   // Build the EditorView exactly once, on mount, from the mountConfigRef snapshot (see its
@@ -1051,6 +1056,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         onCopy={handleCopy}
         onPaste={handlePaste}
         onPasteMarkdownLink={handlePasteMarkdownLink}
+        onMakeLink={handleMakeLink}
+        canMakeLink={canMakeLink}
         onSelectAll={handleSelectAll}
         onSpellingSuggestion={handleSpellingSuggestion}
         onInsertTimestamp={handleInsertTimestamp}

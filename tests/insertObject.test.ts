@@ -174,7 +174,7 @@ describe('objectTypeOptions', () => {
 // The context menu
 // ---------------------------------------------------------------------------
 
-function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: TypeDefinitions = TYPE_DEFS): string {
+function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: TypeDefinitions = TYPE_DEFS, canMakeLink = false): string {
   const noop = () => {};
   return renderToStaticMarkup(createElement(EditorContextMenu, {
     contextMenu,
@@ -184,6 +184,8 @@ function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: Ty
     onCopy: noop,
     onPaste: noop,
     onPasteMarkdownLink: noop,
+    onMakeLink: noop,
+    canMakeLink,
     onSelectAll: noop,
     onSearchReplace: noop,
     onSpellingSuggestion: noop,
@@ -200,6 +202,20 @@ function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: Ty
     isMarkdown,
   }));
 }
+
+describe('EditorContextMenu — Make Link', () => {
+  it('is offered when links can be made and text is selected', () => {
+    expect(renderMenu({ visible: true, x: 0, y: 0, hasSelection: true }, true, TYPE_DEFS, true)).toContain('data-testid="editor-make-link"');
+  });
+
+  it('is not offered without a selection', () => {
+    expect(renderMenu({ visible: true, x: 0, y: 0, hasSelection: false }, true, TYPE_DEFS, true)).not.toContain('Make Link');
+  });
+
+  it('is not offered where links cannot be made', () => {
+    expect(renderMenu({ visible: true, x: 0, y: 0, hasSelection: true }, false, TYPE_DEFS, false)).not.toContain('Make Link');
+  });
+});
 
 describe('EditorContextMenu — Insert Object', () => {
   it('offers Insert Object for a markdown file', () => {

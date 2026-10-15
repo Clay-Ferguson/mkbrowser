@@ -13,6 +13,10 @@ interface EditorContextMenuProps {
   onPaste: () => void;
   /** Inserts a link to the file the clipboard names; shown only when `contextMenu.pasteLink` is set. */
   onPasteMarkdownLink: () => void;
+  /** Turns the selection into a Markdown link; shown only when `canMakeLink` and there is a selection. */
+  onMakeLink: () => void;
+  /** Whether "Make Link" is offered at all — editable Markdown editors only. */
+  canMakeLink: boolean;
   onSelectAll: () => void;
   onSpellingSuggestion: (suggestion: string) => void;
   onInsertTimestamp: () => void;
@@ -58,6 +62,8 @@ export function EditorContextMenu({
   onCopy,
   onPaste,
   onPasteMarkdownLink,
+  onMakeLink,
+  canMakeLink,
   onSelectAll,
   onSpellingSuggestion,
   onInsertTimestamp,
@@ -279,6 +285,18 @@ export function EditorContextMenu({
           data-testid="editor-paste-markdown-link"
         >
           Paste Link
+        </button>
+      )}
+      {canMakeLink && contextMenu.hasSelection && (
+        <button
+          type="button"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={onMakeLink}
+          className={EDITOR_MENU_ITEM}
+          data-testid="editor-make-link"
+        >
+          Make Link
         </button>
       )}
       <div className="border-t border-slate-600 my-1" />
