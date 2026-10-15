@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import { getSettings, setCalendarItemsFolder, setReadOnly } from './store';
+import { getSettings, setCalendarItemsFolder } from './store';
 import { getApi } from './renderer/api';
 import { logger } from './shared/logUtil';
 import './index.css';
@@ -15,12 +15,6 @@ if (getApi()?.testHooksEnabled) {
     getSettings,
     setCalendarItemsFolder,
   };
-}
-
-// `--readonly` launch flag (the Help instance uses it): seed the store before the
-// first render, so no component ever sees the app as editable.
-if (getApi()?.readOnly) {
-  setReadOnly(true);
 }
 
 // Every render crash is logged here, whether an ErrorBoundary caught it (the

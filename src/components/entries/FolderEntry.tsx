@@ -43,7 +43,6 @@ function FolderEntry(props: FolderEntryProps) {
   const hasCutItems = useAS(s => hasAnyCutItems(s.items));
   const item = useAS(s => s.items.get(entry.path));
   const hasIndexFile = useAS(s => s.hasIndexFile);
-  const readOnly = useAS(s => s.readOnly);
   const aiHint = item?.aiHint;
 
   const handleInputClick = (e: React.MouseEvent) => {
@@ -78,10 +77,10 @@ function FolderEntry(props: FolderEntryProps) {
           isSelected={isSelected}
           onClick={handleCheckboxClick}
         />
-        {/* Entry Icon — the drag source for moving the folder (not in read-only mode) */}
+        {/* Entry Icon */}
         <span
-          className={readOnly ? 'flex-shrink-0' : 'flex-shrink-0 cursor-grab'}
-          draggable={!readOnly}
+          className="flex-shrink-0 cursor-grab"
+          draggable
           onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: true })}
         >
           <FolderIcon className="w-5 h-5 text-btn-accent-amber" />

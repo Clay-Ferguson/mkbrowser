@@ -1,19 +1,17 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { AppConfig, ElectronAPI, CalendarEventResult, HtmlExportOptions, OcrTarget, SearchDefinition } from './shared/shared';
-import { READONLY_ARG, TEST_HOOKS_ARG } from './shared/shared';
+import { TEST_HOOKS_ARG } from './shared/shared';
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
   pathSep: process.platform === 'win32' ? '\\' : '/',
   testHooksEnabled: process.argv.includes(TEST_HOOKS_ARG),
-  readOnly: process.argv.includes(READONLY_ARG),
   quit: () => ipcRenderer.invoke('quit'),
   getConfig: () => ipcRenderer.invoke('get-config'),
   getHomeDir: () => ipcRenderer.invoke('get-home-dir'),
   updateConfig: (updates: Partial<AppConfig>) => ipcRenderer.invoke('update-config', updates),
   selectFolder: () => ipcRenderer.invoke('select-folder'),
   getHelpDocsPath: () => ipcRenderer.invoke('get-help-docs-path'),
-  openHelpWindow: () => ipcRenderer.invoke('open-help-window'),
   getStartupFile: () => ipcRenderer.invoke('get-startup-file'),
   selectFile: (title: string) => ipcRenderer.invoke('select-file', title),  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
     ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),

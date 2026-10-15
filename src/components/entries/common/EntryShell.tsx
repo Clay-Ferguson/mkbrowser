@@ -4,7 +4,6 @@ import type { FileEntry } from '../../../global';
 import { buildEntryHeaderId } from '../../../renderer/entryDom';
 import { formatFlyoverInfo } from '../../../shared/fileTypes';
 import { makeEntryDragStartHandler, canDropAsAttachment, dropAsAttachment } from '../../../renderer/dragAndDrop';
-import { useAS } from '../../../store';
 import ConfirmDialog from '../../dialogs/ConfirmDialog';
 import { RenameInput } from './RenameInput';
 import { SelectionCheckbox } from './SelectionCheckbox';
@@ -99,7 +98,6 @@ export function EntryShell({
   'data-testid': dataTestId,
 }: EntryShellProps) {
   const { inputRef: renameInputRef, newName, setNewName, saving: renameSaving, handleKeyDown, handleSave } = rename;
-  const readOnly = useAS(s => s.readOnly);
 
   // Drop target: an entry dragged onto this file becomes one of its attachments,
   // creating the file's `.attach` folder on demand. Every file-type entry gets
@@ -141,10 +139,10 @@ export function EntryShell({
             isSelected={isSelected}
           />
         )}
-        {/* Entry Icon — the drag source for moving the entry (not in read-only mode) */}
+        {/* Entry Icon */}
         <span
-          className={readOnly ? 'flex-shrink-0' : 'flex-shrink-0 cursor-grab'}
-          draggable={!readOnly}
+          className="flex-shrink-0 cursor-grab"
+          draggable
           onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory })}
         >
           {icon}

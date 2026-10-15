@@ -167,12 +167,6 @@ export interface AppSettings {
 /** Command-line switch main passes to the renderer (via `additionalArguments`) when unpackaged; see ElectronAPI.testHooksEnabled. */
 export const TEST_HOOKS_ARG = '--mkb-test-hooks';
 
-/**
- * Command-line switch that runs the app in read-only mode (used by the Help instance).
- * Main forwards it to the renderer via `additionalArguments`; see ElectronAPI.readOnly.
- */
-export const READONLY_ARG = '--readonly';
-
 /** Supported AI providers. Single source of truth for both the {@link AIProvider}
  *  union type and any UI that lists providers (e.g. the model editor dropdown). */
 export const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
@@ -507,8 +501,6 @@ export interface ElectronAPI {
    * never ship in the packaged app.
    */
   testHooksEnabled: boolean;
-  /** True when the app was launched with `--readonly` (READONLY_ARG). Fixed for the process lifetime. */
-  readOnly: boolean;
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
   lookupThesaurus: (word: string) => Promise<ThesaurusLookup>;
@@ -519,9 +511,7 @@ export interface ElectronAPI {
   selectFolder: () => Promise<string | null>;
   /** The bundled Help documents folder (a copy of the repo's `docs/`), or null if missing. */
   getHelpDocsPath: () => Promise<string | null>;
-  /** Launches a separate MkBrowser instance (own config) that browses the Help documents. */
-  openHelpWindow: () => Promise<void>;
-  /** Absolute path of the `--open-file` command-line file to open at startup, or null. */
+  /** Absolute path of the command-line file to open at startup, or null. */
   getStartupFile: () => Promise<string | null>;
   /** Shows the OS single-file picker; resolves to the chosen path, or null if cancelled. */
   selectFile: (title: string) => Promise<string | null>;  readDirectory: (dirPath: string) => Promise<FileEntry[]>;

@@ -2,9 +2,9 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, native
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
-import { initConfig, getConfig, updateConfig, flushConfig, defaultSettings } from './main/configMgr';
+import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
 import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
-import { READONLY_ARG, TEST_HOOKS_ARG } from './shared/shared';
+import { TEST_HOOKS_ARG } from './shared/shared';
 
 import { readDirectory, isFolderEmpty, deleteEmptyFolder } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
@@ -35,8 +35,8 @@ import { logger, toErrorMessage } from './shared/logUtil';
 import { exportFolderContents, exportToPdf } from './main/exportUtil';
 import { checkExportTarget, exportFolderToHtml } from './main/htmlExport/folderHtmlExport';
 import { runShellScript, runOcrInTerminal } from './main/launcherUtil';
-import { getOpenFileArg, resolveOpenFile } from './main/openFileArg';
-import { findHelpDocsFolder, getHelpDocsPath, HELP_WINDOW_TITLE, isHelpInstance, isolateHelpInstanceProfile, launchHelpInstance } from './main/helpDocs';
+import { resolveStartupArg } from './main/startupArg';
+import { findHelpDocsFolder } from './main/helpDocs';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
 const ENABLE_STREAM_RESPONSE: boolean = true;
@@ -45,9 +45,6 @@ const ENABLE_STREAM_RESPONSE: boolean = true;
 if (started) {
   app.quit();
 }
-
-// A Help instance gets its own profile/config folder (must be done before app ready)
-isolateHelpInstanceProfile();
 
 // Register custom protocol for serving local files (must be done before app ready)
 protocol.registerSchemesAsPrivileged([
@@ -59,7 +56,7 @@ import { ATTACH_SUFFIX, INDEX_FILENAME } from './shared/specialFiles';
 
 let mainWindow: BrowserWindow | null = null;
 
-// File named by `--open-file`, resolved at startup; the renderer opens it in single-file mode
+// File named on the command line, resolved at startup; the renderer opens it in single-file mode
 let startupFile: string | null = null;
 
 // Setup the local-file protocol handler
@@ -86,7 +83,6 @@ const createWindow = () => {
     width: 1200,
     height: 800,
     icon: icon,
-    ...(isHelpInstance ? { title: HELP_WINDOW_TITLE } : {}),
 
     // need transparent backgrount to fix the classic Linux "ghost border" syndrome
     transparent: true, // This often snaps the border out of existence
@@ -107,12 +103,9 @@ const createWindow = () => {
       // NPAPI/Flash plugins are gone — so this is limited to PDF display and is
       // compatible with the sandbox/contextIsolation settings above.
       plugins: true,
-      // Tells the preload to enable test-only renderer hooks (see ElectronAPI.testHooksEnabled),
-      // never set in the packaged app, and forwards `--readonly` (see ElectronAPI.readOnly).
-      additionalArguments: [
-        ...(app.isPackaged ? [] : [TEST_HOOKS_ARG]),
-        ...(process.argv.includes(READONLY_ARG) ? [READONLY_ARG] : []),
-      ],
+      // Tells the preload to enable test-only renderer hooks (see ElectronAPI.testHooksEnabled).
+      // Never set in the packaged app.
+      additionalArguments: app.isPackaged ? [] : [TEST_HOOKS_ARG],
     },
   });
 
@@ -136,11 +129,6 @@ const createWindow = () => {
       Menu.buildFromTemplate(items).popup();
     }
   });
-
-  // A Help instance keeps its fixed title: don't let the page's <title> replace it
-  if (isHelpInstance) {
-    mainWindow.on('page-title-updated', (event) => event.preventDefault());
-  }
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -267,8 +255,7 @@ function setupIpcHandlers(): void {
   // Set window title
   ipcMain.handle('set-window-title', (_event, title: string): void => {
     if (mainWindow) {
-      // A Help instance keeps its fixed title instead of the browsed-folder title
-      mainWindow.setTitle(isHelpInstance ? HELP_WINDOW_TITLE : title);
+      mainWindow.setTitle(title);
     }
   });
 
@@ -288,11 +275,9 @@ function setupIpcHandlers(): void {
   // Location of the bundled Help documents folder (null if missing)
   ipcMain.handle('get-help-docs-path', (): Promise<string | null> => findHelpDocsFolder());
 
-  // Absolute path of the `--open-file` startup file (null if none or invalid)
+  // Absolute path of the command-line startup file (null if none)
   ipcMain.handle('get-startup-file', (): string | null => startupFile);
 
-  // Launch a separate MkBrowser instance that browses the Help documents
-  ipcMain.handle('open-help-window', (): void => launchHelpInstance());
 
   // Open file selection dialog (single file)
   ipcMain.handle('select-file', async (_event, title: string): Promise<string | null> => {
@@ -1129,50 +1114,24 @@ async function handleCommandLineArgs(): Promise<void> {
   const args = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
   logger.log('User args:', args);
 
-  // A Help instance hides the in-document Table of Contents: the index tree
-  // already shows the Help documents' headings. Forced on every launch, in the
-  // Help instance's own config (see isolateHelpInstanceProfile).
-  if (isHelpInstance) {
-    await updateConfig({ settings: { ...defaultSettings, ...getConfig().settings, showToc: false } });
+  // The first path-like argument (flags and electron-specific arguments filtered
+  // out): a folder opens as the browse root; a file opens in single-file mode.
+  const startupArg = args.find(arg => !arg.startsWith('-') && arg !== '.');
+  logger.log('Detected startup path:', startupArg ?? '(none)');
+  if (!startupArg) return;
+
+  const target = await resolveStartupArg(startupArg, getConfig().browseFolder);
+  if (!target) {
+    logger.warn(`Command-line path does not exist: ${startupArg}`);
+    return;
   }
 
-  // A Help instance always browses the Help documents. Otherwise, filter out flags
-  // and electron-specific arguments and use the first path-like argument.
-  const folderPath = isHelpInstance
-    ? getHelpDocsPath()
-    : args.find(arg => !arg.startsWith('-') && arg !== '.');
-  logger.log('Detected folder path:', folderPath ?? '(none)');
-
-  if (folderPath) {
-    try {
-      const stat = await fs.promises.stat(folderPath);
-      if (stat.isDirectory()) {
-        // Resolve to absolute path
-        const absolutePath = path.resolve(folderPath);
-
-        // Update in-memory config and persist to disk
-        await updateConfig({ browseFolder: absolutePath, curSubFolder: undefined });
-
-        logger.log(`Opening folder from command line: ${absolutePath}`);
-      } else {
-        logger.warn(`Command-line argument is not a directory: ${folderPath}`);
-      }
-    } catch (_error) {
-      logger.warn(`Command-line folder does not exist: ${folderPath}`);
-    }
-  }
-
-  // `--open-file=<path>`: resolved against the folder being opened (the one set
-  // above, or else the saved browse folder) and opened by the renderer at startup.
-  const openFile = getOpenFileArg(args);
-  const { browseFolder } = getConfig();
-  if (openFile && browseFolder) {
-    startupFile = await resolveOpenFile(browseFolder, openFile);
-    if (startupFile) {
-      logger.log(`Opening file from command line: ${startupFile}`);
-    } else {
-      logger.warn(`Command-line --open-file is not a file inside ${browseFolder}: ${openFile}`);
-    }
+  // Update in-memory config and persist to disk
+  await updateConfig({ browseFolder: target.browseFolder, curSubFolder: undefined });
+  logger.log(`Opening folder from command line: ${target.browseFolder}`);
+  if (target.file) {
+    startupFile = target.file;
+    logger.log(`Opening file from command line: ${startupFile}`);
   }
 }
 

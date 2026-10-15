@@ -1,25 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
 import { app } from 'electron';
-import { logger } from '../shared/logUtil';
-import { OPEN_FILE_ARG } from './openFileArg';
-import { READONLY_ARG } from '../shared/shared';
-
-/**
- * Command-line flag that launches MkBrowser as a "Help instance": a separate app
- * process that browses the bundled Help documents instead of the user's folders.
- */
-export const HELP_DOCS_ARG = '--help-docs';
-
-/** True when this process was launched as a Help instance (see HELP_DOCS_ARG). */
-export const isHelpInstance = process.argv.includes(HELP_DOCS_ARG);
-
-/** Window title of a Help instance, so it is distinguishable from the user's own window. */
-export const HELP_WINDOW_TITLE = 'MkBrowser Help';
-
-/** The document a Help instance opens first, relative to the Help documents folder. */
-const HELP_START_FILE = 'USER_GUIDE.md';
 
 /**
  * Absolute path of the bundled Help documents folder (a copy of the repo's `docs/`).
@@ -43,31 +24,4 @@ export async function findHelpDocsFolder(): Promise<string | null> {
   } catch {
     return null;
   }
-}
-
-/**
- * Give a Help instance its own profile and config folder (`<userData>/help-instance`).
- * Must run before `app.ready`. Without this, the Help instance would share the
- * user's `config.yaml` (its startup would overwrite their `browseFolder`, and the
- * two processes' config writes would clobber each other) and Chromium profile.
- */
-export function isolateHelpInstanceProfile(): void {
-  if (!isHelpInstance) return;
-  app.setPath('userData', path.join(app.getPath('userData'), 'help-instance'));
-}
-
-/**
- * Launch a new, independent MkBrowser process that browses the Help documents,
- * starting on HELP_START_FILE in single-file mode, in read-only mode.
- * Multiple Help instances are allowed. In dev, `process.execPath` is the electron
- * binary, so the app path must be passed as well.
- */
-export function launchHelpInstance(): void {
-  const args = app.isPackaged ? [] : [app.getAppPath()];
-  if (process.argv.includes('--no-sandbox')) args.push('--no-sandbox');
-  args.push(HELP_DOCS_ARG, READONLY_ARG, `${OPEN_FILE_ARG}=${HELP_START_FILE}`);
-
-  const child = spawn(process.execPath, args, { detached: true, stdio: 'ignore' });
-  child.on('error', (err) => logger.error('Failed to launch Help instance:', err));
-  child.unref();
 }

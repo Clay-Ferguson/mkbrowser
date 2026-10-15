@@ -16,8 +16,6 @@ interface TabConfig {
 
 interface AppTabButtonsProps {
   onSelectFolder: () => void;
-  onBrowseHelpDocs: () => void;
-  onOpenHelpWindow: () => void;
   onQuit: () => void;
   recentFolders: string[];
   onOpenRecentFolder: (folder: string) => void;
@@ -46,7 +44,7 @@ const allTabs: TabConfig[] = [
  * data is available (search results, analysis, graph, AI thread) and disappear
  * when closed — clearing the underlying data.
  */
-function AppTabButtons({ onSelectFolder, onBrowseHelpDocs, onOpenHelpWindow, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
+function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
   const currentView = useAS(s => s.currentView);
   const hasFolderAnalysis = useAS(s => s.folderAnalysis !== null);
   const hasFolderGraph = useAS(s => s.folderGraph !== null);
@@ -55,7 +53,6 @@ function AppTabButtons({ onSelectFolder, onBrowseHelpDocs, onOpenHelpWindow, onQ
   const hasSearched = useAS(s => s.lastSearchDefinition !== null);
   const currentPath = useAS(s => s.currentPath);
   const rootPath = useAS(s => s.rootPath);
-  const readOnly = useAS(s => s.readOnly);
   const backEnabled = useAS(canGoBack);
   const forwardEnabled = useAS(canGoForward);
   const logoRef = useRef<HTMLButtonElement>(null);
@@ -130,8 +127,6 @@ function AppTabButtons({ onSelectFolder, onBrowseHelpDocs, onOpenHelpWindow, onQ
           anchorRef={logoRef}
           onClose={() => setShowFileMenu(false)}
           onSelectFolder={onSelectFolder}
-          onBrowseHelpDocs={onBrowseHelpDocs}
-          onOpenHelpWindow={onOpenHelpWindow}
           onQuit={onQuit}
           recentFolders={recentFolders}
           onOpenRecentFolder={onOpenRecentFolder}
@@ -190,20 +185,17 @@ function AppTabButtons({ onSelectFolder, onBrowseHelpDocs, onOpenHelpWindow, onQ
         })}
       </div>
       <div className="ml-auto flex items-center gap-2">
-        {/* Hidden in read-only mode: the System menu only leads to settings/editors */}
-        {!readOnly && (
-          <button
-            ref={systemMenuRef}
-            type="button"
-            onClick={() => setShowSystemMenu((prev) => !prev)}
-            className={BUTTON_CLASS_TB_NORMAL}
-            aria-label="System menu"
-            title="System menu"
-            data-testid="system-menu-button"
-          >
-            <Bars3Icon className="w-5 h-5" />
-          </button>
-        )}
+        <button
+          ref={systemMenuRef}
+          type="button"
+          onClick={() => setShowSystemMenu((prev) => !prev)}
+          className={BUTTON_CLASS_TB_NORMAL}
+          aria-label="System menu"
+          title="System menu"
+          data-testid="system-menu-button"
+        >
+          <Bars3Icon className="w-5 h-5" />
+        </button>
         <button
           type="button"
           onClick={goBack}

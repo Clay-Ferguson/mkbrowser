@@ -20,8 +20,6 @@ import { logger } from '../shared/logUtil';
 import { writeFileAtomic } from './atomicWrite';
 
 // Config file location — resolved per OS by Electron (Linux: ~/.config/mk-browser).
-// Resolved lazily, not at module load: a Help instance (see helpDocs.ts) redirects
-// `userData` in main.ts, which runs only after this module has been imported.
 const configDir = () => app.getPath('userData');
 const configFile = () => path.join(configDir(), 'config.yaml');
 

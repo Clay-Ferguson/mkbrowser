@@ -87,7 +87,6 @@ export const defaultAiConfig: AiConfigState = {
  * Initial state
  */
 const initialState: AppState = {
-  readOnly: false, // set once at startup by renderer.tsx (see setReadOnly)
   items: new Map(),
   currentEntries: [],
   entriesLoading: true,

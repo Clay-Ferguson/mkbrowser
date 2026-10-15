@@ -296,7 +296,6 @@ function TreeFileRow({
   // Primitive per-row selectors: only the rows whose answer flips re-render
   // when the highlight moves or the browse view navigates.
   const isHighlighted = useAS(s => s.highlightItem === node.path);
-  const readOnly = useAS(s => s.readOnly);
   const relation = useAS(s => folderRelation(node, s.currentPath));
 
   const isSh = isShellScript(node);
@@ -381,10 +380,9 @@ function TreeFileRow({
         onDrop: (e: React.DragEvent) => onDropOnFolder(node, e),
       } : {})}
     >
-      {/* The icon is the drag source for moving the node (not in read-only mode) */}
       <span
-        className={readOnly ? 'shrink-0 flex items-center mr-1' : 'shrink-0 flex items-center mr-1 cursor-grab'}
-        draggable={!readOnly}
+        className="shrink-0 flex items-center mr-1 cursor-grab"
+        draggable
         onDragStart={makeEntryDragStartHandler({ path: node.path, name: node.name, isDirectory: node.isDirectory })}
       >
         {node.isDirectory

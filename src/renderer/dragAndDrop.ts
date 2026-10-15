@@ -2,7 +2,7 @@ import type React from 'react';
 import { api } from './api';
 import { pasteCutItems } from './edit';
 import { ensureAttachFolder } from './fileOpsUtil';
-import { deleteItems, setAppError, getCurrentPath, useAS } from '../store';
+import { deleteItems, setAppError, getCurrentPath } from '../store';
 import { reloadExpandedTreeFolder } from './treeNodes';
 import { refreshDirectory } from './directoryLoader';
 import { getParentPath, isPathInside, isSamePath, splitPathSegments } from './pathUtil';
@@ -52,19 +52,11 @@ export function parseDragPayload(raw: string): DragPayload | null {
  * item's payload on the event and uses the icon's parent DOM element (typically the
  * entry's header row) as the drag image so the user sees an outline of the whole row.
  *
- * In read-only mode (`--readonly`) the drag is cancelled before it starts, so no
- * drop target can ever receive a payload. (The drag sources also set
- * `draggable={!readOnly}`; this is the backstop for any source.)
- *
  * @param payload - The file/folder being dragged.
  */
 export function makeEntryDragStartHandler(payload: DragPayload) {
   return (e: React.DragEvent): void => {
     e.stopPropagation();
-    if (useAS.getState().readOnly) {
-      e.preventDefault();
-      return;
-    }
     e.dataTransfer.setData(ENTRY_DND_MIME, serializeDragPayload(payload));
     e.dataTransfer.effectAllowed = 'move';
     const parent = e.currentTarget.parentElement;
