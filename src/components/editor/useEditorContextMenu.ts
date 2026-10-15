@@ -9,6 +9,20 @@ import { saveSettings } from '../../renderer/config';
 import { useAS, setEnableThesaurus, setWordWrap, setShowPropsInEditor } from '../../store';
 import { wordAt, isSpellCheckExempt, type SpellingSuggestion } from './spellChecker';
 import { objectTypeOptions, planObjectInsertion } from '../../shared/objects/userTypes';
+import { api } from '../../renderer/api';
+import { clipboardLinkCandidates, formatMarkdownFileLink } from '../../renderer/linkUtil';
+import { readLinkTargetId } from '../../renderer/linkRepair';
+import { getFileName } from '../../renderer/pathUtil';
+
+/** An existing file named by the clipboard text, offered by "Paste Link". */
+export interface PasteLinkTarget {
+  /** Absolute path of the file. */
+  targetPath: string;
+  /** Heading slug from a `file.md#slug` clipboard text, or null. */
+  fragment: string | null;
+  /** Raw (still escaped) label of a `[label](path)` clipboard link — e.g. the heading text — or null for a bare path. */
+  label: string | null;
+}
 
 export interface ContextMenuState {
   visible: boolean;
@@ -20,12 +34,44 @@ export interface ContextMenuState {
    * in place of its normal items. Cleared whenever the menu is opened afresh.
    */
   submenu?: 'insertObject';
+  /**
+   * Set (shortly after the menu opens) when the clipboard holds the path of an existing file,
+   * which shows the "Paste Link" item. Cleared whenever the menu is opened afresh.
+   */
+  pasteLink?: PasteLinkTarget;
+}
+
+/**
+ * Resolves to the existing file the clipboard text names, if any: a Markdown link
+ * `[Heading](docs/file.md#slug)` (as copied by right-clicking a rendered heading) or a bare
+ * path, either one relative to the browsing root or absolute, with an optional heading slug. Folders don't count. Resolves to
+ * null otherwise, including when the clipboard can't be read; never rejects.
+ */
+async function findClipboardLinkTarget(rootPath: string): Promise<PasteLinkTarget | null> {
+  let text: string;
+  try {
+    text = await navigator.clipboard.readText();
+  } catch (err) {
+    logger.warn('Failed to read from clipboard:', err);
+    return null;
+  }
+  const parsed = clipboardLinkCandidates(text, rootPath);
+  if (!parsed) return null;
+  for (const path of parsed.paths) {
+    if (await api.pathExists(path) && !(await api.isDirectory(path))) {
+      return { targetPath: path, fragment: parsed.fragment, label: parsed.label };
+    }
+  }
+  return null;
 }
 
 interface UseEditorContextMenuProps {
   viewRef: React.RefObject<EditorView | null>;
   typoRef: React.RefObject<Typo | null>;
-  fileName?: string;
+  /** Absolute path of the file being edited; enables the Markdown-only items. */
+  filePath?: string;
+  /** Whether the editor accepts edits — false hides "Paste Link". */
+  editable?: boolean;
   onSave?: () => void;
   /**
    * Whether this editor is one the thesaurus plugin was installed into — live prose only,
@@ -47,14 +93,14 @@ interface UseEditorContextMenuProps {
  *
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
- * top of the menu. Also exposes save-in-place, cut/copy/paste, select-all, timestamp/date
+ * top of the menu. Also exposes save-in-place, cut/copy/paste, "Paste Link" (when the clipboard names an existing file), select-all, timestamp/date
  * insertion, the word-wrap and thesaurus on/off switches, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the user-defined object types from the Types Editor, and adds the picked one to the file's front matter).
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
  * `canSave`, `canToggleThesaurus`, `thesaurusEnabled`, `wordWrap`).
  */
-export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesaurusCapable = false, revealFrontMatter }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = true, onSave, thesaurusCapable = false, revealFrontMatter }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   // Why Insert Object refused (e.g. the file already holds an object of another type); shown in an alert.
   const [insertObjectError, setInsertObjectError] = useState<string | null>(null);
@@ -66,6 +112,8 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
   const singleFileMode = useAS(s => s.browseFileName !== null);
   // The user-defined object types (Types Editor) that "Insert Object" offers.
   const typeDefs = useAS(s => s.typeDefs);
+
+  const isMarkdown = !!filePath && isMarkdownFile(getFileName(filePath));
 
   const closeContextMenu = () => {
     setContextMenu(prev => ({ ...prev, visible: false }));
@@ -106,12 +154,18 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
       }
     }
 
-    setContextMenu({
-      visible: true,
-      x: e.clientX,
-      y: e.clientY,
-      spelling,
-    });
+    const { clientX: x, clientY: y } = e;
+    setContextMenu({ visible: true, x, y, spelling });
+
+    // The clipboard check is async (a clipboard read plus a stat or two), so like the spelling
+    // suggestions it fills in after the menu is up — unless the menu has since closed or reopened
+    // elsewhere.
+    if (isMarkdown && editable) {
+      void findClipboardLinkTarget(useAS.getState().rootPath).then((pasteLink) => {
+        if (!pasteLink) return;
+        setContextMenu(prev => (prev.visible && prev.x === x && prev.y === y ? { ...prev, pasteLink } : prev));
+      });
+    }
 
     if (spelling && typo) {
       const { word } = spelling;
@@ -197,6 +251,29 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
       closeContextMenu();
       view.focus();
     })();
+  };
+
+  // "Paste Link" — inserts a link to the file the clipboard names (see
+  // findClipboardLinkTarget), relative to this file, in place of the selection, keeping the
+  // clipboard link's label (the heading text) when it had one. A Markdown
+  // target's front-matter id goes in the link title as with "Paste Link into Editor"; one
+  // without an id gets a plain link (no id is ever added to it from here).
+  const handlePasteMarkdownLink = () => {
+    const view = viewRef.current;
+    const target = contextMenu.pasteLink;
+    closeContextMenu();
+    if (!view || !target || !filePath) return;
+
+    const idPromise = isMarkdownFile(target.targetPath) ? readLinkTargetId(target.targetPath) : Promise.resolve('');
+    void idPromise.then((id) => {
+      const link = formatMarkdownFileLink(filePath, target.targetPath, id, target.fragment, target.label);
+      const { from, to } = view.state.selection.main;
+      view.dispatch({
+        changes: { from, to, insert: link },
+        selection: { anchor: from + link.length },
+      });
+      view.focus();
+    });
   };
 
   // "Save" — unlike Ctrl+S (save and exit), this writes the file and leaves the user in the
@@ -365,8 +442,6 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     };
   }, [contextMenu.visible, viewRef]);
 
-  const isMarkdown = !!fileName && isMarkdownFile(fileName);
-
   return {
     contextMenu,
     handleContextMenu,
@@ -375,6 +450,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesa
     handleCut,
     handleCopy,
     handlePaste,
+    handlePasteMarkdownLink,
     handleSelectAll,
     handleSpellingSuggestion,
     handleInsertTimestamp,

@@ -11,6 +11,8 @@ interface EditorContextMenuProps {
   onCut: () => void;
   onCopy: () => void;
   onPaste: () => void;
+  /** Inserts a link to the file the clipboard names; shown only when `contextMenu.pasteLink` is set. */
+  onPasteMarkdownLink: () => void;
   onSelectAll: () => void;
   onSpellingSuggestion: (suggestion: string) => void;
   onInsertTimestamp: () => void;
@@ -55,6 +57,7 @@ export function EditorContextMenu({
   onCut,
   onCopy,
   onPaste,
+  onPasteMarkdownLink,
   onSelectAll,
   onSpellingSuggestion,
   onInsertTimestamp,
@@ -87,7 +90,7 @@ export function EditorContextMenu({
       left: Math.max(VIEWPORT_MARGIN, Math.min(contextMenu.x, maxLeft)),
       top: Math.max(VIEWPORT_MARGIN, Math.min(contextMenu.y, maxTop)),
     });
-  }, [contextMenu.visible, contextMenu.x, contextMenu.y, contextMenu.spelling?.suggestions, contextMenu.submenu]);
+  }, [contextMenu.visible, contextMenu.x, contextMenu.y, contextMenu.spelling?.suggestions, contextMenu.submenu, contextMenu.pasteLink]);
 
   // Focus the menu container (not an item) when it opens, so it is keyboard-
   // operable without visually highlighting the first item for mouse users. Also
@@ -266,6 +269,18 @@ export function EditorContextMenu({
         <span>Paste</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+V</span>
       </button>
+      {contextMenu.pasteLink && (
+        <button
+          type="button"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={onPasteMarkdownLink}
+          className={EDITOR_MENU_ITEM}
+          data-testid="editor-paste-markdown-link"
+        >
+          Paste Link
+        </button>
+      )}
       <div className="border-t border-slate-600 my-1" />
       <button
         type="button"

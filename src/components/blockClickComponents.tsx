@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { Components, ExtraProps } from 'react-markdown';
 import { pressStartedOnScrollbar } from '../renderer/scrollbarPress';
-import { getPathRelativeToDir } from '../renderer/linkUtil';
+import { formatHeadingLink, getPathRelativeToDir } from '../renderer/linkUtil';
 import { isPathInside } from '../renderer/pathUtil';
 import { MarkdownEntryContext } from './markdownEntryContext';
 import { setAppError, setAppMessage, useAS } from '../store';
@@ -89,9 +89,11 @@ function copyHeadingLink(link: string): void {
 }
 
 /**
- * A heading block that, besides click-to-edit, copies a link to itself on right-click:
- * the file's path relative to the browsing root (the breadcrumb's Home folder) plus the
- * heading's slug (`docs/file.md#heading-slug`, the id rehype-slug assigns). Files outside
+ * A heading block that, besides click-to-edit, copies a Markdown link to itself on
+ * right-click — `[Heading Text](docs/file.md#heading-slug)`: the file's path relative to the
+ * browsing root (the breadcrumb's Home folder) plus the heading's slug (the id rehype-slug
+ * assigns). "Paste Link" in the editor turns it into a link relative to the file
+ * it is pasted into. Files outside
  * the root (e.g. the bundled User Guide in HelpView) have no such path, so they render
  * as plain block elements and keep the native context menu.
  */
@@ -107,7 +109,8 @@ function BlockHeading<Tag extends HeadingTag>({ tag, ...props }: BlockProps<Tag>
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    copyHeadingLink(`${getPathRelativeToDir(rootPath, entryPath)}#${slug}`);
+    const headingText = (e.currentTarget.textContent ?? '').trim();
+    copyHeadingLink(formatHeadingLink(headingText, getPathRelativeToDir(rootPath, entryPath), slug));
   };
 
   return (

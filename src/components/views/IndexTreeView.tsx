@@ -57,7 +57,7 @@ import {
 import { createFileOp } from '../../renderer/fileOpsUtil';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
-import { formatLinkDestination, formatLinkTitle } from '../../renderer/linkUtil';
+import { formatLinkDestination, formatMarkdownFileLink } from '../../renderer/linkUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
 import { addLinkTargetId, readLinkTargetId } from '../../renderer/linkRepair';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
@@ -151,20 +151,11 @@ interface PendingIdLink {
 
 /**
  * Inserts a relative link to the Markdown file `targetPath` at `editor`'s cursor —
- * `[README](../a/README.md "id:36F7385CA")`, labelled with the file name. With an
+ * `[README](../a/README.md "id:36F7385CA")` (see formatMarkdownFileLink). With an
  * empty `id` the link has no title.
- *
- * The target's front-matter id rides in the link title, so any Markdown parser
- * returns it with the link and a broken link can be auto-repaired (linkRepair.ts).
- *
- * Square brackets and backslashes in the label are backslash-escaped, since file
- * names may contain them and an unescaped `]` would end the label.
  */
 function insertMarkdownLinkWithId(editor: MarkdownEditor, targetPath: string, id: string): void {
-  const dest = formatLinkDestination(computeRelativePath(getParentPath(editor.path), targetPath));
-  const label = getFileName(targetPath).replace(/\.md$/, '').replace(/[[\]\\]/g, '\\$&');
-  const title = id ? ` ${formatLinkTitle(`id:${id}`)}` : '';
-  editor.handle.insertAtCursor(`[${label}](${dest}${title})`);
+  editor.handle.insertAtCursor(formatMarkdownFileLink(editor.path, targetPath, id));
 }
 
 /**

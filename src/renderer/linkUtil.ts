@@ -1,4 +1,5 @@
-import { getParentPath, isAbsolutePath, pathSep, splitPath, splitPathSegments } from './pathUtil';
+import { getFileName, getParentPath, isAbsolutePath, joinPath, pathSep, splitPath, splitPathSegments } from './pathUtil';
+import { decodeMarkdownUrl, splitHeadingFragment } from '../shared/markdownLinks';
 
 // Pure link-syntax helpers live in shared/ so the main process can use them too
 // (the folder graph's link scan); re-exported so renderer call sites import them from here.
@@ -178,4 +179,78 @@ export function appendLinkFragment(formattedDest: string, fragment: string): str
   return formattedDest.endsWith('>')
     ? `${formattedDest.slice(0, -1)}#${fragment}>`
     : `${formattedDest}#${fragment}`;
+}
+
+/**
+ * Backslash-escapes square brackets and backslashes in a link label, since an
+ * unescaped `]` would end it.
+ */
+function escapeLinkLabel(label: string): string {
+  return label.replace(/[[\]\\]/g, '\\$&');
+}
+
+/**
+ * The Markdown link to `targetPath` inserted into the file `fromFilePath` by "Paste Link
+ * into Editor" and the editor menu's "Paste Link" — `[README](../a/README.md#usage "id:36F7385CA")`:
+ * a relative destination (angle-bracketed or encoded as needed, see `formatLinkDestination`)
+ * with an optional heading `fragment`, labelled with `rawLabel` — Markdown label text, used
+ * verbatim, so any escapes it carries are kept — or, by default, the file name minus `.md`. A non-empty `id` (the target's front-matter id) rides in the link title, so a
+ * broken link can be auto-repaired (linkRepair.ts).
+ */
+export function formatMarkdownFileLink(
+  fromFilePath: string,
+  targetPath: string,
+  id: string,
+  fragment: string | null = null,
+  rawLabel: string | null = null,
+): string {
+  const dest = appendLinkFragment(formatLinkDestination(getRelativePath(fromFilePath, targetPath)), fragment ?? '');
+  const text = rawLabel ?? escapeLinkLabel(getFileName(targetPath).replace(/\.md$/, ''));
+  const title = id ? ` ${formatLinkTitle(`id:${id}`)}` : '';
+  return `[${text}](${dest}${title})`;
+}
+
+/**
+ * The link copied by right-clicking a rendered heading: `[Heading Text](docs/file.md#slug)`,
+ * where `relPath` is the file's path relative to the browsing root (so the link is only
+ * meaningful to "Paste Link", which re-targets it relative to the file it is pasted into).
+ */
+export function formatHeadingLink(headingText: string, relPath: string, slug: string): string {
+  return `[${escapeLinkLabel(headingText)}](${appendLinkFragment(formatLinkDestination(relPath), slug)})`;
+}
+
+/** A whole-text inline link: `[label](dest)` or `[label](<dest> "title")`. Group 1 is the raw label, group 2 the raw destination. */
+const WHOLE_LINK_RE = /^\[((?:[^\]\\]|\\.)*)\]\(\s*(<[^<>\n]*>|[^\s<]\S*?)(?:\s+"(?:[^"\\]|\\.)*")?\s*\)$/;
+
+/**
+ * Reads clipboard text as a file reference and returns the absolute paths it could name,
+ * most specific first, with the heading fragment and link label split off; the caller checks
+ * which (if any) exists. The text is either a Markdown link — `[Heading](docs/file.md#slug)`
+ * as copied by right-clicking a rendered heading (see `formatHeadingLink`), whose destination
+ * is decoded and whose label is kept as written (still escaped) — or a bare path with an optional `#slug` (`label`
+ * is then null). Each path is tried as an absolute path (when it is one) and relative to the
+ * browsing root `rootPath`. Null for text that can't be either: empty, multi-line, or
+ * implausibly long. Pure, for testability.
+ */
+export function clipboardLinkCandidates(
+  text: string,
+  rootPath: string,
+): { paths: string[]; fragment: string | null; label: string | null } | null {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 4096 || /[\r\n]/.test(trimmed)) return null;
+
+  let dest = trimmed;
+  let label: string | null = null;
+  const link = WHOLE_LINK_RE.exec(trimmed);
+  if (link) {
+    label = link[1]!;
+    dest = link[2]!.startsWith('<') ? link[2]!.slice(1, -1) : link[2]!;
+  }
+
+  const split = splitHeadingFragment(dest);
+  const path = link ? decodeMarkdownUrl(split.path) : split.path;
+  const paths: string[] = [];
+  if (isAbsolutePath(path)) paths.push(path);
+  if (rootPath) paths.push(joinPath(rootPath, path));
+  return paths.length ? { paths, fragment: split.fragment, label } : null;
 }

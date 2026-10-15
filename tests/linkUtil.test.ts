@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRelativePath, getPathRelativeToDir, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath, splitHeadingFragment, appendLinkFragment, isFileLinkHref } from '../src/renderer/linkUtil';
+import { getRelativePath, getPathRelativeToDir, formatMarkdownFileLink, formatHeadingLink, clipboardLinkCandidates, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath, splitHeadingFragment, appendLinkFragment, isFileLinkHref } from '../src/renderer/linkUtil';
 
 describe('getRelativePath', () => {
   it('returns just the file name when target is in the same directory', () => {
@@ -200,5 +200,71 @@ describe('isFileLinkHref', () => {
     expect(isFileLinkHref('#section')).toBe(false);
     expect(isFileLinkHref('')).toBe(false);
     expect(isFileLinkHref(undefined)).toBe(false);
+  });
+});
+
+describe('formatMarkdownFileLink', () => {
+  it('links relative to the source file, labelled with the name minus .md', () => {
+    expect(formatMarkdownFileLink('/r/a/note.md', '/r/b/README.md', '')).toBe('[README](../b/README.md)');
+  });
+
+  it('adds the heading fragment and the id title', () => {
+    expect(formatMarkdownFileLink('/r/a/note.md', '/r/a/doc.md', '36F7385CA', 'usage'))
+      .toBe('[doc](doc.md#usage "id:36F7385CA")');
+  });
+
+  it('angle-brackets a path with spaces, fragment inside', () => {
+    expect(formatMarkdownFileLink('/r/note.md', '/r/my docs/a b.md', '', 'x')).toBe('[a b](<my docs/a b.md#x>)');
+  });
+
+  it('escapes brackets in the label', () => {
+    expect(formatMarkdownFileLink('/r/note.md', '/r/[x].md', '')).toBe('[\\[x\\]]([x].md)');
+  });
+});
+
+describe('formatHeadingLink', () => {
+  it('builds a root-relative link with the heading text', () => {
+    expect(formatHeadingLink('Getting Started', 'docs/file.md', 'getting-started'))
+      .toBe('[Getting Started](docs/file.md#getting-started)');
+  });
+
+  it('escapes the label and brackets a path with spaces', () => {
+    expect(formatHeadingLink('A [b]', 'my docs/f.md', 'a-b')).toBe('[A \\[b\\]](<my docs/f.md#a-b>)');
+  });
+
+  it('round-trips through clipboardLinkCandidates into a file-relative link', () => {
+    const copied = formatHeadingLink('A [b]', 'my docs/f.md', 'a-b');
+    const parsed = clipboardLinkCandidates(copied, '/root')!;
+    expect(formatMarkdownFileLink('/root/notes/n.md', parsed.paths[0]!, '', parsed.fragment, parsed.label))
+      .toBe('[A \\[b\\]](<../my docs/f.md#a-b>)');
+  });
+});
+
+describe('clipboardLinkCandidates', () => {
+  it('resolves a root-relative path and splits off the slug', () => {
+    expect(clipboardLinkCandidates('docs/file.md#heading-slug', '/root'))
+      .toEqual({ paths: ['/root/docs/file.md'], fragment: 'heading-slug', label: null });
+  });
+
+  it('tries an absolute path as is, then under the root', () => {
+    expect(clipboardLinkCandidates('  /home/u/file.md\n', '/root'))
+      .toEqual({ paths: ['/home/u/file.md', '/root/home/u/file.md'], fragment: null, label: null });
+  });
+
+  it('parses a copied heading link, keeping the raw label', () => {
+    expect(clipboardLinkCandidates('[My \\[1\\] Heading](docs/file.md#my-1-heading)', '/root'))
+      .toEqual({ paths: ['/root/docs/file.md'], fragment: 'my-1-heading', label: 'My \\[1\\] Heading' });
+  });
+
+  it('unwraps and decodes the link destination', () => {
+    expect(clipboardLinkCandidates('[H](<my docs/a b.md#h>)', '/root'))
+      .toEqual({ paths: ['/root/my docs/a b.md'], fragment: 'h', label: 'H' });
+    expect(clipboardLinkCandidates('[H](a%25b.md "id:X")', '/root'))
+      .toEqual({ paths: ['/root/a%b.md'], fragment: null, label: 'H' });
+  });
+
+  it('rejects empty and multi-line text', () => {
+    expect(clipboardLinkCandidates('   ', '/root')).toBeNull();
+    expect(clipboardLinkCandidates('a.md\nb.md', '/root')).toBeNull();
   });
 });
