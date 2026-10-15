@@ -1,3 +1,5 @@
+import { isTocTagComment } from './tocUtil';
+
 /**
  * A whole fenced code block: the opening fence line (``` or ~~~, three or more), everything up
  * to the matching closing fence, and that closing line — or the rest of the document when the
@@ -67,9 +69,10 @@ export function safeUrlTransform(url: string): string {
 }
 
 /** Removes all HTML comments (`<!-- … -->`) from content, including multi-line ones.
- *  Comments inside fenced code blocks are left untouched. */
+ *  Comments inside fenced code blocks are left untouched, and so are the TOC tags: the
+ *  remarkTocList plugin needs them to find the TOC list, and removes them itself. */
 export function stripHtmlComments(content: string): string {
-  return replaceOutsideFences(content, /<!--[\s\S]*?-->/, () => '');
+  return replaceOutsideFences(content, /<!--[\s\S]*?-->/, (comment) => (isTocTagComment(comment) ? comment : ''));
 }
 
 /**

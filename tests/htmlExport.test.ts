@@ -230,6 +230,14 @@ describe('renderMarkdownPage', () => {
     expect(html).toContain('id="q--a-1"');
   });
 
+  it('renders the generated TOC as a compact toc-list, without the TOC tags', async () => {
+    const md = await processTOC('<!-- TOC -->\n\n# One\n\n## Two\n');
+    const html = await renderMarkdownPage(md, ctx(p('index.md')), {});
+    expect(bodyOf(html)).toContain('<ul class="toc-list">');
+    expect(bodyOf(html)).not.toContain('TOC');
+    expect(html).toContain('ul.toc-list li {');
+  });
+
   it('splits ||| pages into columns and embeds the stylesheet', async () => {
     const html = await renderMarkdownPage('left\n|||\nright\n', ctx(p('docs', 'deep', 'leaf.md')), {});
     expect(html).toContain('class="columns"');

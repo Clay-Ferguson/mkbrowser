@@ -10,6 +10,7 @@ import rehypeStringify from 'rehype-stringify';
 import type { TypeDefinitions } from '../../shared/shared';
 import { preprocessMathEscapes, preprocessWikiLinks, splitOnColumnBreaks, stripHtmlComments } from '../../shared/mkUtil';
 import { rehypeCallouts } from '../../shared/rehypeCallouts';
+import { remarkTocList } from '../../shared/tocUtil';
 import { isImageFile } from '../../shared/fileTypes';
 import { hrefBetween, isMarkdownPath, INDEX_PAGE_NAME } from './exportPaths';
 import type { ExportManifest, PageLinkContext } from './exportPaths';
@@ -110,6 +111,7 @@ async function renderChunk(markdown: string, ctx: PageLinkContext, object: Resol
     .use(remarkFrontmatter, ['yaml'])
     .use(remarkGfm)
     .use(remarkMath, { singleDollarTextMath: true })
+    .use(remarkTocList)
     .use(remarkRehype)
     .use(rehypeKatex, { output: 'mathml' })
     .use(rehypeHeadingIds)

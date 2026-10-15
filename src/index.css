@@ -298,6 +298,30 @@ html[data-font-size="xlarge"] {
   margin-bottom: 0.3em;
 }
 
+/* Generated table of contents (the list between the TOC tags, tagged `toc-list` by the
+   remarkTocList plugin): compact rows and small bullets, so the whole outline fits at a
+   glance. The export's stylesheet (exportStyles.ts) mirrors this. */
+.prose ul.toc-list,
+.prose ul.toc-list ul {
+  margin: 0;
+  padding-inline-start: 1.1em;
+}
+.prose ul.toc-list {
+  margin-bottom: 1em;
+}
+.prose ul.toc-list li {
+  margin: 0;
+  padding-inline-start: 0.2em;
+  line-height: 1.35;
+}
+/* `.prose li` scales each nested level up 1.05x; keep the outline's levels one size. */
+.prose ul.toc-list li li {
+  font-size: 1em;
+}
+.prose ul.toc-list li::marker {
+  font-size: 0.7em;
+}
+
 /* GitHub-style callouts / alerts (`> [!NOTE]`, `[!TIP]`, `[!WARNING]`, …).
    The blockquote is tagged with `markdown-alert markdown-alert-<type>` by the
    local rehypeCallouts plugin; all styling lives here. */

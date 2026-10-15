@@ -2,7 +2,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
 import { toc } from 'mdast-util-toc';
-import type { Root, Heading } from 'mdast';
+import type { Root, Heading, Nodes, RootContent } from 'mdast';
 import GithubSlugger from 'github-slugger';
 import type { MarkdownHeadingNode } from './types';
 
@@ -14,6 +14,18 @@ const END_TAG = '<!-- /TOC -->';
 // Inline occurrences — in prose, table cells, or code fences — are literal text.
 const START_LINE_RE = /^ {0,3}<!--\s*TOC\s*-->\s*$/;
 const END_LINE_RE = /^ {0,3}<!--\s*\/TOC\s*-->\s*$/;
+
+// A whole HTML comment that is a TOC start / end tag (as stripHtmlComments and remark see it).
+const START_COMMENT_RE = /^\s*<!--\s*TOC\s*-->\s*$/;
+const END_COMMENT_RE = /^\s*<!--\s*\/TOC\s*-->\s*$/;
+
+/** The class remarkTocList puts on the generated TOC list, so CSS can lay it out compactly. */
+export const TOC_LIST_CLASS = 'toc-list';
+
+/** Whether an HTML comment is a TOC tag. stripHtmlComments keeps these for remarkTocList. */
+export function isTocTagComment(comment: string): boolean {
+  return START_COMMENT_RE.test(comment) || END_COMMENT_RE.test(comment);
+}
 
 interface LineInfo {
   text: string;
@@ -208,6 +220,45 @@ export async function processTOC(content: string): Promise<string> {
     END_TAG +
     content.slice(start.lineEnd)
   );
+}
+
+function isHtmlMatching(node: RootContent | undefined, re: RegExp): boolean {
+  return node?.type === 'html' && re.test(node.value);
+}
+
+/**
+ * Remark plugin: tags the generated TOC list with TOC_LIST_CLASS so it renders compactly,
+ * and removes the TOC tag comments themselves (react-markdown would otherwise print them as
+ * text). The list must sit directly between `<!-- TOC -->` and `<!-- /TOC -->`, exactly as
+ * processTOC writes it, so a user's own list after a bare `<!-- TOC -->` (showToc off, or a
+ * document with no headings) is never mistaken for the TOC.
+ *
+ * Relies on stripHtmlComments keeping the TOC tag comments (see isTocTagComment).
+ */
+export function remarkTocList() {
+  return (tree: Root) => {
+    walkTocTags(tree);
+  };
+}
+
+function walkTocTags(node: Nodes): void {
+  if (!('children' in node)) return;
+  const children = node.children as RootContent[];
+
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i]!;
+    const list = children[i + 1];
+    if (isHtmlMatching(child, START_COMMENT_RE) && list?.type === 'list' && isHtmlMatching(children[i + 2], END_COMMENT_RE)) {
+      list.data = { ...list.data, hProperties: { ...list.data?.hProperties, className: [TOC_LIST_CLASS] } };
+    }
+    walkTocTags(child);
+  }
+
+  // Drop every TOC tag, including stray inline ones inside a paragraph.
+  for (let i = children.length - 1; i >= 0; i--) {
+    const child = children[i];
+    if (child?.type === 'html' && isTocTagComment(child.value)) children.splice(i, 1);
+  }
 }
 
 /** Extracts the plain text of a heading node by concatenating its inline children. */

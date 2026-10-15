@@ -11,7 +11,7 @@ import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import { rehypeCallouts } from '../../shared/rehypeCallouts';
 import { rehypeDates } from '../../shared/rehypeDates';
-import { removeTOC } from '../../shared/tocUtil';
+import { removeTOC, remarkTocList } from '../../shared/tocUtil';
 import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks, safeUrlTransform } from '../../shared/mkUtil';
 import { BlockClickContext, blockClickComponents } from '../blockClickComponents';
 import { MarkdownEntryContext } from '../markdownEntryContext';
@@ -20,7 +20,7 @@ import { CustomAnchorWithPath } from '../CustomAnchor';
 import CustomCode from '../CustomCode';
 import CustomPre from '../CustomPre';
 
-const REMARK_PLUGINS: PluggableList = [remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]];
+const REMARK_PLUGINS: PluggableList = [remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }], remarkTocList];
 // rehypeDates runs before rehypeKatex so math is still a `code` element it skips.
 const REHYPE_PLUGINS: PluggableList = [rehypeDates, rehypeKatex, rehypeSlug, rehypeCallouts];
 

@@ -54,6 +54,11 @@ describe('stripHtmlComments', () => {
   it('returns empty string unchanged', () => {
     expect(stripHtmlComments('')).toBe('');
   });
+
+  it('keeps the TOC tags for remarkTocList, stripping other comments', () => {
+    const input = '<!-- TOC -->\n- [A](#a)\n<!--/TOC-->\n<!-- note -->';
+    expect(stripHtmlComments(input)).toBe('<!-- TOC -->\n- [A](#a)\n<!--/TOC-->\n');
+  });
 });
 
 // ---------------------------------------------------------------------------

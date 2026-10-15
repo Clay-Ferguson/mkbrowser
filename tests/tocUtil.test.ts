@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { removeTOC, processTOC, extractHeadingTree } from '../src/shared/tocUtil';
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
+import remarkRehype from 'remark-rehype';
+import rehypeStringify from 'rehype-stringify';
+import { removeTOC, processTOC, extractHeadingTree, remarkTocList, TOC_LIST_CLASS } from '../src/shared/tocUtil';
+import { stripHtmlComments } from '../src/shared/mkUtil';
 
 describe('removeTOC', () => {
   it('strips TOC body leaving only the opening tag', () => {
@@ -309,5 +314,47 @@ describe('extractHeadingTree', () => {
     expect(a?.heading).toBe('A');
     expect(a?.children?.[0].heading).toBe('Deep');
     expect(a?.children?.[0].depth).toBe(4);
+  });
+});
+
+/** Renders markdown to HTML through remarkTocList, after the same comment stripping MarkdownView does. */
+async function renderWithTocList(md: string): Promise<string> {
+  const file = await unified()
+    .use(remarkParse)
+    .use(remarkTocList)
+    .use(remarkRehype)
+    .use(rehypeStringify)
+    .process(stripHtmlComments(md));
+  return String(file);
+}
+
+describe('remarkTocList', () => {
+  it('tags the generated TOC list and removes the TOC tags', async () => {
+    const md = await processTOC('<!-- TOC -->\n\n# One\n\n## Two\n\n- user list\n');
+    const html = await renderWithTocList(md);
+    expect(html).toContain(`<ul class="${TOC_LIST_CLASS}">`);
+    expect(html.match(/class="toc-list"/g)).toHaveLength(1); // nested lists inherit via CSS
+    expect(html).not.toContain('TOC');
+    expect(html).toContain('<li>user list</li>');
+  });
+
+  it('does not tag a list after a bare start tag (showToc off, or no end tag)', async () => {
+    const html = await renderWithTocList('<!-- TOC -->\n- not a toc\n');
+    expect(html).not.toContain(TOC_LIST_CLASS);
+    expect(html).not.toContain('TOC');
+    expect(html).toContain('not a toc');
+  });
+
+  it('removes a stray inline TOC tag rather than printing it', async () => {
+    const html = await renderWithTocList('hello <!-- TOC --> there\n');
+    expect(html).not.toContain('TOC');
+    expect(html).toContain('hello');
+    expect(html).toContain('there');
+  });
+
+  it('leaves TOC tags shown inside a code fence alone', async () => {
+    const html = await renderWithTocList('```\n<!-- TOC -->\n- x\n<!-- /TOC -->\n```\n');
+    expect(html).not.toContain(TOC_LIST_CLASS);
+    expect(html).toContain('&#x3C;!-- TOC -->\n- x\n&#x3C;!-- /TOC -->');
   });
 });

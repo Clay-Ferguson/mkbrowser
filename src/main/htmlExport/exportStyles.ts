@@ -74,6 +74,11 @@ ul, ol { margin: 0 0 1em; padding-left: 1.75rem; }
 li { margin: 0.25em 0; }
 li > ul, li > ol { margin-bottom: 0; }
 ul.contains-task-list { list-style: none; padding-left: 0.5rem; }
+/* Generated table of contents (tagged by remarkTocList): compact rows, small bullets — as the app. */
+ul.toc-list, ul.toc-list ul { margin: 0; padding-left: 1.1em; }
+ul.toc-list { margin-bottom: 1em; }
+ul.toc-list li { margin: 0; padding-left: 0.2em; line-height: 1.35; }
+ul.toc-list li::marker { font-size: 0.7em; }
 
 hr { border: none; border-top: 1px solid var(--muted); margin: 0.5rem 0; }
 
