@@ -91,7 +91,7 @@ generate_video_for_test() {
         return 1
     fi
     source "$kocreator_dir/.venv/bin/activate"
-    python "$kocreator_dir/create-video.py" "$current_folder" "$test_name"
+    python "$kocreator_dir/create-video.py" "$current_folder" "$test_name" --no-intro
     deactivate
 }
 
