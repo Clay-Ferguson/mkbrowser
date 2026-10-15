@@ -638,7 +638,7 @@ Design alternatives we considered (or that a future refactor might be tempted by
 
 ## Typed Objects (front matter → card)
 
-A markdown file holds **at most one object**, and it lives in the file's **front matter**: a `type:` naming a user-defined type, plus that type's properties as sibling keys. Such a file shows a card for the object at the top of its rendered view. **What the feature does for users** — the Types Editor, property types, Insert Object, how cards look, the reserved property names — is documented in the User Guide's [Objects and Custom Types](../USER_GUIDE.md#objects-and-custom-types) section; this section covers only how it is built.
+A markdown file holds **at most one object**, and it lives in the file's **front matter**: a `type:` naming a user-defined type, plus that type's properties as sibling keys. Such a file shows a card for the object at the top of its rendered view. **What the feature does for users** — the Types Editor, property types, Insert Object, how cards look, the reserved property names — is documented in the User Guide's [Objects and Custom Types](../user_guide/USER_GUIDE.md#objects-and-custom-types) section; this section covers only how it is built.
 
 Types live under `types:` in `config.yaml` and are mirrored in the store as `typeDefs` (see [Type definitions](#type-definitions-config-and-store)). There are no built-in types, and every type renders through the one generic card, `GenericObject`.
 

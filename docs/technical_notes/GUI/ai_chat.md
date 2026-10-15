@@ -1,6 +1,6 @@
 # AI Chat Feature
 
-As mentioned in the `USER_GUIDE.md` this application lets users have conversational chats with AI agents. We use a file naming convention to be able to use the file system as the storage format for the entire conversation thread between a human and an AI. The way this is done is by letting the human enter their prompt in a file named `HUMAN.md`, and then the AI will respond back by creating a file named `AI.md` to hold its response. 
+As mentioned in the `docs/user_guide/USER_GUIDE.md` this application lets users have conversational chats with AI agents. We use a file naming convention to be able to use the file system as the storage format for the entire conversation thread between a human and an AI. The way this is done is by letting the human enter their prompt in a file named `HUMAN.md`, and then the AI will respond back by creating a file named `AI.md` to hold its response. 
 
 As the chat conversation progresses each back and forth turn will result in a new subfolder being created underneath the previous turn, such that you'll end up with a folder structure that looks like `H/A/H/A` (A=AI, H=Human). We use the very short folder names, so that the path can be very long and the conversation can be very long without the folder length limitation being an issue.
 

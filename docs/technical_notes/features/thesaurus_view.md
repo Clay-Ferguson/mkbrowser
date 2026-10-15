@@ -199,7 +199,7 @@ They cover disjoint failure modes, and neither alone is sufficient:
 | `DETACHMENT_RULES` (suffix heuristics) | regular inflections — `walked`, `creating`, `replied` | every irregular: `was`, `took`, `went`, `brought` |
 | Alias table (AGID data) | everything AGID records, irregulars included | words AGID has no entry for at all |
 
-Measured over ~284k words of prose (two public-domain novels plus `docs/USER_GUIDE.md`):
+Measured over ~284k words of prose (two public-domain novels plus `docs/user_guide/USER_GUIDE.md`):
 
 | approach | prose tokens resolved |
 |---|---|

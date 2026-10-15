@@ -4,7 +4,7 @@ import { takeScreenshot, writeNarration, demoClick, demoRightClick, findActionBa
 
 // Override testDataPath so the app browses the mkbrowser repo itself rather than
 // the usual mkbrowser-test fixture folder — this demo needs a real, deeply nested
-// folder structure and a real markdown document (docs/USER_GUIDE.md).
+// folder structure and a real markdown document (docs/user_guide/USER_GUIDE.md).
 // Resolved from __dirname so it works on any clone, at any location.
 const test = baseTest.extend({
   // eslint-disable-next-line no-empty-pattern
@@ -52,7 +52,20 @@ Here we can see the docs folder. Let's click to expand it.`
     await demoClick(docsFolder);
     await mainWindow.waitForTimeout(800);
 
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'docs-folder-expanded');
+    // --- Click the "user_guide" folder inside docs ---
+    const userGuideFolder = tree.getByText('user_guide', { exact: true }).first();
+    await userGuideFolder.scrollIntoViewIfNeeded();
+    await takeScreenshot(mainWindow, userGuideFolder, screenshotDir, step++, 'docs-folder-expanded');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Inside docs is the user_guide folder. Let's expand it too.`
+    );
+
+    await demoClick(userGuideFolder);
+    await mainWindow.waitForTimeout(800);
+
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'user-guide-folder-expanded');
     writeNarration(
       screenshotDir,
       step++,
@@ -124,7 +137,7 @@ To open the file's containing folder in the main content area, we'll click the "
       screenshotDir,
       step++,
       `The right-hand panel has navigated to the folder containing the user guide.
-You can see the file listing for the docs folder on the right side.`
+You can see the file listing for the user_guide folder on the right side.`
     );
 
     // --- Phase 3 ---
@@ -148,7 +161,7 @@ First, let's collapse the tree completely by clicking the collapse button at the
       screenshotDir,
       step++,
       `The File Explorer Tree is now fully collapsed and out of the way.
-In the docs folder listing on the right, hovering over a file title reveals a row of action icons. Let's click the "Reveal in Folder Tree" icon on the user guide to locate it in the tree.`
+In the user_guide folder listing on the right, hovering over a file title reveals a row of action icons. Let's click the "Reveal in Folder Tree" icon on the user guide to locate it in the tree.`
     );
 
     // --- Click the "Reveal in Folder Tree" button for USER_GUIDE.md ---

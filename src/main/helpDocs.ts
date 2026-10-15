@@ -3,16 +3,17 @@ import path from 'node:path';
 import { app } from 'electron';
 
 /**
- * Absolute path of the bundled Help documents folder (a copy of the repo's `docs/`).
+ * Absolute path of the bundled Help documents folder (a copy of the repo's `docs/user_guide/`).
  *
- * Packaged: `forge.config.ts` ships `./docs` as an `extraResource`, which lands
- * directly under `process.resourcesPath` on every OS (e.g. the .deb installs it at
- * `/usr/lib/mk-browser/resources/docs`). Dev: the live repo `docs/` folder.
+ * Packaged: `forge.config.ts` ships `./docs/user_guide` as an `extraResource`, which lands
+ * (by its basename) directly under `process.resourcesPath` on every OS (e.g. the .deb
+ * installs it at `/usr/lib/mk-browser/resources/user_guide`). Dev: the live repo
+ * `docs/user_guide/` folder.
  */
 export function getHelpDocsPath(): string {
   return app.isPackaged
-    ? path.join(process.resourcesPath, 'docs')
-    : path.join(app.getAppPath(), 'docs');
+    ? path.join(process.resourcesPath, 'user_guide')
+    : path.join(app.getAppPath(), 'docs', 'user_guide');
 }
 
 /** The Help documents folder, or null if it is missing (e.g. a broken install). */

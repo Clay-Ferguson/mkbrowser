@@ -2,34 +2,34 @@
 
 MkBrowser is an Electron desktop app that combines a file explorer with inline Markdown rendering, image rendering, and text file editing. It shows a single folder level at a time and renders `.md` files directly within the list rather than using a separate preview pane. 
 
-This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) covers end-user usage. See [Testing](docs/TESTING.md) for details on the test framework and how to write tests. 
+This README is aimed at developers; a separate [User Guide](docs/user_guide/USER_GUIDE.md) covers end-user usage. 
 
 **[Demo Videos](https://clay-ferguson.github.io/videos/)**
 
 ## Screenshots
 
 ### View Files Collapsed
-![collapsed-files](docs/img/collapsed-files.png)
+![collapsed-files](docs/user_guide/img/collapsed-files.png)
 
 ### View Files Expanded
-![expanded-file](docs/img/expanded-file.png)
+![expanded-file](docs/user_guide/img/expanded-file.png)
 
 ### Editing a File
-![expanded-file](docs/img/editing-file.png)
+![expanded-file](docs/user_guide/img/editing-file.png)
 
 ### Searching
-![expanded-file](docs/img/searching.png)
+![expanded-file](docs/user_guide/img/searching.png)
 
 ### Export
-![export-dialog](docs/img/export-dialog.png)
+![export-dialog](docs/user_guide/img/export-dialog.png)
 
 ### Settings
-![settings-page](docs/img/settings-page.png)
+![settings-page](docs/user_guide/img/settings-page.png)
 
 
 ## Features
 
-A comprehensive list of what MkBrowser can do. See the [User Guide](docs/USER_GUIDE.md) for full details on any item.
+A comprehensive list of what MkBrowser can do. See the [User Guide](docs/user_guide/USER_GUIDE.md) for full details on any item.
 
 ### Browsing & Viewing
 

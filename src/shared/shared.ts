@@ -509,7 +509,7 @@ export interface ElectronAPI {
   getHomeDir: () => Promise<string>;
   updateConfig: (updates: Partial<AppConfig>) => Promise<void>;
   selectFolder: () => Promise<string | null>;
-  /** The bundled Help documents folder (a copy of the repo's `docs/`), or null if missing. */
+  /** The bundled Help documents folder (a copy of the repo's `docs/user_guide/`), or null if missing. */
   getHelpDocsPath: () => Promise<string | null>;
   /** Absolute path of the command-line file to open at startup, or null. */
   getStartupFile: () => Promise<string | null>;

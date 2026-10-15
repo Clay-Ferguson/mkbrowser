@@ -28,7 +28,7 @@ async function loadHelpDoc(): Promise<HelpDoc> {
 }
 
 /**
- * The Help tab: a read-only render of the bundled User Guide (`docs/USER_GUIDE.md`).
+ * The Help tab: a read-only render of the bundled User Guide (`docs/user_guide/USER_GUIDE.md`).
  * Rendered through the same MarkdownView pipeline as the Browse tab, so local images,
  * math, diagrams and in-page TOC links all work, but clicking does not open an editor.
  * The guide's own TOC is always shown, since this tab has no index tree beside it.
