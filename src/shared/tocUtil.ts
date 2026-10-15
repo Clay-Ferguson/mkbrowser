@@ -2,7 +2,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
 import { toc } from 'mdast-util-toc';
-import type { Root, Heading, Nodes, RootContent } from 'mdast';
+import type { Root, Heading, List, Nodes, RootContent } from 'mdast';
 import GithubSlugger from 'github-slugger';
 import type { MarkdownHeadingNode } from './types';
 
@@ -234,14 +234,38 @@ function isHtmlMatching(node: RootContent | undefined, re: RegExp): boolean {
  * document with no headings) is never mistaken for the TOC.
  *
  * Relies on stripHtmlComments keeping the TOC tag comments (see isTocTagComment).
+ *
+ * Each item is also tagged `toc-h1`…`toc-h6` with its heading's level, so CSS can colour it
+ * like the heading. processTOC (mdast-util-toc) nests relative to the shallowest heading and
+ * pads skipped levels with empty items, so an item's level is always its nesting level plus
+ * (shallowest heading level − 1). In a multi-column document only the TOC's own column is
+ * seen here; with no headings in it, the outline is assumed to start at H1.
  */
 export function remarkTocList() {
   return (tree: Root) => {
-    walkTocTags(tree);
+    const shallowest = shallowestHeading(tree);
+    walkTocTags(tree, shallowest > 6 ? 0 : shallowest - 1);
   };
 }
 
-function walkTocTags(node: Nodes): void {
+/** The shallowest heading level in the tree, or 7 when it has no headings. */
+function shallowestHeading(node: Nodes): number {
+  if (node.type === 'heading') return node.depth;
+  if (!('children' in node)) return 7;
+  return Math.min(7, ...(node.children as Nodes[]).map(shallowestHeading));
+}
+
+/** Tags each list item with `toc-h<level>`, its heading level. */
+function tagTocLevels(list: List, level: number): void {
+  for (const item of list.children) {
+    item.data = { ...item.data, hProperties: { ...item.data?.hProperties, className: [`toc-h${Math.min(level, 6)}`] } };
+    for (const child of item.children) {
+      if (child.type === 'list') tagTocLevels(child, level + 1);
+    }
+  }
+}
+
+function walkTocTags(node: Nodes, levelOffset: number): void {
   if (!('children' in node)) return;
   const children = node.children as RootContent[];
 
@@ -250,8 +274,9 @@ function walkTocTags(node: Nodes): void {
     const list = children[i + 1];
     if (isHtmlMatching(child, START_COMMENT_RE) && list?.type === 'list' && isHtmlMatching(children[i + 2], END_COMMENT_RE)) {
       list.data = { ...list.data, hProperties: { ...list.data?.hProperties, className: [TOC_LIST_CLASS] } };
+      tagTocLevels(list, 1 + levelOffset);
     }
-    walkTocTags(child);
+    walkTocTags(child, levelOffset);
   }
 
   // Drop every TOC tag, including stray inline ones inside a paragraph.

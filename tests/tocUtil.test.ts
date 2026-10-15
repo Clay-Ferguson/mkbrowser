@@ -352,6 +352,27 @@ describe('remarkTocList', () => {
     expect(html).toContain('there');
   });
 
+  /** The `toc-hN` class on the <li> that holds the link to `#slug`. */
+  function levelOf(html: string, slug: string): string | undefined {
+    return html.match(new RegExp(`<li class="(toc-h\\d)"><a href="#${slug}">`))?.[1];
+  }
+
+  it('tags each item with its heading level', async () => {
+    const html = await renderWithTocList(await processTOC('<!-- TOC -->\n\n# A\n\n## B\n\n### C\n'));
+    expect([levelOf(html, 'a'), levelOf(html, 'b'), levelOf(html, 'c')]).toEqual(['toc-h1', 'toc-h2', 'toc-h3']);
+  });
+
+  it('uses the real heading level when the document has no H1', async () => {
+    const html = await renderWithTocList(await processTOC('<!-- TOC -->\n\n## A\n\n### B\n\n## C\n'));
+    expect([levelOf(html, 'a'), levelOf(html, 'b'), levelOf(html, 'c')]).toEqual(['toc-h2', 'toc-h3', 'toc-h2']);
+  });
+
+  it('uses the real heading level across skipped levels', async () => {
+    const html = await renderWithTocList(await processTOC('<!-- TOC -->\n\n### A\n\n## B\n\n# C\n\n#### D\n'));
+    expect([levelOf(html, 'a'), levelOf(html, 'b'), levelOf(html, 'c'), levelOf(html, 'd')])
+      .toEqual(['toc-h3', 'toc-h2', 'toc-h1', 'toc-h4']);
+  });
+
   it('leaves TOC tags shown inside a code fence alone', async () => {
     const html = await renderWithTocList('```\n<!-- TOC -->\n- x\n<!-- /TOC -->\n```\n');
     expect(html).not.toContain(TOC_LIST_CLASS);

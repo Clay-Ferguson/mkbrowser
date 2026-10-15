@@ -230,10 +230,10 @@ html[data-font-size="xlarge"] {
 :root {
   --md-heading-1: #e06c75;
   --md-heading-2: #e5c07b;
-  --md-heading-3: #98c379;
-  --md-heading-4: #56b6c2;
-  --md-heading-5: #61afef;
-  --md-heading-6: #c678dd;
+  --md-heading-3: #56b6c2;
+  --md-heading-4: #c678dd;
+  --md-heading-5: #98c379;
+  --md-heading-6: #61afef;
   --md-code: #98c379;
 
   /* Heading sizes, relative to the surrounding text. */
@@ -321,6 +321,15 @@ html[data-font-size="xlarge"] {
 .prose ul.toc-list li::marker {
   font-size: 0.7em;
 }
+/* Each entry (link and bullet) takes its heading's colour; remarkTocList tags the
+   items `toc-h1`…`toc-h6` with the heading's level (not just its nesting depth). */
+.prose ul.toc-list a { color: inherit; }
+.prose ul.toc-list li.toc-h1 { color: var(--md-heading-1); }
+.prose ul.toc-list li.toc-h2 { color: var(--md-heading-2); }
+.prose ul.toc-list li.toc-h3 { color: var(--md-heading-3); }
+.prose ul.toc-list li.toc-h4 { color: var(--md-heading-4); }
+.prose ul.toc-list li.toc-h5 { color: var(--md-heading-5); }
+.prose ul.toc-list li.toc-h6 { color: var(--md-heading-6); }
 
 /* GitHub-style callouts / alerts (`> [!NOTE]`, `[!TIP]`, `[!WARNING]`, …).
    The blockquote is tagged with `markdown-alert markdown-alert-<type>` by the
