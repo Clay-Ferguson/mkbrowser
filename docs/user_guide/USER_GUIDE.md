@@ -816,8 +816,8 @@ To create a search definition that displays all of the files underneath a given 
 
 - empty search text field 
 - "Recent Files" checkbox selected
-- Sort Results By: File Modification Time
-- Direction: DESC (newest first)
+- Order → Sort By: File Modification Time
+- Order → Direction: DESC (newest first)
 
 
 # Replace in Files

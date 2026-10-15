@@ -21,7 +21,7 @@ function baseName(relativePath: string): string {
 
 /**
  * Comparator implementing the user's chosen result order (the Search dialog's
- * "Sort Results By" and "Direction"). The single source of truth for it: the
+ * "Order" section: "Sort By" and "Direction"). The single source of truth for it: the
  * main process sorts with it before applying the result cap, so the results
  * that are kept are the ones the chosen order puts first, and the results view
  * sorts with it for display.

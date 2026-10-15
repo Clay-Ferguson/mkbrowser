@@ -1,9 +1,10 @@
-import { useRef, useState, useLayoutEffect } from 'react';
+import { useRef, useState } from 'react';
 import ConfirmDialog from './ConfirmDialog';
 import Dialog from './common/Dialog';
 import SearchDefinitionsPanel from './SearchDefinitionsPanel';
 import CheckboxField from './common/CheckboxField';
 import RadioGroup from './common/RadioGroup';
+import JsCodeInput from './common/JsCodeInput';
 import type { SearchDefinition, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import * as globalHighlight from '../../renderer/globalHighlight';
 import { initialSearchDefinition } from '../../shared/searchHelpers';
@@ -52,19 +53,9 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const set = <K extends keyof SearchDefinition>(key: K) => (value: SearchDefinition[K]) =>
     setDef((d) => ({ ...d, [key]: value }));
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Resize the textarea to fit its content whenever the query changes (including
-  // when a saved definition is loaded). useLayoutEffect runs after the DOM is
-  // updated but before paint, so scrollHeight is measured against the new value
-  // with no flicker — and no magic setTimeout(0).
-  useLayoutEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    textarea.style.height = 'auto';
-    const minHeight = 20 * 4; // ~4 lines
-    textarea.style.height = `${Math.max(minHeight, textarea.scrollHeight)}px`;
-  }, [searchQuery]);
+  const queryInputRef = useRef<HTMLInputElement>(null);
+  /** The Advanced-mode code editor's editable element (set by JsCodeInput). */
+  const codeInputRef = useRef<HTMLElement>(null);
 
   const handleSelectSearchDefinition = (selected: SearchDefinition) => {
     setDef(initialSearchDefinition(selected, null));
@@ -87,12 +78,12 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     onSave({ ...def, name: searchName.trim(), searchText: searchQuery.trim() });
   };
 
-  const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     set('searchText')(e.target.value);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
       e.preventDefault();
       handleSearch();
     }
@@ -112,7 +103,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
         title="Search"
         onClose={onCancel}
         className="w-full max-w-4xl flex flex-col max-h-[90vh]"
-        initialFocusRef={textareaRef}
+        initialFocusRef={matchType === 'advanced' ? codeInputRef : queryInputRef}
       >
         <div className="flex min-h-[480px] flex-1">
 
@@ -137,16 +128,27 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                       : 'Search text (use * as wildcard, matches up to 25 characters)')
                   : 'Search text'}
             </label>
-            <textarea
-              ref={textareaRef}
-              value={searchQuery}
-              onChange={handleQueryChange}
-              onKeyDown={handleKeyDown}
-              data-testid="search-query-input"
-              rows={4}
-              className={`w-full ${DLG_INPUT_CLASS_BASE} font-mono resize-none border-slate-600 focus:border-blue-500 min-h-[80px]`}
-              placeholder={matchType === 'advanced' ? 'Functions: $, tag, prop, past, future, today' : matchType === 'wildcard' ? (!searchContents ? '*.md' : 'intro*duction') : 'Enter search text...'}
-            />
+            {matchType === 'advanced' ? (
+              <JsCodeInput
+                value={searchQuery}
+                onChange={set('searchText')}
+                onSubmit={handleSearch}
+                placeholder="Functions: $, tag, prop, past, future, today"
+                testId="search-query-input"
+                focusRef={codeInputRef}
+              />
+            ) : (
+              <input
+                type="text"
+                ref={queryInputRef}
+                value={searchQuery}
+                onChange={handleQueryChange}
+                onKeyDown={handleKeyDown}
+                data-testid="search-query-input"
+                className={`w-full ${DLG_INPUT_CLASS_BASE} font-mono text-base! border-slate-600 focus:border-blue-500`}
+                placeholder={matchType === 'wildcard' ? (!searchContents ? '*.md' : 'intro*duction') : 'Enter search text...'}
+              />
+            )}
 
             <div className="flex items-center gap-6 mb-3 mt-3">
               <CheckboxField
@@ -216,64 +218,36 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               ]}
             />
 
-            <div className="flex gap-3 mb-3">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Sort Results By</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => set('sortBy')(e.target.value as SearchSortBy)}
-                  data-testid="sort-by-select"
-                  className={`${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`}
-                >
-                  <option value="modified-time">File Modification Time</option>
-                  <option value="created-time">File Creation Time</option>
-                  <option value="file-name">File Name</option>
-                </select>
+            <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
+              <legend className="text-xs text-slate-400 px-2">Order</legend>
+              <div className="flex gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Sort By</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => set('sortBy')(e.target.value as SearchSortBy)}
+                    data-testid="sort-by-select"
+                    className={`${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`}
+                  >
+                    <option value="modified-time">File Modification Time</option>
+                    <option value="created-time">File Creation Time</option>
+                    <option value="file-name">File Name</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Direction</label>
+                  <select
+                    value={sortDirection}
+                    onChange={(e) => set('sortDirection')(e.target.value as SearchSortDirection)}
+                    data-testid="sort-direction-select"
+                    className={`${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`}
+                  >
+                    <option value="desc">DESC (newest first)</option>
+                    <option value="asc">ASC (oldest first)</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Direction</label>
-                <select
-                  value={sortDirection}
-                  onChange={(e) => set('sortDirection')(e.target.value as SearchSortDirection)}
-                  data-testid="sort-direction-select"
-                  className={`${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`}
-                >
-                  <option value="desc">DESC (newest first)</option>
-                  <option value="asc">ASC (oldest first)</option>
-                </select>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-500 mt-2">
-              {/* Scope sentence — what gets searched. With File Names also checked, a
-                  contents search matches file names too, but only for
-                  literal/wildcard: an advanced expression is JavaScript evaluated
-                  against file content, so it never matches names there (in a
-                  names-only search it is applied to the name instead, which is why
-                  that branch comes first). */}
-              {noTarget ? (
-                <>Check File Contents, File Names, or both to choose what to search.</>
-              ) : !searchContents ? (
-                <>Searches file and folder names recursively (case-insensitive).</>
-              ) : searchNames && matchType === 'advanced' ? (
-                <>Searches file contents only — advanced expressions never match file names.</>
-              ) : calendarItemsOnly ? (
-                <>Searches only calendar items — .md files with a <code className="bg-slate-700 px-1 rounded">due:</code> front matter property — matching their contents{searchNames && ' or their file name'} (case-insensitive).</>
-              ) : searchImageExif ? (
-                <>Searches the contents of .md, .txt, and image EXIF metadata{searchNames && ', plus every file name,'} recursively (case-insensitive).</>
-              ) : (
-                <>Searches the contents of .md and .txt files{searchNames && ', plus every file name,'} recursively (case-insensitive).</>
-              )}
-              {matchType === 'wildcard' && !noTarget && (!searchContents ? (
-                <> The pattern must match the whole name: <code className="bg-slate-700 px-1 rounded">*.md</code> finds names ending in .md, <code className="bg-slate-700 px-1 rounded">report*</code> names starting with &quot;report&quot;.</>
-              ) : (
-                <> Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters.</>
-              ))}
-              {matchType === 'advanced' && (
-                <> Uses the <code className="bg-slate-700 px-1 rounded">$(&quot;text&quot;)</code> function, <code className="bg-slate-700 px-1 rounded">tag(&quot;#name&quot;)</code> for a whole hashtag, <code className="bg-slate-700 px-1 rounded">prop(&quot;name&quot;)</code> for a front-matter property, or past(date), future(date), future(date, days), today(date) — e.g. <code className="bg-slate-700 px-1 rounded">past(prop(&quot;due&quot;, &quot;ts&quot;))</code>. Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code>.</>
-              )}
-              {' '}Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.
-            </p>
+            </fieldset>
 
             <div className="flex justify-end items-center gap-3 mt-6">
               <div className="flex gap-3">
