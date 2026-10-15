@@ -11,6 +11,7 @@ import FolderGraphView from './components/views/FolderGraphView';
 import CalendarView from './components/views/CalendarView';
 import AISettingsView from './components/views/AISettingsView';
 import TypesEditorView from './components/views/TypesEditorView';
+import HelpView from './components/views/HelpView';
 import ThreadView from './components/views/ThreadView';
 import BrowseView from './components/views/BrowseView';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -416,6 +417,14 @@ function App() {
           <div {...viewProps('calendar')}>
             <ErrorBoundary>
               <CalendarView />
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {visitedViews.has('help') && (
+          <div {...viewProps('help')}>
+            <ErrorBoundary>
+              <HelpView />
             </ErrorBoundary>
           </div>
         )}

@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
+import PopupMenu, { PopupMenuDivider, PopupMenuItem } from './base/PopupMenu';
 
 interface SystemPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
@@ -7,12 +7,14 @@ interface SystemPopupMenuProps {
   onSettings: () => void;
   onAiSettings: () => void;
   onTypesEditor: () => void;
+  /** Opens the Help tab (a read-only render of the User Guide). */
+  onHelp: () => void;
 }
 
 /**
  * Popup menu for the system (gear/hamburger) toolbar button. Provides
- * navigation to the general Settings view, the AI Settings view, and the
- * Types Editor view.
+ * navigation to the general Settings view, the AI Settings view, the
+ * Types Editor view, and the Help tab.
  */
 export default function SystemPopupMenu({
   anchorRef,
@@ -20,6 +22,7 @@ export default function SystemPopupMenu({
   onSettings,
   onAiSettings,
   onTypesEditor,
+  onHelp,
 }: SystemPopupMenuProps) {
   return (
     <PopupMenu data-testid="system-popup-menu" anchorRef={anchorRef} onClose={onClose}>
@@ -37,6 +40,12 @@ export default function SystemPopupMenu({
         label="Types Editor"
         data-testid="menu-types-editor"
         onClick={() => { onTypesEditor(); onClose(); }}
+      />
+      <PopupMenuDivider />
+      <PopupMenuItem
+        label="Help"
+        data-testid="menu-help"
+        onClick={() => { onHelp(); onClose(); }}
       />
     </PopupMenu>
   );

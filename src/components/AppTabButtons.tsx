@@ -23,7 +23,7 @@ interface AppTabButtonsProps {
   onOpenRecentFolder: (folder: string) => void;
 }
 
-// Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings, AI Settings, Types, Calendar
+// Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings, AI Settings, Types, Calendar, Help
 const allTabs: TabConfig[] = [
   { id: 'browser', label: 'Browse', hasCloseButton: false },
   { id: 'thread', label: 'AI Chat', hasCloseButton: false },
@@ -34,6 +34,7 @@ const allTabs: TabConfig[] = [
   { id: 'ai-settings', label: 'AI Settings' },
   { id: 'types-editor', label: 'Types' },
   { id: 'calendar', label: 'Calendar' },
+  { id: 'help', label: 'Help' },
 ];
 
 /**
@@ -91,6 +92,7 @@ function AppTabButtons({ onSelectFolder, onBrowseHelpDocs, onOpenHelpWindow, onQ
     'ai-settings': makeCloseHandler('ai-settings', () => hideTab('ai-settings')),
     'types-editor': makeCloseHandler('types-editor', () => hideTab('types-editor')),
     'calendar': makeCloseHandler('calendar', () => hideTab('calendar')),
+    'help': makeCloseHandler('help', () => hideTab('help')),
   };
 
   // Determine whether the thread tab should be visible based on loaded entries
@@ -150,6 +152,10 @@ function AppTabButtons({ onSelectFolder, onBrowseHelpDocs, onOpenHelpWindow, onQ
           onTypesEditor={() => {
             showTab('types-editor');
             setCurrentView('types-editor');
+          }}
+          onHelp={() => {
+            showTab('help');
+            setCurrentView('help');
           }}
         />
       )}
