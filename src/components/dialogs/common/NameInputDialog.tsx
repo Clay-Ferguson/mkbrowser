@@ -29,6 +29,8 @@ interface NameInputDialogProps {
   createTestId?: string;
   /** Label of the submit button. Default "Create". */
   submitLabel?: string;
+  /** Optional explanatory text shown below the input (e.g. the URL a link will point to). */
+  note?: string;
 }
 
 /**
@@ -47,6 +49,7 @@ function NameInputDialog({
   inputTestId,
   createTestId,
   submitLabel = 'Create',
+  note,
 }: NameInputDialogProps) {
   const [name, setName] = useState(defaultName);
   // Whether the user has edited the field; until then a changed defaultName replaces it.
@@ -91,6 +94,7 @@ function NameInputDialog({
           placeholder={placeholder}
           data-testid={inputTestId}
         />
+        {note && <p className="mt-2 text-xs text-slate-400 break-all">{note}</p>}
         <div className="flex justify-end gap-3 mt-6">
           <button
             type="button"

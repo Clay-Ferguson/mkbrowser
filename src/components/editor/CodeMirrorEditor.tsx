@@ -1086,6 +1086,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           onCreate={confirmUrlPaste}
           onCancel={cancelUrlPaste}
           submitLabel="OK"
+          note={`Enter the title for the markdown link for: ${pendingUrlPaste.url}`}
           inputTestId="insert-link-title-input"
           createTestId="insert-link-ok-button"
         />
