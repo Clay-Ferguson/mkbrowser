@@ -183,6 +183,7 @@ function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: Ty
     onCut: noop,
     onCopy: noop,
     onPaste: noop,
+    onPasteMarkdownLink: noop,
     onSelectAll: noop,
     onSearchReplace: noop,
     onSpellingSuggestion: noop,
