@@ -504,6 +504,8 @@ export interface ElectronAPI {
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
   lookupThesaurus: (word: string) => Promise<ThesaurusLookup>;
+  /** Title of the HTML page at an http(s) URL (read from at most its first 256 KB), or '' when there is none. Never rejects. */
+  fetchUrlTitle: (url: string) => Promise<string>;
   getConfig: () => Promise<AppConfig>;
   /** The user's home folder on any OS (Electron's `app.getPath('home')`). */
   getHomeDir: () => Promise<string>;

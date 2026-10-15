@@ -86,6 +86,11 @@ interface UseEditorContextMenuProps {
    * writes there — see handleInsertObject.
    */
   revealFrontMatter?: () => void;
+  /**
+   * Offered the clipboard text first on Paste; returns true when it took the paste over (a
+   * URL headed for the "Insert link" dialog — see useUrlPaste), so Paste inserts nothing.
+   */
+  interceptPaste?: (text: string) => boolean;
 }
 
 /**
@@ -100,7 +105,7 @@ interface UseEditorContextMenuProps {
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
  * `canSave`, `canToggleThesaurus`, `thesaurusEnabled`, `wordWrap`).
  */
-export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = true, onSave, thesaurusCapable = false, revealFrontMatter }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = true, onSave, thesaurusCapable = false, revealFrontMatter, interceptPaste }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   // Why Insert Object refused (e.g. the file already holds an object of another type); shown in an alert.
   const [insertObjectError, setInsertObjectError] = useState<string | null>(null);
@@ -240,6 +245,11 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
         logger.error('Failed to read from clipboard:', err);
         closeContextMenu();
         view.focus();
+        return;
+      }
+
+      if (interceptPaste?.(text)) {
+        closeContextMenu();
         return;
       }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Dialog from './Dialog';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS, DLG_LABEL_CLASS } from '../../../renderer/styles';
 
@@ -9,7 +9,11 @@ interface NameInputDialogProps {
   label: string;
   /** Input placeholder text. */
   placeholder: string;
-  /** Prefilled value for the name field. */
+  /**
+   * Prefilled value for the name field. A later change is adopted (and selected) as long as
+   * the user hasn't typed in the field yet — for callers that look the default up
+   * asynchronously, like the editor's "Insert link" dialog fetching the page title.
+   */
   defaultName?: string;
   /**
    * Turn the raw (untrimmed) field value into the final name passed to onCreate.
@@ -23,6 +27,8 @@ interface NameInputDialogProps {
   inputTestId?: string;
   /** data-testid for the Create button. */
   createTestId?: string;
+  /** Label of the submit button. Default "Create". */
+  submitLabel?: string;
 }
 
 /**
@@ -40,8 +46,23 @@ function NameInputDialog({
   onCancel,
   inputTestId,
   createTestId,
+  submitLabel = 'Create',
 }: NameInputDialogProps) {
   const [name, setName] = useState(defaultName);
+  // Whether the user has edited the field; until then a changed defaultName replaces it.
+  const [dirty, setDirty] = useState(false);
+  const [prevDefaultName, setPrevDefaultName] = useState(defaultName);
+  if (defaultName !== prevDefaultName) {
+    setPrevDefaultName(defaultName);
+    if (!dirty) setName(defaultName);
+  }
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Select an adopted default so typing replaces it, as Dialog does for the initial value.
+  // Only while the field has focus, so a late default never steals it from elsewhere.
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!dirty && input && document.activeElement === input) input.select();
+  }, [defaultName, dirty]);
   // The caller keeps this dialog open until its async create finishes, so a
   // double-click (or Enter twice) would otherwise fire a second create for the
   // same name — failing with "already exists" or, racing the first, inserting
@@ -64,7 +85,8 @@ function NameInputDialog({
         <input
           type="text"
           value={name}
-          onChange={(e) => { setName(e.target.value); setSubmitted(false); }}
+          ref={inputRef}
+          onChange={(e) => { setName(e.target.value); setDirty(true); setSubmitted(false); }}
           className={DLG_INPUT_CLASS}
           placeholder={placeholder}
           data-testid={inputTestId}
@@ -83,7 +105,7 @@ function NameInputDialog({
             className={BUTTON_CLASS_DLG_BLUE}
             data-testid={createTestId}
           >
-            Create
+            {submitLabel}
           </button>
         </div>
       </form>

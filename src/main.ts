@@ -25,6 +25,7 @@ import { scanFolderTree, type FolderGraphLinkData, type FolderGraphResult } from
 import { scanFolderGraphLinks } from './main/folderGraphLinks';
 import { loadTags } from './main/tagLoader';
 import { lookupThesaurus } from './main/thesaurusUtil';
+import { fetchUrlTitle } from './main/urlTitle';
 import type { TagCategory } from './shared/tagUtil';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './main/ai/aiUtil';
 import { hasScriptedAnswer, queueScriptedAnswer } from './main/ai/langGraph';
@@ -232,6 +233,11 @@ function setupIpcHandlers(): void {
       return { lemma: null, synonyms: [] };
     });
   });
+
+  // Title of the web page at a pasted URL, used to prefill the editor's "Insert link" dialog.
+  // Reads only HTML, and only the first few hundred KB of it (see urlTitle); resolves to ''
+  // on any failure so the dialog simply opens without a suggestion.
+  ipcMain.handle('fetch-url-title', (_event, url: string): Promise<string> => fetchUrlTitle(url, net.fetch));
 
   // The user's home folder, resolved per OS (/home/<user>, /Users/<user>, C:\\Users\\<user>)
   ipcMain.handle('get-home-dir', () => app.getPath('home'));

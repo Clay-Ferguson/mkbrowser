@@ -27,6 +27,8 @@ import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spe
 import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
 import AlertDialog from '../dialogs/AlertDialog';
+import NameInputDialog from '../dialogs/common/NameInputDialog';
+import { useUrlPaste } from './useUrlPaste';
 import { createFontSizeTheme } from './editorTheme';
 import { logger } from '../../shared/logUtil';
 import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN, BUTTON_CLASS_SM_NEUTRAL, EDITOR_BORDER, EDITOR_TOP_DIVIDER } from '../../renderer/styles';
@@ -140,6 +142,9 @@ function scrollFirstChunkIntoView(view: EditorView | null): void {
     view.dispatch({ effects: EditorView.scrollIntoView(first.fromB, { y: 'center' }) });
   }
 }
+
+/** Link text from the "Insert link" dialog's field (a blank one becomes the URL in formatUrlMarkdownLink). */
+const trimLinkTitle = (raw: string): string => raw.trim();
 
 /**
  * Whether `language` is a programming language rather than prose. Both the spell checker
@@ -495,6 +500,14 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       .catch((err: unknown) => logger.error('Failed to save file:', err));
   };
 
+  // Pasting a lone URL into an editable Markdown editor opens the "Insert link" dialog.
+  const { pendingUrlPaste, beginUrlPaste, confirmUrlPaste, cancelUrlPaste } = useUrlPaste({
+    viewRef,
+    enabled: language === 'markdown' && !readOnly && !reviewing,
+  });
+  // Ctrl+V (and every other native paste) — called from the mount-time DOM handler below.
+  const urlPasteEvent = useEffectEvent((text: string): boolean => beginUrlPaste(text));
+
   const {
     contextMenu,
     handleSave,
@@ -533,6 +546,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     revealFrontMatter: () => {
       viewRef.current?.dispatch({ effects: compartments.frontMatter.reconfigure(frontMatterExtensions(true)) });
     },
+    interceptPaste: beginUrlPaste,
   });
 
   // Build the EditorView exactly once, on mount, from the mountConfigRef snapshot (see its
@@ -682,6 +696,14 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         blur: () => {
           flushOnChangeEvent();
           return false;
+        },
+        // A lone URL pasted into Markdown opens the "Insert link" dialog instead (useUrlPaste);
+        // anything else falls through to CodeMirror's own paste handling.
+        paste: (event) => {
+          const text = event.clipboardData?.getData('text/plain') ?? '';
+          if (!urlPasteEvent(text)) return false;
+          event.preventDefault();
+          return true;
         },
       }),
       EditorView.updateListener.of((update) => {
@@ -1046,6 +1068,20 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       />
       {insertObjectError && (
         <AlertDialog title="Insert Object" message={insertObjectError} onClose={closeInsertObjectError} />
+      )}
+      {pendingUrlPaste && (
+        <NameInputDialog
+          title="Insert link"
+          label="Link title"
+          placeholder={pendingUrlPaste.fetching ? 'Fetching page title…' : pendingUrlPaste.url}
+          defaultName={pendingUrlPaste.title}
+          normalizeName={trimLinkTitle}
+          onCreate={confirmUrlPaste}
+          onCancel={cancelUrlPaste}
+          submitLabel="OK"
+          inputTestId="insert-link-title-input"
+          createTestId="insert-link-ok-button"
+        />
       )}
     </div>
   );
