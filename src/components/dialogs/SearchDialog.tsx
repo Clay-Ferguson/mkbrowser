@@ -26,6 +26,22 @@ interface SearchDialogProps {
 }
 
 /**
+ * Returns V8's syntax-error message for an advanced query, or null if it parses.
+ * `new Function` only parses the code — it is never called, so nothing runs. The
+ * wrapping mirrors compileAdvancedQuery (src/main/advancedQuery.ts) so both sides
+ * accept the same expressions. Module-level so the try/catch can't make the React
+ * Compiler bail out of the component.
+ */
+function getQuerySyntaxError(query: string): string | null {
+  try {
+    new Function(`return !!(${query}\n);`);
+    return null;
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err);
+  }
+}
+
+/**
  * The full search dialog: a left panel of saved search definitions
  * (SearchDefinitionsPanel) and a right panel of search options — the query, the
  * target (file contents and/or names), the match type (literal/wildcard/advanced),
@@ -53,17 +69,33 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const set = <K extends keyof SearchDefinition>(key: K) => (value: SearchDefinition[K]) =>
     setDef((d) => ({ ...d, [key]: value }));
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  /** Syntax error found in the Advanced query on the last Search/Save, if any. */
+  const [syntaxError, setSyntaxError] = useState<string | null>(null);
   const queryInputRef = useRef<HTMLInputElement>(null);
   /** The Advanced-mode code editor's editable element (set by JsCodeInput). */
   const codeInputRef = useRef<HTMLElement>(null);
 
   const handleSelectSearchDefinition = (selected: SearchDefinition) => {
+    setSyntaxError(null);
     setDef(initialSearchDefinition(selected, null));
+  };
+
+  /** For Advanced queries, records any syntax error and returns false if there is one. */
+  const checkSyntax = (query: string): boolean => {
+    const error = matchType === 'advanced' && query ? getQuerySyntaxError(query) : null;
+    setSyntaxError(error);
+    return !error;
+  };
+
+  const handleCodeChange = (value: string) => {
+    setSyntaxError(null);
+    set('searchText')(value);
   };
 
   const handleSearch = () => {
     const query = searchQuery.trim();
     if ((!query && !mostRecent) || noTarget) return;
+    if (!checkSyntax(query)) return;
 
     // The highlighter matches within single DOM text nodes, so it can't match
     // across a line break; highlight the query with its newlines flattened.
@@ -74,6 +106,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
   const handleSave = () => {
     if (!searchName.trim()) return;
+    if (!checkSyntax(searchQuery.trim())) return;
 
     onSave({ ...def, name: searchName.trim(), searchText: searchQuery.trim() });
   };
@@ -129,14 +162,21 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                   : 'Search text'}
             </label>
             {matchType === 'advanced' ? (
-              <JsCodeInput
-                value={searchQuery}
-                onChange={set('searchText')}
-                onSubmit={handleSearch}
-                placeholder="Functions: $, tag, prop, past, future, today"
-                testId="search-query-input"
-                focusRef={codeInputRef}
-              />
+              <>
+                <JsCodeInput
+                  value={searchQuery}
+                  onChange={handleCodeChange}
+                  onSubmit={handleSearch}
+                  placeholder="Functions: $, tag, prop, past, future, today"
+                  testId="search-query-input"
+                  focusRef={codeInputRef}
+                />
+                {syntaxError && (
+                  <p className="text-xs text-red-400 mt-1 break-words" data-testid="search-query-syntax-error">
+                    Syntax error: {syntaxError}
+                  </p>
+                )}
+              </>
             ) : (
               <input
                 type="text"
