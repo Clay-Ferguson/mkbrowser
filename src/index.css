@@ -429,3 +429,14 @@ html[data-font-size="xlarge"] {
   background-color: yellow;
   color: black;
 }
+
+/* Help tab find-in-page (HelpSearchBar): every match, plus the one Next/Prev is on. */
+::highlight(help-search) {
+  background-color: yellow;
+  color: black;
+}
+
+::highlight(help-search-current) {
+  background-color: #f97316;
+  color: black;
+}

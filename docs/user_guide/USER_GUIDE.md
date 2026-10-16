@@ -61,6 +61,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Search Results](#search-results)
   * [Advanced Search Predicates](#advanced-search-predicates)
   * [Search Highlight](#search-highlight)
+  * [Searching the Help Tab](#searching-the-help-tab)
   * [Saving Search Definitions](#saving-search-definitions)
   * [Search Tips](#search-tips)
     * [Find Recent Edits](#find-recent-edits)
@@ -841,6 +842,14 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 After a search, MkBrowser highlights every occurrence of the search term across all rendered Markdown content in the Browse view — not just in the Search Results tab. This makes it easy to spot matching text as you scroll through your files.
 
 To remove the highlight, open the **Search** menu and click **Clear Highlight**. The option only appears when a highlight is active.
+
+## Searching the Help Tab
+
+The Help tab has its own search bar above this guide. Type some text and click **Search** (or press **Enter**) to highlight every occurrence in the guide. The search ignores case. The current match is shown in orange and scrolled into view, and a counter such as `3 / 17` shows where you are.
+
+* Click **Next** or **Prev** to move between matches. Both wrap around at the ends of the guide.
+* Pressing **Enter** again without changing the text moves to the next match, and **Shift+Enter** moves to the previous one.
+* Press **Escape** in the search field to clear the search and its highlights.
 
 ## Saving Search Definitions
 You can save frequently used searches for quick access later.
