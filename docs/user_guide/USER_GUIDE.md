@@ -845,7 +845,7 @@ To remove the highlight, open the **Search** menu and click **Clear Highlight**.
 
 ## Searching the Help Tab
 
-The Help tab has its own search bar above this guide. Type some text and click **Search** (or press **Enter**) to highlight every occurrence in the guide. The search ignores case. The current match is shown in orange and scrolled into view, and a counter such as `3 / 17` shows where you are.
+The Help tab has its own search bar above this guide. Type some text and click **Search** (or press **Enter**) to highlight every occurrence in the guide. The search ignores case, and it finds phrases even when part of them is bold, a link, or code. The current match is shown in orange and scrolled into view, and a counter such as `3 / 17` shows where you are.
 
 * Click **Next** or **Prev** to move between matches. Both wrap around at the ends of the guide.
 * Pressing **Enter** again without changing the text moves to the next match, and **Shift+Enter** moves to the previous one.
