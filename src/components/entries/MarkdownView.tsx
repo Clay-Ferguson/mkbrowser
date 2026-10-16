@@ -11,7 +11,7 @@ import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import { rehypeCallouts } from '../../shared/rehypeCallouts';
 import { rehypeDates } from '../../shared/rehypeDates';
-import { removeTOC, remarkTocList } from '../../shared/tocUtil';
+import { lineAfterRemoveTOC, removeTOC, remarkTocList } from '../../shared/tocUtil';
 import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks, safeUrlTransform } from '../../shared/mkUtil';
 import { BlockClickContext, blockClickComponents } from '../blockClickComponents';
 import { MarkdownEntryContext } from '../markdownEntryContext';
@@ -58,9 +58,14 @@ function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownView
   const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
   const columns = splitOnColumnBreaks(processedContent);
 
+  // Block positions are lines of rawContent, but the editor is loaded with removeTOC(content),
+  // so with showToc on every line below the generated TOC must be shifted up to match.
+  const handleEditClick = (goToLine?: number) =>
+    onEditClick(goToLine === undefined ? undefined : lineAfterRemoveTOC(rawContent, goToLine));
+
   const renderColumn = (text: string, lineOffset: number) => (
     <MarkdownEntryContext.Provider value={entryPath}>
-      <BlockClickContext.Provider value={{ onEditClick, lineOffset }}>
+      <BlockClickContext.Provider value={{ onEditClick: handleEditClick, lineOffset }}>
         <Markdown
           remarkPlugins={REMARK_PLUGINS}
           rehypePlugins={REHYPE_PLUGINS}

@@ -95,6 +95,8 @@ interface TocTag {
   lineStart: number;
   /** Char offset of the end of the tag's line (before the newline). */
   lineEnd: number;
+  /** 1-based line number of the tag's line. */
+  line: number;
 }
 
 /**
@@ -107,14 +109,14 @@ interface TocTag {
 function findTOCTags(content: string): TocTag[] {
   const tags: TocTag[] = [];
 
-  for (const line of scanLines(content)) {
-    if (line.frontMatter || line.code) continue;
+  scanLines(content).forEach((line, i) => {
+    if (line.frontMatter || line.code) return;
     if (START_LINE_RE.test(line.text)) {
-      tags.push({ kind: 'start', lineStart: line.start, lineEnd: line.end });
+      tags.push({ kind: 'start', lineStart: line.start, lineEnd: line.end, line: i + 1 });
     } else if (END_LINE_RE.test(line.text)) {
-      tags.push({ kind: 'end', lineStart: line.start, lineEnd: line.end });
+      tags.push({ kind: 'end', lineStart: line.start, lineEnd: line.end, line: i + 1 });
     }
-  }
+  });
 
   return tags;
 }
@@ -148,6 +150,35 @@ export function removeTOC(content: string): string {
   }
 
   return out + content.slice(cursor);
+}
+
+/**
+ * Maps a 1-based line number in content to the corresponding line in removeTOC(content).
+ *
+ * The rendered view (with showToc on) has the full generated TOC body, but the editor is
+ * loaded with removeTOC's collapsed copy, so a click-to-edit line below a TOC must be shifted
+ * up by the lines removeTOC dropped. A line inside a TOC body (or on its end tag) maps to the
+ * line of the `<!-- TOC -->` tag it collapses into. Pairs tags exactly as removeTOC does, so
+ * content that has already been through removeTOC maps to itself.
+ */
+export function lineAfterRemoveTOC(content: string, line: number): number {
+  const tags = findTOCTags(content);
+  let removed = 0;
+
+  for (let i = 0; i < tags.length; i++) {
+    const tag = tags[i]!;
+    if (tag.kind !== 'start') continue;
+
+    const next = tags[i + 1];
+    if (!next || next.kind !== 'end') continue; // unmatched start tag: removeTOC leaves it as written
+    i++; // consume the end tag
+
+    if (line <= tag.line) break;
+    if (line <= next.line) return tag.line - removed;
+    removed += next.line - tag.line;
+  }
+
+  return line - removed;
 }
 
 /**

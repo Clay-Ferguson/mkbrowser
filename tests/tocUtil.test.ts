@@ -3,7 +3,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
-import { removeTOC, processTOC, remarkTocList, TOC_LIST_CLASS } from '../src/shared/tocUtil';
+import { removeTOC, lineAfterRemoveTOC, processTOC, remarkTocList, TOC_LIST_CLASS } from '../src/shared/tocUtil';
 import { stripHtmlComments } from '../src/shared/mkUtil';
 
 describe('removeTOC', () => {
@@ -65,6 +65,41 @@ describe('removeTOC', () => {
     expect(removeTOC(input)).toBe(
       '# Title\n\n```md\n<!-- TOC -->\n<!-- /TOC -->\n```\n\n<!-- TOC -->\n\n## Alpha\n'
     );
+  });
+});
+
+describe('lineAfterRemoveTOC', () => {
+  // Line n of `full` holds the same text as line lineAfterRemoveTOC(full, n) of removeTOC(full).
+  const lineOf = (text: string, line: number) => text.split('\n')[line - 1];
+
+  it('maps lines below a TOC to the same text in the collapsed content', () => {
+    const full = '# Title\n\n<!-- TOC -->\n- [Title](#title)\n  - [Alpha](#alpha)\n<!-- /TOC -->\n\n## Alpha\n\nBody text';
+    const collapsed = removeTOC(full);
+    for (const line of [1, 2, 3, 7, 8, 9, 10]) {
+      expect(lineOf(collapsed, lineAfterRemoveTOC(full, line))).toBe(lineOf(full, line));
+    }
+    expect(lineAfterRemoveTOC(full, 8)).toBe(5);
+  });
+
+  it('maps lines inside the TOC body to the TOC tag line', () => {
+    const full = 'intro\n<!-- TOC -->\n- [A](#a)\n- [B](#b)\n<!-- /TOC -->\n# A';
+    expect(lineAfterRemoveTOC(full, 3)).toBe(2);
+    expect(lineAfterRemoveTOC(full, 4)).toBe(2);
+    expect(lineAfterRemoveTOC(full, 5)).toBe(2);
+    expect(lineAfterRemoveTOC(full, 6)).toBe(3);
+  });
+
+  it('is the identity on content that has no TOC body (showToc off)', () => {
+    const collapsed = removeTOC('# T\n<!-- TOC -->\n- [T](#t)\n<!-- /TOC -->\n## U\ntext');
+    for (let line = 1; line <= collapsed.split('\n').length; line++) {
+      expect(lineAfterRemoveTOC(collapsed, line)).toBe(line);
+    }
+  });
+
+  it('ignores TOC tags documented inside a code fence', () => {
+    const full = '```md\n<!-- TOC -->\n<!-- /TOC -->\n```\n<!-- TOC -->\n- [A](#a)\n<!-- /TOC -->\n# A';
+    expect(lineAfterRemoveTOC(full, 3)).toBe(3);
+    expect(lineAfterRemoveTOC(full, 8)).toBe(6);
   });
 });
 
