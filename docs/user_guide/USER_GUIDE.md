@@ -57,11 +57,15 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Disabling Document Mode](#disabling-document-mode)
 * [Searching](#searching)
   * [Using Search](#using-search)
+  * [Calendar Items](#calendar-items)
+  * [Search Results](#search-results)
   * [Advanced Search Predicates](#advanced-search-predicates)
   * [Search Highlight](#search-highlight)
   * [Saving Search Definitions](#saving-search-definitions)
   * [Search Tips](#search-tips)
     * [Find Recent Edits](#find-recent-edits)
+    * [Find Upcoming Calendar Items](#find-upcoming-calendar-items)
+    * [Search by Hashtag](#search-by-hashtag)
 * [Replace in Files](#replace-in-files-1)
   * [Using Replace in Files](#using-replace-in-files)
   * [What Happens](#what-happens)
@@ -689,8 +693,10 @@ You can do this from within MkBrowser (enable editing, then delete the file usin
 MkBrowser includes a powerful search feature to help you find content across your notes.
 
 ## Using Search
-1. Click the **Search** button in the toolbar or press `Ctrl+Shift+F`.
-2. Enter your search query.
+A search always covers the folder you are currently browsing **and all of its subfolders**. Anything matching your [Files to Ignore](#files-to-ignore) setting is skipped.
+
+1. Click the **Search** button in the Browse view toolbar.
+2. Enter your search query. Literal and wildcard searches ignore upper/lower case. The **Search** button stays disabled while the query is empty, unless **Recent Files** is checked (see [Find Recent Edits](#find-recent-edits)).
 3. Choose your search options:
     - **Search Target**: two checkboxes, which can be checked independently (at least one must be checked to search). **File Contents** alone is the default.
         - **File Contents**: A file is a match if your text is found in its **contents**. Contents are read from `.md` and `.txt` files (plus image EXIF metadata when that option is checked).
@@ -700,8 +706,41 @@ MkBrowser includes a powerful search feature to help you find content across you
         - **Literal**: Exact text match.
         - **Wildcard**: Use `*` to match any characters (e.g., `intro*duction`); in file contents each `*` spans up to 25 characters. With only **File Names** checked, the pattern must match the **whole** name, like a file glob: `*.md` finds names ending in `.md` (but not `notes.md.bak`), and `note-*` finds names starting with `note-`.
         - **Advanced**: Use custom predicate functions (see below). Note that Advanced expressions are evaluated against file **contents only** — they never match on file names.
+    - **Search Image EXIF**: Also searches the EXIF metadata (camera details, descriptions, and so on) of image files — `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`, `.tiff`, `.tif` and `.avif`. Only available when **File Contents** is checked, and turned off while **Calendar Items** is checked (an image can never be a calendar item).
     - **Recent Files**: Searches only the 500 most recently modified files. With **File Contents** checked, those are the 500 newest `.md` and `.txt` files (plus images when **Search Image EXIF** is checked), and any name and contents matching happen within them — so other file types, like a `.pdf`, aren't matched by name while this option is on. With only **File Names** checked, they are the 500 most recently modified files and folders of any type.
-4. Click **Search**. The matching files are listed in the **Search Results** tab. Click a file in the list to open it **by itself** in the Browse view (the same single-file view you get from clicking a file in the **Index Tree**), so you can step through the results one at a time. Clicking a folder result instead shows that folder in its parent's listing. The **Edit** button on a result opens the file by itself in the same way, with its editor already open.
+    - **Calendar Items**: Searches only Markdown files that are calendar items — files with a valid `due` date in their front matter. See [Calendar Items](#calendar-items) below.
+    - **Order**: **Sort By** (File Modification Time, File Creation Time, or File Name) and **Direction** (DESC or ASC) set the order of the results. The order also decides which results are kept when a search finds more than 500 files (see [Search Results](#search-results)).
+4. Click **Search** (or press `Enter` in the search text box). The matching files are listed in the **Search Results** tab. Click a file in the list to open it **by itself** in the Browse view (the same single-file view you get from clicking a file in the **Index Tree**), so you can step through the results one at a time. Clicking a folder result instead shows that folder in its parent's listing. The **Edit** button on a result opens the file by itself in the same way, with its editor already open.
+
+## Calendar Items
+Check **Calendar Items** to limit a search to the files that would show up on the [Calendar](#calendar). A file counts as a calendar item when:
+
+- it is a Markdown (`.md`) file — `.txt` files and images are never included, and
+- its front matter has a `due` property holding a valid date, such as `due: 05/28/2026` (the `MM/DD/YYYY` form; `M/D/YY` and `YYYY-MM-DD` also work).
+
+Files with no `due` property, an empty `due:`, or a `due` value that isn't a valid date are left out. This is exactly the same rule the Calendar view uses, so a search with this option on never disagrees with the calendar about what is a calendar item.
+
+Your search text is then matched only against the calendar items. For example, a literal search for `dentist` with **Calendar Items** checked finds every scheduled item that mentions a dentist, and ignores your other notes that do.
+
+How it works with the other options:
+
+- **File Contents** must be checked. The option is greyed out for a **File Names**-only search, since being a calendar item depends on what's inside the file.
+- With **File Names** also checked, file names are matched too — but still only among the calendar items.
+- With **Recent Files** also checked, you get the 500 most recently modified *calendar items* (not the calendar items that happen to be among your 500 newest files). With an empty query, this lists your calendar items newest-first — a quick way to see which scheduled items you changed recently.
+- **Search Image EXIF** is turned off while this option is on.
+
+**Tip:** To see the results on a calendar instead of in a list, click the **Calendar** button at the top of the Search Results tab (see [Search Results](#search-results)). To find items by *when* they are due, combine this option with an Advanced query — see [Find Upcoming Calendar Items](#find-upcoming-calendar-items).
+
+## Search Results
+The top of the **Search Results** tab summarizes the search — the saved search's name (if any), the query, how many files were found, and the sort order — and has three buttons:
+
+- **Graph**: Shows the results as a [Search-based Graph](#search-based-graph).
+- **Calendar**: Opens the Calendar tab showing just the results that are calendar items (files with a valid `due` date). This replaces whatever the calendar was showing before. Unlike a calendar opened from the Browse view, it does not update itself when files change — click **Calendar** again to refresh it.
+- **Refresh** (circular-arrow icon): Runs the same search again, so the list picks up files that were added, edited, renamed, or deleted since the search ran.
+
+Each result shows the file's path relative to the searched folder and how many times the query matched (or **name match** when it matched on the file name). Hover over a result to reveal its **Edit** button (Markdown and text files only) and **Delete** button. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
+
+A search returns **at most 500 results**. When more files match, the summary says **"Showing 500 of N files found"**, and the 500 shown are the first ones in your chosen sort order — for example, the 500 newest when sorting by modification time, newest first. Narrow the search or change the order to see others.
 
 ## Advanced Search Predicates
 
@@ -763,9 +802,9 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
       role: editor
     ---
     ```
-*   Find files with a front matter `dueDate` property that is in the future:
+*   Find files with a front matter `due_date` property that is in the future:
     ```javascript
-    future(prop('dueDate', 'ts'))
+    future(prop('due_date', 'ts'))
     ```
     Matches files with front matter like:
     ```markdown
@@ -790,6 +829,12 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     ```javascript
     prop('tags')?.includes('urgent') && $('#deadline')
     ```
+
+**When a query has a mistake:**
+*   **Syntax errors** (such as a missing parenthesis) are caught when you click **Search** or **Save**. The error is shown under the query box, and nothing runs or is saved until you fix it.
+*   **Errors on some files** are normal and are simply treated as "no match" for that file. For example, `prop('author').name` fails on files that have no `author` property.
+*   **Errors on every file** usually mean a typo, such as `Prop(...)` instead of `prop(...)`. Instead of returning a misleading empty list, the search fails and shows the error.
+*   **Slow queries**: if a query takes more than one second on a single file (for example, an infinite loop), the search is stopped and reports a timeout.
 
 ## Search Highlight
 
@@ -818,6 +863,18 @@ To create a search definition that displays all of the files underneath a given 
 - "Recent Files" checkbox selected
 - Order → Sort By: File Modification Time
 - Order → Direction: DESC (newest first)
+
+### Find Upcoming Calendar Items
+To list everything due in the next 7 days, create a search definition that has:
+
+- "Calendar Items" checkbox selected
+- Search Mode: Advanced
+- Query: `future(prop('due', 'ts'), 7)`
+
+Change `future` to `past` to see what was due in the last 7 days, or use `today(prop('due', 'ts'))` for items due today. Then click **Calendar** on the Search Results tab to see them on the calendar.
+
+### Search by Hashtag
+Clicking a hashtag in a rendered Markdown file runs a literal search for it, which is case-insensitive and also finds longer tags that start with it (clicking `#foo` also finds `#foobar`). **Ctrl+click** the hashtag to search for that exact tag instead, the same as the Advanced query `tag('#foo')`.
 
 
 # Replace in Files
@@ -1786,7 +1843,7 @@ due: 05/28/2026
 ---
 ```
 
-The `due` date must be formatted as `MM/DD/YYYY`. The file's name (without the folder path) is used as the label for the calendar entry.
+The `due` date is normally written as `MM/DD/YYYY`. Two other formats are also accepted: `M/D/YY`, where a two-digit year is read as 20YY (so `5/28/26` is May 28, 2026), and `YYYY-MM-DD` (e.g. `2026-05-28`), which many other tools write. Leading zeros are optional in all of them. A `due` value that isn't a real date in one of these formats (such as `13/45/2026` or `May 28`) is ignored, and the file won't appear on the calendar. The file's name (without the folder path) is used as the label for the calendar entry.
 
 ### Adding a Start Time and Duration
 
