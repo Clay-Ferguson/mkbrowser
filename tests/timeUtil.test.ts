@@ -8,6 +8,7 @@ import {
   formatDate,
   getDaysFromToday,
   formatDaysDisplay,
+  formatDateWithDelta,
   generateTimestampFolderName,
   generateTimestampFileName,
   formatTimestamp,
@@ -461,5 +462,23 @@ describe('formatTimestamp', () => {
     const formatted = formatTimestamp();
     vi.useRealTimers();
     expect(parseDateString(formatted)).toBe(new Date(2026, 2, 5, 14, 7, 0).getTime());
+  });
+});
+
+describe('formatDateWithDelta', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('appends the time delta after an em dash', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 15, 12, 0, 0));
+    expect(formatDateWithDelta('10/12/2026')).toBe('10/12/2026 — 3 days ago');
+    expect(formatDateWithDelta('10/16/2026 02:30 PM')).toBe('10/16/2026 02:30 PM — tomorrow');
+  });
+
+  it('returns a value with no recognizable date unchanged', () => {
+    expect(formatDateWithDelta('sometime next spring')).toBe('sometime next spring');
+    expect(formatDateWithDelta('')).toBe('');
   });
 });

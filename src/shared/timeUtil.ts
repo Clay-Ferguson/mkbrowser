@@ -234,7 +234,7 @@ export function getDaysFromToday(timestamp: number): number {
 }
 
 /**
- * Format a days-from-today value as a human-readable string.
+ * Format a days-from-today value as a human-readable time delta string.
  * Examples: "today", "yesterday", "tomorrow", "3 days ago", "1y 2m 5d away".
  */
 export function formatDaysDisplay(days: number): string {
@@ -263,6 +263,16 @@ export function formatDaysDisplay(days: number): string {
   if (remainingDays > 0) parts.push(`${remainingDays}d`);
 
   return `${parts.join(' ')} ${suffix}`;
+}
+
+/**
+ * Appends the relative time delta to a date (or date-time) string, e.g. "10/8/2016 — 10y 2d ago".
+ * A value that contains no recognizable date is returned unchanged.
+ */
+export function formatDateWithDelta(value: string): string {
+  const timestamp = extractTimestamp(value);
+  if (Number.isNaN(timestamp)) return value;
+  return `${value} — ${formatDaysDisplay(getDaysFromToday(timestamp))}`;
 }
 
 /** Generates a folder name from the current date/time in `YYYY-MM-DD--HH-MM-SS-AM/PM` format. */

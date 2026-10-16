@@ -5,8 +5,9 @@ import type { GenericObjectData, ObjectRow } from '../../shared/objects/genericO
 import { api } from '../../renderer/api';
 import { buildEmailUrl, buildMapUrl, buildPhoneUrl, buildWebUrl } from '../../shared/objects/objectUrls';
 import { BUTTON_CLASS_LINK_BLUE } from '../../renderer/styles';
+import { formatDateWithDelta } from '../../shared/timeUtil';
 
-/** Row icon per property type; plain text rows have none. Dates are shown, not linked. */
+/** Row icon per property type; plain text rows have none. Dates are shown (with their time delta), not linked. */
 const TYPE_ICONS: Partial<Record<PropertyType, ComponentType<SVGProps<SVGSVGElement>>>> = {
   email: EnvelopeIcon,
   address: MapPinIcon,
@@ -41,7 +42,8 @@ const LABEL_CLASS = 'whitespace-nowrap text-slate-400';
 /**
  * One defined property: type icon, property name, value. An address or url value is a link that
  * opens in the system browser; an email value is a `mailto:` link and a dialable phone value a
- * `tel:` link, both handed to the system's handler for them. Everything else is plain text.
+ * `tel:` link, both handed to the system's handler for them. Everything else is plain text; a
+ * parseable date value is followed by its time delta ("… — 3 days ago").
  */
 function PropertyRow({ row }: { row: ObjectRow }) {
   const Icon = TYPE_ICONS[row.propertyType];
@@ -69,7 +71,9 @@ function PropertyRow({ row }: { row: ObjectRow }) {
           {row.value}
         </button>
       ) : (
-        <span className={PLAIN_VALUE_CLASS} title={tooltip}>{row.value}</span>
+        <span className={PLAIN_VALUE_CLASS} title={tooltip}>
+          {row.propertyType === 'date' ? formatDateWithDelta(row.value) : row.value}
+        </span>
       )}
     </>
   );
