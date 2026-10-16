@@ -56,7 +56,7 @@ export default function HelpView() {
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       {doc.status === 'loaded' && (
-        <div className="flex justify-end px-3 pt-2">
+        <div className="flex justify-end px-3 py-2">
           <div className="w-1/2 min-w-md max-w-full">
             <HelpSearchBar rootRef={articleRef} />
           </div>
