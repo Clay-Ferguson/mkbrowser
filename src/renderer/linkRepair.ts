@@ -1,8 +1,7 @@
 /**
  * Auto-repair of Markdown links that carry their target's front-matter id in the
  * link title — `[label](<dest> "id:3D6B20DDF")`, as written by the editor's "Paste
- * Link" and the index tree's "Paste Link into Editor". When such a link is clicked
- * and its destination no longer exists (the target, or the file containing the link,
+ * Link". When such a link is clicked and its destination no longer exists (the target, or the file containing the link,
  * was renamed or moved), the target is found by its id, opened, and the link's
  * destination is silently rewritten.
  */

@@ -226,12 +226,6 @@ interface CodeMirrorEditorProps {
   /** Absolute path of the file being edited — enables markdown-only context menu items. */
   filePath?: string;
   /**
-   * Called once the editor view (and its imperative handle) is ready. Fired from the mount
-   * effect, so the handle is guaranteed populated — use this instead of reading a ref in an
-   * effect, which can run before the imperative handle is attached.
-   */
-  onReady?: (handle: CodeMirrorEditorHandle) => void;
-  /**
    * If true, the editor flexes to fill all available height in its (flex-column) parent instead
    * of being capped at a fraction of the scroll area — used by the expanded-editor mode, where
    * the entry is maximized within the browse area and only the editor itself scrolls.
@@ -274,8 +268,6 @@ export interface CodeMirrorEditorHandle {
   getSelection(): { from: number; to: number; text: string } | null;
   /** Focuses the editor and places the cursor at the given character offset. */
   focusAtPosition(pos: number): void;
-  /** Inserts text at the current cursor position (replacing any selection). */
-  insertAtCursor(text: string): void;
   /**
    * Returns the live document text, or null if the view is gone. Unlike the store's edit
    * buffer, this includes keystrokes still inside the onChange debounce window.
@@ -300,16 +292,6 @@ function createEditorHandle(viewRef: RefObject<EditorView | null>): CodeMirrorEd
       const view = viewRef.current;
       if (!view) return;
       view.dispatch({ selection: { anchor: pos, head: pos } });
-      view.focus();
-    },
-    insertAtCursor(text: string) {
-      const view = viewRef.current;
-      if (!view) return;
-      const { from, to } = view.state.selection.main;
-      view.dispatch({
-        changes: { from, to, insert: text },
-        selection: { anchor: from + text.length },
-      });
       view.focus();
     },
     getDoc() {
@@ -380,7 +362,7 @@ function applyPostMountFocus(
  * (value, fontSize, showPropsInEditor, reviewText) are applied through separate effects or
  * compartments so that undo history, cursor position, and the async spell checker are preserved.
  */
-function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSaveKeepEditing, onSelectionChange, showPropsInEditor = true, readOnly = false, filePath, onReady, fillHeight = false, showTopBorder = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSaveKeepEditing, onSelectionChange, showPropsInEditor = true, readOnly = false, filePath, fillHeight = false, showTopBorder = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -471,13 +453,11 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   const hasViewModeClickEvent = useEffectEvent(() => onViewModeClick !== undefined);
   const viewModeClickEvent = useEffectEvent((line: number) => onViewModeClick?.(line));
   const selectionChangeEvent = useEffectEvent((hasSelection: boolean) => onSelectionChange?.(hasSelection));
-  const readyEvent = useEffectEvent((handle: CodeMirrorEditorHandle) => onReady?.(handle));
   const goToLineCompleteEvent = useEffectEvent(() => onGoToLineComplete?.());
   const goToPositionCompleteEvent = useEffectEvent(() => onGoToPositionComplete?.());
 
   // The handle methods read viewRef lazily, so any instance works for the editor's whole
-  // lifetime (see createEditorHandle); the onReady callback in the mount effect gets its
-  // own equivalent instance.
+  // lifetime (see createEditorHandle).
   useImperativeHandle(ref, () => createEditorHandle(viewRef), []);
 
   // Renders the review button bar / amber border, and gates the context menu's Save. Derived
@@ -764,10 +744,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     });
 
     viewRef.current = view;
-
-    // The view (and the imperative handle, attached during the preceding layout phase) is now
-    // ready. Notify the parent so it can register this editor without racing a ref read.
-    readyEvent(createEditorHandle(viewRef));
 
     // Auto-focus and scroll to line once CodeMirror has measured its initial layout, so focus
     // and scrollIntoView land on correctly measured content. The constructor schedules that

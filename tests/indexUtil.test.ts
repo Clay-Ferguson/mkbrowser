@@ -1501,7 +1501,7 @@ describe('YAML dump does not fold long lines', () => {
 // ---------------------------------------------------------------------------
 // Front-matter id injection (issues 006/007)
 //
-// Ids are only added with the user's consent, by "Paste Link into Editor"
+// Ids are only added with the user's consent, by the editor's "Paste Link"
 // (ensureFrontMatterId), or when reconcile re-keys a duplicated id. The id is
 // added by round-tripping the front matter through js-yaml (we never
 // hand-edit YAML text). That normalizes the block — comments are dropped and

@@ -179,7 +179,7 @@ function frontMatterId(fm: Record<string, unknown> | null): string | undefined {
  * keep ids unique within a directory; by default any generated id is accepted.
  *
  * This is the single home for id injection, and it has exactly two callers:
- * ensureFrontMatterId ("Paste Link" / "Paste Link into Editor", after the user consents) and
+ * ensureFrontMatterId (the editor's "Paste Link", after the user consents) and
  * reconcileIndexedFiles' duplicate re-key (a file that already has an id). No
  * other path may add an id to a file — a silently injected front-matter block
  * is visible to every reader of the file (e.g. a README.md on GitHub).
@@ -489,7 +489,7 @@ async function buildFileFingerprints(
  * id (reconcileEntries fingerprints those instead).
  *
  * A file without an id is **never** given one here. Ids are optional and are only
- * added with the user's consent ("Paste Link" / "Paste Link into Editor"), because an injected
+ * added with the user's consent (the editor's "Paste Link"), because an injected
  * front-matter block is visible to anyone reading the file — e.g. a README.md
  * rendered on GitHub.
  *
@@ -1254,8 +1254,8 @@ export async function recordFrontMatterIdInIndex(filePath: string, fileId: strin
 /**
  * Returns the front-matter id of the markdown file at `filePath`, first injecting
  * a fresh one (via injectFrontMatterId) when it has none. Applies in ANY folder,
- * not only Document Mode ones: it backs the editor's "Paste Link" and the index
- * tree's "Paste Link into Editor", which store the id in the link title so a broken
+ * not only Document Mode ones: it backs the editor's "Paste Link", which stores the
+ * id in the link title so a broken
  * link can later be repaired by id. This is the only path that adds an id to a file
  * that has none, and the renderer asks the user before calling it (see
  * resolveLinkTargetId and AddLinkIdDialog).

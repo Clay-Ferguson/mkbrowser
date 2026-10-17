@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { clsx } from 'clsx';
 import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
@@ -39,7 +39,6 @@ import { logger } from '../../shared/logUtil';
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { openCalendarAtDate } from '../../renderer/calendarNav';
 import { extractTimestamp } from '../../shared/timeUtil';
-import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
 import { trackScrollbarPress, pressStartedOnScrollbar } from '../../renderer/scrollbarPress';
 import { HUMAN_FILENAME, AI_FILENAME } from '../../shared/specialFiles';
 import {
@@ -230,21 +229,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     onError: setAiErrorMessage,
     runner: runWithStreamingDialog,
   });
-
-  // Registers the editor handle so that external callers (e.g. global search jump-to-line) can
-  // reach the live CodeMirror instance. Registration happens in the onReady callback rather than
-  // an effect because effects can run before the imperative handle is attached on first mount.
-  // The effect below handles unregistration when editing ends, the path changes, or the component unmounts.
-  const handleEditorReady = (handle: CodeMirrorEditorHandle) => {
-    registerActiveMarkdownEditor(entry.path, handle);
-  };
-
-  useEffect(() => {
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): unregisters this active Markdown editor when editing ends, the path changes, or on unmount.
-    return () => {
-      unregisterActiveMarkdownEditor(entry.path);
-    };
-  }, [edit.isEditing, entry.path]);
 
   const handleToggleExpanded = () => toggleItemExpanded(entry.path);
 
@@ -602,7 +586,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
               )}
               <CodeMirrorEditor
                 ref={editorRef}
-                onReady={handleEditorReady}
                 value={edit.editContent}
                 onChange={edit.setEditContent}
                 placeholder="Enter markdown content..."

@@ -192,7 +192,7 @@ function escapeLinkLabel(label: string): string {
 
 /**
  * The Markdown link to the Markdown file `targetPath` inserted into the file `fromFilePath` by
- * "Paste Link into Editor" and the editor menu's "Paste Link" (see `formatFileLink`) — `[README](../a/README.md#usage "id:36F7385CA")`:
+ * the editor menu's "Paste Link" (see `formatFileLink`) — `[README](../a/README.md#usage "id:36F7385CA")`:
  * a relative destination (angle-bracketed or encoded as needed, see `formatLinkDestination`)
  * with an optional heading `fragment`, labelled with `rawLabel` — Markdown label text, used
  * verbatim, so any escapes it carries are kept — or, by default, the file name minus `.md`. A non-empty `id` (the target's front-matter id) rides in the link title, so a

@@ -285,8 +285,6 @@ If the path contains spaces, the link target is wrapped in angle brackets (stand
 [HUMAN](<../Job Interview Thread/HUMAN.md>)
 ```
 
-> **Note:** The Index Tree context menu also has **Paste Link into Editor**, which does all of the above in one step: right-click the target and it inserts the link at the cursor of the Markdown file being edited. It is always listed, but disabled (greyed out) unless a Markdown file is currently open for editing.
-
 ### Inserting Objects
 
 Right-click in the editor of a Markdown file and choose **Insert Object ▸** to turn the file into a record of one of your custom types (a contact, a book, …): the type's empty properties are added to the file's front matter. See [Objects and Custom Types](#objects-and-custom-types).

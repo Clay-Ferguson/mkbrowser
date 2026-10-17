@@ -233,7 +233,7 @@ A second rule follows from the "never write over an index we can't understand" i
 
 Saving a markdown file writes exactly what the user saved (plus TOC regeneration) — in a Document Mode folder too. Earlier versions injected a front-matter `id` on every save, which made it impossible to remove one (the next save put a new one back) and leaked `id:` lines into files such as a `README.md` published on GitHub. The save's file write still runs inside the directory's `withIndexLock`, so it can't interleave with a reconcile's duplicate-id re-key of the same file.
 
-`recordFrontMatterIdInIndex` remains for the one path that does add an id — the editor's "Paste Link" and the index tree's "Paste Link into Editor" (`ensureFrontMatterId`, below). It records the id in `.INDEX.yaml` only *after* the id-bearing file is on disk, so the index can never reference an id that isn't in the file (issue 014), and it replaces any fingerprint the entry carried.
+`recordFrontMatterIdInIndex` remains for the one path that does add an id — the editor's "Paste Link" (`ensureFrontMatterId`, below). It records the id in `.INDEX.yaml` only *after* the id-bearing file is on disk, so the index can never reference an id that isn't in the file (issue 014), and it replaces any fingerprint the entry carried.
 
 
 ## Stable Identity via Front-Matter IDs
@@ -248,7 +248,7 @@ id: A1B2C3D4E
 # Document content here
 ```
 
-IDs are **optional and never added implicitly**: nothing in Document Mode (enabling it, reconcile, insert, save) writes one. The only path that adds an id to a file that has none is pasting a link to it — **"Paste Link"** in the editor's context menu, or **"Paste Link into Editor"** in the index tree (both via `ensureFrontMatterId`), which use the target's id in the link title so a broken link can be auto-repaired — and both ask the user first (`AddLinkIdDialog`: "Add ID & Link" / "Plain Link"), because an injected front-matter block is visible to anyone reading the file. A file without an id is tracked by fingerprint, like a non-markdown file (below).
+IDs are **optional and never added implicitly**: nothing in Document Mode (enabling it, reconcile, insert, save) writes one. The only path that adds an id to a file that has none is pasting a link to it with **"Paste Link"** in the editor's context menu (`ensureFrontMatterId`), which uses the target's id in the link title so a broken link can be auto-repaired — and it asks the user first (`AddLinkIdDialog`: "Add ID & Link" / "Plain Link"), because an injected front-matter block is visible to anyone reading the file. A file without an id is tracked by fingerprint, like a non-markdown file (below).
 
 The ID is generated with `customAlphabet('0123456789ABCDEF', 9)` from the `nanoid` library, producing a 9-character uppercase hex string. When present, an id is stored in both the file's front matter and in the corresponding `.INDEX.yaml` entry. This makes it possible to detect renames: even after a file is moved to a different name, its `id` in the front matter matches an existing index entry, allowing the entry's `name` to be corrected automatically on the next reconcile.
 

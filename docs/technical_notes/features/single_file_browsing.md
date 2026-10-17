@@ -61,7 +61,7 @@ It is **only meaningful while `browseFileName` is non-null**. `setBrowseFile` al
 
 `App.tsx` (~`:544`) picks the pane with a ternary on `browseFileName`.
 
-This deliberately does **not** use the `display:none` pattern that `App.tsx` uses for its top-level views. Mounting both panes at once would give the browsed file two live entry instances — two CodeMirror editors racing to register via `registerActiveMarkdownEditor`, plus duplicate DOM ids for heading anchors. The unmount is safe because the folder listing's scroll position is persisted per-folder in the store and restored when `BrowseView` remounts.
+This deliberately does **not** use the `display:none` pattern that `App.tsx` uses for its top-level views. Mounting both panes at once would give the browsed file two live entry instances — two CodeMirror editors for the same file, plus duplicate DOM ids for heading anchors. The unmount is safe because the folder listing's scroll position is persisted per-folder in the store and restored when `BrowseView` remounts.
 
 > Note this is an exception to the general "views never unmount" rule for this app. `BrowseFile` and `BrowseView` genuinely swap.
 

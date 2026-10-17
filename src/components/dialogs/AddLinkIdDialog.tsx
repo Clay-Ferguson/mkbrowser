@@ -21,8 +21,7 @@ interface AddLinkIdDialogProps {
 /**
  * Asks whether to add a front-matter id to a link's target before linking to it (see
  * resolveLinkTargetId) — an id is never added silently, since an injected front-matter
- * block is visible to anyone reading the file. Used by the editor's "Paste Link" and the
- * index tree's "Paste Link into Editor".
+ * block is visible to anyone reading the file. Used by the editor's "Paste Link".
  */
 function AddLinkIdDialog({ targetPath, onClose, onLink }: AddLinkIdDialogProps) {
   return (

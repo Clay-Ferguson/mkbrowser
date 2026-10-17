@@ -6,7 +6,6 @@ import { saveSettings } from '../../renderer/config';
 import { refreshDirectory } from '../../renderer/directoryLoader';
 import { BUTTON_CLASS_TB_NORMAL, ENTRY_DROP_TARGET, ROW_HOVER } from '../../renderer/styles';
 import { runOp } from '../../renderer/runOp';
-import { isImageFile } from '../../shared/fileTypes';
 import FileTypeIcon from '../FileTypeIcon';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
@@ -14,7 +13,6 @@ import CreateFileDialog from '../dialogs/CreateFileDialog';
 import CreateFolderDialog from '../dialogs/CreateFolderDialog';
 import RenameDialog from '../dialogs/RenameDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
-import AddLinkIdDialog from '../dialogs/AddLinkIdDialog';
 import {
   useAS,
   getCutPaths,
@@ -56,28 +54,10 @@ import {
 } from '../../renderer/treeNodes';
 import { createFileOp } from '../../renderer/fileOpsUtil';
 import { generateTimestampFileName } from '../../shared/timeUtil';
-import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
-import { formatLinkDestination, formatMarkdownFileLink } from '../../renderer/linkUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
-import { resolveLinkTargetId } from '../../renderer/linkRepair';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 const INDENT_SIZE = 20;
-
-/**
- * Computes the relative path from `fromDir` to `toFile` using `..` segments,
- * matching the format expected in Markdown link hrefs (e.g. `../sibling/file.md`).
- */
-function computeRelativePath(fromDir: string, toFile: string): string {
-  const fromParts = splitPathSegments(fromDir);
-  const toParts = splitPathSegments(toFile);
-  let i = 0;
-  while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) i++;
-  const ups = fromParts.length - i;
-  const downs = toParts.slice(i);
-  const rel = [...Array<string>(ups).fill('..'), ...downs].join('/');
-  return rel || './';
-}
 
 // ── Type guards ──────────────────────────────────────────────────────────────
 
@@ -125,56 +105,6 @@ function flattenVisible(
 function isParentOf(candidatePath: string, currentPath: string): boolean {
   return currentPath.startsWith(ensureTrailingSep(candidatePath));
 }
-
-/**
- * Whether any markdown file is currently open in edit mode, which is what gates
- * the "Paste Link into Editor" context-menu action. Read non-reactively at menu-open time
- * rather than through a `useAS` selector: Zustand evaluates every subscriber's
- * selector on every store write, so subscribing would scan the whole item map
- * on each write (e.g. per debounced keystroke while editing inline) to feed a
- * value only ever read inside an event handler.
- */
-function isEditingMarkdown(): boolean {
-  for (const [path, item] of useAS.getState().items) {
-    if (item.editing && path.endsWith('.md')) return true;
-  }
-  return false;
-}
-
-type MarkdownEditor = NonNullable<ReturnType<typeof getActiveMarkdownEditor>>;
-
-/** A "Paste Link into Editor" waiting on the user's consent to add an id to its target. */
-interface PendingIdLink {
-  editor: MarkdownEditor;
-  targetPath: string;
-}
-
-/**
- * Inserts a relative link to the Markdown file `targetPath` at `editor`'s cursor —
- * `[README](../a/README.md "id:36F7385CA")` (see formatMarkdownFileLink). With an
- * empty `id` the link has no title.
- */
-function insertMarkdownLinkWithId(editor: MarkdownEditor, targetPath: string, id: string): void {
-  editor.handle.insertAtCursor(formatMarkdownFileLink(editor.path, targetPath, id));
-}
-
-/**
- * "Paste Link into Editor" for a Markdown target (see insertMarkdownLinkWithId).
- * A target that already has a front-matter id, or can't be given one, is linked
- * right away (see resolveLinkTargetId). Otherwise the link is handed to `onNeedsId`,
- * which asks the user whether to add an id or paste a plain link.
- */
-function insertMarkdownFileLink(
-  editor: MarkdownEditor,
-  targetPath: string,
-  onNeedsId: (pending: PendingIdLink) => void,
-): void {
-  void resolveLinkTargetId(targetPath).then(({ id, needsConsent }) => {
-    if (needsConsent) onNeedsId({ editor, targetPath });
-    else insertMarkdownLinkWithId(editor, targetPath, id);
-  });
-}
-
 
 // ── Rows ─────────────────────────────────────────────────────────────────────
 //
@@ -336,9 +266,7 @@ const MemoTreeFileRow = memo(TreeFileRow);
  * expand), drag-and-drop reordering between folders, cut/paste, rename, delete,
  * bookmarks, and a right-click context menu. A file with an attachment folder
  * expands to reveal it. Clicking a file opens it in the browse view; a shell
- * script's context menu has a "Run" item. The "Paste Link into
- * Editor" context-menu action inserts a relative Markdown link at the active editor's
- * cursor.
+ * script's context menu has a "Run" item.
  */
 function IndexTreeView() {
   const rootPath = useAS(s => s.rootPath);
@@ -379,7 +307,6 @@ function IndexTreeView() {
     onDelete?: () => void;
     onCut?: () => void;
     onPaste?: () => void;
-    onPasteLink?: () => void;
     onCopyPath?: () => void;
   } | null>(null);
   // Folder awaiting a name for a new file.
@@ -387,8 +314,6 @@ function IndexTreeView() {
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
-  // A Paste Link whose target has no front-matter id, awaiting the user's choice (see insertMarkdownFileLink)
-  const [pendingIdLink, setPendingIdLink] = useState<PendingIdLink | null>(null);
   // File whose cut would strand an attachments folder, held while the user confirms.
   const [cutOrphanAttachTarget, setCutOrphanAttachTarget] = useState<FileEntry | null>(null);
   const widthClass = indexTreeWidth === 'wide' ? 'w-1/2' : indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
@@ -871,15 +796,12 @@ function IndexTreeView() {
   /**
    * Shows the context menu for a file or directory row. Available actions depend
    * on node type: directories get Browse/New File/New Folder/Rename/Delete and (when cut
-   * items exist) Paste; files get Browse/Rename/Delete and (when a markdown file
-   * is being edited; otherwise shown disabled) "Paste Link into Editor", which inserts a relative Markdown link (to the file or folder) at the
-   * active editor's cursor — using a Markdown target's front-matter `id` field as the
-   * link title (`"id:…"`), and asking before adding an id to a target that has none. Shell scripts (`.sh`) also get "Run". Both directories
-   * and files also get "Copy Path" (absolute).
+   * items exist) Paste; files get Browse/Rename/Delete. Shell scripts (`.sh`) also get
+   * "Run". Both directories and files also get "Copy Path" (absolute), whose path the
+   * editor's "Paste Link" turns into a relative Markdown link.
    */
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();
-    const activeEditor = isEditingMarkdown() ? getActiveMarkdownEditor() : null;
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -908,22 +830,6 @@ function IndexTreeView() {
         onPaste: () => handlePasteIntoFolder(node),
       } : {}),
       onCopyPath: () => void navigator.clipboard.writeText(node.path),
-      // Folders link too: clicking a folder link browses into that folder (see CustomAnchor).
-      ...(activeEditor ? {
-        onPasteLink: () => {
-          const editorDir = getParentPath(activeEditor.path);
-          const relPath = formatLinkDestination(computeRelativePath(editorDir, node.path));
-          const name = getFileName(node.path);
-          const label = node.isDirectory ? name : name.replace(/\.md$/, '');
-          if (!node.isDirectory && node.path.endsWith('.md')) {
-            insertMarkdownFileLink(activeEditor, node.path, setPendingIdLink);
-          } else if (!node.isDirectory && isImageFile(node.name)) {
-            activeEditor.handle.insertAtCursor(`![${label}](${relPath})`);
-          } else {
-            activeEditor.handle.insertAtCursor(`[${label}](${relPath})`);
-          }
-        },
-      } : {}),
     });
   };
 
@@ -1008,7 +914,6 @@ function IndexTreeView() {
           onDelete={contextMenu.onDelete}
           onCut={contextMenu.onCut}
           onPaste={contextMenu.onPaste}
-          onPasteLink={contextMenu.onPasteLink}
           onCopyPath={contextMenu.onCopyPath}
         />
       )}
@@ -1039,13 +944,6 @@ function IndexTreeView() {
             : `Delete file "${deleteTarget.name}"?`}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
-        />
-      )}
-      {pendingIdLink && (
-        <AddLinkIdDialog
-          targetPath={pendingIdLink.targetPath}
-          onClose={() => setPendingIdLink(null)}
-          onLink={(id) => insertMarkdownLinkWithId(pendingIdLink.editor, pendingIdLink.targetPath, id)}
         />
       )}
       {cutOrphanAttachTarget && (
