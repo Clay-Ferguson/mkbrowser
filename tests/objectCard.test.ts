@@ -25,6 +25,12 @@ const TYPE_DEFS: TypeDefinitions = {
       support: { description: 'Support line', type: 'phone' },
     },
   },
+  meeting: {
+    properties: {
+      when: { description: '', type: 'date' },
+      topic: { description: '', type: 'text' },
+    },
+  },
 };
 
 /** The card for a file whose front matter is `yaml`, or '' when it holds no valid object. */
@@ -99,6 +105,13 @@ describe('object card', () => {
     expect(gizmo).toContain('data-object-type="gizmo"');
     expect(gizmo).toContain('title="Vendor site: open in browser"');
     expect(gizmo).toContain('title="Support line: call"');
+  });
+
+  it('appends the time delta to a date title, as it does to a date row', () => {
+    const html = renderCard('type: meeting\nwhen: 10/8/2016\ntopic: Kickoff');
+    expect(html).toMatch(/text-lg font-semibold[^>]*>10\/8\/2016 — [^<]*ago</);
+    // A title of another type stays as written.
+    expect(renderCard('type: person\nname: 10/8/2016')).not.toContain('10/8/2016 —');
   });
 
   it('escapes markup in field values', () => {

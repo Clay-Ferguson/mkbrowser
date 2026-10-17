@@ -81,7 +81,7 @@ function PropertyRow({ row }: { row: ObjectRow }) {
 
 /**
  * Card body for a file's object, of any user-defined type. The type's first property is the
- * bold title line; the other properties that have a value follow as icon / name / value rows in
+ * bold title line (a date title gets its time delta, as a date row does); the other properties that have a value follow as icon / name / value rows in
  * definition order. Other front-matter keys aren't part of the object and stay in the property
  * pills. A click anywhere but a link opens the editor.
  */
@@ -93,7 +93,7 @@ export default function GenericObject({ type, data }: { type: string; data: Gene
         <CubeIcon className="h-6 w-6 shrink-0 text-sky-400" aria-hidden="true" />
         {title?.value ? (
           <span className="min-w-0 break-words text-lg font-semibold text-slate-100" title={title.description || title.key}>
-            {title.value}
+            {title.propertyType === 'date' ? formatDateWithDelta(title.value) : title.value}
           </span>
         ) : (
           <span className="text-lg italic text-slate-400">Untitled {type}</span>
