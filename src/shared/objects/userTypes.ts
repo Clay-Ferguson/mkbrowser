@@ -2,6 +2,7 @@ import { findTopLevelKeys } from './objectBlock';
 import { objectPropertyKeys } from './genericObject';
 import { assembleFrontMatter, splitFrontMatter } from '../frontMatterUtil';
 import { loadYaml } from '../yamlUtil';
+import { formatDate } from '../timeUtil';
 import type { TypeDefinitions } from '../shared';
 
 /**
@@ -48,7 +49,8 @@ const OPEN_FENCE = '---\n';
  * The object is `type: <name>` plus every property of the type, in definition order. Every key
  * the front matter already has is kept as it is, whatever its value — so inserting a type over
  * front matter that already has some of its properties (e.g. a `name:`) keeps those values. Only
- * missing keys are added, each with a blank value. A blank `type:` is given the type name.
+ * missing keys are added, each with a blank value — except a `date`-typed property, which gets
+ * `today` (`MM/DD/YY`). A blank `type:` is given the type name.
  *
  * Inserting the type the file's object already is just fills in that object's missing properties
  * (e.g. ones added to the type since). Front matter whose `type` names any other value is refused:
@@ -63,13 +65,16 @@ const OPEN_FENCE = '---\n';
  * property line that has no value yet (or of its first property, when all are filled in), ready
  * for its value.
  */
-export function planObjectInsertion(content: string, defs: TypeDefinitions, type: string): ObjectInsertion {
+export function planObjectInsertion(content: string, defs: TypeDefinitions, type: string, today = formatDate()): ObjectInsertion {
   // hasOwn: the name comes from a menu built off this same map, but `toString` must still
   // never resolve to Object.prototype.toString.
   if (!Object.hasOwn(defs, type)) return { ok: false, error: `"${type}" is not a defined type.` };
-  const propertyKeys = Object.keys(defs[type]!.properties);
+  const properties = defs[type]!.properties;
+  const propertyKeys = Object.keys(properties);
   const keys = ['type', ...propertyKeys];
-  const lineFor = (key: string) => (key === 'type' ? `type: ${type}` : `${key}: `);
+  // A new date property starts out as today; every other new property starts out blank.
+  const isDate = (key: string) => properties[key]?.type === 'date';
+  const lineFor = (key: string) => (key === 'type' ? `type: ${type}` : isDate(key) ? `${key}: ${today}` : `${key}: `);
 
   const split = splitFrontMatter(content);
   let existing: Record<string, unknown> = {};
@@ -121,7 +126,9 @@ export function planObjectInsertion(content: string, defs: TypeDefinitions, type
   const insert = `${OPEN_FENCE}${newYaml}\n---\n`;
   // End of the first property's line that still needs a value — or of the first property's line
   // when all have one, or of the `type:` line, for a type with no properties.
-  const cursorKey = propertyKeys.find((key) => !Object.hasOwn(existing, key) || isBlank(existing[key])) ?? propertyKeys[0] ?? 'type';
+  // A date property added just now already holds today, so it doesn't count as needing a value.
+  const needsValue = (key: string) => (Object.hasOwn(existing, key) ? isBlank(existing[key]) : !isDate(key));
+  const cursorKey = propertyKeys.find(needsValue) ?? propertyKeys[0] ?? 'type';
   const at = findTopLevelKeys(newYaml).find(({ key }) => key === cursorKey);
   const lineEnd = at ? newYaml.indexOf('\n', at.from) : -1;
   const cursorInYaml = !at ? 0 : lineEnd < 0 ? newYaml.length : lineEnd;

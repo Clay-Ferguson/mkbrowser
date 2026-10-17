@@ -28,6 +28,12 @@ const TYPE_DEFS: TypeDefinitions = {
   },
   book: { properties: { title: { description: 'Title', type: 'text' } } },
   empty: { properties: {} },
+  event: {
+    properties: {
+      when: { description: 'When', type: 'date' },
+      where: { description: 'Where', type: 'text' },
+    },
+  },
 };
 
 /**
@@ -35,7 +41,7 @@ const TYPE_DEFS: TypeDefinitions = {
  * new cursor position. Fails the test if the insertion is refused.
  */
 function insert(doc: string, type = 'person'): string {
-  const plan = planObjectInsertion(doc, TYPE_DEFS, type);
+  const plan = planObjectInsertion(doc, TYPE_DEFS, type, '10/17/26');
   if (!plan.ok) throw new Error(plan.error);
   const text = doc.slice(0, plan.from) + plan.insert + doc.slice(plan.to);
   return `${text.slice(0, plan.cursor)}|${text.slice(plan.cursor)}`;
@@ -150,6 +156,20 @@ describe('planObjectInsertion', () => {
     expect(refusal('---\n{id: abc}\n---\nBody')).toMatch(/one "key: value" per line/);
   });
 
+  it('fills a new date property with today, leaving the cursor on the first blank property', () => {
+    expect(insert('Body', 'event')).toBe('---\ntype: event\nwhen: 10/17/26\nwhere: |\n---\nBody');
+  });
+
+  it('keeps a date property that is already there, even blank', () => {
+    expect(insert('---\ntype: event\nwhen:\n---\nBody', 'event')).toBe('---\ntype: event\nwhen:|\nwhere: \n---\nBody');
+  });
+
+  it('defaults the date to today as MM/DD/YY', () => {
+    const plan = planObjectInsertion('', TYPE_DEFS, 'event');
+    if (!plan.ok) throw new Error(plan.error);
+    expect(plan.insert).toMatch(/^---\ntype: event\nwhen: \d\d\/\d\d\/\d\d\nwhere: \n---\n$/);
+  });
+
   it('refuses an undefined type', () => {
     expect(refusal('Body', 'gadget')).toMatch(/not a defined type/);
     expect(refusal('Body', 'toString')).toMatch(/not a defined type/);
@@ -162,6 +182,7 @@ describe('objectTypeOptions', () => {
       { type: 'person', label: 'A contact' },
       { type: 'book', label: 'book' },
       { type: 'empty', label: 'empty' },
+      { type: 'event', label: 'event' },
     ]);
   });
 
