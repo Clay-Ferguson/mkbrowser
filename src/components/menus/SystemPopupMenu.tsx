@@ -40,12 +40,12 @@ export default function SystemPopupMenu({
         onClick={() => { onAiSettings(); onClose(); }}
       />
       <PopupMenuItem
-        label="Types Editor"
+        label="Types"
         data-testid="menu-types-editor"
         onClick={() => { onTypesEditor(); onClose(); }}
       />
       <PopupMenuItem
-        label="Edit Hashtags"
+        label="Tags"
         data-testid="menu-edit-hashtags"
         onClick={() => { onTagsEditor(); onClose(); }}
       />

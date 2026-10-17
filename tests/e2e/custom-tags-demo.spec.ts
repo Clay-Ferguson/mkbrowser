@@ -7,7 +7,7 @@ import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSum
  *
  * Demonstrates how a user defines a library of custom hashtags and then applies
  * them to a file. The flow is:
- *   1. Open the System Menu and choose "Edit Hashtags".
+ *   1. Open the System Menu and choose "Tags".
  *   2. Show the Tags tab to show where the hashtag library lives (no edits —
  *      it is self-explanatory).
  *   3. Return to the Browse view and create a new Markdown file.
@@ -58,7 +58,7 @@ test.describe('Custom Hashtags Demo', () => {
 
     await demoClick(systemMenuButton);
 
-    // ── 3. Click the "Edit Hashtags" menu item ────────────────────────
+    // ── 3. Click the "Tags" menu item ────────────────────────
     const editHashtagsItem = mainWindow.getByTestId('menu-edit-hashtags');
     await expect(editHashtagsItem).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, editHashtagsItem, screenshotDir, step++, 'highlight-edit-hashtags');
@@ -67,7 +67,7 @@ test.describe('Custom Hashtags Demo', () => {
       step++,
       `The System menu is open.
       This is where we manage the full library of hashtags that are available across all of our files.
-      Let's click the "Edit Hashtags" option to open the hashtag editor.`
+      Let's click the "Tags" option to open the hashtag editor.`
     );
 
     await demoClick(editHashtagsItem);

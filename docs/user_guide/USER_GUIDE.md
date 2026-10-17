@@ -376,7 +376,7 @@ The special category named **`all`** is an exception to this rule. Tags inside a
 
 ### Managing your hashtag library (Tags Editor)
 
-You can define the full set of available hashtags — and how they are organised — in the **Tags Editor**. Open the **System menu** (the ☰ button at the top right of the window) and choose **Edit Hashtags**. A **Tags** tab opens. Like the other tabs, it can be closed with its **×** button; any unsaved edits are kept if you close it and open it again later in the same session.
+You can define the full set of available hashtags — and how they are organised — in the **Tags Editor**. Open the **System menu** (the ☰ button at the top right of the window) and choose **Tags**. A **Tags** tab opens. Like the other tabs, it can be closed with its **×** button; any unsaved edits are kept if you close it and open it again later in the same session.
 
 The Tags Editor is split into two panes:
 
@@ -1211,7 +1211,7 @@ Types are created and edited in the **Types Editor**.
 
 ### Opening the Types Editor
 
-Open the **System menu** (the ☰ button at the top right of the window) and choose **Types Editor**. A **Types** tab opens. Like the other tabs, it can be closed with its **×** button; any unsaved edits are kept if you close it and open it again later in the same session.
+Open the **System menu** (the ☰ button at the top right of the window) and choose **Types**. A **Types** tab opens. Like the other tabs, it can be closed with its **×** button; any unsaved edits are kept if you close it and open it again later in the same session.
 
 The Types Editor has two panes:
 
