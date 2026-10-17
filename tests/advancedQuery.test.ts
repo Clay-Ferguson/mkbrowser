@@ -9,12 +9,12 @@ import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { compileAdvancedQuery, AdvancedQueryTimeoutError, AdvancedQuerySyntaxError, AdvancedQueryRuntimeError, AdvancedQueryHost } from '../src/main/advancedQuery';
 
-/** Host whose $ matches when content includes the text; prop reads from a map. */
+/** Host whose $ matches when content includes the text; getProp reads from a map. */
 function makeHost(content = '', props: Record<string, unknown> = {}): AdvancedQueryHost {
   return {
     $: (t) => content.includes(t),
     tag: (t) => content.split(/\s+/).includes(t),
-    prop: (path, valType) => (valType === 'ts' ? Number.NaN : props[path]),
+    getProp: (name) => props[name],
     past: (ts) => !Number.isNaN(ts) && ts < Date.now(),
     future: (ts) => !Number.isNaN(ts) && ts > Date.now(),
     today: (ts) => !Number.isNaN(ts),
@@ -38,10 +38,14 @@ describe('sandbox containment', () => {
     'eval("typeof require") === "undefined"',
     // The helpers are sandbox-realm wrappers; their .constructor leads nowhere useful.
     '$.constructor("return typeof process")() === "undefined"',
-    // Thrown host errors cross as primitives, not host Error objects.
-    '(() => { try { prop({ toString() { throw 1; } }); return true; } catch (e) { return typeof e !== "object"; } })()',
   ])('%s', (query) => {
     expect(evalQuery(query)).toBe(true);
+  });
+
+  it('thrown host errors cross as primitives, not host Error objects', () => {
+    const host = makeHost();
+    host.getProp = () => { throw new Error('boom'); };
+    expect(evalQuery('(() => { try { p.x; return false; } catch (e) { return e === "boom"; } })()', host)).toBe(true);
   });
 
   it('a query that tries to write a file throws and no file is created', () => {
@@ -124,22 +128,19 @@ describe('helper bridge', () => {
     expect(evalQuery("tag('#done')", host)).toBe(false);
   });
 
-  it('prop returns primitives, nested objects, and arrays intact', () => {
+  it('p returns primitives, nested objects, and arrays intact', () => {
     const host = makeHost('', { title: 'Notes', count: 3, tags: ['a', 'b'], meta: { deep: { x: 1 } } });
-    expect(evalQuery("prop('title') === 'Notes'", host)).toBe(true);
-    expect(evalQuery("prop('count') === 3", host)).toBe(true);
-    expect(evalQuery("prop('tags').includes('b')", host)).toBe(true);
-    expect(evalQuery("prop('meta').deep.x === 1", host)).toBe(true);
-    expect(evalQuery("prop('missing') === undefined", host)).toBe(true);
-  });
-
-  it('p.name is shorthand for prop(name)', () => {
-    const host = makeHost('', { type: 'person', meta: { deep: { x: 1 } } });
-    expect(evalQuery("p.type == 'person'", host)).toBe(true);
-    expect(evalQuery("p['type'] === 'person'", host)).toBe(true);
+    expect(evalQuery("p.title === 'Notes'", host)).toBe(true);
+    expect(evalQuery("p['title'] === 'Notes'", host)).toBe(true);
+    expect(evalQuery('p.count === 3', host)).toBe(true);
+    expect(evalQuery("p.tags.includes('b')", host)).toBe(true);
     expect(evalQuery('p.meta.deep.x === 1', host)).toBe(true);
     expect(evalQuery('p.missing === undefined', host)).toBe(true);
-    expect(evalQuery("p.type == 'person'", makeHost('', { type: 'place' }))).toBe(false);
+    expect(evalQuery("p.title == 'Notes'", makeHost('', { title: 'Other' }))).toBe(false);
+  });
+
+  it('the old prop() function no longer exists', () => {
+    expect(evalQuery('typeof prop === "undefined"')).toBe(true);
   });
 
   it('ts parses date strings through the host and treats missing values as NaN', () => {
@@ -151,9 +152,10 @@ describe('helper bridge', () => {
     expect(evalQuery('future(ts(p.missing))', host)).toBe(false);
   });
 
-  it('prop(…, "ts") NaN sentinel survives the boundary (not corrupted to null)', () => {
-    expect(evalQuery("Number.isNaN(prop('due', 'ts'))", makeHost())).toBe(true);
-    expect(evalQuery("past(prop('due', 'ts'))", makeHost())).toBe(false);
+  it('ts NaN sentinel survives the boundary (not corrupted to null)', () => {
+    const host = makeHost('', { due: 'garbage' });
+    expect(evalQuery('Number.isNaN(ts(p.due))', host)).toBe(true);
+    expect(evalQuery('past(ts(p.due))', host)).toBe(false);
   });
 
   it('past/future receive numbers and return booleans', () => {
@@ -163,7 +165,7 @@ describe('helper bridge', () => {
 
   it('today crosses the bridge: valid timestamp true, NaN sentinel false', () => {
     expect(evalQuery('today(Date.now())')).toBe(true);
-    expect(evalQuery("today(prop('missing', 'ts'))")).toBe(false);
+    expect(evalQuery('today(ts(p.missing))')).toBe(false);
   });
 
   it('the optional window argument reaches the host as a number (or undefined when omitted)', () => {

@@ -152,23 +152,16 @@ function lineEndingNormalizer(queryStr: string): (content: string) => string {
 }
 
 /**
- * Returns a `prop(propPath, valType?)` function scoped to the given file content.
- * `propPath` supports dot-notation to drill into nested YAML objects.
- * `valType` can be "string" (default) or "ts" (parse value as a date, return ms number).
+ * Returns a `getProp(name)` function scoped to the given file content: the
+ * top-level front-matter property `name` (backing the advanced query's `p`
+ * object), or undefined. Nested values are reached in the query itself
+ * (`p.author.name`).
  */
-function createPropFunction(cache: YamlCache, content: string, filePath?: string): (propPath: string, valType?: 'string' | 'ts') => unknown {
-  return (propPath: string, valType?: 'string' | 'ts'): unknown => {
+function createGetProp(cache: YamlCache, content: string, filePath?: string): (name: string) => unknown {
+  return (name: string): unknown => {
     const parsed = getYaml(cache, content, filePath);
-    if (!parsed) return undefined;
-    const keys = propPath.split('.');
-    let current: unknown = parsed;
-    for (const key of keys) {
-      if (current === null || typeof current !== 'object') return undefined;
-      current = (current as Record<string, unknown>)[key];
-    }
-    if (current === undefined) return undefined;
-    if (valType === 'ts') return parseDateString(String(current));
-    return current;
+    if (!parsed || !Object.hasOwn(parsed, name)) return undefined;
+    return parsed[name];
   };
 }
 
@@ -195,9 +188,9 @@ export function createMatchPredicate(
     return (content: string, filePath?: string) => {
       if (timedOut) throw timedOut;
       const { $, tag, getMatchCount } = createContentSearcher(content);
-      const prop = createPropFunction(cache, content, filePath);
+      const getProp = createGetProp(cache, content, filePath);
       try {
-        const matches = evalFunction({ $, tag, prop, past, future, today, ts: parseDateString });
+        const matches = evalFunction({ $, tag, getProp, past, future, today, ts: parseDateString });
         const matchCount = getMatchCount();
         return {
           matches,
@@ -205,7 +198,7 @@ export function createMatchPredicate(
         };
       } catch (err) {
         // A runtime error while evaluating the (validly-compiled) query against
-        // this file's content — e.g. `prop('a').b` on a file without `a`. Treat
+        // this file's content — e.g. `p.a.b` on a file without `a`. Treat
         // as a non-match for this file; searchFolder reports it if the query
         // failed on every file. Anything else — notably AdvancedQueryTimeoutError,
         // which would recur on every file — aborts the whole search.
@@ -382,7 +375,7 @@ async function filterMostRecent(filePaths: string[], signal?: AbortSignal): Prom
  * of the newest files (which is frequently empty in a large tree).
  *
  * Each file is read once here and its front matter parsed into `yamlCache`, so
- * the match phase's advanced-query prop() lookups don't re-parse it; the returned
+ * the match phase's advanced-query `p` lookups don't re-parse it; the returned
  * StatEntry values also feed buildResult's cachedStat, removing the stat the
  * match phase would otherwise do. Net extra I/O is therefore one re-read of the
  * (much smaller) surviving calendar subset.
@@ -647,7 +640,7 @@ export async function searchFolderWithTotal(
     //
     // The name half applies to literal/wildcard queries only. An 'advanced' query
     // is a JavaScript expression written against file content: evaluating it
-    // against a bare filename is meaningless for prop()/the date helpers, and a
+    // against a bare filename is meaningless for `p`/the date helpers, and a
     // negated expression (e.g. !$("draft")) would match nearly every file in the
     // tree. So advanced searches are content-only.
     const nameMatchActive = searchNames && matchPredicate !== null && matchType !== 'advanced';

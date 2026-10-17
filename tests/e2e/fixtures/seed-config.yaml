@@ -28,14 +28,14 @@ settings:
       searchImageExif: false
       mostRecent: true
     - name: TODOs
-      searchText: prop('tags')?.includes('todo')
+      searchText: p.tags?.includes('todo')
       target: content
       matchType: advanced
       sortBy: modified-time
       sortDirection: desc
       mostRecent: false
     - name: TODOs - Today
-      searchText: prop('tags')?.includes('todo') && today(prop('due','ts'))
+      searchText: p.tags?.includes('todo') && today(ts(p.due))
       target: content
       matchType: advanced
       sortBy: modified-time
@@ -43,7 +43,7 @@ settings:
       searchImageExif: false
       mostRecent: false
     - name: TODOs - Future
-      searchText: prop('tags')?.includes('todo') && future(prop('due','ts'))
+      searchText: p.tags?.includes('todo') && future(ts(p.due))
       target: content
       matchType: advanced
       sortBy: modified-time
@@ -52,8 +52,8 @@ settings:
       mostRecent: false
     - name: TODOs - Past
       searchText: |-
-        prop('tags')?.includes('todo') &&
-        past(prop('due','ts'))
+        p.tags?.includes('todo') &&
+        past(ts(p.due))
       target: content
       matchType: advanced
       sortBy: modified-time

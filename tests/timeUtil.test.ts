@@ -111,7 +111,7 @@ describe('parseDateString', () => {
   });
 
   // ISO 8601 (YYYY-MM-DD) — the idiomatic YAML front-matter date form,
-  // reaching parseDateString via the advanced-search prop(path, 'ts') helper.
+  // reaching parseDateString via the advanced-search ts() helper.
   it('parses an ISO date (YYYY-MM-DD) as local midnight', () => {
     expect(parseDateString('2026-05-26')).toBe(new Date(2026, 4, 26, 0, 0, 0).getTime());
   });

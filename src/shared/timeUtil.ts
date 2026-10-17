@@ -193,7 +193,7 @@ export function today(timestamp: number): boolean {
  * AM/PM), and additionally the ISO 8601 form YYYY-MM-DD (optional 24-hour
  * HH:MM[:SS], separated by 'T' or a space) since that is the idiomatic way to
  * write dates in YAML front matter — the main consumer of this function via
- * the advanced-search `prop(path, 'ts')` helper. All values are interpreted
+ * the advanced-search `ts()` helper. All values are interpreted
  * as local time. Returns milliseconds since epoch, or NO_TIMESTAMP (NaN) if
  * the string cannot be parsed or names an impossible calendar date.
  */

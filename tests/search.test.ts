@@ -303,8 +303,8 @@ describe('advanced content search', () => {
 
     it('a query that throws on some files but not others is not an error', async () => {
       // Files containing "banana" short-circuit the `||`; every other file
-      // throws on `prop('x').y`. The banana files still come back as results.
-      const results = await searchFolder(TEST_DATA_DIR, "$('banana') || prop('x').y", { matchType: 'advanced' });
+      // throws on `p.x.y`. The banana files still come back as results.
+      const results = await searchFolder(TEST_DATA_DIR, "$('banana') || p.x.y", { matchType: 'advanced' });
       expect(results.length).toBeGreaterThan(0);
     });
 
@@ -697,7 +697,7 @@ describe('content+names search', () => {
 
   it('advanced queries stay content-only (no name matching)', async () => {
     // An advanced query is JavaScript evaluated against file content: applying it
-    // to a bare name is meaningless for prop()/the date helpers, and a negated
+    // to a bare name is meaningless for `p`/the date helpers, and a negated
     // expression would match nearly every file in the tree. So only bulk.md — the
     // one CONTENT match — comes back.
     const results = await searchFolder(dir, "$('TARGET')", { matchType: 'advanced', searchNames: true });
@@ -1143,23 +1143,23 @@ describe('createMatchPredicate (direct function testing)', () => {
   });
 });
 
-// ── Section 9b: YAML front-matter cache (prop() + shared cache) ──────────────
-// The `prop()` function reads parsed front-matter through a per-search YAML
+// ── Section 9b: YAML front-matter cache (p + shared cache) ─────────────────
+// The `p` object reads parsed front-matter through a per-search YAML
 // cache. The cache value type is `Record<string, unknown> | null` (never
 // `undefined`): a cached `null` means "parsed, no front-matter" and is a real
 // hit that must NOT trigger a re-parse — only an absent key re-parses. These
 // tests pin that distinction (regression guard for issue 011).
-describe('YAML front-matter cache via prop()', () => {
+describe('YAML front-matter cache via p', () => {
   it('a cached null counts as a hit and is not re-parsed', () => {
     // Seed the cache as if this path was already parsed and had no front-matter.
     const cache = new Map<string, Record<string, unknown> | null>();
     cache.set('/seeded.md', null);
 
     // Pass content that DOES have front-matter. If the cached `null` is honored
-    // as a hit, prop() never re-parses and 'title' is undefined → match. If the
+    // as a hit, p never re-parses and 'title' is undefined → match. If the
     // read regressed to a falsy check, the null would fall through, the content
-    // would be parsed, and prop('title') would be 'FromContent' → no match.
-    const predicate = createMatchPredicate("prop('title') === undefined", 'advanced', cache);
+    // would be parsed, and p.title would be 'FromContent' → no match.
+    const predicate = createMatchPredicate("p.title === undefined", 'advanced', cache);
     const result = predicate('---\ntitle: FromContent\n---\nbody', '/seeded.md');
     expect(result.matches).toBe(true);
   });
@@ -1169,7 +1169,7 @@ describe('YAML front-matter cache via prop()', () => {
     cache.set('/seeded.md', { title: 'Cached' });
 
     // Content's front-matter differs from the cache; the cache must win.
-    const predicate = createMatchPredicate("prop('title') === 'Cached'", 'advanced', cache);
+    const predicate = createMatchPredicate("p.title === 'Cached'", 'advanced', cache);
     const result = predicate('---\ntitle: Different\n---\nbody', '/seeded.md');
     expect(result.matches).toBe(true);
   });
@@ -1177,7 +1177,7 @@ describe('YAML front-matter cache via prop()', () => {
   it('an absent key re-parses the content and populates the cache', () => {
     const cache = new Map<string, Record<string, unknown> | null>();
 
-    const predicate = createMatchPredicate("prop('title') === 'Real'", 'advanced', cache);
+    const predicate = createMatchPredicate("p.title === 'Real'", 'advanced', cache);
     const result = predicate('---\ntitle: Real\n---\nbody', '/fresh.md');
     expect(result.matches).toBe(true);
     // The freshly parsed front-matter should now be cached under that path.
@@ -1187,7 +1187,7 @@ describe('YAML front-matter cache via prop()', () => {
   it('caches null for a file with no front-matter (so a later hit skips re-parse)', () => {
     const cache = new Map<string, Record<string, unknown> | null>();
 
-    const predicate = createMatchPredicate("prop('title') === undefined", 'advanced', cache);
+    const predicate = createMatchPredicate("p.title === undefined", 'advanced', cache);
     const result = predicate('no front-matter here', '/plain.md');
     expect(result.matches).toBe(true);
     // A "parsed, but empty" result is stored as null — a real entry, not absence.
@@ -1198,11 +1198,11 @@ describe('YAML front-matter cache via prop()', () => {
 
 // ── Section 9c: advanced-search helpers against the REAL host implementations ─
 // advancedQuery.test.ts exercises the sandbox bridge with a MOCK host (its
-// `prop` is a flat map lookup and its `'ts'` mode always returns NaN), and
+// `getProp` is a flat map lookup and its `ts` knows only one date), and
 // timeUtil.test.ts covers past/future/today as pure functions. These tests
 // close the gap between the two layers: createMatchPredicate wires the real
-// helpers (createContentSearcher, createPropFunction, past/future/today) into
-// the sandbox, and that wiring — dot-notation drilling, prop(…, 'ts') date
+// helpers (createContentSearcher, createGetProp, parseDateString, past/future/
+// today) into the sandbox, and that wiring — nested property access, ts() date
 // parsing, per-file runtime errors, the timeout abort — is what's pinned here.
 describe('advanced predicate with real helper implementations', () => {
   /** ISO YYYY-MM-DD for the calendar date `days` from now (local time). */
@@ -1212,56 +1212,54 @@ describe('advanced predicate with real helper implementations', () => {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   };
 
-  it('prop drills into nested front-matter with dot-notation', () => {
-    const predicate = createMatchPredicate("prop('meta.author.name') === 'Ada'", 'advanced');
+  it('p reaches nested front-matter properties', () => {
+    const predicate = createMatchPredicate("p.meta.author.name === 'Ada'", 'advanced');
     const content = '---\nmeta:\n  author:\n    name: Ada\n---\nbody';
     expect(predicate(content).matches).toBe(true);
   });
 
-  it('prop returns undefined when a dot-path traverses a scalar', () => {
-    const predicate = createMatchPredicate("prop('title.sub') === undefined", 'advanced');
+  it('p returns undefined for a property path through a scalar', () => {
+    const predicate = createMatchPredicate("p.title.missing === undefined", 'advanced');
     expect(predicate('---\ntitle: plain string\n---\nbody').matches).toBe(true);
   });
 
-  it('prop returns YAML numbers and booleans with their real types', () => {
-    const predicate = createMatchPredicate("prop('count') === 3 && prop('done') === true", 'advanced');
+  it('p returns YAML numbers and booleans with their real types', () => {
+    const predicate = createMatchPredicate("p.count === 3 && p.done === true", 'advanced');
     expect(predicate('---\ncount: 3\ndone: true\n---\nbody').matches).toBe(true);
   });
 
-  it('prop treats malformed front-matter YAML as absent (no throw)', () => {
-    const predicate = createMatchPredicate("prop('key') === undefined", 'advanced');
+  it('p treats malformed front-matter YAML as absent (no throw)', () => {
+    const predicate = createMatchPredicate("p.key === undefined", 'advanced');
     expect(predicate('---\nkey: [1, 2\n---\nbody').matches).toBe(true);
   });
 
-  it("past(prop(…, 'ts')) parses a real front-matter date", () => {
-    const predicate = createMatchPredicate("past(prop('due', 'ts'))", 'advanced');
+  it("past(ts(p.due)) parses a real front-matter date", () => {
+    const predicate = createMatchPredicate("past(ts(p.due))", 'advanced');
     expect(predicate('---\ndue: 2020-01-15\n---\nbody').matches).toBe(true);
     expect(predicate('---\ndue: 2126-01-15\n---\nbody').matches).toBe(false);
   });
 
-  it('ts(p.due) parses a real front-matter date the same as prop(…, "ts")', () => {
-    const content = `---\ndue: ${isoDaysFromNow(10)}\n---\nbody`;
-    expect(createMatchPredicate("ts(p.due) === prop('due', 'ts')", 'advanced')(content).matches).toBe(true);
-    expect(createMatchPredicate('future(ts(p.due), 30)', 'advanced')(content).matches).toBe(true);
-    expect(createMatchPredicate('future(ts(p.due), 5)', 'advanced')(content).matches).toBe(false);
-    expect(createMatchPredicate('future(ts(p.missing))', 'advanced')(content).matches).toBe(false);
+  it('ts(p.due) parses an ISO date-only value as LOCAL midnight (not UTC)', () => {
+    const localMidnight = new Date(2026, 4, 26).getTime();
+    const predicate = createMatchPredicate(`ts(p.due) === ${localMidnight}`, 'advanced');
+    expect(predicate('---\ndue: 2026-05-26\n---\nbody').matches).toBe(true);
   });
 
   it('past applies its lookbackDays window through the sandbox', () => {
     const content = `---\ndue: ${isoDaysFromNow(-10)}\n---\nbody`;
-    expect(createMatchPredicate("past(prop('due', 'ts'), 30)", 'advanced')(content).matches).toBe(true);
-    expect(createMatchPredicate("past(prop('due', 'ts'), 5)", 'advanced')(content).matches).toBe(false);
+    expect(createMatchPredicate("past(ts(p.due), 30)", 'advanced')(content).matches).toBe(true);
+    expect(createMatchPredicate("past(ts(p.due), 5)", 'advanced')(content).matches).toBe(false);
   });
 
-  it("future(prop(…, 'ts')) and its lookaheadDays window", () => {
+  it("future(ts(p.due)) and its lookaheadDays window", () => {
     const content = `---\ndue: ${isoDaysFromNow(10)}\n---\nbody`;
-    expect(createMatchPredicate("future(prop('due', 'ts'))", 'advanced')(content).matches).toBe(true);
-    expect(createMatchPredicate("future(prop('due', 'ts'), 30)", 'advanced')(content).matches).toBe(true);
-    expect(createMatchPredicate("future(prop('due', 'ts'), 5)", 'advanced')(content).matches).toBe(false);
+    expect(createMatchPredicate("future(ts(p.due))", 'advanced')(content).matches).toBe(true);
+    expect(createMatchPredicate("future(ts(p.due), 30)", 'advanced')(content).matches).toBe(true);
+    expect(createMatchPredicate("future(ts(p.due), 5)", 'advanced')(content).matches).toBe(false);
   });
 
-  it("today(prop(…, 'ts')) matches only today's calendar date", () => {
-    const predicate = createMatchPredicate("today(prop('due', 'ts'))", 'advanced');
+  it("today(ts(p.due)) matches only today's calendar date", () => {
+    const predicate = createMatchPredicate("today(ts(p.due))", 'advanced');
     expect(predicate(`---\ndue: ${isoDaysFromNow(0)}\n---\nbody`).matches).toBe(true);
     expect(predicate(`---\ndue: ${isoDaysFromNow(-1)}\n---\nbody`).matches).toBe(false);
     expect(predicate(`---\ndue: ${isoDaysFromNow(1)}\n---\nbody`).matches).toBe(false);
@@ -1269,13 +1267,13 @@ describe('advanced predicate with real helper implementations', () => {
 
   it('all three date helpers reject a missing property (NaN sentinel)', () => {
     const predicate = createMatchPredicate(
-      "past(prop('x', 'ts')) || future(prop('x', 'ts')) || today(prop('x', 'ts'))", 'advanced');
+      "past(ts(p.x)) || future(ts(p.x)) || today(ts(p.x))", 'advanced');
     expect(predicate('---\ntitle: no dates\n---\nbody').matches).toBe(false);
   });
 
   it('a runtime error evaluating one file is a non-match, not a crash', () => {
-    const predicate = createMatchPredicate("prop('a').b.c === 1", 'advanced');
-    // No front-matter → prop('a') is undefined → TypeError inside the sandbox.
+    const predicate = createMatchPredicate("p.a.b.c === 1", 'advanced');
+    // No front-matter → p.a is undefined → TypeError inside the sandbox.
     expect(predicate('plain body, no front matter', '/x.md')).toEqual({
       matches: false,
       matchCount: 0,
@@ -1878,9 +1876,9 @@ describe('calendarItemsOnly filter', () => {
     const wildcard = await searchFolder(dir, 'CAL*banana', { matchType: 'wildcard', searchNames: true, calendarItemsOnly: true });
     expect(names(wildcard)).toEqual(['cal-iso.md']);
 
-    // prop() reads the front matter the calendar pre-pass already parsed and
+    // p reads the front matter the calendar pre-pass already parsed and
     // cached, so this also covers the shared YamlCache staying valid.
-    const advanced = await searchFolder(dir, "$('CAL_MARKER') && !!prop('due')", { matchType: 'advanced', searchNames: true, calendarItemsOnly: true });
+    const advanced = await searchFolder(dir, "$('CAL_MARKER') && !!p.due", { matchType: 'advanced', searchNames: true, calendarItemsOnly: true });
     expect(names(advanced)).toEqual(['cal-iso.md', 'cal-slash.md']);
   });
 

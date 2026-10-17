@@ -27,7 +27,7 @@ describe('buildSearchPattern', () => {
   });
 
   it('treats regex characters literally', () => {
-    expect(spans(["prop('due', 'ts')"], "prop('due'")).toHaveLength(1);
+    expect(spans(['ts(p.due)'], '(p.due')).toHaveLength(1);
     expect(spans(['a.b'], 'a.b')).toHaveLength(1);
     expect(spans(['axb'], 'a.b')).toHaveLength(0);
   });

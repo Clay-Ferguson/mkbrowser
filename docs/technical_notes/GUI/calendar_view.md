@@ -94,7 +94,7 @@ Its one caller today is the Search dialog's **Calendar Items** checkbox
 *before* the trim deliberately — the other order would return the calendar subset of the
 500 newest files, which is usually empty in a large tree. It reads each `.md` once,
 caching the parsed front matter in the search's `YamlCache` (so an advanced query's
-`prop()` doesn't re-parse) and its stat times (so matched files aren't stat'd twice).
+`p` doesn't re-parse) and its stat times (so matched files aren't stat'd twice).
 The option is content-search only; `searchFolder` ignores it in `filenames` mode and the
 dialog disables the checkbox there. Both the flag and its persisted
 `SearchDefinition.calendarItemsOnly` counterpart default to `false` when absent.

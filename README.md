@@ -98,7 +98,7 @@ A comprehensive list of what MkBrowser can do. See the [User Guide](docs/user_gu
 |---------|-------------|
 | Full-text search | Search file content or file names. |
 | Search modes | Literal, Wildcard (`*`), and Advanced (JavaScript-like predicates). |
-| Advanced predicates | `$()` content match, front-matter `prop()`, date helpers `past()`/`future()`/`today()`, and `ts`. |
+| Advanced predicates | `$()` content match, front-matter properties via `p` (e.g. `p.type`), date helpers `past()`/`future()`/`today()`, and `ts()`. |
 | Search highlighting | Matches are highlighted across all rendered content, not just the results tab. |
 | Saved searches | Name and save searches; rerun them from the Search menu. |
 | Replace in Files | Bulk find-and-replace across all `.md`/`.txt` files recursively. |

@@ -130,7 +130,7 @@ describe('parseConfigYaml — settings tolerance', () => {
     // its default instead of failing the whole element.
     const legacy = {
       name: 'TODOs - Today',
-      searchText: "prop('tags')?.includes('todo')",
+      searchText: "p.tags?.includes('todo')",
       searchContents: true,
       searchNames: false,
       matchType: 'advanced',

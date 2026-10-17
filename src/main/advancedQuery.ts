@@ -9,9 +9,9 @@
  * The sandbox works because NO host object is ever reachable from the query:
  * every known vm escape starts from a host reference (host `Function` via
  * `someHostObject.constructor.constructor`, etc.). The search helpers ($, tag,
- * prop, p, ts, past, future, today) are defined *inside* the sandbox realm as thin wrappers
+ * p, ts, past, future, today) are defined *inside* the sandbox realm as thin wrappers
  * that call a single host dispatcher, and only primitives cross the boundary in
- * either direction (objects from `prop` are JSON round-tripped; host errors are
+ * either direction (objects read through `p` are JSON round-tripped; host errors are
  * re-thrown as primitive strings). The sandbox's own intrinsics (its `Function`,
  * `eval`, …) are harmless — code they create still runs inside the empty realm,
  * where `process`/`require` simply don't exist.
@@ -36,7 +36,8 @@ const EVAL_TIMEOUT_MS = 1000;
 export interface AdvancedQueryHost {
   $: (searchText: string) => boolean;
   tag: (hashtag: string) => boolean;
-  prop: (propPath: string, valType?: 'string' | 'ts') => unknown;
+  /** Top-level front-matter property `name` (backs the `p` object). */
+  getProp: (name: string) => unknown;
   past: (timestamp: number, lookbackDays?: number) => boolean;
   future: (timestamp: number, lookaheadDays?: number) => boolean;
   today: (timestamp: number) => boolean;
@@ -71,7 +72,7 @@ export class AdvancedQueryRuntimeError extends Error {
   }
 }
 
-/** Defines $, tag, prop, p, ts, past, future, today inside the sandbox realm as wrappers
+/** Defines $, tag, p, ts, past, future, today inside the sandbox realm as wrappers
  * around the host dispatcher, then removes the dispatcher from the global so
  * query code can only reach it through these frozen wrappers. Runs once per
  * compiled query. */
@@ -88,20 +89,20 @@ const BOOTSTRAP = `
   def('past', (ts, days) => call('past', Number(ts), days === undefined ? undefined : Number(days)));
   def('future', (ts, days) => call('future', Number(ts), days === undefined ? undefined : Number(days)));
   def('today', (ts) => call('today', Number(ts)));
-  // ts: date string -> ms timestamp (local time), same parsing as prop(..., 'ts').
-  // A missing value (undefined/null) is NaN, the "no date" sentinel.
+  // ts: date string -> ms timestamp (local time). A missing value
+  // (undefined/null) is NaN, the "no date" sentinel.
   def('ts', (v) => (v === undefined || v === null ? NaN : call('ts', String(v))));
-  // prop: strings and objects arrive JSON-encoded (so no host object ever
-  // enters this realm) and are revived here; other primitives arrive as-is.
-  def('prop', (path, valType) => {
-    const v = call('prop', String(path), valType === undefined ? undefined : String(valType));
-    return typeof v === 'string' ? JSON.parse(v) : v;
-  });
-  // p: shorthand property object — p.type is prop('type'). A sandbox-realm Proxy
-  // (no host object involved); symbol keys (e.g. Symbol.toPrimitive) yield undefined.
-  const prop = globalThis.prop;
+  // p: front-matter property object — p.type reads the file's 'type' property.
+  // A sandbox-realm Proxy (no host object involved). Strings and objects arrive
+  // JSON-encoded (so no host object ever enters this realm) and are revived
+  // here; other primitives arrive as-is. Symbol keys (e.g. Symbol.toPrimitive)
+  // yield undefined.
   def('p', new Proxy(Object.create(null), {
-    get: (_t, key) => (typeof key === 'string' ? prop(key) : undefined),
+    get: (_t, key) => {
+      if (typeof key !== 'string') return undefined;
+      const v = call('getProp', key);
+      return typeof v === 'string' ? JSON.parse(v) : v;
+    },
   }));
 })();
 `;
@@ -175,12 +176,12 @@ export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost
           return h.today(Number(a0));
         case 'ts':
           return h.ts(String(a0));
-        case 'prop': {
-          const v = h.prop(String(a0), a1 === 'ts' ? 'ts' : undefined);
+        case 'getProp': {
+          const v = h.getProp(String(a0));
           if (v === null || v === undefined) return v;
           const t = typeof v;
-          // Numbers pass through raw (JSON would corrupt NaN — the NO_TIMESTAMP
-          // sentinel from prop(..., 'ts') — into null). Strings/objects/arrays
+          // Numbers pass through raw (JSON would corrupt NaN/Infinity — e.g. a
+          // YAML `.nan` — into null). Strings/objects/arrays
           // are JSON-encoded so the sandbox revives them in its own realm.
           if (t === 'number' || t === 'boolean' || t === 'bigint') return v;
           return JSON.stringify(v);

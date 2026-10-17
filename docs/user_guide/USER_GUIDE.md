@@ -754,29 +754,28 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     *   Example: `$('important')` finds files containing "important".
 *   **`tag('#name')`**: Returns `true` if the file content contains the hashtag `#name` as a whole tag — `tag('#todo')` matches `#todo` but not `#todos` or `#todo-later`. The `#` is optional (`tag('todo')` works too), and the match is case-sensitive. Tags are recognized exactly as the Folder Analysis counts them: a `#` at the start of a line or after whitespace, followed by a letter and then letters, digits, `_` or `-`.
     *   Example: `tag('#urgent') && !tag('#done')` finds files tagged urgent but not done.
-*   **`past(date, lookbackDays?)`**: Returns `true` if the date is in the past. The optional `lookbackDays` parameter limits results to timestamps within the specified number of days ago (e.g., `past(prop('due', 'ts'), 7)` matches files whose `due` date is within the last 7 days).
-*   **`future(date, lookaheadDays?)`**: Returns `true` if the date is in the future. The optional `lookaheadDays` parameter limits results to timestamps within the specified number of days ahead (e.g., `future(prop('due', 'ts'), 30)` matches files whose `due` date is within the next 30 days).
+*   **`past(date, lookbackDays?)`**: Returns `true` if the date is in the past. The optional `lookbackDays` parameter limits results to timestamps within the specified number of days ago (e.g., `past(ts(p.due), 7)` matches files whose `due` date is within the last 7 days).
+*   **`future(date, lookaheadDays?)`**: Returns `true` if the date is in the future. The optional `lookaheadDays` parameter limits results to timestamps within the specified number of days ahead (e.g., `future(ts(p.due), 30)` matches files whose `due` date is within the next 30 days).
 *   **`today(date)`**: Returns `true` if the date is today.
-*   **`prop(propertyPath, valType?)`**: Returns the value of the property at `propertyPath` from the file's YAML front matter, or `undefined` if not found. Use dot-notation to reach nested properties (e.g. `'author.name'`). The optional `valType` argument controls the return type: `"string"` (default) returns the raw value; `"ts"` interprets the property value as a date/datetime string and returns a numeric timestamp in milliseconds, suitable for use with `past()`, `future()`, and `today()`. Two formats are accepted: the app's `MM/DD/YYYY` convention (optional `HH:MM[:SS] AM/PM`) and ISO 8601 `YYYY-MM-DD` (optional 24-hour `HH:MM[:SS]`, separated by `T` or a space) — the form YAML front matter typically uses. Both are interpreted as local time; timezone suffixes are not supported. Any other format yields an invalid timestamp, for which `past()`/`future()`/`today()` all return `false`.
-*   **`p`**: Shorthand object for front matter properties — `p.type` is the same as `prop('type')`, and `p.author.role` reaches nested values. Combine with `ts()` when you need a timestamp.
-*   **`ts(dateString)`**: Converts a date/datetime string to a numeric timestamp in milliseconds, using the same rules as `prop(..., 'ts')` (`MM/DD/YYYY` or ISO `YYYY-MM-DD`, with optional time, interpreted as local time). A missing or unrecognized value yields an invalid timestamp, for which `past()`/`future()`/`today()` all return `false`. Example: `future(ts(p.due))` is equivalent to `future(prop('due', 'ts'))`.
+*   **`p`**: The file's YAML front matter properties. `p.type` is the value of the `type` property, or `undefined` if the file doesn't have one. Nested properties use normal dot syntax (`p.author.name`), and a property whose name isn't a valid identifier uses brackets (`p['due-date']`).
+*   **`ts(dateString)`**: Converts a date/datetime string to a numeric timestamp in milliseconds, for use with `past()`, `future()`, and `today()` — e.g. `future(ts(p.due))`. Two formats are accepted: the app's `MM/DD/YYYY` convention (optional `HH:MM[:SS] AM/PM`) and ISO 8601 `YYYY-MM-DD` (optional 24-hour `HH:MM[:SS]`, separated by `T` or a space) — the form YAML front matter typically uses. Both are interpreted as local time; timezone suffixes are not supported. A missing property or any other format yields an invalid timestamp, for which `past()`/`future()`/`today()` all return `false`.
 
 **Examples:**
 *   Find files with "TODO" that are due in the future:
     ```javascript
-    $('#TODO') && future(prop('due_date', 'ts'))
+    $('#TODO') && future(ts(p.due_date))
     ```
 *   Find files with "Meeting" that happened in the past:
     ```javascript
-    $('#meeting') && past(prop('due_date', 'ts'))
+    $('#meeting') && past(ts(p.due_date))
     ```
 *   Find files with "TODO" due within the next 7 days:
     ```javascript
-    $('#TODO') && future(prop('due_date', 'ts'), 7)
+    $('#TODO') && future(ts(p.due_date), 7)
     ```
 *   Find files with "Review" from the last 30 days:
     ```javascript
-    $('#review') && past(prop('due_date', 'ts'), 30)
+    $('#review') && past(ts(p.due_date), 30)
     ```
 *   Find files containing both "project" and "urgent":
     ```javascript
@@ -784,7 +783,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     ```
 *   Find files whose front matter `category` property is `sports`:
     ```javascript
-    prop('category') == 'sports'
+    p.category == 'sports'
     ```
     Matches files with front matter like:
     ```markdown
@@ -794,7 +793,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     ```
 *   Find files with a nested front matter property, e.g. `author.role` set to `editor`:
     ```javascript
-    prop('author.role') == 'editor'
+    p.author.role == 'editor'
     ```
     Matches files with front matter like:
     ```markdown
@@ -806,7 +805,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     ```
 *   Find files with a front matter `due_date` property that is in the future:
     ```javascript
-    future(prop('due_date', 'ts'))
+    future(ts(p.due_date))
     ```
     Matches files with front matter like:
     ```markdown
@@ -816,7 +815,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     ```
 *   Find files whose `tags` list contains `p1`:
     ```javascript
-    prop('tags')?.includes('p1')
+    p.tags?.includes('p1')
     ```
     Matches files with front matter like:
     ```markdown
@@ -829,13 +828,13 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     ```
 *   Combine a tag list check with a content search — files tagged `urgent` that also mention "deadline":
     ```javascript
-    prop('tags')?.includes('urgent') && $('#deadline')
+    p.tags?.includes('urgent') && $('#deadline')
     ```
 
 **When a query has a mistake:**
 *   **Syntax errors** (such as a missing parenthesis) are caught when you click **Search** or **Save**. The error is shown under the query box, and nothing runs or is saved until you fix it.
-*   **Errors on some files** are normal and are simply treated as "no match" for that file. For example, `prop('author').name` fails on files that have no `author` property.
-*   **Errors on every file** usually mean a typo, such as `Prop(...)` instead of `prop(...)`. Instead of returning a misleading empty list, the search fails and shows the error.
+*   **Errors on some files** are normal and are simply treated as "no match" for that file. For example, `p.author.name` fails on files that have no `author` property.
+*   **Errors on every file** usually mean a typo, such as `Tag(...)` instead of `tag(...)`. Instead of returning a misleading empty list, the search fails and shows the error.
 *   **Slow queries**: if a query takes more than one second on a single file (for example, an infinite loop), the search is stopped and reports a timeout.
 
 ## Search Highlight
@@ -879,9 +878,9 @@ To list everything due in the next 7 days, create a search definition that has:
 
 - "Calendar Items" checkbox selected
 - Search Mode: Advanced
-- Query: `future(prop('due', 'ts'), 7)`
+- Query: `future(ts(p.due), 7)`
 
-Change `future` to `past` to see what was due in the last 7 days, or use `today(prop('due', 'ts'))` for items due today. Then click **Calendar** on the Search Results tab to see them on the calendar.
+Change `future` to `past` to see what was due in the last 7 days, or use `today(ts(p.due))` for items due today. Then click **Calendar** on the Search Results tab to see them on the calendar.
 
 ### Search by Hashtag
 Clicking a hashtag in a rendered Markdown file runs a literal search for it, which is case-insensitive and also finds longer tags that start with it (clicking `#foo` also finds `#foobar`). **Ctrl+click** the hashtag to search for that exact tag instead, the same as the Advanced query `tag('#foo')`.
