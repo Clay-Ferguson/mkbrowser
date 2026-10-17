@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import TagsEditorDialog from '../dialogs/TagsEditorDialog';
 import CheckboxField from '../dialogs/common/CheckboxField';
-import { BUTTON_CLASS_DLG_OUTLINED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
+import { SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
 import type { ImageSize } from '../../shared/shared';
 import {
   setFontSize,
@@ -146,14 +145,13 @@ function DraftTextField({ value, onCommit, multiline = false, placeholder, rows,
 /**
  * General application settings page. Covers appearance (font size, content
  * width, folder tree width, image size, folders-on-top, table of contents),
- * files to ignore in searches, OCR tools folder path, calendar items folder
- * path, and hashtag management. Selects and checkboxes write to the store
+ * files to ignore in searches, OCR tools folder path, and calendar items folder
+ * path. Selects and checkboxes write to the store
  * immediately and call `saveSettings` to persist to disk; free-text fields
  * (`DraftTextField`) commit only on blur/Enter.
  */
 function SettingsView() {
   const settings = useAS(s => s.settings);
-  const [showTagsEditor, setShowTagsEditor] = useState(false);
 
   // Font size is now applied globally via data-font-size attribute on html element
 
@@ -347,21 +345,9 @@ function SettingsView() {
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
             />
           </section>
-
-          <button
-            type="button"
-            onClick={() => setShowTagsEditor(true)}
-            className={BUTTON_CLASS_DLG_OUTLINED}
-            data-testid="settings-edit-hashtags-button"
-          >
-            Edit Hashtags
-          </button>
         </div>
         </div>
       </main>
-      {showTagsEditor && (
-        <TagsEditorDialog onClose={() => setShowTagsEditor(false)} />
-      )}
     </div>
   );
 }

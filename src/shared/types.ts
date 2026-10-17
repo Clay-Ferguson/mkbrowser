@@ -121,7 +121,7 @@ export interface ItemData {
 /**
  * Represents which application page (aka view or panel) is currently displayed
  */
-export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread' | 'folder-graph' | 'calendar' | 'types-editor' | 'help';
+export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread' | 'folder-graph' | 'calendar' | 'types-editor' | 'tags-editor' | 'help';
 
 /**
  * Why the browser view is showing a single file instead of the folder listing.
@@ -428,6 +428,12 @@ export interface AppState {
    * out-of-band by CalendarView).
    */
   directoryRefreshNonce: number;
+
+  /**
+   * Monotonic counter; incremented after the Tags Editor saves the hashtag
+   * definitions so the tag picker re-fetches them.
+   */
+  tagsRevision: number;
 
   /**
    * Application-level error message shown in App's AlertDialog, or null when

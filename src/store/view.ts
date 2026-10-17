@@ -30,6 +30,7 @@ export interface ViewSlice {
   setPendingExpandFile: (filePath: string) => void;
   clearPendingExpandFile: () => void;
   requestDirectoryRefresh: () => void;
+  bumpTagsRevision: () => void;
   setAppError: (message: string | null) => void;
   setAppMessage: (message: AppMessage | null) => void;
   setLinkIdMismatch: (mismatch: LinkIdMismatch | null) => void;
@@ -224,6 +225,10 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     requestDirectoryRefresh: () =>
       set({ directoryRefreshNonce: get().directoryRefreshNonce + 1 }),
 
+    /** Signal that the hashtag definitions changed on disk (see `tagsRevision`). */
+    bumpTagsRevision: () =>
+      set({ tagsRevision: get().tagsRevision + 1 }),
+
     /**
      * Show (or with null, dismiss) the application-level error dialog.
      *
@@ -393,6 +398,10 @@ export function clearPendingExpandFile(): void {
 
 export function requestDirectoryRefresh(): void {
   getState().requestDirectoryRefresh();
+}
+
+export function bumpTagsRevision(): void {
+  getState().bumpTagsRevision();
 }
 
 export function setAppError(message: string | null): void {

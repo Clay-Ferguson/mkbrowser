@@ -7,6 +7,8 @@ interface SystemPopupMenuProps {
   onSettings: () => void;
   onAiSettings: () => void;
   onTypesEditor: () => void;
+  /** Opens the Tags tab (the hashtag editor). */
+  onTagsEditor: () => void;
   /** Opens the Help tab (a read-only render of the User Guide). */
   onHelp: () => void;
 }
@@ -14,7 +16,7 @@ interface SystemPopupMenuProps {
 /**
  * Popup menu for the system (gear/hamburger) toolbar button. Provides
  * navigation to the general Settings view, the AI Settings view, the
- * Types Editor view, and the Help tab.
+ * Types Editor view, the Tags (hashtag editor) view, and the Help tab.
  */
 export default function SystemPopupMenu({
   anchorRef,
@@ -22,6 +24,7 @@ export default function SystemPopupMenu({
   onSettings,
   onAiSettings,
   onTypesEditor,
+  onTagsEditor,
   onHelp,
 }: SystemPopupMenuProps) {
   return (
@@ -40,6 +43,11 @@ export default function SystemPopupMenu({
         label="Types Editor"
         data-testid="menu-types-editor"
         onClick={() => { onTypesEditor(); onClose(); }}
+      />
+      <PopupMenuItem
+        label="Edit Hashtags"
+        data-testid="menu-edit-hashtags"
+        onClick={() => { onTagsEditor(); onClose(); }}
       />
       <PopupMenuDivider />
       <PopupMenuItem

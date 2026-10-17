@@ -110,6 +110,7 @@ const initialState: AppState = {
   pendingEditView: null,
   pendingExpandFile: null,
   directoryRefreshNonce: 0,
+  tagsRevision: 0,
   appError: null,
   appMessage: null,
   linkIdMismatch: null,

@@ -7,9 +7,9 @@ import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSum
  *
  * Demonstrates how a user defines a library of custom hashtags and then applies
  * them to a file. The flow is:
- *   1. Open the System Menu and go to the Settings view.
- *   2. Open the "Edit Hashtags" dialog to show where the hashtag library lives,
- *      then close it (no edits — it is self-explanatory).
+ *   1. Open the System Menu and choose "Edit Hashtags".
+ *   2. Show the Tags tab to show where the hashtag library lives (no edits —
+ *      it is self-explanatory).
  *   3. Return to the Browse view and create a new Markdown file.
  *   4. Reveal the tag picker in the editor and check a couple of tags
  *      (p1 and note), highlighting each as it is selected.
@@ -58,65 +58,37 @@ test.describe('Custom Hashtags Demo', () => {
 
     await demoClick(systemMenuButton);
 
-    // ── 3. Click the "Settings" menu item ─────────────────────────────
-    const settingsItem = mainWindow.getByTestId('menu-settings');
-    await expect(settingsItem).toBeVisible({ timeout: 5000 });
-    await takeScreenshot(mainWindow, settingsItem, screenshotDir, step++, 'highlight-settings');
+    // ── 3. Click the "Edit Hashtags" menu item ────────────────────────
+    const editHashtagsItem = mainWindow.getByTestId('menu-edit-hashtags');
+    await expect(editHashtagsItem).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, editHashtagsItem, screenshotDir, step++, 'highlight-edit-hashtags');
     writeNarration(
       screenshotDir,
       step++,
       `The System menu is open.
-      Let's click the "Settings" option to open the Settings view.`
-    );
-
-    await demoClick(settingsItem);
-    await mainWindow.waitForTimeout(500);
-
-    // ── 4. Find and highlight the "Edit Hashtags" button ──────────────
-    const editHashtagsButton = mainWindow.getByRole('button', { name: 'Edit Hashtags' });
-    await expect(editHashtagsButton).toBeVisible({ timeout: 5000 });
-    await editHashtagsButton.scrollIntoViewIfNeeded();
-    await mainWindow.waitForTimeout(300);
-    await takeScreenshot(mainWindow, editHashtagsButton, screenshotDir, step++, 'highlight-edit-hashtags');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `We're now in the Settings view.
-      Down at the bottom is an "Edit Hashtags" button.
       This is where we manage the full library of hashtags that are available across all of our files.
-      Let's click it to open the hashtag editor.`
+      Let's click the "Edit Hashtags" option to open the hashtag editor.`
     );
 
-    await demoClick(editHashtagsButton);
+    await demoClick(editHashtagsItem);
     await mainWindow.waitForTimeout(500);
 
-    // ── 5. Show the Tags Editor dialog ────────────────────────────────
-    await expect(mainWindow.getByText('Categories', { exact: true })).toBeVisible({ timeout: 5000 });
+    // ── 4. Show the Tags tab ──────────────────────────────────────────
+    const tagsView = mainWindow.getByTestId('view-tags-editor');
+    await expect(tagsView).toHaveAttribute('data-active-view', 'true', { timeout: 5000 });
+    await expect(tagsView.getByText('Categories', { exact: true })).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'tags-editor-open');
     writeNarration(
       screenshotDir,
       step++,
-      `Here is the hashtag editor.
+      `Here is the hashtag editor, which opens in its own "Tags" tab.
       On the left we have our categories — things like priority and type — and on the right are the individual tags that belong to the selected category.
       From here you can rename categories, add new ones, and create or edit tags along with a short description for each.
       We won't make any changes right now — we just wanted to show you where your hashtags live.
-      Let's close this dialog and go put some of these tags to use.`
+      Let's go put some of these tags to use.`
     );
 
-    // ── 6. Close the dialog with Cancel (no changes) ──────────────────
-    const cancelButton = mainWindow.getByRole('button', { name: 'Cancel', exact: true });
-    await expect(cancelButton).toBeVisible({ timeout: 5000 });
-    await takeScreenshot(mainWindow, cancelButton, screenshotDir, step++, 'highlight-cancel');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `We'll click "Cancel" to close the editor without making any changes.`
-    );
-
-    await demoClick(cancelButton);
-    await mainWindow.waitForTimeout(500);
-
-    // ── 7. Switch back to the Browse view ─────────────────────────────
+    // ── 5. Switch back to the Browse view ─────────────────────────────
     const tabBar = mainWindow.getByTestId('app-tab-buttons');
     const browseTab = tabBar.getByTestId('tab-button-browser');
     await expect(browseTab).toBeVisible({ timeout: 5000 });
@@ -138,7 +110,7 @@ test.describe('Custom Hashtags Demo', () => {
       Let's create a brand new file and then tag it using the hashtags we just looked at.`
     );
 
-    // ── 8. Create a new file named "my-weekend-tasks" ─────────────────
+    // ── 6. Create a new file named "my-weekend-tasks" ─────────────────
     const createButton = mainWindow.getByTestId('create-file-button');
     await expect(createButton).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, createButton, screenshotDir, step++, 'highlight-create-file');
@@ -173,7 +145,7 @@ test.describe('Custom Hashtags Demo', () => {
     await demoClick(createDialogButton);
     await mainWindow.waitForTimeout(1000);
 
-    // ── 9. Type a little content so the note has a body ───────────────
+    // ── 7. Type a little content so the note has a body ───────────────
     const cmEditor = mainWindow.locator('.cm-editor').first();
     await expect(cmEditor).toBeVisible({ timeout: 10000 });
     await insertText(mainWindow, '# Weekend Tasks\n\nClean out the garage and call the plumber about the leaking sink.', true);
@@ -186,7 +158,7 @@ test.describe('Custom Hashtags Demo', () => {
       Now let's tag this file so it's easy to find later.`
     );
 
-    // ── 10. Reveal the tag picker with the toolbar button ─────────────
+    // ── 8. Reveal the tag picker with the toolbar button ─────────────
     // The toolbar tag toggle has no testid; locate it by its tooltip title.
     // Its visible state is persisted in config across runs, so it may already
     // be showing. Make sure it starts hidden (clicking silently if needed) so
@@ -214,11 +186,11 @@ test.describe('Custom Hashtags Demo', () => {
       screenshotDir,
       step++,
       `The tag picker is now showing, just above the editor.
-      Our hashtags are grouped by category, exactly the way we saw them in the hashtag editor.
+      Our hashtags are grouped by category, exactly the way we saw them in the Tags tab.
       Let's check a couple of them to attach them to this file.`
     );
 
-    // ── 11. Check the "p1" priority tag ──────────────────────────────
+    // ── 9. Check the "p1" priority tag ──────────────────────────────
     const p1Tag = mainWindow.locator('label').filter({ has: mainWindow.getByTestId('tags-picker-checkbox-p1') });
     await expect(p1Tag).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, p1Tag, screenshotDir, step++, 'highlight-p1-tag');
@@ -231,7 +203,7 @@ test.describe('Custom Hashtags Demo', () => {
     await demoClick(p1Tag);
     await mainWindow.waitForTimeout(500);
 
-    // ── 12. Check the "note" type tag ────────────────────────────────
+    // ── 10. Check the "note" type tag ────────────────────────────────
     const noteTag = mainWindow.locator('label').filter({ has: mainWindow.getByTestId('tags-picker-checkbox-note') });
     await expect(noteTag).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, noteTag, screenshotDir, step++, 'highlight-note-tag');
@@ -253,7 +225,7 @@ test.describe('Custom Hashtags Demo', () => {
       Now let's save the file.`
     );
 
-    // ── 13. Save the file ─────────────────────────────────────────────
+    // ── 11. Save the file ─────────────────────────────────────────────
     const saveButton = mainWindow.getByTestId('entry-save-button');
     await expect(saveButton).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, saveButton, screenshotDir, step++, 'highlight-save');
@@ -269,7 +241,7 @@ test.describe('Custom Hashtags Demo', () => {
     await expect(mainWindow.getByTestId('entry-save-button')).not.toBeVisible({ timeout: 5000 });
     await mainWindow.waitForTimeout(500);
 
-    // ── 14. Show the rendered tag pills on the saved file ─────────────
+    // ── 12. Show the rendered tag pills on the saved file ─────────────
     const taggedEntry = mainWindow
       .locator('[data-testid="browser-entry-markdown"]')
       .filter({ hasText: 'Weekend Tasks' });

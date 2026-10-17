@@ -49,7 +49,7 @@ function sortByName(types: EditorType[]): EditorType[] {
 
 /**
  * Types Editor tab: manages the user-defined object types stored under `types:`
- * in config.yaml. Two panes, following TagsEditorDialog: the type list on the
+ * in config.yaml. Two panes, like TagsEditorView: the type list on the
  * left and the selected type's description and properties on the right. Edits
  * live in a local, id-keyed model (see typesEditorModel.ts) until Save, which
  * validates and persists via `api.updateConfig({ types })`; Revert reloads from

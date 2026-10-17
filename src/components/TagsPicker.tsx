@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { useAS, getItemEditContent, setItemEditContent } from '../store';
-import { BUTTON_CLASS_LINK_AMBER, MONO_FONT_STACK, TAG_PILL_BASE, TAG_PILL_SELECTED, TAG_PILL_UNSELECTED, TAG_PILL_HOVER } from '../renderer/styles';
+import { MONO_FONT_STACK, TAG_PILL_BASE, TAG_PILL_SELECTED, TAG_PILL_UNSELECTED, TAG_PILL_HOVER } from '../renderer/styles';
 import {
   type TagsLoadState, type TagCategory, type HashtagDefinition,
   getTagsFromYaml, isYamlParseable,
@@ -10,7 +10,6 @@ import {
 import { fetchTags } from '../renderer/tagApi';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
 import AlertDialog from './dialogs/AlertDialog';
-import TagsEditorDialog from './dialogs/TagsEditorDialog';
 import { logger } from '../shared/logUtil';
 
 interface TagsPickerProps {
@@ -25,24 +24,21 @@ interface TagsPickerProps {
  * Tag definitions are loaded once from the project's tag configuration. Within each
  * category, selecting a tag deselects any other active sibling (radio-button behaviour),
  * except in the special "all" category which allows multiple simultaneous selections.
- * Clicking a category's name opens the Edit Hashtags dialog at that
- * category with a new tag already started; tags are reloaded when the dialog closes.
+ * The definitions are re-fetched whenever the Tags Editor saves (`tagsRevision`).
  * Returns null until the tag definitions are loaded or when no categories exist.
  */
 export default function TagsPicker({ filePath }: TagsPickerProps) {
   const editContent = useAS(s => s.items.get(filePath)?.editContent ?? '');
+  // Bumped when the Tags Editor saves, so the tag definitions are re-fetched.
+  const tagsRevision = useAS(s => s.tagsRevision);
 
   const [loadState, setLoadState] = useState<TagsLoadState>({ status: 'loading' });
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  // Category whose "+" was clicked; the Edit Hashtags dialog is open while non-null.
-  const [addTagCategory, setAddTagCategory] = useState<string | null>(null);
-  // Bumped when the Edit Hashtags dialog closes so the tag definitions are re-fetched.
-  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     // No setLoadState({ status: 'loading' }) here: the initial state is already
-    // 'loading', and on a reload (reloadKey bump) keeping the previous categories
+    // 'loading', and on a reload (tagsRevision bump) keeping the previous categories
     // on screen until the fresh ones arrive avoids a flash of the picker vanishing.
 
     fetchTags()
@@ -60,7 +56,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
 
     // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the cancelled flag so the pending fetchTags() promise can't set state after unmount.
     return () => { cancelled = true; };
-  }, [reloadKey]);
+  }, [tagsRevision]);
 
   if (loadState.status === 'loading') return null;
   if (loadState.categories.length === 0) return null;
@@ -150,31 +146,15 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
       <div className="grid grid-cols-[max-content_1fr] items-start gap-x-2 gap-y-2">
         {[...loadState.categories].sort((a, b) => a.name.localeCompare(b.name)).map((category) => (
           <Fragment key={category.name}>
-            <button
-              type="button"
-              title={`Add Tag to '${category.name}'`}
-              onClick={() => setAddTagCategory(category.name)}
-              className={`${BUTTON_CLASS_LINK_AMBER} min-w-[4rem] text-left text-sm font-bold uppercase pt-0.5`}
-              data-testid={`tags-picker-category-button-${category.name}`}
-            >
+            <span className="min-w-[4rem] text-left text-sm font-bold uppercase pt-0.5 text-amber-400">
               {category.name}:
-            </button>
+            </span>
             <div className="flex flex-wrap gap-x-1.5 gap-y-1">
               {category.tags.map((def) => renderTag(category, def))}
             </div>
           </Fragment>
         ))}
       </div>
-      {addTagCategory !== null && (
-        <TagsEditorDialog
-          initialCategory={addTagCategory}
-          addTagOnOpen
-          onClose={() => {
-            setAddTagCategory(null);
-            setReloadKey((k) => k + 1);
-          }}
-        />
-      )}
       {alertMessage && (
         <AlertDialog
           title="Cannot Edit Tags"

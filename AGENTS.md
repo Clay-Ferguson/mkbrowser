@@ -48,7 +48,8 @@ src/components/
                    #   useDelete, useContentLoader, useEditMode, useAiRewrite, …)
   dialogs/         # Modal dialogs (ConfirmDialog pattern — see .claude/skills/dialogs/SKILL.md)
   views/           # Full-page views: BrowseView, SettingsView, AISettingsView,
-                   #   SearchResultsView, FolderAnalysisView, FolderGraphView, etc.
+                   #   SearchResultsView, FolderAnalysisView, FolderGraphView,
+                   #   TypesEditorView, TagsEditorView, etc.
 ```
 
 Entry components compose shared hooks from `entries/common/` and render `EntryActionBar`, `RenameInput`, `SelectionCheckbox` for consistent UX. New entry types should follow this composition pattern.

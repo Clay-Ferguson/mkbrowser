@@ -376,9 +376,9 @@ The special category named **`all`** is an exception to this rule. Tags inside a
 
 ### Managing your hashtag library (Tags Editor)
 
-You can define the full set of available hashtags — and how they are organised — through the **Settings View** dialog, with the **Edit Hashtags** button. You can also click any category name in the tag picker while editing a file, which opens the same dialog on that category with a new tag already started, ready for you to type its name.
+You can define the full set of available hashtags — and how they are organised — in the **Tags Editor**. Open the **System menu** (the ☰ button at the top right of the window) and choose **Edit Hashtags**. A **Tags** tab opens. Like the other tabs, it can be closed with its **×** button; any unsaved edits are kept if you close it and open it again later in the same session.
 
-The dialog is split into two panes:
+The Tags Editor is split into two panes:
 
 - **Left pane — Categories**: lists all your tag categories in alphabetical order. Click a category to select it and see its tags on the right.
   - **Add Category**: click the ＋ icon at the right end of the **Categories** header to create a new category. The name field opens immediately for you to type the category name. Press `Enter` or click away to confirm; press `Esc` to cancel.
@@ -390,7 +390,7 @@ The dialog is split into two panes:
   - **Add Tag**: click the ＋ icon at the right end of the pane's header to add a new row, with its name field ready for typing.
   - **Delete a tag**: hover over a tag row and click the ✕ button that appears on the right.
 
-Click **Save** to write the changes to disk, or **Cancel** to discard them. Validation prevents saving if any category or tag name is empty, if two categories share the same name, or if a category contains duplicate tag names.
+Edits are not saved until you click **Save**. While there are unsaved edits, the bottom of the editor shows **Unsaved changes**. Click **Revert** (and confirm) to discard them and go back to what was last saved. Validation prevents saving if any category or tag name is empty, if two categories share the same name, or if a category contains duplicate tag names. Once saved, the tag picker in any file you are editing shows the updated hashtags.
 
 ## Renaming
 You can rename any file or folder:

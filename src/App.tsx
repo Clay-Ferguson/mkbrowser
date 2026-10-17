@@ -11,6 +11,7 @@ import FolderGraphView from './components/views/FolderGraphView';
 import CalendarView from './components/views/CalendarView';
 import AISettingsView from './components/views/AISettingsView';
 import TypesEditorView from './components/views/TypesEditorView';
+import TagsEditorView from './components/views/TagsEditorView';
 import HelpView from './components/views/HelpView';
 import ThreadView from './components/views/ThreadView';
 import BrowseView from './components/views/BrowseView';
@@ -387,6 +388,14 @@ function App() {
           <div {...viewProps('types-editor')}>
             <ErrorBoundary>
               <TypesEditorView />
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {visitedViews.has('tags-editor') && (
+          <div {...viewProps('tags-editor')}>
+            <ErrorBoundary>
+              <TagsEditorView />
             </ErrorBoundary>
           </div>
         )}
