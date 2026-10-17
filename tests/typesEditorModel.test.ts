@@ -102,8 +102,12 @@ describe('validate', () => {
     expect(validate([makeType('t', [['bad name', '']])])).toMatch(/Invalid property name "bad name" in "t"/);
   });
 
-  it.each(['type', 'id', 'tags', 'due', 'start', 'duration', 'rrule'])('rejects the reserved property name "%s"', (name) => {
-    expect(validate([makeType('t', [['name', ''], [name, '']])])).toMatch(new RegExp(`"${name}" is reserved`));
+  it('rejects a property named "type"', () => {
+    expect(validate([makeType('t', [['name', ''], ['type', '']])])).toMatch(/"type" can't be used as a property name \(in "t"\)/);
+  });
+
+  it.each(['id', 'tags', 'due', 'start', 'duration', 'rrule'])('allows the property name "%s"', (name) => {
+    expect(validate([makeType('t', [['name', ''], [name, '']])])).toBeNull();
   });
 
   it('rejects duplicate property names within a type', () => {
@@ -112,5 +116,6 @@ describe('validate', () => {
 
   it('allows the same property name in different types', () => {
     expect(validate([makeType('a', [['name', '']]), makeType('b', [['name', '']])])).toBeNull();
+    expect(validate([makeType('a', [['due', '']]), makeType('b', [['due', '']])])).toBeNull();
   });
 });

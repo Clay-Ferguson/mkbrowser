@@ -1275,16 +1275,9 @@ Type names and property names:
 
 - may contain only letters, digits, and underscores (`_`), and cannot start with a digit — e.g. `person`, `cell_phone`, `room_2`;
 - are case-sensitive (`Person` and `person` are different types);
-- must be unique — no two types with the same name, and no two properties with the same name within one type.
+- must be unique — no two types with the same name, and no two properties with the same name within one type. Different types may share property names freely (e.g. two types can both have a `due` property).
 
-Because an object's properties live in the front matter, a few property names are **reserved** for the front-matter properties MkBrowser already uses, and can't be used in a type:
-
-| Reserved name | Already used for |
-|---------------|------------------|
-| `type` | Saying which type the object is |
-| `id` | The file's ID, used to keep links working when files move |
-| `tags` | The file's hashtags |
-| `due`, `start`, `duration`, `rrule` | [Calendar](#calendar) dates and repeats |
+The only property name you can't use is `type`, because that front-matter line says which type the object is. Any other name is allowed — including names MkBrowser also uses for its own front-matter properties. Such a property keeps that meaning too: for example, a `due` property also puts the object on the [Calendar](#calendar).
 
 ## Inserting an Object into a Document
 

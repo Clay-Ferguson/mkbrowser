@@ -1,5 +1,4 @@
 import { DEFAULT_PROPERTY_TYPE } from '../../shared/shared';
-import { CALENDAR_PROPS } from '../../shared/calendarUtil';
 import type { PropertyDefinition, PropertyType, TypeDefinition, TypeDefinitions } from '../../shared/shared';
 
 /**
@@ -17,11 +16,12 @@ import type { PropertyDefinition, PropertyType, TypeDefinition, TypeDefinitions 
 export const TYPE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 /**
- * Property names a type may not use. An object's properties live in its file's front matter
- * alongside keys the app already gives a meaning to: `type` (which type the object is), `id`
- * (link repair), `tags` (the hashtag list), and the calendar properties.
+ * The one property name a type may not use: an object's `type:` front-matter key names which type
+ * it is, so a property of that name could never hold a value of its own. Every other name is
+ * allowed, including keys the app also gives a meaning to (e.g. `due`, which then also puts the
+ * object on the calendar), and the same name may appear in any number of types.
  */
-export const RESERVED_PROPERTY_NAMES: readonly string[] = ['type', 'id', 'tags', ...CALENDAR_PROPS];
+export const TYPE_KEY = 'type';
 
 export interface EditorProperty {
   id: string;
@@ -123,8 +123,8 @@ export function dropBlankProperties(editor: EditorType[]): EditorType[] {
  * Returns the first validation problem as a user-facing message, or null when
  * the types are valid: type and property names must be non-empty, match
  * TYPE_NAME_PATTERN, and be unique (types globally, properties within their
- * type), and no property may use a reserved name (RESERVED_PROPERTY_NAMES). Expects fully blank
- * properties to have been removed already (see dropBlankProperties).
+ * type), and no property may be named TYPE_KEY. Expects fully blank properties to have been
+ * removed already (see dropBlankProperties).
  */
 export function validate(editor: EditorType[]): string | null {
   const typeNames = editor.map((t) => t.name.trim());
@@ -138,8 +138,7 @@ export function validate(editor: EditorType[]): string | null {
     if (propNames.some((n) => n === '')) return `Properties in "${typeName}" that have a description need a name.`;
     const badProp = propNames.find((n) => !TYPE_NAME_PATTERN.test(n));
     if (badProp !== undefined) return `Invalid property name "${badProp}" in "${typeName}": use letters, digits, and underscores, not starting with a digit.`;
-    const reserved = propNames.find((n) => RESERVED_PROPERTY_NAMES.includes(n));
-    if (reserved !== undefined) return `"${reserved}" is reserved and can't be used as a property name (in "${typeName}"). Reserved names: ${RESERVED_PROPERTY_NAMES.join(', ')}.`;
+    if (propNames.includes(TYPE_KEY)) return `"${TYPE_KEY}" can't be used as a property name (in "${typeName}"): it holds the object's type name.`;
     if (new Set(propNames).size !== propNames.length) return `Duplicate property names in type "${typeName}".`;
   }
   return null;
