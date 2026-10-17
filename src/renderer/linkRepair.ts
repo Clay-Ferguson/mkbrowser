@@ -1,9 +1,10 @@
 /**
  * Auto-repair of Markdown links that carry their target's front-matter id in the
- * link title — `[label](<dest> "id:3D6B20DDF")`, as written by "Paste Link into
- * Editor". When such a link is clicked and its destination no longer exists (the
- * target, or the file containing the link, was renamed or moved), the target is
- * found by its id, opened, and the link's destination is silently rewritten.
+ * link title — `[label](<dest> "id:3D6B20DDF")`, as written by the editor's "Paste
+ * Link" and the index tree's "Paste Link into Editor". When such a link is clicked
+ * and its destination no longer exists (the target, or the file containing the link,
+ * was renamed or moved), the target is found by its id, opened, and the link's
+ * destination is silently rewritten.
  */
 import { api } from './api';
 import { appendLinkFragment, decodeMarkdownUrl, formatLinkDestination, getRelativePath, resolveLinkPath, splitHeadingFragment } from './linkUtil';
@@ -92,7 +93,7 @@ async function repairLinkInFile(sourcePath: string, brokenTarget: string, id: st
 /**
  * Resolves to the front-matter id of the Markdown file at `path` for use as a link
  * title, or '' when it has none (or can't be read). Never writes the file — so
- * "Paste Link into Editor" can ask the user before adding an id (addLinkTargetId).
+ * "Paste Link" can ask the user before adding an id (addLinkTargetId).
  * Never rejects.
  */
 export function readLinkTargetId(path: string): Promise<string> {
@@ -100,8 +101,20 @@ export function readLinkTargetId(path: string): Promise<string> {
 }
 
 /**
+ * Resolves to the front-matter id a new link to the Markdown file at `path` should carry
+ * (see readLinkTargetId), and whether the user must first be asked to add one: true only
+ * when the file has no id and isn't open in the editor. An id is never added silently — an
+ * injected front-matter block is visible to anyone reading the file (e.g. a README.md on
+ * GitHub) — and a file open in the editor can't be rewritten (it would fight the edit
+ * buffer), so that one just gets a plain link. Never rejects.
+ */
+export function resolveLinkTargetId(path: string): Promise<{ id: string; needsConsent: boolean }> {
+  return readLinkTargetId(path).then((id) => ({ id, needsConsent: !id && !getItem(path)?.editing }));
+}
+
+/**
  * Resolves to the front-matter id of the Markdown file at `path`, adding a fresh id
- * to the file first when it has none — so the link made by "Paste Link into Editor"
+ * to the file first when it has none — so the link made by "Paste Link"
  * can later be auto-repaired. Only called once the user has agreed to the id being
  * written (an injected front-matter block is visible to anyone reading the file).
  * A file open in the editor is only read, never rewritten (that would fight the edit

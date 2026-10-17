@@ -10,14 +10,16 @@ import { useAS, setEnableThesaurus, setWordWrap, setShowPropsInEditor } from '..
 import { wordAt, isSpellCheckExempt, type SpellingSuggestion } from './spellChecker';
 import { objectTypeOptions, planObjectInsertion } from '../../shared/objects/userTypes';
 import { api } from '../../renderer/api';
-import { clipboardLinkCandidates, formatMarkdownFileLink } from '../../renderer/linkUtil';
-import { readLinkTargetId } from '../../renderer/linkRepair';
+import { clipboardLinkCandidates, formatFileLink } from '../../renderer/linkUtil';
+import { resolveLinkTargetId } from '../../renderer/linkRepair';
 import { getFileName } from '../../renderer/pathUtil';
 
-/** An existing file named by the clipboard text, offered by "Paste Link". */
+/** An existing file or folder named by the clipboard text, offered by "Paste Link". */
 export interface PasteLinkTarget {
-  /** Absolute path of the file. */
+  /** Absolute path of the file or folder. */
   targetPath: string;
+  /** Whether `targetPath` is a folder. */
+  isDirectory: boolean;
   /** Heading slug from a `file.md#slug` clipboard text, or null. */
   fragment: string | null;
   /** Raw (still escaped) label of a `[label](path)` clipboard link — e.g. the heading text — or null for a bare path. */
@@ -35,8 +37,8 @@ export interface ContextMenuState {
    */
   submenu?: 'insertObject';
   /**
-   * Set (shortly after the menu opens) when the clipboard holds the path of an existing file,
-   * which shows the "Paste Link" item. Cleared whenever the menu is opened afresh.
+   * Set (shortly after the menu opens) when the clipboard holds the path of an existing file
+   * or folder, which shows the "Paste Link" item. Cleared whenever the menu is opened afresh.
    */
   pasteLink?: PasteLinkTarget;
   /** Whether the editor had a non-empty selection when the menu opened — shows "Make Link". */
@@ -44,10 +46,11 @@ export interface ContextMenuState {
 }
 
 /**
- * Resolves to the existing file the clipboard text names, if any: a Markdown link
+ * Resolves to the existing file or folder the clipboard text names, if any: a Markdown link
  * `[Heading](docs/file.md#slug)` (as copied by right-clicking a rendered heading) or a bare
- * path, either one relative to the browsing root or absolute, with an optional heading slug. Folders don't count. Resolves to
- * null otherwise, including when the clipboard can't be read; never rejects.
+ * path (as copied by the index tree's "Copy Path"), either one relative to the browsing root
+ * or absolute, with an optional heading slug. Resolves to null otherwise, including when the
+ * clipboard can't be read; never rejects.
  */
 async function findClipboardLinkTarget(rootPath: string): Promise<PasteLinkTarget | null> {
   let text: string;
@@ -60,11 +63,21 @@ async function findClipboardLinkTarget(rootPath: string): Promise<PasteLinkTarge
   const parsed = clipboardLinkCandidates(text, rootPath);
   if (!parsed) return null;
   for (const path of parsed.paths) {
-    if (await api.pathExists(path) && !(await api.isDirectory(path))) {
-      return { targetPath: path, fragment: parsed.fragment, label: parsed.label };
+    if (await api.pathExists(path)) {
+      return { targetPath: path, isDirectory: await api.isDirectory(path), fragment: parsed.fragment, label: parsed.label };
     }
   }
   return null;
+}
+
+/** Replaces `view`'s selection with `text`, leaving the cursor after it, and focuses the editor. */
+function insertAtSelection(view: EditorView, text: string): void {
+  const { from, to } = view.state.selection.main;
+  view.dispatch({
+    changes: { from, to, insert: text },
+    selection: { anchor: from + text.length },
+  });
+  view.focus();
 }
 
 interface UseEditorContextMenuProps {
@@ -113,6 +126,9 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   // Why Insert Object refused (e.g. the file already holds an object of another type); shown in an alert.
   const [insertObjectError, setInsertObjectError] = useState<string | null>(null);
+  // A "Paste Link" to a Markdown file with no front-matter id, waiting on the user's choice
+  // of whether to add one (see AddLinkIdDialog).
+  const [pendingIdLink, setPendingIdLink] = useState<PasteLinkTarget | null>(null);
   const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
   const wordWrap = useAS(s => s.settings.wordWrap);
   // Only `BrowseFile` (single-file mode) mounts the synonym strip, and that is what
@@ -268,27 +284,44 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     })();
   };
 
-  // "Paste Link" — inserts a link to the file the clipboard names (see
-  // findClipboardLinkTarget), relative to this file, in place of the selection, keeping the
-  // clipboard link's label (the heading text) when it had one. A Markdown
-  // target's front-matter id goes in the link title as with "Paste Link into Editor"; one
-  // without an id gets a plain link (no id is ever added to it from here).
-  const handlePasteMarkdownLink = () => {
+  // Inserts the "Paste Link" link to `target` carrying `id` (see formatFileLink).
+  const insertPasteLink = (target: PasteLinkTarget, id: string) => {
     const view = viewRef.current;
+    if (!view || !filePath) return;
+    insertAtSelection(view, formatFileLink(filePath, target.targetPath, target.isDirectory, id, target.fragment, target.label));
+  };
+
+  // "Paste Link" — inserts a link to the file or folder the clipboard names (see
+  // findClipboardLinkTarget), relative to this file, in place of the selection, keeping the
+  // clipboard link's label (the heading text) when it had one. An image becomes an inline
+  // image. A Markdown target's front-matter id goes in the link title; when it has none the
+  // user is first asked whether to add one (pendingIdLink → AddLinkIdDialog), unless it can't
+  // be given one (see resolveLinkTargetId).
+  const handlePasteMarkdownLink = () => {
     const target = contextMenu.pasteLink;
     closeContextMenu();
-    if (!view || !target || !filePath) return;
+    if (!viewRef.current || !target || !filePath) return;
 
-    const idPromise = isMarkdownFile(target.targetPath) ? readLinkTargetId(target.targetPath) : Promise.resolve('');
-    void idPromise.then((id) => {
-      const link = formatMarkdownFileLink(filePath, target.targetPath, id, target.fragment, target.label);
-      const { from, to } = view.state.selection.main;
-      view.dispatch({
-        changes: { from, to, insert: link },
-        selection: { anchor: from + link.length },
-      });
-      view.focus();
+    if (target.isDirectory || !isMarkdownFile(target.targetPath)) {
+      insertPasteLink(target, '');
+      return;
+    }
+    void resolveLinkTargetId(target.targetPath).then(({ id, needsConsent }) => {
+      if (needsConsent) setPendingIdLink(target);
+      else insertPasteLink(target, id);
     });
+  };
+
+  // The ID dialog's choice: the id to link with ('' for a plain link).
+  const handleIdLinkChosen = (id: string) => {
+    if (pendingIdLink) insertPasteLink(pendingIdLink, id);
+  };
+
+  // Clears the pending "Paste Link" once the ID dialog closes, whatever the choice; a
+  // dismissal links nothing and just hands focus back to the editor.
+  const closeIdLinkDialog = () => {
+    setPendingIdLink(null);
+    viewRef.current?.focus();
   };
 
   // "Make Link" — turns the selection into a Markdown link via the "Insert link" dialog.
@@ -483,6 +516,9 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     objectTypes: objectTypeOptions(typeDefs),
     insertObjectError,
     closeInsertObjectError,
+    pendingIdLink,
+    handleIdLinkChosen,
+    closeIdLinkDialog,
     handleToggleThesaurus,
     canToggleThesaurus: thesaurusCapable && singleFileMode,
     thesaurusEnabled,

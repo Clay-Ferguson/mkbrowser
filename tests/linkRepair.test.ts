@@ -13,7 +13,8 @@ vi.mock('../src/renderer/api', () => ({
 
 import { api } from '../src/renderer/api';
 import { useAS } from '../src/store';
-import { openIdLink, replaceIdLinkDestinations } from '../src/renderer/linkRepair';
+import { openIdLink, replaceIdLinkDestinations, resolveLinkTargetId } from '../src/renderer/linkRepair';
+import type { ItemData } from '../src/shared/types';
 
 const SRC = '/notes/thread/index.md';
 const BROKEN = '/notes/Job Interview Thread/HUMAN.md';
@@ -150,5 +151,30 @@ describe('openIdLink when the link target exists', () => {
     openIdLink('/notes/index.md', TARGET, 'ABC');
     await settle();
     expect(useAS.getState().linkIdMismatch).toBeNull();
+  });
+});
+
+describe('resolveLinkTargetId', () => {
+  const TARGET = '/notes/a/doc.md';
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    useAS.setState({ items: new Map() });
+  });
+
+  it('returns an existing id without asking', async () => {
+    vi.mocked(api.readFile).mockResolvedValue({ ok: true, content: '---\nid: ABC\n---\nBody' });
+    await expect(resolveLinkTargetId(TARGET)).resolves.toEqual({ id: 'ABC', needsConsent: false });
+  });
+
+  it('asks before adding an id to a file that has none', async () => {
+    vi.mocked(api.readFile).mockResolvedValue({ ok: true, content: 'No front matter' });
+    await expect(resolveLinkTargetId(TARGET)).resolves.toEqual({ id: '', needsConsent: true });
+  });
+
+  it('gives a file open in the editor a plain link without asking', async () => {
+    vi.mocked(api.readFile).mockResolvedValue({ ok: true, content: 'No front matter' });
+    useAS.setState({ items: new Map([[TARGET, { path: TARGET, editing: true } as ItemData]]) });
+    await expect(resolveLinkTargetId(TARGET)).resolves.toEqual({ id: '', needsConsent: false });
   });
 });

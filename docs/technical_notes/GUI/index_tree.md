@@ -1,6 +1,6 @@
 # Index Tree Application Panel
 
-The component `IndexTreeView.tsx` (`src/components/views/`) is the tree view panel on the left side of the main application window. It displays the file system hierarchy: only files and folders. Folders can be expanded and collapsed, and so can a file that owns an attachment folder (`<name>.attach`), which is shown as that file's child. Clicking a file opens it on its own in the browse view; right-clicking any node opens a context menu (Browse, Rename, Delete, Cut, Paste, Paste Link into Editor, Copy Path, …).
+The component `IndexTreeView.tsx` (`src/components/views/`) is the tree view panel on the left side of the main application window. It displays the file system hierarchy: only files and folders. Folders can be expanded and collapsed, and so can a file that owns an attachment folder (`<name>.attach`), which is shown as that file's child. Clicking a file opens it on its own in the browse view; right-clicking any node opens a context menu (Browse, Rename, Delete, Cut, Paste, Paste Link into Editor, Copy Path, …). "Copy Path" copies the node's absolute path, which the editor's "Paste Link" turns into a relative link (asking first whether to add a front-matter id to an id-less Markdown target) — the intended replacement for "Paste Link into Editor".
 
 ## Node Type
 

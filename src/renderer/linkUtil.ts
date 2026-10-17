@@ -1,5 +1,6 @@
 import { getFileName, getParentPath, isAbsolutePath, joinPath, pathSep, splitPath, splitPathSegments } from './pathUtil';
 import { decodeMarkdownUrl, splitHeadingFragment } from '../shared/markdownLinks';
+import { isImageFile, isMarkdownFile } from '../shared/fileTypes';
 
 // Pure link-syntax helpers live in shared/ so the main process can use them too
 // (the folder graph's link scan); re-exported so renderer call sites import them from here.
@@ -190,8 +191,8 @@ function escapeLinkLabel(label: string): string {
 }
 
 /**
- * The Markdown link to `targetPath` inserted into the file `fromFilePath` by "Paste Link
- * into Editor" and the editor menu's "Paste Link" — `[README](../a/README.md#usage "id:36F7385CA")`:
+ * The Markdown link to the Markdown file `targetPath` inserted into the file `fromFilePath` by
+ * "Paste Link into Editor" and the editor menu's "Paste Link" (see `formatFileLink`) — `[README](../a/README.md#usage "id:36F7385CA")`:
  * a relative destination (angle-bracketed or encoded as needed, see `formatLinkDestination`)
  * with an optional heading `fragment`, labelled with `rawLabel` — Markdown label text, used
  * verbatim, so any escapes it carries are kept — or, by default, the file name minus `.md`. A non-empty `id` (the target's front-matter id) rides in the link title, so a
@@ -208,6 +209,28 @@ export function formatMarkdownFileLink(
   const text = rawLabel ?? escapeLinkLabel(getFileName(targetPath).replace(/\.md$/, ''));
   const title = id ? ` ${formatLinkTitle(`id:${id}`)}` : '';
   return `[${text}](${dest}${title})`;
+}
+
+/**
+ * The Markdown link to any file or folder `targetPath` inserted into the file `fromFilePath`
+ * by the editor menu's "Paste Link": a Markdown file's link as `formatMarkdownFileLink` makes
+ * it (carrying `id`), an image as an inline image `![diagram.png](../images/diagram.png)`, and
+ * anything else — a folder included — as `[name](../dest)`. `fragment` and `rawLabel` are as
+ * for `formatMarkdownFileLink`; a non-Markdown label defaults to the full file or folder name.
+ */
+export function formatFileLink(
+  fromFilePath: string,
+  targetPath: string,
+  isDirectory: boolean,
+  id: string,
+  fragment: string | null = null,
+  rawLabel: string | null = null,
+): string {
+  const name = getFileName(targetPath);
+  if (!isDirectory && isMarkdownFile(name)) return formatMarkdownFileLink(fromFilePath, targetPath, id, fragment, rawLabel);
+  const dest = appendLinkFragment(formatLinkDestination(getRelativePath(fromFilePath, targetPath)), fragment ?? '');
+  const link = `[${rawLabel ?? escapeLinkLabel(name)}](${dest})`;
+  return !isDirectory && isImageFile(name) ? `!${link}` : link;
 }
 
 /**

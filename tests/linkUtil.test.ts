@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRelativePath, getPathRelativeToDir, formatMarkdownFileLink, formatHeadingLink, clipboardLinkCandidates, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath, splitHeadingFragment, appendLinkFragment, isFileLinkHref } from '../src/renderer/linkUtil';
+import { getRelativePath, getPathRelativeToDir, formatMarkdownFileLink, formatFileLink, formatHeadingLink, clipboardLinkCandidates, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle, resolveLinkPath, splitHeadingFragment, appendLinkFragment, isFileLinkHref } from '../src/renderer/linkUtil';
 
 describe('getRelativePath', () => {
   it('returns just the file name when target is in the same directory', () => {
@@ -219,6 +219,29 @@ describe('formatMarkdownFileLink', () => {
 
   it('escapes brackets in the label', () => {
     expect(formatMarkdownFileLink('/r/note.md', '/r/[x].md', '')).toBe('[\\[x\\]]([x].md)');
+  });
+});
+
+describe('formatFileLink', () => {
+  it('links a Markdown file as formatMarkdownFileLink does, with id, fragment and label', () => {
+    expect(formatFileLink('/r/a/note.md', '/r/b/README.md', false, '36F7385CA', 'usage', 'Usage'))
+      .toBe('[Usage](../b/README.md#usage "id:36F7385CA")');
+  });
+
+  it('inserts an image as an inline image, keeping its extension in the label', () => {
+    expect(formatFileLink('/r/a/note.md', '/r/img/diagram.png', false, '')).toBe('![diagram.png](../img/diagram.png)');
+  });
+
+  it('links a folder by name, angle-bracketing a destination with spaces', () => {
+    expect(formatFileLink('/r/a/note.md', '/r/my docs', true, '')).toBe('[my docs](<../my docs>)');
+  });
+
+  it('treats a folder named like a Markdown file as a folder', () => {
+    expect(formatFileLink('/r/note.md', '/r/notes.md', true, 'IGNORED')).toBe('[notes.md](notes.md)');
+  });
+
+  it('links any other file by its full name and ignores the id', () => {
+    expect(formatFileLink('/r/note.md', '/r/data/run.sh', false, 'IGNORED')).toBe('[run.sh](data/run.sh)');
   });
 });
 

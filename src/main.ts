@@ -397,8 +397,8 @@ function setupIpcHandlers(): void {
 
       // The content is written as the user saved it (plus TOC regeneration, and an
       // object's front matter put in canonical order) — the save path never adds a
-      // front-matter `id`. Ids are only ever added with the user's consent, by
-      // "Paste Link into Editor".
+      // front-matter `id`. Ids are only ever added with the user's consent, by the
+      // editor's "Paste Link" or the index tree's "Paste Link into Editor".
       if (filePath.toLowerCase().endsWith('.md')) {
         finalContent = orderObjectFrontMatter(await processTOC(content), getConfig().types ?? {});
         // Take the per-directory index lock for the write itself: reconcile's
@@ -650,7 +650,7 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Get a .md file's front-matter id, adding one if missing ("Paste Link into Editor")
+  // Get a .md file's front-matter id, adding one if missing ("Paste Link" / "Paste Link into Editor")
   ipcMain.handle('ensure-front-matter-id', async (_event, filePath: string): Promise<FrontMatterIdResult> => {
     try {
       return await ensureFrontMatterId(filePath);

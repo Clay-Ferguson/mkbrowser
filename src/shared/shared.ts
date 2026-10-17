@@ -534,8 +534,9 @@ export interface ElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<FileWriteResult>;
   /**
    * Returns the front-matter id of a .md file, first adding a fresh one when it has
-   * none (in any folder, not only Document Mode ones). Used by "Paste Link into
-   * Editor" so every link to a Markdown file carries an id for auto-repair.
+   * none (in any folder, not only Document Mode ones). Used by the editor's "Paste
+   * Link" and the index tree's "Paste Link into Editor" (after the user consents) so
+   * a link to a Markdown file carries an id for auto-repair.
    */
   ensureFrontMatterId: (filePath: string) => Promise<FrontMatterIdResult>;
   getFileSize: (filePath: string) => Promise<number>;

@@ -27,6 +27,7 @@ import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spe
 import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
 import AlertDialog from '../dialogs/AlertDialog';
+import AddLinkIdDialog from '../dialogs/AddLinkIdDialog';
 import NameInputDialog from '../dialogs/common/NameInputDialog';
 import { useUrlPaste } from './useUrlPaste';
 import { createFontSizeTheme } from './editorTheme';
@@ -530,6 +531,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     objectTypes,
     insertObjectError,
     closeInsertObjectError,
+    pendingIdLink,
+    handleIdLinkChosen,
+    closeIdLinkDialog,
     handleToggleThesaurus,
     canToggleThesaurus,
     thesaurusEnabled,
@@ -1075,6 +1079,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       />
       {insertObjectError && (
         <AlertDialog title="Insert Object" message={insertObjectError} onClose={closeInsertObjectError} />
+      )}
+      {pendingIdLink && (
+        <AddLinkIdDialog targetPath={pendingIdLink.targetPath} onClose={closeIdLinkDialog} onLink={handleIdLinkChosen} />
       )}
       {pendingUrlPaste && (
         <NameInputDialog

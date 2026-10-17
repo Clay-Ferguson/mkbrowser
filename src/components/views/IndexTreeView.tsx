@@ -4,7 +4,7 @@ import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { saveSettings } from '../../renderer/config';
 import { refreshDirectory } from '../../renderer/directoryLoader';
-import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_TB_NORMAL, ENTRY_DROP_TARGET, ROW_HOVER } from '../../renderer/styles';
+import { BUTTON_CLASS_TB_NORMAL, ENTRY_DROP_TARGET, ROW_HOVER } from '../../renderer/styles';
 import { runOp } from '../../renderer/runOp';
 import { isImageFile } from '../../shared/fileTypes';
 import FileTypeIcon from '../FileTypeIcon';
@@ -14,6 +14,7 @@ import CreateFileDialog from '../dialogs/CreateFileDialog';
 import CreateFolderDialog from '../dialogs/CreateFolderDialog';
 import RenameDialog from '../dialogs/RenameDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
+import AddLinkIdDialog from '../dialogs/AddLinkIdDialog';
 import {
   useAS,
   getCutPaths,
@@ -34,7 +35,6 @@ import {
   setBrowseFile,
   setHighlightItem,
   setIndexTreeWidth,
-  getItem,
 } from '../../store';
 import type { FileNode } from '../../store';
 import type { FileEntry } from '../../shared/shared';
@@ -59,7 +59,7 @@ import { generateTimestampFileName } from '../../shared/timeUtil';
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
 import { formatLinkDestination, formatMarkdownFileLink } from '../../renderer/linkUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
-import { addLinkTargetId, readLinkTargetId } from '../../renderer/linkRepair';
+import { resolveLinkTargetId } from '../../renderer/linkRepair';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 const INDENT_SIZE = 20;
@@ -160,21 +160,18 @@ function insertMarkdownLinkWithId(editor: MarkdownEditor, targetPath: string, id
 
 /**
  * "Paste Link into Editor" for a Markdown target (see insertMarkdownLinkWithId).
- * A target that already has a front-matter id is linked with it right away. One
- * without an id is never silently given one — an injected front-matter block is
- * visible to anyone reading the file (e.g. a README.md on GitHub) — so the link is
- * handed to `onNeedsId`, which asks the user whether to add an id or paste a plain
- * link. A target open in the editor can't be rewritten (it would fight the edit
- * buffer), so it gets a plain link without asking.
+ * A target that already has a front-matter id, or can't be given one, is linked
+ * right away (see resolveLinkTargetId). Otherwise the link is handed to `onNeedsId`,
+ * which asks the user whether to add an id or paste a plain link.
  */
 function insertMarkdownFileLink(
   editor: MarkdownEditor,
   targetPath: string,
   onNeedsId: (pending: PendingIdLink) => void,
 ): void {
-  void readLinkTargetId(targetPath).then((id) => {
-    if (id || getItem(targetPath)?.editing) insertMarkdownLinkWithId(editor, targetPath, id);
-    else onNeedsId({ editor, targetPath });
+  void resolveLinkTargetId(targetPath).then(({ id, needsConsent }) => {
+    if (needsConsent) onNeedsId({ editor, targetPath });
+    else insertMarkdownLinkWithId(editor, targetPath, id);
   });
 }
 
@@ -1045,23 +1042,10 @@ function IndexTreeView() {
         />
       )}
       {pendingIdLink && (
-        <ConfirmDialog
-          title="Add ID to Linked File?"
-          message={`"${getFileName(pendingIdLink.targetPath)}" has no ID. Adding one writes an "id" property into the file's 'front matter', and lets this link repair itself if the file is later renamed or moved.`}
-          confirmLabel="Add ID & Link"
-          cancelLabel="Plain Link"
-          confirmClassName={BUTTON_CLASS_DLG_BLUE}
-          onConfirm={() => {
-            const { editor, targetPath } = pendingIdLink;
-            setPendingIdLink(null);
-            void addLinkTargetId(targetPath).then((id) => insertMarkdownLinkWithId(editor, targetPath, id));
-          }}
-          onCancel={() => {
-            const { editor, targetPath } = pendingIdLink;
-            setPendingIdLink(null);
-            insertMarkdownLinkWithId(editor, targetPath, '');
-          }}
-          onDismiss={() => setPendingIdLink(null)}
+        <AddLinkIdDialog
+          targetPath={pendingIdLink.targetPath}
+          onClose={() => setPendingIdLink(null)}
+          onLink={(id) => insertMarkdownLinkWithId(pendingIdLink.editor, pendingIdLink.targetPath, id)}
         />
       )}
       {cutOrphanAttachTarget && (

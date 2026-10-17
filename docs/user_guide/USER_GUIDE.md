@@ -239,12 +239,13 @@ When a Markdown file is expanded, you can edit its content:
 
 ### Inserting Links to Other Files
 
-While editing a Markdown file you can quickly insert a link to any other file in the Index Tree without typing the path by hand:
+While editing a Markdown file you can quickly insert a link to any other file or folder in the Index Tree without typing the path by hand:
 
-1. Start editing a Markdown file (the code editor must be open).
-2. Position the cursor where you want the link to appear.
-3. In the **Index Tree** panel on the left, right-click the file or folder you want to link to.
-4. Choose **Paste Link into Editor** from the context menu.
+1. In the **Index Tree** panel on the left, right-click the file or folder you want to link to and choose **Copy Path**.
+2. In the editor of the Markdown file you're working on, place the cursor where you want the link (or select text to replace).
+3. Right-click in the editor and choose **Paste Link**.
+
+**Paste Link** appears in the editor's context menu whenever the clipboard holds the path of an existing file or folder — an absolute path, or one relative to the root folder — so it also works with a path copied from somewhere else. It also works with a heading link copied by right-clicking a rendered heading.
 
 MkBrowser inserts a Markdown link at the cursor position, with the path computed **relative to the file you are editing** — so you can link to anything in the tree, including files in completely different folders. For example:
 
@@ -252,7 +253,7 @@ MkBrowser inserts a Markdown link at the cursor position, with the path computed
 [notes](../reference/notes.md)
 ```
 
-If the target file is a Markdown file, its front matter `id` property is stored as the link's title (standard Markdown, shown as the link's hover tooltip). A target that has no `id` yet is given one first (adding a front matter block if it has none), in any folder — not only Document Mode folders:
+If the target file is a Markdown file, its front matter `id` property is stored as the link's title (standard Markdown, shown as the link's hover tooltip). If the target has no `id` yet, MkBrowser asks first (**Add ID to Linked File?**): **Add ID & Link** gives the file an id (adding a front matter block if it has none), in any folder — not only Document Mode folders — and links with it; **Plain Link** inserts the link without an id and leaves the file untouched. (A target that is itself open in an editor just gets a plain link.)
 
 ```
 [notes](../reference/notes.md "id:abc123")
@@ -270,7 +271,7 @@ You can also link to a specific **heading** inside a Markdown file by adding the
 
 The part after `#` is the heading converted to a link-safe form, the same way GitHub does it: lowercased, spaces turned into hyphens, and most punctuation dropped (so `## Getting Started!` becomes `getting-started`). When a file has two headings with the same text, the second gets `-1`, the third `-2`, and so on. Clicking such a link opens the file on its own (single-file mode) and scrolls to that heading. If you later rename the heading, the link still opens the file but no longer scrolls to it.
 
-Image files are inserted as inline images (`![diagram](../images/diagram.png)`), so they display directly in the rendered document.
+Image files are inserted as inline images (`![diagram.png](../images/diagram.png)`), so they display directly in the rendered document.
 
 You can also link to a **folder**. Clicking a folder link in the rendered Markdown opens that folder in the browser view:
 
@@ -284,7 +285,7 @@ If the path contains spaces, the link target is wrapped in angle brackets (stand
 [HUMAN](<../Job Interview Thread/HUMAN.md>)
 ```
 
-> **Note:** **Paste Link into Editor** is always listed in the Index Tree context menu, but it is disabled (greyed out) unless a Markdown file is currently open for editing.
+> **Note:** The Index Tree context menu also has **Paste Link into Editor**, which does all of the above in one step: right-click the target and it inserts the link at the cursor of the Markdown file being edited. It is always listed, but disabled (greyed out) unless a Markdown file is currently open for editing.
 
 ### Inserting Objects
 
