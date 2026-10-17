@@ -9,7 +9,7 @@
  * The sandbox works because NO host object is ever reachable from the query:
  * every known vm escape starts from a host reference (host `Function` via
  * `someHostObject.constructor.constructor`, etc.). The search helpers ($, tag,
- * prop, past, future, today) are defined *inside* the sandbox realm as thin wrappers
+ * prop, p, ts, past, future, today) are defined *inside* the sandbox realm as thin wrappers
  * that call a single host dispatcher, and only primitives cross the boundary in
  * either direction (objects from `prop` are JSON round-tripped; host errors are
  * re-thrown as primitive strings). The sandbox's own intrinsics (its `Function`,
@@ -40,6 +40,7 @@ export interface AdvancedQueryHost {
   past: (timestamp: number, lookbackDays?: number) => boolean;
   future: (timestamp: number, lookaheadDays?: number) => boolean;
   today: (timestamp: number) => boolean;
+  ts: (dateStr: string) => number;
 }
 
 /** Thrown when the query exceeds EVAL_TIMEOUT_MS on a file. The same query will
@@ -70,7 +71,7 @@ export class AdvancedQueryRuntimeError extends Error {
   }
 }
 
-/** Defines $, tag, prop, past, future, today inside the sandbox realm as wrappers
+/** Defines $, tag, prop, p, ts, past, future, today inside the sandbox realm as wrappers
  * around the host dispatcher, then removes the dispatcher from the global so
  * query code can only reach it through these frozen wrappers. Runs once per
  * compiled query. */
@@ -87,12 +88,21 @@ const BOOTSTRAP = `
   def('past', (ts, days) => call('past', Number(ts), days === undefined ? undefined : Number(days)));
   def('future', (ts, days) => call('future', Number(ts), days === undefined ? undefined : Number(days)));
   def('today', (ts) => call('today', Number(ts)));
+  // ts: date string -> ms timestamp (local time), same parsing as prop(..., 'ts').
+  // A missing value (undefined/null) is NaN, the "no date" sentinel.
+  def('ts', (v) => (v === undefined || v === null ? NaN : call('ts', String(v))));
   // prop: strings and objects arrive JSON-encoded (so no host object ever
   // enters this realm) and are revived here; other primitives arrive as-is.
   def('prop', (path, valType) => {
     const v = call('prop', String(path), valType === undefined ? undefined : String(valType));
     return typeof v === 'string' ? JSON.parse(v) : v;
   });
+  // p: shorthand property object — p.type is prop('type'). A sandbox-realm Proxy
+  // (no host object involved); symbol keys (e.g. Symbol.toPrimitive) yield undefined.
+  const prop = globalThis.prop;
+  def('p', new Proxy(Object.create(null), {
+    get: (_t, key) => (typeof key === 'string' ? prop(key) : undefined),
+  }));
 })();
 `;
 
@@ -163,6 +173,8 @@ export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost
           return h.future(Number(a0), a1 === undefined ? undefined : Number(a1));
         case 'today':
           return h.today(Number(a0));
+        case 'ts':
+          return h.ts(String(a0));
         case 'prop': {
           const v = h.prop(String(a0), a1 === 'ts' ? 'ts' : undefined);
           if (v === null || v === undefined) return v;

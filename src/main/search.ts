@@ -197,7 +197,7 @@ export function createMatchPredicate(
       const { $, tag, getMatchCount } = createContentSearcher(content);
       const prop = createPropFunction(cache, content, filePath);
       try {
-        const matches = evalFunction({ $, tag, prop, past, future, today });
+        const matches = evalFunction({ $, tag, prop, past, future, today, ts: parseDateString });
         const matchCount = getMatchCount();
         return {
           matches,

@@ -18,6 +18,7 @@ function makeHost(content = '', props: Record<string, unknown> = {}): AdvancedQu
     past: (ts) => !Number.isNaN(ts) && ts < Date.now(),
     future: (ts) => !Number.isNaN(ts) && ts > Date.now(),
     today: (ts) => !Number.isNaN(ts),
+    ts: (s) => (s === '2000-01-01' ? 946684800000 : Number.NaN),
   };
 }
 
@@ -130,6 +131,24 @@ describe('helper bridge', () => {
     expect(evalQuery("prop('tags').includes('b')", host)).toBe(true);
     expect(evalQuery("prop('meta').deep.x === 1", host)).toBe(true);
     expect(evalQuery("prop('missing') === undefined", host)).toBe(true);
+  });
+
+  it('p.name is shorthand for prop(name)', () => {
+    const host = makeHost('', { type: 'person', meta: { deep: { x: 1 } } });
+    expect(evalQuery("p.type == 'person'", host)).toBe(true);
+    expect(evalQuery("p['type'] === 'person'", host)).toBe(true);
+    expect(evalQuery('p.meta.deep.x === 1', host)).toBe(true);
+    expect(evalQuery('p.missing === undefined', host)).toBe(true);
+    expect(evalQuery("p.type == 'person'", makeHost('', { type: 'place' }))).toBe(false);
+  });
+
+  it('ts parses date strings through the host and treats missing values as NaN', () => {
+    const host = makeHost('', { due: '2000-01-01', bad: 'garbage' });
+    expect(evalQuery('ts(p.due) === 946684800000', host)).toBe(true);
+    expect(evalQuery('past(ts(p.due))', host)).toBe(true);
+    expect(evalQuery('Number.isNaN(ts(p.bad))', host)).toBe(true);
+    expect(evalQuery('Number.isNaN(ts(p.missing))', host)).toBe(true);
+    expect(evalQuery('future(ts(p.missing))', host)).toBe(false);
   });
 
   it('prop(…, "ts") NaN sentinel survives the boundary (not corrupted to null)', () => {

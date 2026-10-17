@@ -1239,6 +1239,14 @@ describe('advanced predicate with real helper implementations', () => {
     expect(predicate('---\ndue: 2126-01-15\n---\nbody').matches).toBe(false);
   });
 
+  it('ts(p.due) parses a real front-matter date the same as prop(…, "ts")', () => {
+    const content = `---\ndue: ${isoDaysFromNow(10)}\n---\nbody`;
+    expect(createMatchPredicate("ts(p.due) === prop('due', 'ts')", 'advanced')(content).matches).toBe(true);
+    expect(createMatchPredicate('future(ts(p.due), 30)', 'advanced')(content).matches).toBe(true);
+    expect(createMatchPredicate('future(ts(p.due), 5)', 'advanced')(content).matches).toBe(false);
+    expect(createMatchPredicate('future(ts(p.missing))', 'advanced')(content).matches).toBe(false);
+  });
+
   it('past applies its lookbackDays window through the sandbox', () => {
     const content = `---\ndue: ${isoDaysFromNow(-10)}\n---\nbody`;
     expect(createMatchPredicate("past(prop('due', 'ts'), 30)", 'advanced')(content).matches).toBe(true);
