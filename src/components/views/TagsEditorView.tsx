@@ -305,22 +305,30 @@ export default function TagsEditorView() {
                     <div className="flex-1 overflow-y-auto pl-4 pr-2 py-2 space-y-3">
                       {selectedCat.tags.map((tag) => (
                         <div key={tag.id} className="flex gap-2 items-start group">
-                          <div className="flex flex-col gap-1 flex-1 min-w-0">
+                          <div className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 flex-1 min-w-0">
+                            <label htmlFor={`tag-name-${tag.id}`} className="text-sm text-slate-400">
+                              Tag
+                            </label>
                             <input
+                              id={`tag-name-${tag.id}`}
                               type="text"
                               value={tag.name}
                               onChange={(e) => updateTag(selectedCat.id, tag.id, 'name', e.target.value)}
                               placeholder="tagname"
                               autoFocus={tag.id === focusTagId}
-                              className={`${inputCls} flex-1 min-w-0`}
+                              className={`${inputCls} w-1/3 min-w-0`}
                               data-testid={`tags-editor-tag-name-input-${tag.id}`}
                             />
+                            <label htmlFor={`tag-description-${tag.id}`} className="text-sm text-slate-400">
+                              Description
+                            </label>
                             <input
+                              id={`tag-description-${tag.id}`}
                               type="text"
                               value={tag.description}
                               onChange={(e) => updateTag(selectedCat.id, tag.id, 'description', e.target.value.replace(/\n/g, ' '))}
                               placeholder="Description…"
-                              className={`${inputCls} w-full ml-5`}
+                              className={`${inputCls} w-full min-w-0`}
                               data-testid={`tags-editor-tag-description-input-${tag.id}`}
                             />
                           </div>
