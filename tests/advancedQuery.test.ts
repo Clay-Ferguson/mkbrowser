@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { compileAdvancedQuery, AdvancedQueryTimeoutError, AdvancedQuerySyntaxError, AdvancedQueryRuntimeError, AdvancedQueryHost } from '../src/main/advancedQuery';
+import { compileAdvancedQuery, getAdvancedQuerySyntaxError, AdvancedQueryTimeoutError, AdvancedQuerySyntaxError, AdvancedQueryRuntimeError, AdvancedQueryHost } from '../src/main/advancedQuery';
 
 /** Host whose $ matches when content includes the text; getProp reads from a map. */
 function makeHost(content = '', props: Record<string, unknown> = {}): AdvancedQueryHost {
@@ -189,6 +189,17 @@ describe('helper bridge', () => {
 describe('compile and evaluation semantics', () => {
   it('throws on a syntactically invalid expression', () => {
     expect(() => compileAdvancedQuery('$$$invalid(((syntax')).toThrow(AdvancedQuerySyntaxError);
+  });
+
+  it('getAdvancedQuerySyntaxError reports a parse error and accepts what compiles', () => {
+    expect(getAdvancedQuerySyntaxError('$$$invalid(((syntax')).toMatch(/Unexpected|missing/);
+    expect(getAdvancedQuerySyntaxError("$('apple') && tag('#fruit') // trailing comment")).toBeNull();
+    expect(getAdvancedQuerySyntaxError('{a: 1}')).toBeNull();
+  });
+
+  it('getAdvancedQuerySyntaxError only parses — it never runs the query', () => {
+    // An infinite loop would hang (no watchdog without evaluation) if it ran.
+    expect(getAdvancedQuerySyntaxError('(() => { for (;;) {} })()')).toBeNull();
   });
 
   it('compiles a query that ends with a line comment', () => {

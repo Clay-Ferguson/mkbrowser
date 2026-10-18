@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isFolderEmpty: (folderPath: string) => ipcRenderer.invoke('is-folder-empty', folderPath),
   deleteEmptyFolder: (folderPath: string) => ipcRenderer.invoke('delete-empty-folder', folderPath),
   searchFolder: (folderPath: string, definition: SearchDefinition) => ipcRenderer.invoke('search-folder', folderPath, definition),
+  checkAdvancedQuerySyntax: (query: string) => ipcRenderer.invoke('check-advanced-query-syntax', query),
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),
   loadCalendarEventsForFiles: (filePaths: string[]) => ipcRenderer.invoke('load-calendar-events-for-files', filePaths),

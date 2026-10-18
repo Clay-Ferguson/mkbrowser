@@ -13,9 +13,9 @@ interface SearchDefinitionsPanelProps {
   /** Name of the definition the dialog's form is editing, or null for an unsaved search. */
   selectedName: string | null;
   onSelect: (def: SearchDefinition) => void;
-  /** Saves the dialog's current form under `name`; returns false if it couldn't
+  /** Saves the dialog's current form under `name`; resolves false if it couldn't
    *  (e.g. an Advanced query with a syntax error), leaving the name input open. */
-  onCreate: (name: string) => boolean;
+  onCreate: (name: string) => Promise<boolean>;
   onRename: (oldName: string, newName: string) => void;
   onRequestDelete: (name: string) => void;
 }
@@ -71,8 +71,16 @@ function SearchDefinitionsPanel({
       return;
     }
     if (edit.kind === 'new') {
-      if (!onCreate(name) && keepOpenOnError) return;
-    } else if (name !== edit.name) {
+      // Mark the edit done while the save is pending so a blur can't commit it
+      // again; reopen it for Enter if the save fails.
+      editDoneRef.current = true;
+      void onCreate(name).then((ok) => {
+        if (!ok && keepOpenOnError) editDoneRef.current = false;
+        else endEdit();
+      });
+      return;
+    }
+    if (name !== edit.name) {
       onRename(edit.name, name);
     }
     endEdit();

@@ -17,6 +17,7 @@ import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
 import { findMarkdownById } from './main/findById';
 import { parseIgnoredPaths } from './shared/searchHelpers';
 import { searchFolderWithTotal } from './main/search';
+import { getAdvancedQuerySyntaxError } from './main/advancedQuery';
 import { createExclusiveSearchRunner, SearchCancelledError } from './main/searchRunner';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './main/folderAnalysis';
 import { loadCalendarEvents, loadCalendarEventsForFiles, type CalendarEventResult } from './main/calendarLoader';
@@ -715,6 +716,11 @@ function setupIpcHandlers(): void {
       throw error;
     }
   });
+
+  // Parse (never run) an advanced query for the Search dialog's validation —
+  // the renderer can't, since its CSP forbids 'unsafe-eval'.
+  ipcMain.handle('check-advanced-query-syntax', (_event, query: string): string | null =>
+    getAdvancedQuerySyntaxError(query));
 
   // Analyze folder for hashtags in .md and .txt files
   ipcMain.handle('analyze-folder-hashtags', async (_event, folderPath: string): Promise<FolderAnalysisResult> => {

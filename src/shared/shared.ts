@@ -553,6 +553,8 @@ export interface ElectronAPI {
   /** Permanently removes a folder only if it is empty on disk (deleting a lone .INDEX.yaml first); fails (never recurses) otherwise. */
   deleteEmptyFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
   searchFolder: (folderPath: string, definition: SearchDefinition) => Promise<SearchOutcome>;
+  /** V8's syntax-error message for an Advanced search query, or null if it parses. Only parses — never runs it. */
+  checkAdvancedQuerySyntax: (query: string) => Promise<string | null>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;

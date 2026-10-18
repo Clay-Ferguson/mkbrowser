@@ -7,6 +7,7 @@ import RadioGroup from './common/RadioGroup';
 import JsCodeInput from './common/JsCodeInput';
 import type { SearchDefinition, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import * as globalHighlight from '../../renderer/globalHighlight';
+import { api } from '../../renderer/api';
 import { initialSearchDefinition, isSearchDefinitionDirty } from '../../shared/searchHelpers';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_SAVE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../renderer/styles';
 
@@ -29,22 +30,6 @@ interface SearchDialogProps {
 interface PendingConfirm {
   message: string;
   onConfirm: () => void;
-}
-
-/**
- * Returns V8's syntax-error message for an advanced query, or null if it parses.
- * `new Function` only parses the code — it is never called, so nothing runs. The
- * wrapping mirrors compileAdvancedQuery (src/main/advancedQuery.ts) so both sides
- * accept the same expressions. Module-level so the try/catch can't make the React
- * Compiler bail out of the component.
- */
-function getQuerySyntaxError(query: string): string | null {
-  try {
-    new Function(`return !!(${query}\n);`);
-    return null;
-  } catch (err) {
-    return err instanceof Error ? err.message : String(err);
-  }
 }
 
 /**
@@ -116,11 +101,18 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
     });
   };
 
-  /** For Advanced queries, records any syntax error and returns false if there is one. */
-  const checkSyntax = (query: string): boolean => {
-    const error = matchType === 'advanced' && query ? getQuerySyntaxError(query) : null;
-    setSyntaxError(error);
-    return !error;
+  /** For Advanced queries, records any syntax error and resolves false if there is one.
+   *  The main process parses the query with the same compiler the search uses (the
+   *  renderer can't: its CSP forbids eval, so `new Function` always throws here). */
+  const checkSyntax = (query: string): Promise<boolean> => {
+    if (matchType !== 'advanced' || !query) {
+      setSyntaxError(null);
+      return Promise.resolve(true);
+    }
+    return api.checkAdvancedQuerySyntax(query).then((error) => {
+      setSyntaxError(error);
+      return !error;
+    });
   };
 
   const handleCodeChange = (value: string) => {
@@ -131,22 +123,25 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   const handleSearch = () => {
     const query = searchQuery.trim();
     if ((!query && !mostRecent) || noTarget) return;
-    if (!checkSyntax(query)) return;
-
-    // The highlighter matches within single DOM text nodes, so it can't match
-    // across a line break; highlight the query with its newlines flattened.
-    const cleanedQuery = query.replace(/[\r\n]+/g, ' ');
-    globalHighlight.setGlobalHighlightText(matchType === 'literal' ? cleanedQuery : '');
-    onSearch({ ...def, name: saved?.name ?? '', searchText: query });
+    void checkSyntax(query).then((ok) => {
+      if (!ok) return;
+      // The highlighter matches within single DOM text nodes, so it can't match
+      // across a line break; highlight the query with its newlines flattened.
+      const cleanedQuery = query.replace(/[\r\n]+/g, ' ');
+      globalHighlight.setGlobalHighlightText(matchType === 'literal' ? cleanedQuery : '');
+      onSearch({ ...def, name: saved?.name ?? '', searchText: query });
+    });
   };
 
   /** ＋ in the list: saves the current form under a new name and selects it. */
-  const handleCreate = (name: string): boolean => {
+  const handleCreate = (name: string): Promise<boolean> => {
     const query = searchQuery.trim();
-    if (!checkSyntax(query)) return false;
-    onSave({ ...def, name, searchText: query });
-    setSelectedName(name);
-    return true;
+    return checkSyntax(query).then((ok) => {
+      if (!ok) return false;
+      onSave({ ...def, name, searchText: query });
+      setSelectedName(name);
+      return true;
+    });
   };
 
   const handleRename = (oldName: string, newName: string) => {
@@ -168,8 +163,9 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   const handleSave = () => {
     if (!saved || !dirty) return;
     const query = searchQuery.trim();
-    if (!checkSyntax(query)) return;
-    onSave({ ...def, name: saved.name, searchText: query });
+    void checkSyntax(query).then((ok) => {
+      if (ok) onSave({ ...def, name: saved.name, searchText: query });
+    });
   };
 
   const handleRevert = () => {

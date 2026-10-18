@@ -108,29 +108,24 @@ const BOOTSTRAP = `
 `;
 
 /**
- * Compile an advanced query expression into a sandboxed evaluator.
+ * Wraps the query in the sandboxed evaluation script and compiles it (without
+ * running it). Returns the compiled script, or V8's syntax-error message.
  *
- * Throws AdvancedQuerySyntaxError on a syntactically invalid expression. The
- * returned function evaluates the expression against one file's helpers and
- * returns its truthiness; a runtime error in the query surfaces as
- * AdvancedQueryRuntimeError, and a timeout as AdvancedQueryTimeoutError.
+ * The wrapping matters: the parens make object literals (`{a: 1}`) parse as an
+ * expression rather than a block, and the closing `)` MUST sit on its own line.
+ * If it shared the query's line, a query ending in a line comment — e.g.
+ * `$('apple') // match apple` — would swallow the `)` into the comment and turn
+ * a valid expression into "Unexpected end of input". The newline is safe: it
+ * sits inside the parens, so ASI cannot terminate the expression there.
+ *
+ * The try/catch runs INSIDE the sandbox so a thrown value is turned into a
+ * string there, under the timeout watchdog. Reading `.message` (or calling
+ * String()) on a sandbox object from host code would run query-defined
+ * getters/toString with no timeout — `throw { get message() { for(;;); } }`
+ * would hang the main process. The script therefore only ever returns a
+ * boolean (the result) or a string (the error description): both primitives.
  */
-export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost) => boolean {
-  // Compile FIRST so a syntax error throws before we bother building a context.
-  //
-  // The wrapping matters: the parens make object literals (`{a: 1}`) parse as an
-  // expression rather than a block, and the closing `)` MUST sit on its own line.
-  // If it shared the query's line, a query ending in a line comment — e.g.
-  // `$('apple') // match apple` — would swallow the `)` into the comment and turn
-  // a valid expression into "Unexpected end of input". The newline is safe: it
-  // sits inside the parens, so ASI cannot terminate the expression there.
-  //
-  // The try/catch runs INSIDE the sandbox so a thrown value is turned into a
-  // string there, under the timeout watchdog. Reading `.message` (or calling
-  // String()) on a sandbox object from host code would run query-defined
-  // getters/toString with no timeout — `throw { get message() { for(;;); } }`
-  // would hang the main process. The script therefore only ever returns a
-  // boolean (the result) or a string (the error description): both primitives.
+function compileQueryScript(queryStr: string): vm.Script | string {
   const source = `(() => {
   try {
     return !!(${queryStr}
@@ -145,14 +140,38 @@ export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost
     }
   }
 })();`;
-  let script: vm.Script;
   try {
-    script = new vm.Script(source, { filename: 'advanced-search-query' });
+    return new vm.Script(source, { filename: 'advanced-search-query' });
   } catch (err) {
     // A compile error comes from V8's parser, not from query code, so it's a
     // host SyntaxError and safe to read.
-    throw new AdvancedQuerySyntaxError(err instanceof Error ? err.message : String(err));
+    return err instanceof Error ? err.message : String(err);
   }
+}
+
+/**
+ * Returns V8's syntax-error message for an advanced query, or null if it parses.
+ * Only compiles the query — nothing runs. Backs the Search dialog's validation,
+ * which can't parse the query itself: the renderer's CSP forbids `unsafe-eval`.
+ */
+export function getAdvancedQuerySyntaxError(queryStr: string): string | null {
+  const result = compileQueryScript(queryStr);
+  return typeof result === 'string' ? result : null;
+}
+
+/**
+ * Compile an advanced query expression into a sandboxed evaluator.
+ *
+ * Throws AdvancedQuerySyntaxError on a syntactically invalid expression. The
+ * returned function evaluates the expression against one file's helpers and
+ * returns its truthiness; a runtime error in the query surfaces as
+ * AdvancedQueryRuntimeError, and a timeout as AdvancedQueryTimeoutError.
+ */
+export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost) => boolean {
+  // Compile FIRST so a syntax error throws before we bother building a context.
+  const result = compileQueryScript(queryStr);
+  if (typeof result === 'string') throw new AdvancedQuerySyntaxError(result);
+  const script = result;
 
   // Rebound before each evaluation; the dispatcher below closes over it.
   let host: AdvancedQueryHost | null = null;
