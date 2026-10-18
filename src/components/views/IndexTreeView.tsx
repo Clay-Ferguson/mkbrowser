@@ -957,7 +957,7 @@ function IndexTreeView() {
           onCancel={() => setCutOrphanAttachTarget(null)}
         />
       )}
-      <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
+      <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-1.5">
       <div className="py-1 min-w-max">
         {rows.map(({ node, depth }) => (
           <MemoTreeFileRow
