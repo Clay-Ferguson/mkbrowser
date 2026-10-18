@@ -15,7 +15,9 @@ import {
   setCurrentPath,
   getCurrentPath,
   getHasIndexFile,
+  renameItem,
 } from '../store';
+import { saveSettings } from './config';
 import { pasteCutItems, runCutPasteExclusive, deleteSelectedItems, performSplitFile, performJoinFiles, orderPastedNames, findCutItemsFromDifferentFolders } from './edit';
 import { pasteFromClipboard } from './clipboard';
 import { refreshDirectory } from './directoryLoader';
@@ -579,6 +581,84 @@ export async function createFolderOp(
     onCloseDialog,
     refreshDirectory
   );
+}
+
+/**
+ * "Make Folder" on a file entry: creates a sibling folder named after the file's stem
+ * (the name without its extension) and moves the file — plus its `.attach` folder, if
+ * any — into it, so `dir/My Bike.md` becomes `dir/My Bike/My Bike.md`.
+ *
+ * In Document Mode the new folder takes over the file's slot in the parent's
+ * .INDEX.yaml rather than being appended to the end by the next reconcile. Refuses
+ * (with an app error) when something already exists at the folder's path.
+ *
+ * @param filePath - Absolute path of the file to wrap in a folder.
+ */
+export async function makeFolderForFileOp(filePath: string): Promise<void> {
+  const parentFolder = getParentPath(filePath);
+  const fileName = getFileName(filePath);
+  const dotIndex = fileName.lastIndexOf('.');
+  const folderName = dotIndex > 0 ? fileName.substring(0, dotIndex).trim() : fileName;
+  const folderPath = joinPath(parentFolder, folderName);
+
+  setAppError(null);
+  try {
+    if (await api.pathExists(folderPath)) {
+      setAppError(`Cannot make folder: "${folderName}" already exists in this folder.`);
+      return;
+    }
+    const createResult = await api.createFolder(folderPath);
+    if (!createResult.success) {
+      setAppError(createResult.error || `Failed to create folder "${folderName}"`);
+      return;
+    }
+
+    // Only splice into an index that already exists — insertIntoIndexYaml would
+    // otherwise create one, silently switching a plain folder into Document Mode.
+    if (await api.readIndexYaml(parentFolder)) {
+      const insertResult = await api.insertIntoIndexYaml(parentFolder, folderName, fileName);
+      if (!insertResult.success) {
+        setAppError(insertResult.error || `Failed to insert "${folderName}" into the index`);
+      }
+    }
+
+    // renameFile only carries a .attach folder along within the same directory, so a
+    // move into the new folder has to take it across explicitly.
+    const attachName = `${fileName}${ATTACH_SUFFIX}`;
+    const attachPath = joinPath(parentFolder, attachName);
+    if (await api.pathExists(attachPath)) {
+      const newAttachPath = joinPath(folderPath, attachName);
+      if (!(await api.renameFile(attachPath, newAttachPath))) {
+        setAppError(`Could not move "${attachName}" into "${folderName}".`);
+        refreshDirectory();
+        return;
+      }
+      renameItem(attachPath, newAttachPath, attachName);
+    }
+
+    const newFilePath = joinPath(folderPath, fileName);
+    if (!(await api.renameFile(filePath, newFilePath))) {
+      setAppError(`Could not move "${fileName}" into "${folderName}".`);
+      refreshDirectory();
+      return;
+    }
+    // Remaps bookmarks, calendar events, etc. to the moved file; true means a bookmark
+    // changed and settings must be persisted.
+    if (renameItem(filePath, newFilePath, fileName)) {
+      saveSettings();
+    }
+
+    // Drops the moved file's (now stale) entry from the parent's index.
+    await api.reconcileIndexedFiles(parentFolder, false);
+  } catch (err: unknown) {
+    setAppError(`Failed to make folder for "${fileName}": ${toErrorMessage(err)}`);
+    refreshDirectory();
+    return;
+  }
+
+  setHighlightItem(folderPath);
+  setPendingScrollToFile(folderPath);
+  refreshDirectory();
 }
 
 /**

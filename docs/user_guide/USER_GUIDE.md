@@ -410,6 +410,16 @@ You can manage your files using the application menu or keyboard shortcuts.
     - Select items and choose **Cut** from the **Edit** menu to move files.
     - Navigate to the destination folder and choose **Paste**.
 
+## Make Folder (Wrap a File in a Folder)
+Sometimes a single file grows into a topic that needs room for related material. **Make Folder** turns a file into a folder of its own in one step: hover over any file (not a folder), click its **More actions** (☰) button, and choose **Make Folder**.
+
+MkBrowser creates a new folder named after the file — without its extension — right next to it, and moves the file inside. For example, `Projects/My New Bike.md` becomes `Projects/My New Bike/My New Bike.md`. You can then add other files to the new folder as usual.
+
+- If the file has attachments, its `.attach` folder moves into the new folder along with it.
+- In [Document Mode](#document-mode), the new folder takes the file's place in the document order, so nothing jumps to the end of the list.
+- Bookmarks pointing at the file are updated to its new location.
+- If a file or folder with that name already exists, nothing is changed and an error is shown.
+
 ## Navigating Folders
 
 ### Recent Folders

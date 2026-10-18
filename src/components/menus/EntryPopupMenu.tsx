@@ -13,6 +13,8 @@ interface EntryPopupMenuProps {
   onAttachFromFile?: () => void;
   /** When omitted, the "Attach: New Markdown" item is hidden. */
   onCreateAttachment?: () => void;
+  /** When omitted, the "Make Folder" item is hidden (folders). */
+  onMakeFolder?: () => void;
   /** Drives the bookmark item's label between add and remove. */
   isBookmarked: boolean;
   onToggleBookmark: () => void;
@@ -32,6 +34,7 @@ export default function EntryPopupMenu({
   onPasteClipboardAsAttachment,
   onAttachFromFile,
   onCreateAttachment,
+  onMakeFolder,
   isBookmarked,
   onToggleBookmark,
 }: EntryPopupMenuProps) {
@@ -55,6 +58,13 @@ export default function EntryPopupMenu({
         data-testid="menu-entry-bookmark"
         onClick={() => { onToggleBookmark(); onClose(); }}
       />
+      {onMakeFolder && (
+        <PopupMenuItem
+          label="Make Folder"
+          data-testid="menu-entry-make-folder"
+          onClick={() => { onMakeFolder(); onClose(); }}
+        />
+      )}
       {hasAttachItems && <PopupMenuDivider />}
       {onPasteClipboardAsAttachment && (
         <PopupMenuItem

@@ -8,6 +8,7 @@ import BookmarkDialog from '../../dialogs/BookmarkDialog';
 import EntryPopupMenu from '../../menus/EntryPopupMenu';
 import type { AttachMenuProps } from './types';
 import { saveSettings } from '../../../renderer/config';
+import { makeFolderForFileOp } from '../../../renderer/fileOpsUtil';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
@@ -45,7 +46,7 @@ interface EntryActionBarProps {
  * buttons for: delete, reveal in folder tree, and move up/down (only in
  * indexed/document mode, when the move handlers are provided), plus a trailing
  * hamburger button opening EntryPopupMenu — which holds the remaining actions
- * (open with OS app, view file, bookmark, and the three "Attach:" items) as
+ * (open with OS app, view file, bookmark, make folder, and the three "Attach:" items) as
  * text items, so the hover bar doesn't grow unbounded.
  */
 export function EntryActionBar({
@@ -210,6 +211,7 @@ export function EntryActionBar({
           onPasteClipboardAsAttachment={onPasteClipboardAsAttachment}
           onAttachFromFile={onAttachFromFile}
           onCreateAttachment={onCreateAttachment}
+          onMakeFolder={isFolder ? undefined : () => { void makeFolderForFileOp(path); }}
           isBookmarked={isBookmarked}
           onToggleBookmark={handleBookmarkClick}
         />
