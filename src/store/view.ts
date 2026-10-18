@@ -4,6 +4,7 @@ import type { StoreSet, StoreGet } from './core';
 import { withItemExpanded, withSelectionsCleared } from './items';
 import { joinPath } from '../renderer/pathUtil';
 import { enterExpandedEditPatch, isExpandedEditing } from './expandedEdit';
+import { type TagCategory, isAllTagCategory } from '../shared/tagUtil';
 
 // ============================================================================
 // View / navigation - current view & path, pending scroll/edit signals,
@@ -31,6 +32,7 @@ export interface ViewSlice {
   clearPendingExpandFile: () => void;
   requestDirectoryRefresh: () => void;
   bumpTagsRevision: () => void;
+  setTagCategories: (categories: TagCategory[]) => void;
   setAppError: (message: string | null) => void;
   setAppMessage: (message: AppMessage | null) => void;
   setLinkIdMismatch: (mismatch: LinkIdMismatch | null) => void;
@@ -230,6 +232,24 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       set({ tagsRevision: get().tagsRevision + 1 }),
 
     /**
+     * Rebuild `tagCategoryByTag` from freshly loaded tag definitions. A tag listed in more
+     * than one category maps to its first non-"all" category, since that is the more
+     * specific label.
+     */
+    setTagCategories: (categories) => {
+      const map: Record<string, string> = {};
+      for (const cat of categories) {
+        for (const def of cat.tags) {
+          const existing = map[def.tag];
+          if (existing === undefined || (isAllTagCategory(existing) && !isAllTagCategory(cat.name))) {
+            map[def.tag] = cat.name;
+          }
+        }
+      }
+      set({ tagCategoryByTag: map });
+    },
+
+    /**
      * Show (or with null, dismiss) the application-level error dialog.
      *
      * Note the ordering hazard for callers: starting a directory load clears
@@ -402,6 +422,10 @@ export function requestDirectoryRefresh(): void {
 
 export function bumpTagsRevision(): void {
   getState().bumpTagsRevision();
+}
+
+export function setTagCategories(categories: TagCategory[]): void {
+  getState().setTagCategories(categories);
 }
 
 export function setAppError(message: string | null): void {

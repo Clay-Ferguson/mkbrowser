@@ -13,6 +13,14 @@ export interface TagCategory {
   tags: HashtagDefinition[];
 }
 
+/**
+ * True for the special "all" category (case-insensitive): its tags allow multiple
+ * selections in TagsPicker and their pills are shown without a category label.
+ */
+export function isAllTagCategory(name: string): boolean {
+  return name.toLowerCase() === 'all';
+}
+
 /** Result of an async tag-loading operation */
 export type TagsLoadState =
   | { status: 'loading' }

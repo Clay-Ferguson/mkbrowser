@@ -436,6 +436,13 @@ export interface AppState {
   tagsRevision: number;
 
   /**
+   * Hashtag → name of the tags.yaml category it is defined in, used to label tag pills
+   * with their category. Loaded by App at startup and re-loaded on each `tagsRevision`.
+   * Tags not defined in tags.yaml are absent.
+   */
+  tagCategoryByTag: Record<string, string>;
+
+  /**
    * Application-level error message shown in App's AlertDialog, or null when
    * there is nothing to report. Lives in the store rather than App's local
    * state so shared non-component code (file operations, drag-and-drop) can

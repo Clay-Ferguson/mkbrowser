@@ -111,6 +111,7 @@ const initialState: AppState = {
   pendingExpandFile: null,
   directoryRefreshNonce: 0,
   tagsRevision: 0,
+  tagCategoryByTag: {},
   appError: null,
   appMessage: null,
   linkIdMismatch: null,

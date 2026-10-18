@@ -35,6 +35,7 @@ import {
   setCalendarWatcherWarning,
   setLinkIdMismatch,
   setAppMessage,
+  setTagCategories,
   // Aliased at the import (rather than bound inside App) so it stays a module-scope
   // reference: a local `const setError = setAppError` would read as component state
   // to react-hooks/exhaustive-deps and be demanded in every effect's dep array.
@@ -45,6 +46,8 @@ import { newSearchDefinition } from './shared/searchHelpers';
 import type { CalendarEventResult, AppConfig } from './shared/shared';
 import { toCalendarEvents } from './shared/calendarUtil';
 import { loadConfig } from './renderer/config';
+import { fetchTags } from './renderer/tagApi';
+import { logger } from './shared/logUtil';
 import { openFileSingle } from './renderer/linkRepair';
 import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
@@ -92,6 +95,7 @@ function App() {
   const hasFolderGraph = useAS(s => s.folderGraph !== null);
   const fontSize = useAS(s => s.settings.fontSize);
   const indexTreeWidth = useAS(s => s.settings.indexTreeWidth);
+  const tagsRevision = useAS(s => s.tagsRevision);
 
   // Mark the active view as visited so it stays mounted from now on. Adjusting
   // state during render (rather than in an effect) avoids a cascading re-render
@@ -130,6 +134,21 @@ function App() {
       setCalendarWatcherWarning(message);
     });
   }, []);
+
+  // Load the hashtag definitions so tag pills can show each tag's category; re-loaded
+  // whenever the Tags Editor saves (tagsRevision).
+  useEffect(() => {
+    let cancelled = false;
+    fetchTags()
+      .then((categories) => {
+        if (!cancelled) setTagCategories(categories);
+      })
+      .catch((err) => {
+        logger.error('Failed to load tag definitions:', err);
+      });
+    // Returns the useEffect cleanup: sets the cancelled flag so a stale fetchTags() can't overwrite a newer result.
+    return () => { cancelled = true; };
+  }, [tagsRevision]);
 
   // Apply font size globally via data attribute on html element
   useEffect(() => {

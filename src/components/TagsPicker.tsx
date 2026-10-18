@@ -4,7 +4,7 @@ import { useAS, getItemEditContent, setItemEditContent } from '../store';
 import { MONO_FONT_STACK, TAG_PILL_BASE, TAG_PILL_SELECTED, TAG_PILL_UNSELECTED, TAG_PILL_HOVER } from '../renderer/styles';
 import {
   type TagsLoadState, type TagCategory, type HashtagDefinition,
-  getTagsFromYaml, isYamlParseable,
+  getTagsFromYaml, isYamlParseable, isAllTagCategory,
   removeTagFromText, insertTagIntoText,
 } from '../shared/tagUtil';
 import { fetchTags } from '../renderer/tagApi';
@@ -94,7 +94,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     if (!isChecked) {
       // Radio-button behaviour within the category: remove other checked tags first.
       // Exception: "all" category allows multiple selections.
-      if (category.name.toLowerCase() !== 'all') {
+      if (!isAllTagCategory(category.name)) {
         for (const sibling of category.tags) {
           if (sibling.tag !== def.tag && currentActiveTags.includes(sibling.tag)) {
             currentContent = removeTagFromText(currentContent, sibling.tag);
