@@ -6,6 +6,7 @@ import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
 import { rehypeDates } from '../src/shared/rehypeDates';
+import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../src/shared/timeUtil';
 
 // Same plugin order as MarkdownView (rehypeDates ahead of rehype-katex, which isn't needed here).
 const processor = unified()
@@ -20,7 +21,8 @@ function render(md: string): string {
   return String(processor.processSync(md));
 }
 
-const span = (d: string) => `<span class="md-date">${d}</span>`;
+const delta = (d: string) => formatDaysDisplay(getDaysFromToday(extractTimestamp(d)));
+const span = (d: string) => `<span class="md-date" title="${delta(d)}">${d}</span>`;
 
 describe('rehypeDates', () => {
   it('wraps short and long dates in prose, keeping the surrounding text', () => {
@@ -42,6 +44,17 @@ describe('rehypeDates', () => {
     for (const md of ['`01/12/26`', '```\n01/12/26\n```', '$01/12/26$', '[01/12/26](x.md)']) {
       expect(render(md)).not.toContain('md-date');
     }
+  });
+
+  it('titles each date with its time delta from today', () => {
+    const now = new Date();
+    const today = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
+    expect(render(`On ${today}`)).toContain(`title="today"`);
+    expect(render('Back on 01/12/2000')).toMatch(/title="\d+y( \d+m)?( \d+d)? ago"/);
+  });
+
+  it('highlights an impossible date without a delta title', () => {
+    expect(render('On 02/31/2026')).toContain('<span class="md-date">02/31/2026</span>');
   });
 
   it('ignores text with slashes that is not a date', () => {
