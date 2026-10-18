@@ -34,7 +34,9 @@ async function loadHelpDoc(): Promise<HelpDoc> {
  * math, diagrams and in-page TOC links all work, but clicking does not open an editor.
  * The guide's own TOC is always shown, since this tab has no index tree beside it.
  * A search bar (HelpSearchBar) sits right-aligned above the scrolling guide, outside the
- * scroll area so it stays visible, and searches only the rendered guide.
+ * scroll area so it stays visible, and searches only the rendered guide. The guide is
+ * focusable (tabIndex -1) so the search bar can focus it after a search, letting the arrow
+ * keys and Enter step through matches at once.
  */
 export default function HelpView() {
   const contentWidth = useAS(s => s.settings.contentWidth);
@@ -65,7 +67,7 @@ export default function HelpView() {
       <main data-testid="help-view" className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1 pr-3 pl-3">
         <div className={getContentWidthClasses(contentWidth)}>
           {doc.status === 'loaded' ? (
-            <div ref={articleRef} className="py-4">
+            <div ref={articleRef} tabIndex={-1} className="py-4 outline-none">
               <MarkdownView content={doc.content} showToc entryPath={doc.path} onEditClick={noEdit} />
             </div>
           ) : (

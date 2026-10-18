@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import type { KeyboardEvent, RefObject } from 'react';
+import { useIsActiveView } from '../../store';
+import { isKeyForOverlay } from '../../renderer/overlayDom';
 import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_NEUTRAL, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
 import { findTextRanges } from '../../renderer/textRanges';
 
@@ -38,6 +40,39 @@ function showMatch(matches: Range[], index: number): void {
   match.startContainer.parentElement?.scrollIntoView({ block: 'center' });
 }
 
+const ARROW_HINT = 'Tip: the Left/Right arrow keys also work';
+const PREV_TITLE = `Go to the previous match\n\n${ARROW_HINT}`;
+const NEXT_TITLE = `Go to the next match\n\n${ARROW_HINT}`;
+
+/**
+ * True when an arrow key should keep its normal meaning: it was already consumed, carries a
+ * modifier (e.g. Alt+Left history, Shift+arrow selection), or is aimed at a text field
+ * (the search input included, so its caret still moves), a CodeMirror editor, or a dialog/menu.
+ */
+function isArrowForSomethingElse(e: globalThis.KeyboardEvent): boolean {
+  if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return true;
+  const t = e.target;
+  if (t instanceof HTMLElement && (t.isContentEditable || t.closest('input,textarea,select,[contenteditable]'))) return true;
+  return isKeyForOverlay(e);
+}
+
+/**
+ * The search step (+1 / -1) for a document keydown, or 0 when the key isn't one: Left/Right
+ * anywhere in the tab (see isArrowForSomethingElse), and Enter / Shift+Enter only while focus
+ * is inside the rendered guide, but not on a link or button there, whose Enter activates it.
+ */
+function stepForKey(e: globalThis.KeyboardEvent, root: HTMLElement | null): number {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    if (isArrowForSomethingElse(e)) return 0;
+    return e.key === 'ArrowLeft' ? -1 : 1;
+  }
+  if (e.key !== 'Enter' || e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return 0;
+  const t = e.target;
+  if (!root || !(t instanceof Node) || !root.contains(t)) return 0;
+  if (t instanceof Element && t.closest('a,button,input,textarea,select,[contenteditable]')) return 0;
+  return e.shiftKey ? -1 : 1;
+}
+
 function countLabel(searchedQuery: string | null, matchCount: number, index: number): string {
   if (searchedQuery === null) return '';
   if (matchCount === 0) return 'No matches';
@@ -48,8 +83,8 @@ function countLabel(searchedQuery: string | null, matchCount: number, index: num
  * Find-in-page for the Help tab: a case-insensitive substring search over the rendered guide,
  * highlighted with the CSS Custom Highlight API (no DOM changes, so the guide never re-renders).
  * The guide is static once loaded, so the live Ranges stay valid until the next search.
- * Enter searches (or steps to the next match when the text is unchanged), Shift+Enter steps
- * back, and Escape clears.
+ * In the input, Enter searches and Escape clears. A search that finds matches moves focus to the
+ * guide, where Enter / Shift+Enter and the Left/Right arrows step forward/back through them.
  */
 export default function HelpSearchBar({ rootRef }: HelpSearchBarProps) {
   const [query, setQuery] = useState('');
@@ -68,6 +103,10 @@ export default function HelpSearchBar({ rootRef }: HelpSearchBarProps) {
     setIndex(0);
     setSearchedQuery(query || null);
     showMatch(found, 0);
+    // Hand focus to the guide so the arrow keys and Enter step through matches right away.
+    // On no match it stays in the input so the text can be corrected. preventScroll keeps
+    // the match showMatch just scrolled to.
+    if (found.length > 0) root?.focus({ preventScroll: true });
   };
 
   const step = (delta: number) => {
@@ -76,6 +115,25 @@ export default function HelpSearchBar({ rootRef }: HelpSearchBarProps) {
     setIndex(next);
     showMatch(matches, next);
   };
+
+  // Left/Right arrows mirror Prev/Next anywhere in the Help tab, and Enter / Shift+Enter do so
+  // inside the guide. The listener is on the document (focus can be on <body>) and attached
+  // only while this tab is shown.
+  const isActive = useIsActiveView('help');
+  const arrowEvent = useEffectEvent((e: globalThis.KeyboardEvent) => {
+    if (matches.length === 0) return;
+    const delta = stepForKey(e, rootRef.current);
+    if (delta === 0) return;
+    e.preventDefault();
+    step(delta);
+  });
+  useEffect(() => {
+    if (!isActive) return;
+    const handler = (e: globalThis.KeyboardEvent) => arrowEvent(e);
+    document.addEventListener('keydown', handler);
+    // Returns the useEffect cleanup: removes the document 'keydown' listener when the tab hides.
+    return () => document.removeEventListener('keydown', handler);
+  }, [isActive]);
 
   const clear = () => {
     setQuery('');
@@ -88,8 +146,7 @@ export default function HelpSearchBar({ rootRef }: HelpSearchBarProps) {
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (query !== (searchedQuery ?? '')) runSearch();
-      else step(e.shiftKey ? -1 : 1);
+      runSearch();
     } else if (e.key === 'Escape') {
       // preventDefault also tells App's document-level Escape handler this key was consumed.
       e.preventDefault();
@@ -114,10 +171,10 @@ export default function HelpSearchBar({ rootRef }: HelpSearchBarProps) {
       <button type="button" onClick={runSearch} className={BUTTON_CLASS_SM_BLUE} data-testid="help-search-button">
         Search
       </button>
-      <button type="button" onClick={() => step(-1)} disabled={noMatches} className={BUTTON_CLASS_SM_NEUTRAL} data-testid="help-search-prev">
+      <button type="button" onClick={() => step(-1)} disabled={noMatches} title={PREV_TITLE} className={BUTTON_CLASS_SM_NEUTRAL} data-testid="help-search-prev">
         Prev
       </button>
-      <button type="button" onClick={() => step(1)} disabled={noMatches} className={BUTTON_CLASS_SM_NEUTRAL} data-testid="help-search-next">
+      <button type="button" onClick={() => step(1)} disabled={noMatches} title={NEXT_TITLE} className={BUTTON_CLASS_SM_NEUTRAL} data-testid="help-search-next">
         Next
       </button>
       <span className="w-20 shrink-0 text-sm text-slate-400 whitespace-nowrap" aria-live="polite" data-testid="help-search-count">
