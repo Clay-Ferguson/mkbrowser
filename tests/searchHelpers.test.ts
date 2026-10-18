@@ -1,10 +1,10 @@
 /**
  * Tests for the pure search helpers (compareSearchResults, newSearchDefinition,
- * initialSearchDefinition in
+ * initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName in
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults, newSearchDefinition, initialSearchDefinition } from '../src/shared/searchHelpers';
+import { compareSearchResults, newSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults } from '../src/store/search';
 import type { SearchDefinition } from '../src/shared/shared';
@@ -132,5 +132,52 @@ describe('initialSearchDefinition', () => {
       searchImageExif: false,
       calendarItemsOnly: false,
     });
+  });
+});
+
+describe('isSearchDefinitionDirty', () => {
+  const saved: SearchDefinition = { ...newSearchDefinition('foo'), name: 'saved' };
+  // Older saved definitions may predate the optional flags.
+  const { searchImageExif: _e, mostRecent: _m, calendarItemsOnly: _c, ...legacy } = saved;
+
+  it('is clean for a definition just loaded from the saved one', () => {
+    expect(isSearchDefinitionDirty(initialSearchDefinition(legacy, null), legacy)).toBe(false);
+  });
+
+  it('treats missing optional flags as false', () => {
+    expect(isSearchDefinitionDirty({ ...saved, mostRecent: false }, legacy)).toBe(false);
+    expect(isSearchDefinitionDirty({ ...saved, mostRecent: true }, legacy)).toBe(true);
+  });
+
+  it('ignores surrounding whitespace in the query, since saves trim it', () => {
+    expect(isSearchDefinitionDirty({ ...saved, searchText: '  foo\n' }, saved)).toBe(false);
+  });
+
+  it('ignores the name and detects any option change', () => {
+    expect(isSearchDefinitionDirty({ ...saved, name: 'other' }, saved)).toBe(false);
+    expect(isSearchDefinitionDirty({ ...saved, searchText: 'bar' }, saved)).toBe(true);
+    expect(isSearchDefinitionDirty({ ...saved, matchType: 'advanced' }, saved)).toBe(true);
+    expect(isSearchDefinitionDirty({ ...saved, sortDirection: 'asc' }, saved)).toBe(true);
+  });
+});
+
+describe('validateSearchDefinitionName', () => {
+  const names = ['Recent Edits', 'Todo'];
+
+  it('requires a non-blank name', () => {
+    expect(validateSearchDefinitionName('   ', names)).toMatch(/required/);
+  });
+
+  it('rejects a name that clashes, ignoring case and surrounding spaces', () => {
+    expect(validateSearchDefinitionName(' recent edits ', names)).toMatch(/already exists/);
+  });
+
+  it('accepts a new name', () => {
+    expect(validateSearchDefinitionName('Calendar', names)).toBeNull();
+  });
+
+  it('lets a definition be renamed to a different case of its own name', () => {
+    expect(validateSearchDefinitionName('TODO', names, 'Todo')).toBeNull();
+    expect(validateSearchDefinitionName('todo', names, 'Recent Edits')).toMatch(/already exists/);
   });
 });

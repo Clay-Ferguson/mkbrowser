@@ -24,7 +24,7 @@ import {
 import { getContentWidthClasses } from '../../renderer/styles';
 import type { HtmlExportOptions } from '../../shared/shared';
 import { generateTimestampFileName } from '../../shared/timeUtil';
-import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, runSearch } from '../../renderer/searchUtil';
+import { saveSearchDefinitionToConfig, renameSearchDefinitionInConfig, deleteSearchDefinitionFromConfig, runSearch } from '../../renderer/searchUtil';
 import { pasteIntoFolder, deleteSelected, createFileOp, createFolderOp, removePropertiesFromSelected, joinSelectedFiles, splitSelectedFile } from '../../renderer/fileOpsUtil';
 import type { JoinOptions } from '../../renderer/joinUtil';
 import { getFileName, getParentPath, isSamePath, joinPath } from '../../renderer/pathUtil';
@@ -237,6 +237,12 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     }, 'Failed to save search: ');
   };
 
+  const handleRenameSearchDefinition = (oldName: string, newName: string) => {
+    runOp(async () => {
+      await renameSearchDefinitionInConfig(oldName, newName);
+    }, 'Failed to rename search: ');
+  };
+
   const handleDeleteSearchDefinition = (name: string) => {
     runOp(async () => {
       await deleteSearchDefinitionFromConfig(name);
@@ -297,6 +303,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
           onSearch={handleSearch}
           onSave={handleSaveSearchDefinition}
           onCancel={() => closeOverlay('search')}
+          onRenameSearchDefinition={handleRenameSearchDefinition}
           onDeleteSearchDefinition={handleDeleteSearchDefinition}
           initialDefinition={overlay.definition}
           searchDefinitions={searchDefinitions}

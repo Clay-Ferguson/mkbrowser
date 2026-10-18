@@ -862,17 +862,18 @@ The Help tab has its own search bar above this guide. Type some text and click *
 * Press **Escape** in the search field to clear the search and its highlights.
 
 ## Saving Search Definitions
-You can save frequently used searches for quick access later.
+You can save frequently used searches for quick access later. The left side of the Search dialog lists your saved searches, sorted by name.
 
-1. In the Search dialog, enter your search query and configure the options.
-2. Type a name for your search in the **Search Definition Name** field.
-3. Click the **Save** button (the download icon under the name) to save the definition. Saving with the name of an existing search updates that search.
+* **Save a new search:** enter your query and set the options, then click the **＋** button above the list. Type a name in the new row and press **Enter**. The search is saved right away with the options currently shown, and it becomes the selected row. Press **Escape** to cancel. Names must be unique (ignoring upper/lower case).
+* **Load a saved search:** click its row. The row is highlighted, and the top of the right side shows **Editing "name"**. When no row is highlighted, the right side shows **Unsaved search**: a one-off search that you can still run.
+* **Change a saved search:** with its row selected, change the options, then click **Save** at the lower right. **Revert** discards your changes and goes back to the saved version. While there are unsaved changes, the footer says *Unsaved changes*. You are asked before those changes are thrown away by selecting a different row or closing the dialog.
+* **Rename or delete:** hover over a row and click **✎** to edit its name in place, or **✕** to delete it (you'll be asked to confirm). Both take effect immediately.
 
-Clicking **Search** only runs the search — it never saves or changes a saved definition, even when a name is filled in. So you can load a saved search, adjust it for a one-off run, and search without changing what's saved.
+Clicking **Search** only runs the search. It never saves or changes a saved definition, so you can load a saved search, adjust it for a one-off run, and search without changing what's saved.
 
 Once saved, your search definitions appear in the **Search** menu on the application's main menu bar (sorted alphabetically). Simply click a saved search to execute it immediately.
 
-**Tip:** You can right-click a search menu item to open the Search dialog with that definition pre-filled. This allows you to review the search parameters before running it, or to edit and update the saved definition.
+**Tip:** You can right-click a search menu item to open the Search dialog with that definition selected. This lets you review the search parameters before running it, or edit and save the definition.
 
 ## Search Tips
 ### Find Recent Edits

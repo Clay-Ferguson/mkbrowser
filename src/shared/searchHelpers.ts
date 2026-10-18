@@ -86,6 +86,45 @@ export function initialSearchDefinition(
 }
 
 /**
+ * Whether the Search dialog's form differs from the saved definition it is
+ * editing, i.e. whether Save would change anything. Both sides are normalized
+ * the way the dialog loads and saves them (missing optional flags count as
+ * false, the query is saved trimmed), so merely opening a saved search never
+ * reads as an unsaved change. The name is not compared: renames are saved
+ * separately, straight from the definitions list.
+ */
+export function isSearchDefinitionDirty(form: SearchDefinition, saved: SearchDefinition): boolean {
+  const a = initialSearchDefinition(form, null);
+  const b = initialSearchDefinition(saved, null);
+  return a.searchText.trim() !== b.searchText.trim()
+    || a.searchContents !== b.searchContents
+    || a.searchNames !== b.searchNames
+    || a.matchType !== b.matchType
+    || a.sortBy !== b.sortBy
+    || a.sortDirection !== b.sortDirection
+    || a.searchImageExif !== b.searchImageExif
+    || a.mostRecent !== b.mostRecent
+    || a.calendarItemsOnly !== b.calendarItemsOnly;
+}
+
+/**
+ * Validates a name typed for a saved search (new or renamed). Returns an error
+ * message, or null when the name is usable. Names are compared trimmed and
+ * case-insensitively, so "Foo" and "foo " can't both exist; `currentName` (the
+ * definition being renamed) is excluded, so a case-only rename is allowed.
+ */
+export function validateSearchDefinitionName(
+  name: string,
+  existingNames: string[],
+  currentName?: string,
+): string | null {
+  const wanted = name.trim().toLowerCase();
+  if (!wanted) return 'Name is required.';
+  const clash = existingNames.some((n) => n !== currentName && n.trim().toLowerCase() === wanted);
+  return clash ? `A search named "${name.trim()}" already exists.` : null;
+}
+
+/**
  * Parse a newline-delimited ignored-paths string into a trimmed, non-empty array.
  */
 export function parseIgnoredPaths(raw: string): string[] {

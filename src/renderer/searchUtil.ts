@@ -99,6 +99,21 @@ export async function saveSearchDefinitionToConfig(definition: SearchDefinition)
 }
 
 /**
+ * Renames the saved search definition `oldName` to `newName`, keeping its options and its
+ * position in the list. Updates both the reactive store and the persisted config file.
+ * Throws if the persist fails. Callers validate `newName` first (see
+ * validateSearchDefinitionName), so it never collides with another definition.
+ */
+export async function renameSearchDefinitionInConfig(oldName: string, newName: string): Promise<void> {
+  const currentSettings = getSettings();
+  const updatedSearchDefinitions = currentSettings.searchDefinitions.map(
+    (def) => def.name === oldName ? { ...def, name: newName } : def
+  );
+  const updatedSettings = { ...currentSettings, searchDefinitions: updatedSearchDefinitions };
+  await applySettings(currentSettings, updatedSettings, 'Failed to rename search definition:');
+}
+
+/**
  * Removes the saved search definition with the given name from the user's settings.
  * Updates both the reactive store and the persisted config file. Throws if the persist fails.
  */

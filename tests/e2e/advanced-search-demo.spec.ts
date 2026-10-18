@@ -133,38 +133,41 @@ We will enter a boolean "and" expression that finds only the files containing bo
 The double-ampersand operator means that both terms must appear in the same file for it to be included in the results.`
     );
 
-    // Enter a name for the saved search
-    const searchNameInput = mainWindow.getByTestId('search-name-input');
-    await expect(searchNameInput).toBeVisible({ timeout: 5000 });
-    await takeScreenshot(mainWindow, searchNameInput, screenshotDir, step++, 'about-to-enter-name');
+    // Save the search under a name: the ＋ button above the saved-searches list
+    const addSearchButton = mainWindow.getByTestId('search-definition-add-button');
+    await expect(addSearchButton).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, addSearchButton, screenshotDir, step++, 'about-to-add-search');
     writeNarration(
       screenshotDir,
       step++,
-      `We can also give this search a descriptive name so that it is saved and we can run it again later.
-Let's call it "Political Free People Search".`
+      `We can also save this search so that we can run it again later.
+Clicking the plus button above the Saved Searches list adds the current search to the list under a new name.`
     );
 
+    await demoClick(addSearchButton);
+
+    const searchNameInput = mainWindow.getByTestId('search-definition-name-input');
+    await expect(searchNameInput).toBeVisible({ timeout: 5000 });
     await insertText(mainWindow, 'Political Free People Search', true, searchNameInput);
 
     await takeScreenshot(mainWindow, searchNameInput, screenshotDir, step++, 'name-entered');
     writeNarration(
       screenshotDir,
       step++,
-      `The search has been named "Political Free People Search".
-To save it, we click the Save button just below the name.`
+      `We have named the search "Political Free People Search".
+Pressing Enter saves it.`
     );
 
-    // Save the definition (running a search never saves it)
-    const saveSearchButton = mainWindow.getByTestId('save-search-button');
-    await expect(saveSearchButton).toBeEnabled({ timeout: 5000 });
-    await takeScreenshot(mainWindow, saveSearchButton, screenshotDir, step++, 'about-to-save-search');
-    await demoClick(saveSearchButton);
-    await mainWindow.waitForTimeout(500);
+    // Committing the name saves the definition (running a search never saves it)
+    await searchNameInput.press('Enter');
+    const savedRow = mainWindow.getByTestId('search-definition-row-Political Free People Search');
+    await expect(savedRow).toBeVisible({ timeout: 5000 });
+    await expect(mainWindow.getByTestId('search-dialog-editing-label')).toContainText('Political Free People Search');
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'search-saved');
     writeNarration(
       screenshotDir,
       step++,
-      `The search definition is saved.
+      `The search definition is saved, and it is now selected in the list.
 MkBrowser will remember it so we can reuse it at any time without retyping the query.`
     );
 
