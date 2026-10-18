@@ -51,9 +51,9 @@ function sortByName(types: EditorType[]): EditorType[] {
  * Types Editor tab: manages the user-defined object types stored under `types:`
  * in config.yaml. Two panes, like TagsEditorView: the type list on the
  * left and the selected type's description and properties on the right. Edits
- * live in a local, id-keyed model (see typesEditorModel.ts) until Save, which
- * validates and persists via `api.updateConfig({ types })`; Revert reloads from
- * config. Since views never unmount, an unsaved draft survives tab switches.
+ * live in a local, id-keyed model (see typesEditorModel.ts) until Save (or a type
+ * rename, which saves at once), which validates and persists via
+ * `api.updateConfig({ types })`; Revert reloads from config. Since views never unmount, an unsaved draft survives tab switches.
  */
 export default function TypesEditorView() {
   const [types, setTypes] = useState<EditorType[]>([]);
@@ -113,12 +113,16 @@ export default function TypesEditorView() {
     setRenameValue(type.name);
   };
 
+  // A rename is saved immediately (along with any other pending edits), unless
+  // the name is unchanged — e.g. a just-added type left blank.
   const commitRename = () => {
     if (!renamingTypeId) return;
-    setTypes((prev) =>
-      prev.map((t) => t.id === renamingTypeId ? { ...t, name: renameValue } : t)
-    );
+    const target = types.find((t) => t.id === renamingTypeId);
     setRenamingTypeId(null);
+    if (!target || target.name === renameValue) return;
+    const next = types.map((t) => t.id === renamingTypeId ? { ...t, name: renameValue } : t);
+    setTypes(next);
+    save(next);
   };
 
   const cancelRename = () => {
@@ -206,8 +210,8 @@ export default function TypesEditorView() {
 
   // --- Save / Revert ---
 
-  const handleSave = () => {
-    const toSave = dropBlankProperties(types);
+  const save = (model: EditorType[]) => {
+    const toSave = dropBlankProperties(model);
     const validationError = validate(toSave);
     if (validationError) { setError(validationError); return; }
     setSaving(true);
@@ -479,7 +483,7 @@ export default function TypesEditorView() {
               </button>
               <button
                 type="button"
-                onClick={handleSave}
+                onClick={() => save(types)}
                 disabled={!dirty || saving || loading}
                 className={BUTTON_CLASS_DLG_SAVE}
                 data-testid="types-editor-save-button"

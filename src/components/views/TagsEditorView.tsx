@@ -36,9 +36,9 @@ function sortByName(cats: EditorCategory[]): EditorCategory[] {
  * Tags Editor tab: manages the hashtag taxonomy. Two panes, like
  * TypesEditorView: the category list on the left and the tags within the
  * selected category on the right. Edits live in a local, id-keyed model (see
- * tagsEditorModel.ts) until Save, which validates, serializes back to YAML, and
- * persists via `api.saveTags`; Revert reloads from disk. A category can only be
- * deleted once empty. Since views never unmount, an unsaved draft survives tab
+ * tagsEditorModel.ts) until Save (or a category rename, which saves at once),
+ * which validates, serializes back to YAML, and persists via `api.saveTags`;
+ * Revert reloads from disk. A category can only be deleted once empty. Since views never unmount, an unsaved draft survives tab
  * switches.
  */
 export default function TagsEditorView() {
@@ -99,12 +99,16 @@ export default function TagsEditorView() {
     setRenameValue(cat.name);
   };
 
+  // A rename is saved immediately (along with any other pending edits), unless
+  // the name is unchanged — e.g. a just-added category left blank.
   const commitRename = () => {
     if (!renamingCatId) return;
-    setCategories((prev) =>
-      prev.map((c) => c.id === renamingCatId ? { ...c, name: renameValue } : c)
-    );
+    const target = categories.find((c) => c.id === renamingCatId);
     setRenamingCatId(null);
+    if (!target || target.name === renameValue) return;
+    const next = categories.map((c) => c.id === renamingCatId ? { ...c, name: renameValue } : c);
+    setCategories(next);
+    save(next);
   };
 
   const cancelRename = () => {
@@ -161,8 +165,8 @@ export default function TagsEditorView() {
 
   // --- Save / Revert ---
 
-  const handleSave = () => {
-    const toSave = dropBlankTags(categories);
+  const save = (model: EditorCategory[]) => {
+    const toSave = dropBlankTags(model);
     const validationError = validate(toSave);
     if (validationError) { setError(validationError); return; }
     setSaving(true);
@@ -379,7 +383,7 @@ export default function TagsEditorView() {
               </button>
               <button
                 type="button"
-                onClick={handleSave}
+                onClick={() => save(categories)}
                 disabled={!dirty || saving || loading}
                 className={BUTTON_CLASS_DLG_SAVE}
                 data-testid="tags-editor-save-button"
