@@ -19,13 +19,14 @@ import {
 import {
   useAS,
   navigateToBrowserPath,
+  setBrowseFile,
   setHighlightItem,
   setShowGraphFileLinks,
   type FolderGraphLink,
 } from '../../store';
 import { loadFolderGraphFileLinks } from '../../renderer/folderToolsOp';
 import { parseFrontMatter } from '../../shared/frontMatterUtil';
-import { getParentPath, ensureTrailingSep } from '../../renderer/pathUtil';
+import { getFileName, getParentPath, ensureTrailingSep } from '../../renderer/pathUtil';
 import { logger } from '../../shared/logUtil';
 import { CHECKBOX_FIELD_CLASS } from '../../renderer/styles';
 
@@ -408,8 +409,9 @@ function FolderGraphView() {
       if (d.isDirectory) {
         navigateToBrowserPath(d.id);
       } else {
-        const parent = getParentPath(d.id);
-        navigateToBrowserPath(parent, d.id);
+        // A file opens on its own (single-file mode, as from the index tree and
+        // search results) rather than scrolled-to in its folder's listing.
+        setBrowseFile(getParentPath(d.id), getFileName(d.id));
       }
     });
 
