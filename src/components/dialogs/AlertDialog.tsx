@@ -7,9 +7,9 @@ interface AlertDialogProps {
   onClose: () => void;
   title?: string;
   buttonLabel?: string;
-  /** Constrain height and let long message text scroll (the old ErrorDialog look). */
+  /** Constrain height and let long message text scroll. */
   scrollable?: boolean;
-  /** Preserve line breaks in the message (the old MessageDialog look). */
+  /** Preserve line breaks in the message. */
   preserveWhitespace?: boolean;
 }
 
@@ -17,8 +17,8 @@ interface AlertDialogProps {
  * A single-button "OK" dialog for surfacing a message or error to the user — the
  * in-app replacement for the browser's native alert(). Two opt-in flags cover the
  * variants this consolidated: `scrollable` caps the height and scrolls long text
- * (the old ErrorDialog), and `preserveWhitespace` keeps line breaks (the old
- * MessageDialog). Often stacked above another dialog (see ExifDialog).
+ * and `preserveWhitespace` keeps line breaks. Often stacked above another dialog 
+ * (see ExifDialog).
  */
 function AlertDialog({
   message,
