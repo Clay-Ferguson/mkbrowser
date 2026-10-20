@@ -96,10 +96,17 @@ export function preprocessWikiLinks(content: string): string {
     if (pipeIndex !== -1) {
       const target = inner.slice(0, pipeIndex).trim();
       const alias = inner.slice(pipeIndex + 1).trim();
-      return `[${alias}](${target})`;
+      return `[${alias}](${wikiLinkDestination(target)})`;
     }
-    return `[${inner}](${inner})`;
+    const target = inner.trim();
+    return `[${target}](${wikiLinkDestination(target)})`;
   });
+}
+
+/** A bare CommonMark link destination can't contain whitespace, so a target with
+ *  spaces (`[[my note]]`) is wrapped in angle brackets, where spaces are literal. */
+function wikiLinkDestination(target: string): string {
+  return /\s/.test(target) ? `<${target}>` : target;
 }
 
 /**

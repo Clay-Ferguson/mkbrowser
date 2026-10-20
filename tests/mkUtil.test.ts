@@ -91,6 +91,18 @@ describe('preprocessWikiLinks', () => {
     expect(preprocessWikiLinks('[[ file | label ]]')).toBe('[label](file)');
   });
 
+  it('wraps a target containing spaces in angle brackets', () => {
+    expect(preprocessWikiLinks('[[my note]]')).toBe('[my note](<my note>)');
+  });
+
+  it('wraps an aliased target containing spaces in angle brackets', () => {
+    expect(preprocessWikiLinks('[[sub dir/my note#intro|Read this]]')).toBe('[Read this](<sub dir/my note#intro>)');
+  });
+
+  it('trims whitespace around an unaliased target', () => {
+    expect(preprocessWikiLinks('[[ my note ]]')).toBe('[my note](<my note>)');
+  });
+
   it('does not pair a stray [[ with the ]] of a wikilink on a later line', () => {
     const input = 'This is not [[ a wikilink.\n\nThis is a [[wikilink]] on second line.';
     expect(preprocessWikiLinks(input)).toBe(
