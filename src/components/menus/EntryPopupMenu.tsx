@@ -15,6 +15,8 @@ interface EntryPopupMenuProps {
   onCreateAttachment?: () => void;
   /** When omitted, the "Make Folder" item is hidden (folders). */
   onMakeFolder?: () => void;
+  /** Copies the entry's absolute path to the clipboard (same as the index tree's "Copy Path"). */
+  onCopyPath: () => void;
   /** Drives the bookmark item's label between add and remove. */
   isBookmarked: boolean;
   onToggleBookmark: () => void;
@@ -35,6 +37,7 @@ export default function EntryPopupMenu({
   onAttachFromFile,
   onCreateAttachment,
   onMakeFolder,
+  onCopyPath,
   isBookmarked,
   onToggleBookmark,
 }: EntryPopupMenuProps) {
@@ -65,6 +68,11 @@ export default function EntryPopupMenu({
           onClick={() => { onMakeFolder(); onClose(); }}
         />
       )}
+      <PopupMenuItem
+        label="Copy Path"
+        data-testid="menu-entry-copy-path"
+        onClick={() => { onCopyPath(); onClose(); }}
+      />
       {hasAttachItems && <PopupMenuDivider />}
       {onPasteClipboardAsAttachment && (
         <PopupMenuItem

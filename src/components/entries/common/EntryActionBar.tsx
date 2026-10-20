@@ -46,7 +46,7 @@ interface EntryActionBarProps {
  * buttons for: delete, reveal in folder tree, and move up/down (only in
  * indexed/document mode, when the move handlers are provided), plus a trailing
  * hamburger button opening EntryPopupMenu — which holds the remaining actions
- * (open with OS app, view file, bookmark, make folder, and the three "Attach:" items) as
+ * (open with OS app, view file, bookmark, make folder, copy path, and the three "Attach:" items) as
  * text items, so the hover bar doesn't grow unbounded.
  */
 export function EntryActionBar({
@@ -212,6 +212,7 @@ export function EntryActionBar({
           onAttachFromFile={onAttachFromFile}
           onCreateAttachment={onCreateAttachment}
           onMakeFolder={isFolder ? undefined : () => { void makeFolderForFileOp(path); }}
+          onCopyPath={() => void navigator.clipboard.writeText(path)}
           isBookmarked={isBookmarked}
           onToggleBookmark={handleBookmarkClick}
         />
