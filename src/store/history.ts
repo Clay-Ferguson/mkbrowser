@@ -10,6 +10,8 @@ import { getFileName, getParentPath, isPathInside, remapMovedPath } from '../ren
 // Entries are recorded where `highlightItem` is set (`setHighlightItem`,
 // `revealInTree`), folded into that same `set()` patch via `withHistoryPush`,
 // so every highlighting call site feeds the history without knowing about it.
+// `recordHistoryVisit` records one without highlighting (a followed link's
+// source file — see CustomAnchor).
 // Lives only in the store: nothing is persisted, so a restart starts empty.
 
 /** Oldest entries are dropped once the history grows past this. */
@@ -93,6 +95,7 @@ export function canGoForward(s: Pick<AppState, 'navHistory' | 'navHistoryIndex'>
  * `core.ts`.
  */
 export interface HistorySlice {
+  recordHistoryVisit: (path: string) => void;
   goBack: () => void;
   goForward: () => void;
 }
@@ -116,6 +119,16 @@ export function createHistorySlice(set: StoreSet, get: StoreGet): HistorySlice {
   };
 
   return {
+    /**
+     * Record `path` as a history visit without highlighting it. A link click
+     * calls this for the file containing the link before opening the target
+     * (which highlighting records), so Back returns to where the link was
+     * followed from even when that file was never highlighted itself.
+     */
+    recordHistoryVisit: (path) => {
+      const patch = withHistoryPush(get(), path);
+      if (patch) set(patch);
+    },
     goBack: () => {
       // A detached position sits just after its index, so Back lands on it.
       const s = get();
@@ -129,6 +142,10 @@ export function createHistorySlice(set: StoreSet, get: StoreGet): HistorySlice {
 
 // Thin non-hook wrappers so the barrel API (and every caller) is unchanged;
 // they delegate to the actions living inside the store.
+
+export function recordHistoryVisit(path: string): void {
+  getState().recordHistoryVisit(path);
+}
 
 export function goBack(): void {
   getState().goBack();

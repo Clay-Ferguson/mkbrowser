@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useAS } from '../src/store/core';
 import { deleteItems, renameItem, setHighlightItem, setItemEditing, startEditing, syncDirectoryItems } from '../src/store/items';
 import { revealInTree } from '../src/store/indexTree';
-import { canGoBack, canGoForward, goBack, goForward, MAX_HISTORY } from '../src/store/history';
+import { canGoBack, canGoForward, goBack, goForward, MAX_HISTORY, recordHistoryVisit } from '../src/store/history';
 
 const A = '/notes/a.md';
 const B = '/notes/b.md';
@@ -52,6 +52,30 @@ describe('navigation history', () => {
     syncDirectoryItems('/notes', [{ path: '/notes/sub', name: 'sub', isDirectory: true, modifiedTime: 1, createdTime: 1 }]);
     setHighlightItem('/notes/sub');
     expect(history().navHistory).toEqual([]);
+  });
+
+  it('records a visit without highlighting it', () => {
+    recordHistoryVisit(A);
+    recordHistoryVisit(A);
+    expect(history()).toEqual({ navHistory: [A], navHistoryIndex: 0 });
+    expect(useAS.getState().highlightItem).toBeNull();
+  });
+
+  it('records a followed link as its source file then its target, so Back returns to the source', () => {
+    setHighlightItem(C);
+    // A link in B (never highlighted) to A: the source is recorded, then opening A records it.
+    recordHistoryVisit(B);
+    setHighlightItem(A);
+    expect(history()).toEqual({ navHistory: [C, B, A], navHistoryIndex: 2 });
+    goBack();
+    expect(useAS.getState().highlightItem).toBe(B);
+  });
+
+  it('does not duplicate a link source that is already the current entry', () => {
+    setHighlightItem(B);
+    recordHistoryVisit(B);
+    setHighlightItem(A);
+    expect(history()).toEqual({ navHistory: [B, A], navHistoryIndex: 1 });
   });
 
   it('records revealInTree', () => {

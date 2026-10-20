@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { clsx } from 'clsx';
 import type { ExtraProps } from 'react-markdown';
 import { api } from '../renderer/api';
-import { navigateToBrowserPath } from '../store';
+import { navigateToBrowserPath, recordHistoryVisit } from '../store';
 import { decodeMarkdownUrl, isFileLinkHref, resolveLinkPath, splitHeadingFragment } from '../renderer/linkUtil';
 import { openFileSingle, openIdLink } from '../renderer/linkRepair';
 import { openWikiLink } from '../renderer/wikiLinks';
@@ -27,6 +27,9 @@ interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement
  *     (`file.md#heading-slug`), which also scrolls to that heading. A `[[wikilink]]`
  *     (marked with WIKILINK_TITLE) also finds an extension-less target's `.md` file,
  *     and when there is none creates it and opens it for editing — see wikiLinks.ts.
+ *
+ * Following a file or folder link first records the file containing the link as a
+ * Back/Forward history visit, ahead of the target.
  *
  * Also stops mouseup propagation so link clicks don't trigger the parent's edit-mode handler.
  */
@@ -61,6 +64,10 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
     // Skip other protocols
     if (!href.includes('://')) {
       e.preventDefault();
+
+      // Record the file containing the link before the target (which opening it
+      // records), so Back returns here even if this file was never highlighted.
+      recordHistoryVisit(entryPath);
 
       // Split off a heading fragment before decoding, so an encoded '#' (%23) in a
       // file name can't be mistaken for one.
