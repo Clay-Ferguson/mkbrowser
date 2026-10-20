@@ -3,6 +3,7 @@ import {
   preprocessMathEscapes,
   stripHtmlComments,
   preprocessWikiLinks,
+  WIKILINK_TITLE,
   splitOnColumnBreaks,
   trimTrailingBlankLines,
 } from '../src/shared/mkUtil';
@@ -75,11 +76,11 @@ describe('preprocessWikiLinks', () => {
   });
 
   it('converts [[file#section]] to [file#section](file#section)', () => {
-    expect(preprocessWikiLinks('[[guide#intro]]')).toBe('[guide#intro](guide#intro)');
+    expect(preprocessWikiLinks('[[guide#intro]]')).toBe('[guide#intro](guide.md#intro)');
   });
 
   it('converts [[file#section|desc]] to [desc](file#section)', () => {
-    expect(preprocessWikiLinks('[[guide#intro|Introduction]]')).toBe('[Introduction](guide#intro)');
+    expect(preprocessWikiLinks('[[guide#intro|Introduction]]')).toBe('[Introduction](guide.md#intro)');
   });
 
   it('converts multiple wikilinks in one pass', () => {
@@ -96,7 +97,32 @@ describe('preprocessWikiLinks', () => {
   });
 
   it('wraps an aliased target containing spaces in angle brackets', () => {
-    expect(preprocessWikiLinks('[[sub dir/my note#intro|Read this]]')).toBe('[Read this](<sub dir/my note#intro>)');
+    expect(preprocessWikiLinks('[[sub dir/my note#intro|Read this]]')).toBe('[Read this](<sub dir/my note.md#intro>)');
+  });
+
+  it('slugs heading text the way rendered headings are slugged', () => {
+    expect(preprocessWikiLinks('[[guide#Installation Steps]]')).toBe('[guide#Installation Steps](guide.md#installation-steps)');
+  });
+
+  it('keeps an existing .md extension before a heading', () => {
+    expect(preprocessWikiLinks('[[guide.md#intro]]')).toBe('[guide.md#intro](guide.md#intro)');
+  });
+
+  it('links to the last heading of a nested heading path', () => {
+    expect(preprocessWikiLinks('[[guide#Setup#Linux]]')).toBe('[guide#Setup#Linux](guide.md#linux)');
+  });
+
+  it('links a heading-only target to a heading in the same document', () => {
+    expect(preprocessWikiLinks('[[#Getting Started|start]]')).toBe('[start](#getting-started)');
+  });
+
+  it('ignores an empty heading', () => {
+    expect(preprocessWikiLinks('[[guide#]]')).toBe('[guide#](guide.md)');
+  });
+
+  it('marks each link with the wikilink title when asked', () => {
+    expect(preprocessWikiLinks('[[a]] and [[my note|B]]', true))
+      .toBe(`[a](a "${WIKILINK_TITLE}") and [B](<my note> "${WIKILINK_TITLE}")`);
   });
 
   it('trims whitespace around an unaliased target', () => {

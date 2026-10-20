@@ -5,6 +5,8 @@ import { api } from '../renderer/api';
 import { navigateToBrowserPath } from '../store';
 import { decodeMarkdownUrl, isFileLinkHref, resolveLinkPath, splitHeadingFragment } from '../renderer/linkUtil';
 import { openFileSingle, openIdLink } from '../renderer/linkRepair';
+import { openWikiLink } from '../renderer/wikiLinks';
+import { WIKILINK_TITLE } from '../shared/mkUtil';
 import { MarkdownEntryContext } from './markdownEntryContext';
 import { getVisibleElementById } from '../renderer/entryDom';
 
@@ -22,13 +24,17 @@ interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement
  *     otherwise to the file on its own (single-file mode). A `.md` link whose title is
  *     `"id:…"` (the target's front-matter id) repairs itself when its target has been
  *     renamed or moved — see linkRepair.ts. A `.md` link may end in a heading fragment
- *     (`file.md#heading-slug`), which also scrolls to that heading.
+ *     (`file.md#heading-slug`), which also scrolls to that heading. A `[[wikilink]]`
+ *     (marked with WIKILINK_TITLE) also finds an extension-less target's `.md` file,
+ *     and when there is none creates it and opens it for editing — see wikiLinks.ts.
  *
  * Also stops mouseup propagation so link clicks don't trigger the parent's edit-mode handler.
  */
 // `node` is react-markdown's internal hast node; destructure it out so it isn't
 // spread onto the DOM <a> element (React warns on unknown DOM props).
 export default function CustomAnchor({ href, children, entryPath, node, ...props }: CustomAnchorProps) {
+  const isWikiLink = props.title === WIKILINK_TITLE;
+
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.stopPropagation();
     if (!href) return;
@@ -65,6 +71,11 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
       // to the literal filesystem path before resolving.
       const decodedHref = decodeMarkdownUrl(linkPath);
 
+      if (isWikiLink) {
+        openWikiLink(entryPath, decodedHref, headingSlug);
+        return;
+      }
+
       // Resolve relative paths against the markdown file's own directory.
       const targetPath = resolveLinkPath(entryPath, decodedHref);
 
@@ -100,6 +111,8 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
       {...props}
       className={clsx(props.className, isFileLinkHref(href) ? 'md-link-file' : 'md-link-web')}
       href={href}
+      // The wikilink marker is for the click handler, not a tooltip.
+      title={isWikiLink ? undefined : props.title}
       onClick={handleClick}
       onMouseUp={(e) => e.stopPropagation()}
     >

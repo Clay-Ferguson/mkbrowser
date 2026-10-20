@@ -1,3 +1,4 @@
+import { slug } from 'github-slugger';
 import { isTocTagComment } from './tocUtil';
 
 /**
@@ -76,37 +77,67 @@ export function stripHtmlComments(content: string): string {
 }
 
 /**
+ * The link title `preprocessWikiLinks` gives a converted wikilink when asked to mark
+ * it, so the app's link handler (CustomAnchor) can tell a wikilink from an ordinary
+ * Markdown link once both are plain `<a>` elements.
+ */
+export const WIKILINK_TITLE = 'mk:wikilink';
+
+/**
  * Preprocess wikilinks: convert [[target]] and [[target|alias]] syntax
  * into standard markdown links before rendering.
  *
  * Supports:
  *   [[file]]              → [file](file)
  *   [[file|description]]  → [description](file)
- *   [[file#section]]      → [file#section](file#section)
- *   [[file#section|desc]] → [desc](file#section)
+ *   [[file#Section]]      → [file#Section](file.md#section)
+ *   [[file#Section|desc]] → [desc](file.md#section)
+ *   [[#Section]]          → [#Section](#section)
+ *
+ * With `markTitle`, each converted link also gets the title `WIKILINK_TITLE`
+ * (`[file](file "mk:wikilink")`).
  *
  * A wikilink must open and close on the same line and can't contain brackets, so a
  * stray `[[` never pairs with the `]]` of a later wikilink. Fenced code blocks are
  * left untouched.
  */
-export function preprocessWikiLinks(content: string): string {
+export function preprocessWikiLinks(content: string, markTitle = false): string {
+  const title = markTitle ? ` "${WIKILINK_TITLE}"` : '';
   return replaceOutsideFences(content, /\[\[[^[\]\n]+\]\]/, (match) => {
     const inner = match.slice(2, -2);
     const pipeIndex = inner.indexOf('|');
     if (pipeIndex !== -1) {
       const target = inner.slice(0, pipeIndex).trim();
       const alias = inner.slice(pipeIndex + 1).trim();
-      return `[${alias}](${wikiLinkDestination(target)})`;
+      return `[${alias}](${wikiLinkDestination(target)}${title})`;
     }
     const target = inner.trim();
-    return `[${target}](${wikiLinkDestination(target)})`;
+    return `[${target}](${wikiLinkDestination(target)}${title})`;
   });
 }
 
-/** A bare CommonMark link destination can't contain whitespace, so a target with
- *  spaces (`[[my note]]`) is wrapped in angle brackets, where spaces are literal. */
+/**
+ * The Markdown link destination for a wikilink target. In a wikilink every `#`
+ * starts a heading (as in Obsidian), so `file#Some Heading` becomes
+ * `file.md#some-heading`: `.md` is added because the app's link handling only reads a
+ * `#` after `.md` as a heading (other file names may contain `#`), and the heading
+ * text becomes the slug rehype-slug gives the rendered heading. Of nested headings
+ * (`file#Chapter#Section`) only the last is used. With no file (`#Some Heading`) it's
+ * a heading in the same document.
+ *
+ * A bare CommonMark link destination can't contain whitespace, so a destination with
+ * spaces (`[[my note]]`) is wrapped in angle brackets, where spaces are literal.
+ */
 function wikiLinkDestination(target: string): string {
-  return /\s/.test(target) ? `<${target}>` : target;
+  let dest = target;
+  const hashIndex = target.indexOf('#');
+  if (hashIndex !== -1) {
+    const file = target.slice(0, hashIndex).trim();
+    const fragment = slug(target.slice(target.lastIndexOf('#') + 1).trim());
+    const mdFile = file === '' || /\.md$/i.test(file) ? file : `${file}.md`;
+    dest = fragment ? `${mdFile}#${fragment}` : (mdFile || '#');
+  }
+  return /\s/.test(dest) ? `<${dest}>` : dest;
 }
 
 /**

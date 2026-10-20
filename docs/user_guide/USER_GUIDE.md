@@ -93,6 +93,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
 * [Wikilinks](#wikilinks)
   * [Syntax](#syntax)
   * [Examples](#examples)
+  * [Creating Files from Wikilinks](#creating-files-from-wikilinks)
 * [LaTeX Math Support](#latex-math-support)
   * [Syntax](#syntax-1)
   * [Escaping Dollar Signs for Currency](#escaping-dollar-signs-for-currency)
@@ -1114,6 +1115,9 @@ MkBrowser supports wikilink syntax, a popular convention (used by Obsidian, Noti
 - **Link with alias**: `[[filename|My Description]]` — creates a link to the file, displayed as "My Description".
 - **Link to section**: `[[filename#section]]` — creates a link to a specific section heading within the file.
 - **Section link with alias**: `[[filename#section|description]]` — creates a link to a section, displayed as "description".
+- **Section in the same file**: `[[#section]]` — links to a heading in the file you're reading.
+
+In a wikilink, `#` always starts a section name, and the `.md` extension is optional (`[[guide#installation]]` and `[[guide.md#installation]]` are the same link). Write the section as the heading's text, for example `[[guide#Getting Started]]`. Capitalization and punctuation don't need to match exactly. For a heading nested under another, you can write the whole path, as in `[[guide#Setup#Linux]]`, and the link goes to the last heading.
 
 ## Examples
 
@@ -1121,10 +1125,27 @@ MkBrowser supports wikilink syntax, a popular convention (used by Obsidian, Noti
 |-----------|-------------|
 | `[[readme]]` | A clickable link labeled "readme" pointing to `readme` |
 | `[[notes.md\|My Notes]]` | A clickable link labeled "My Notes" pointing to `notes.md` |
-| `[[guide#installation]]` | A clickable link labeled "guide#installation" pointing to the "installation" section of `guide` |
-| `[[guide#installation\|Setup]]` | A clickable link labeled "Setup" pointing to the "installation" section of `guide` |
+| `[[guide#installation]]` | A clickable link labeled "guide#installation" pointing to the "installation" section of `guide.md` |
+| `[[guide#installation\|Setup]]` | A clickable link labeled "Setup" pointing to the "installation" section of `guide.md` |
+| `[[#Getting Started]]` | A clickable link labeled "#Getting Started" pointing to the "Getting Started" section of the current file |
 
-Clicking a wikilink navigates to the linked file, just like clicking any other Markdown link in MkBrowser.
+Clicking a wikilink navigates to the linked file, just like clicking any other Markdown link in MkBrowser. The `.md` extension is optional: `[[readme]]` opens `readme.md` when there is no file named just `readme`.
+
+## Creating Files from Wikilinks
+
+As in Obsidian, clicking a wikilink to a file that doesn't exist yet creates it for you. MkBrowser makes a new, empty file and immediately opens it for editing on its own, the same single-file view you get by clicking a file in the index tree. There is no confirmation prompt.
+
+- The new file is created in the same folder as the file containing the link.
+- `.md` is added to the name unless it already ends in `.md` or a text-file extension such as `.txt`. So `[[Meeting Notes]]` creates `Meeting Notes.md`, and `[[todo.txt]]` creates `todo.txt`.
+- A link to a section of a missing file, like `[[Meeting Notes#Actions]]`, creates the file (`Meeting Notes.md`) the same way.
+
+This lets you write a link to a note you haven't written yet, then click it to start writing that note.
+
+A file is only created when the link is a plain file name in the current folder. It must start with an ordinary file name character, and it can't contain a path. Clicking a link to a missing file whose name breaks any of these rules just opens it like any other link, and nothing is created:
+
+- Names that start with `.`, `..`, `/` or `\`, such as `[[../other]]` or `[[.hidden]]`.
+- Names that point into another folder, such as `[[subfolder/note]]`.
+- Names containing a character that isn't allowed in file names on Windows (`< > : " | ? *`), or one with a special meaning in wikilinks (`#`, `^`, `[`, `]`).
 
 # LaTeX Math Support
 

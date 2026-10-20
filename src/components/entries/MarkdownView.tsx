@@ -55,7 +55,7 @@ interface MarkdownViewProps {
  */
 function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownViewProps) {
   const rawContent = showToc ? (content || '') : removeTOC(content || '');
-  const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
+  const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)), true);
   const columns = splitOnColumnBreaks(processedContent);
 
   // Block positions are lines of rawContent, but the editor is loaded with removeTOC(content),

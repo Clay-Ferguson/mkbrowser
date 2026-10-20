@@ -230,6 +230,12 @@ describe('renderMarkdownPage', () => {
     expect(html).toContain('id="q--a-1"');
   });
 
+  it('links a wikilink heading without .md to the heading on the target page', async () => {
+    const html = await renderMarkdownPage('[[docs/guide#Getting Started]] [[#Q & A|faq]]\n', ctx(p('index.md')), {});
+    expect(bodyOf(html)).toContain('href="docs/guide.html#getting-started"');
+    expect(bodyOf(html)).toContain('href="#q--a"');
+  });
+
   it('renders the generated TOC as a compact toc-list, without the TOC tags', async () => {
     const md = await processTOC('<!-- TOC -->\n\n# One\n\n## Two\n');
     const html = await renderMarkdownPage(md, ctx(p('index.md')), {});
