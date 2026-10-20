@@ -91,6 +91,21 @@ describe('preprocessWikiLinks', () => {
     expect(preprocessWikiLinks('[[ file | label ]]')).toBe('[label](file)');
   });
 
+  it('does not pair a stray [[ with the ]] of a wikilink on a later line', () => {
+    const input = 'This is not [[ a wikilink.\n\nThis is a [[wikilink]] on second line.';
+    expect(preprocessWikiLinks(input)).toBe(
+      'This is not [[ a wikilink.\n\nThis is a [wikilink](wikilink) on second line.',
+    );
+  });
+
+  it('does not pair a stray [[ with the ]] of a later wikilink on the same line', () => {
+    expect(preprocessWikiLinks('a [[ b [[c]]')).toBe('a [[ b [c](c)');
+  });
+
+  it('does not convert a wikilink split across lines', () => {
+    expect(preprocessWikiLinks('[[foo\nbar]]')).toBe('[[foo\nbar]]');
+  });
+
   it('leaves regular markdown links untouched', () => {
     expect(preprocessWikiLinks('[link](url)')).toBe('[link](url)');
   });

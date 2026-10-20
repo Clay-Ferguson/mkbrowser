@@ -85,10 +85,12 @@ export function stripHtmlComments(content: string): string {
  *   [[file#section]]      → [file#section](file#section)
  *   [[file#section|desc]] → [desc](file#section)
  *
- * Fenced code blocks are left untouched.
+ * A wikilink must open and close on the same line and can't contain brackets, so a
+ * stray `[[` never pairs with the `]]` of a later wikilink. Fenced code blocks are
+ * left untouched.
  */
 export function preprocessWikiLinks(content: string): string {
-  return replaceOutsideFences(content, /\[\[[^\]]+\]\]/, (match) => {
+  return replaceOutsideFences(content, /\[\[[^[\]\n]+\]\]/, (match) => {
     const inner = match.slice(2, -2);
     const pipeIndex = inner.indexOf('|');
     if (pipeIndex !== -1) {

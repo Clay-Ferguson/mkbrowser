@@ -61,7 +61,7 @@ const LINK_SCANNER = new RegExp(
     // Inline code span (single-line, any backtick run length).
     String.raw`(?<code>(?<ticks>` + '`+' + String.raw`)[^\n]*?\k<ticks>)`,
     // [[target]], [[target|alias]], [[target#section]]; a leading ! is an embed (image).
-    String.raw`(?<wikiBang>!?)\[\[(?<wiki>[^\]\n]+)\]\]`,
+    String.raw`(?<wikiBang>!?)\[\[(?<wiki>[^\[\]\n]+)\]\]`,
     // [text](dest "title") / [text](<dest>); a leading ! is an image.
     String.raw`(?<bang>!?)\[${LINK_TEXT}\]\(\s*(?:<(?<angleDest>[^<>\n]*)>|(?<dest>[^\s()<>]*(?:\([^\s()]*\)[^\s()<>]*)*))(?:\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\([^)]*\)))?\s*\)`,
     // Reference definition: [ref]: dest
