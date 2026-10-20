@@ -70,7 +70,7 @@ export default function CustomPre({ children, node: _node, ...props }: React.HTM
 
   if (hasLanguage) {
     return (
-      <div className="relative group not-prose mb-4">
+      <div className="relative group/code not-prose mb-4">
         {children}
         {!isMermaid && copyButton}
       </div>
@@ -78,7 +78,7 @@ export default function CustomPre({ children, node: _node, ...props }: React.HTM
   }
 
   return (
-    <div className="relative group">
+    <div className="relative group/code">
       <pre {...props}>{children}</pre>
       {copyButton}
     </div>

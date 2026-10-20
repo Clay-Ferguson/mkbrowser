@@ -246,7 +246,7 @@ While editing a Markdown file you can quickly insert a link to any other file or
 2. In the editor of the Markdown file you're working on, place the cursor where you want the link (or select text to replace).
 3. Right-click in the editor and choose **Paste Link**.
 
-**Paste Link** appears in the editor's context menu whenever the clipboard holds the path of an existing file or folder — an absolute path, or one relative to the root folder — so it also works with a path copied from somewhere else. It also works with a heading link copied by right-clicking a rendered heading.
+**Paste Link** appears in the editor's context menu whenever the clipboard holds the path of an existing file or folder — an absolute path, or one relative to the root folder — so it also works with a path copied from somewhere else. It also works with a heading link copied with the chain-link icon that appears when you hover over a rendered heading.
 
 MkBrowser inserts a Markdown link at the cursor position, with the path computed **relative to the file you are editing** — so you can link to anything in the tree, including files in completely different folders. For example:
 
@@ -264,7 +264,7 @@ Because the id is part of the link itself, the link can be resolved by id even i
 
 If the link's target *does* exist but its front matter `id` doesn't match the id in the link (for example, the original file was renamed and a different file later took its name), MkBrowser still opens it but shows a warning that you may be viewing a different file than the one originally linked. If the file carrying the link's id can be found, the warning names it and offers an **Open Linked File** button. The link is not changed in this case.
 
-You can also link to a specific **heading** inside a Markdown file by adding the heading after a `#` at the end of the link. A quick way is to paste a link to the file as above, then type the `#` part yourself:
+You can also link to a specific **heading** inside a Markdown file by adding the heading after a `#` at the end of the link. The quickest way is to hover over the heading in the rendered document, click the chain-link icon that appears to its right to copy a link to it, then use **Paste Link** in the editor. You can also paste a link to the file as above, then type the `#` part yourself:
 
 ```
 [notes — Getting Started](../reference/notes.md#getting-started "id:abc123")

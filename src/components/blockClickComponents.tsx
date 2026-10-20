@@ -1,5 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { Components, ExtraProps } from 'react-markdown';
+import { LinkIcon } from '@heroicons/react/24/outline';
+import { BUTTON_CLASS_HEADING_LINK } from '../renderer/styles';
 import { pressStartedOnScrollbar } from '../renderer/scrollbarPress';
 import { formatHeadingLink, getPathRelativeToDir } from '../renderer/linkUtil';
 import { isPathInside } from '../renderer/pathUtil';
@@ -89,37 +91,47 @@ function copyHeadingLink(link: string): void {
 }
 
 /**
- * A heading block that, besides click-to-edit, copies a Markdown link to itself on
- * right-click — `[Heading Text](docs/file.md#heading-slug)`: the file's path relative to the
- * browsing root (the breadcrumb's Home folder) plus the heading's slug (the id rehype-slug
- * assigns). "Paste Link" in the editor turns it into a link relative to the file
- * it is pasted into. Files outside
- * the root (e.g. the bundled User Guide in HelpView) have no such path, so they render
- * as plain block elements and keep the native context menu.
+ * A heading block that, besides click-to-edit, shows a chain-link icon on hover which copies
+ * a Markdown link to the heading — `[Heading Text](docs/file.md#heading-slug)`: the file's
+ * path relative to the browsing root (the breadcrumb's Home folder) plus the heading's slug
+ * (the id rehype-slug assigns). "Paste Link" in the editor turns it into a link relative to
+ * the file it is pasted into. Files outside the root (e.g. the bundled User Guide in
+ * HelpView) have no such path, so they render as plain block elements with no icon.
  */
-function BlockHeading<Tag extends HeadingTag>({ tag, ...props }: BlockProps<Tag> & { tag: Tag }) {
+function BlockHeading<Tag extends HeadingTag>({ tag, children, className, ...props }: BlockProps<Tag> & { tag: Tag }) {
   const entryPath = useContext(MarkdownEntryContext);
   const rootPath = useAS(s => s.rootPath);
   const slug = props.id;
 
   if (!slug || !entryPath || !rootPath || !isPathInside(rootPath, entryPath)) {
-    return <BlockElement tag={tag} {...props} />;
+    return <BlockElement tag={tag} className={className} {...props}>{children}</BlockElement>;
   }
 
-  const handleContextMenu = (e: React.MouseEvent) => {
+  const handleCopyClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    const headingText = (e.currentTarget.textContent ?? '').trim();
+    // The button holds only an SVG, so the heading's textContent is just the heading text.
+    const headingText = (e.currentTarget.parentElement?.textContent ?? '').trim();
     copyHeadingLink(formatHeadingLink(headingText, getPathRelativeToDir(rootPath, entryPath), slug));
   };
 
   return (
-    <BlockElement
-      tag={tag}
-      {...props}
-      title="Right-click to copy link"
-      onContextMenu={handleContextMenu}
-    />
+    <BlockElement tag={tag} {...props} className={className ? `${className} group/heading` : 'group/heading'}>
+      {children}
+      <button
+        type="button"
+        className={BUTTON_CLASS_HEADING_LINK}
+        title="Copy link to this heading"
+        aria-label="Copy link to this heading"
+        onClick={handleCopyClick}
+        // The parent entry enters edit mode on mouseup (MarkdownEntry.tsx), not click,
+        // so the button has to stop that event specifically.
+        onMouseUp={(e) => e.stopPropagation()}
+      >
+        {/* em-sized so the icon scales with the heading level, but never below 18px */}
+        <LinkIcon className="size-[max(0.75em,18px)]" />
+      </button>
+    </BlockElement>
   );
 }
 

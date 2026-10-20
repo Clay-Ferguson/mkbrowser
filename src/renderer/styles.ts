@@ -213,8 +213,14 @@ export const BUTTON_CLASS_DLG_CLOSE = `${BTN} flex items-center justify-center w
  *  (`rounded-l-none` squares off the base radius where it meets the input). */
 export const BUTTON_CLASS_COMBO_TOGGLE = `${BTN} px-2 rounded-l-none border bg-btn-input-bg border-btn-input-border hover:bg-btn-input-bg-hover focus:outline-none focus:border-btn-focus`;
 
-/** "Copy" button revealed on hover over a fenced code block. */
-export const BUTTON_CLASS_CODE_COPY = `${BTN} absolute top-2 right-2 p-1.5 rounded bg-btn-neutral/80 hover:bg-btn-neutral-hover text-btn-ghost hover:text-btn-ghost-hover opacity-0 group-hover:opacity-100`;
+/** "Copy" button revealed on hover over a fenced code block (named `group/code`, set on the
+ *  block wrapper in CustomPre — see BUTTON_CLASS_HEADING_LINK for why it must be named). */
+export const BUTTON_CLASS_CODE_COPY = `${BTN} absolute top-2 right-2 p-1.5 rounded bg-btn-neutral/80 hover:bg-btn-neutral-hover text-btn-ghost hover:text-btn-ghost-hover opacity-0 group-hover/code:opacity-100`;
+
+/** Chain-link "copy link" button revealed on hover over a rendered Markdown heading. Uses the
+ *  named `group/heading` (set on the heading) because an ancestor entry container is also a
+ *  plain `group`, which would reveal every heading's icon at once. */
+export const BUTTON_CLASS_HEADING_LINK = `${BTN} inline-flex align-middle ml-2 p-0.5 rounded text-btn-ghost hover:text-btn-ghost-hover opacity-0 group-hover/heading:opacity-100 focus-visible:opacity-100 transition-opacity`;
 
 /** Full-width clickable list row (folder analysis hashtag list). */
 export const BUTTON_CLASS_ROW = `${BTN} w-full flex items-center justify-between py-1.5 px-3 text-left hover:bg-btn-row-hover`;
