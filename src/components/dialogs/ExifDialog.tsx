@@ -239,13 +239,13 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
       title={`EXIF — ${fileName}`}
       onClose={onClose}
       closeOnBackdrop
-      className={clsx('font-mono w-full min-w-[400px] flex flex-col max-h-[85vh]', editMode ? 'max-w-6xl' : 'max-w-5xl')}
+      className={clsx('w-full min-w-[400px] flex flex-col max-h-[85vh]', editMode ? 'max-w-6xl' : 'max-w-5xl')}
     >
       <div className="flex flex-col flex-1 min-h-0 p-6">
         {isEmpty ? (
-          <p className="text-slate-400 mb-6">No EXIF metadata found in this image.</p>
+          <p className="font-mono text-slate-400 mb-6">No EXIF metadata found in this image.</p>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-4 mb-6">
+          <div className="font-mono flex-1 min-h-0 overflow-y-auto pr-2 space-y-4 mb-6">
             {deduped.map(([groupName, tags]) => (
               <div key={groupName}>
                 <h3 className="text-slate-300 text-sm font-semibold uppercase tracking-wider border-b border-slate-600 pb-1 mb-2">
