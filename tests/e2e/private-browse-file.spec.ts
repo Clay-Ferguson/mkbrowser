@@ -294,7 +294,7 @@ The breadcrumb path stays at the top so you can confirm which file you're editin
       screenshotDir,
       step++,
       `Clicking a folder in the tree behaves as it always has — it expands and collapses, and never takes over the pane.
-Single-file browsing is a file-only gesture, and right-clicking a file and choosing "Browse" is the other way back to the folder listing.`
+Single-file browsing is a file-only gesture, and right clicking a file and choosing "Browse" is the other way back to the folder listing.`
     );
 
     // --- Phase 5: the folder listing kept its own editor preference ---------

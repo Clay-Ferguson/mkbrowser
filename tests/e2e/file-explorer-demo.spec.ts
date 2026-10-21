@@ -102,8 +102,8 @@ Let's click on it to open it on its own in the right-hand panel.`
     writeNarration(
       screenshotDir,
       step++,
-      `Now let's try a right-click on the user guide in the tree.
-Right-clicking a file in the tree opens a context menu with several actions you can take on that item.`
+      `Now let's try a right click on the user guide in the tree.
+Right clicking a file in the tree opens a context menu with several actions you can take on that item.`
     );
 
     await demoRightClick(userGuideFileAgain);

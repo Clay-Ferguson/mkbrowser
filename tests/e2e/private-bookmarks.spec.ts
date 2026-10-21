@@ -241,7 +241,7 @@ They're sorted alphabetically by their display name, so you can always find them
       screenshotDir,
       step++,
       `In one click, the app opened our bookmarked file on its own, with nothing else competing for the view.
-Bookmarks are a fast way to teleport around your workspace. Right-click the file in the tree and choose "Browse" to return to the folder listing.`
+Bookmarks are a fast way to teleport around your workspace. Right click the file in the tree and choose "Browse" to return to the folder listing.`
     );
 
     // Back to the folder listing — the remaining steps drive the file's entry

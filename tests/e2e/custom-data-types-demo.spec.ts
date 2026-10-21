@@ -298,7 +298,7 @@ Now let's put it to use in a note.`
       screenshotDir,
       step++,
       `The new file is open in the editor.
-Rather than typing the contact's properties by hand, we'll right-click inside the editor and let MkBrowser insert them for us.`
+Rather than typing the contact's properties by hand, we'll right click inside the editor and let MkBrowser insert them for us.`
     );
 
     await demoRightClick(mainWindow.locator('.cm-content').first());

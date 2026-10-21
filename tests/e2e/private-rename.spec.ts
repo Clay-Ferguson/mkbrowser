@@ -133,7 +133,7 @@ We'll rename each of them in turn, right from the file list.`
     writeNarration(
       screenshotDir,
       step++,
-      `We right-clicked the file's name, and it turned into an editable text field.
+      `We right clicked the file's name, and it turned into an editable text field.
 The base name is pre-selected while the extension is preserved.
 Let's type a new name and press Enter.`
     );
@@ -156,7 +156,7 @@ Let's type a new name and press Enter.`
       screenshotDir,
       step++,
       `The file now shows its new name in the list, and on disk it has been renamed too.
-Renaming a file is as simple as right-click, type, Enter.`
+Renaming a file is as simple as right click, type, Enter.`
     );
 
     // --- Phase 2: rename the folder ----------------------------------------
@@ -170,7 +170,7 @@ Renaming a file is as simple as right-click, type, Enter.`
       screenshotDir,
       step++,
       `Folders rename exactly the same way.
-We right-clicked the folder, and its name became an editable field.
+We right clicked the folder, and its name became an editable field.
 Here the whole name is selected, since a folder has no extension to protect.`
     );
 
