@@ -87,7 +87,7 @@ test.describe('Private: Bookmarks', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. Today we're looking at bookmarks, which let you pin any folder or file so you can jump straight back to it later, no matter where you've navigated.
+      `Welcome to this quick tour of MkBrowser. Today we're looking at bookmarks, which let you pin any folder or file so you can jump straight back to it later, no matter where you've navigated.
 Here we have a folder and a markdown file in our workspace — let's create a couple of bookmarks.`
     );
 

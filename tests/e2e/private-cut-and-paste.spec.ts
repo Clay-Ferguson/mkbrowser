@@ -78,7 +78,7 @@ test.describe('Private: Cut and Paste', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. Today we're looking at cutting and pasting files, which lets you move files from one folder into another.
+      `Welcome to this quick tour of MkBrowser. Today we're looking at cutting and pasting files, which lets you move files from one folder into another.
 Here we have three markdown files and an empty destination folder — we'll select two of the files, cut them, and paste them into the folder.`
     );
 

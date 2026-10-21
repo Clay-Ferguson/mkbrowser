@@ -54,7 +54,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. 
+      `Welcome to this quick tour of MkBrowser. 
       Today we're going to try out the built-in AI Chat feature. 
       This lets you have a back-and-forth conversation with an AI, right inside your file browser.`
     );
@@ -172,7 +172,7 @@ test.describe('AI Chat Demo', () => {
       screenshotDir,
       step++,
       `We've typed our follow-up: is there a quiet spot nearby for a drink? 
-      Let's send it.`
+      Let's send this follow-up question off to the AI.`
     );
 
     // ── 9. Queue second scripted answer, then click "Ask AI" ──────────

@@ -41,7 +41,7 @@ test.describe('Generate PDF Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser.
+      `Welcome to this quick tour of MkBrowser.
 In this demo we will generate a PDF from the Federalist Papers content.
 You can see the folder listing in front of us, including the federalist-papers folder that holds all of the documents we want to export.`
     );
@@ -243,7 +243,7 @@ After assembling the Markdown, MkBrowser will automatically convert it to a poli
     writeNarration(
       screenshotDir,
       step++,
-      `Everything is configured.
+      `Everything is now configured just the way we want it.
 Let's click the Export button to kick off the export process.`
     );
 

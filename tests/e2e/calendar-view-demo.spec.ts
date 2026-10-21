@@ -57,7 +57,7 @@ test.describe('Calendar View Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser.
+      `Welcome to this quick tour of MkBrowser.
 In this demo we are going to create a repeating, weekly calendar item.
 We are currently inside a folder named "calendar", which we created to hold our calendar entries.
 Right now the folder is empty, so let's open the Calendar View to get started.`
@@ -390,7 +390,7 @@ Let's click "Save" to save our changes and close the editor.`
       screenshotDir,
       step++,
       `And there it is — our "bi-weekly-reports" item now appears multiple times across the calendar, repeating every two weeks just as we set it up.
-That's how easy it is to create and schedule a repeating calendar item in MkBrowser. Thanks for watching!`
+That's how easy it is to create and schedule a repeating calendar item in MkBrowser.`
     );
 
     // End of demo.

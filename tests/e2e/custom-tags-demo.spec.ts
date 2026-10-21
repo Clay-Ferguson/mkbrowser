@@ -39,7 +39,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser.
+      `Welcome to this quick tour of MkBrowser.
       In this demo we'll look at how you can define your own custom hashtags and then attach them to your files.
       Hashtags give you a simple, consistent way to label notes — for things like priority, type, or category — so they're easy to find later.
       Let's start by opening the System Menu so we can take a look at where our hashtags are defined.`

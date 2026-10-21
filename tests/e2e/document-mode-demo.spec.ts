@@ -52,7 +52,7 @@ test.describe('Document Mode Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. In this demo we will be exploring the Document Mode feature using a folder that contains part of the Federalist Papers —
+      `Welcome to this quick tour of MkBrowser. In this demo we will be exploring the Document Mode feature using a folder that contains part of the Federalist Papers —
        a collection of historical political essays.
        You can see the folder contents listed here, with each file and subfolder representing a section of the document.`
     );

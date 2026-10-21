@@ -115,7 +115,7 @@ test.describe('Private: Rename', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. Today we're looking at the rename feature.
+      `Welcome to this quick tour of MkBrowser. Today we're looking at the rename feature.
 We've got a markdown file, a folder, and a note that has its own attachments folder.
 We'll rename each of them in turn, right from the file list.`
     );
@@ -201,7 +201,7 @@ Now for the most interesting case: renaming a note that owns an attachments fold
       step++,
       `This note has a companion attachments folder, named after it with a dot-attach suffix.
 That folder holds any images or files the note references.
-When we rename the note, MkBrowser automatically renames the attachments folder to match, so the association is never broken. Let's watch.`
+When we rename the note, MkBrowser automatically renames the attachments folder to match, so the association is never broken. Let's rename the note and watch it happen.`
     );
 
     // Exact match is essential here: the attachments folder is named

@@ -79,7 +79,7 @@ Now let's create the file and add our diagram content.`
     writeNarration(
       screenshotDir,
       step++,
-      `Perfect! Our file is created and the editor is ready.
+      `Perfect, our file has been created and the editor is ready.
 Now let's add a Mermaid diagram.
 We'll create a diagram showing a modern web application architecture with multiple interconnected components.`
     );
@@ -147,7 +147,7 @@ Now watch what happens when we save.`
     writeNarration(
       screenshotDir,
       step++,
-      `Incredible! The simple text code has been transformed into a beautiful, professional diagram.
+      `Just look at how incredible that is! The simple text code has been transformed into a beautiful, professional diagram.
 You can see all the components of our web application — the browser, frontend React app, backend API, database, cache, message queue, 
 and background worker — all connected with labeled arrows showing how data flows through the system.
 The color-coded components make it even easier to understand.

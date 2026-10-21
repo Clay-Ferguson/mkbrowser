@@ -48,7 +48,7 @@ test.describe('AI Vision Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. 
+      `Welcome to this quick tour of MkBrowser. 
       Today we'll demonstrate the AI Vision feature, which lets you ask an AI questions about images right from your file browser.`
     );
 

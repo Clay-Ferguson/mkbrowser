@@ -89,7 +89,7 @@ test.describe('Private: Replace in Files', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser.
+      `Welcome to this quick tour of MkBrowser.
 Today we're going to look at Replace in Files, which finds and replaces text across every markdown and text file in a folder and its subfolders.
 Let's open this folder to see what we're working with.`
     );

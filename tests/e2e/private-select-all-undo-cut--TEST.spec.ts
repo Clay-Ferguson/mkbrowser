@@ -88,7 +88,7 @@ test.describe('Private: Select All, Unselect All, and Undo Cut', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. Today we'll explore the selection tools in the Edit menu — Select All and Unselect All — and the Undo Cut button that cancels a pending move.
+      `Welcome to this quick tour of MkBrowser. Today we'll explore the selection tools in the Edit menu — Select All and Unselect All — and the Undo Cut button that cancels a pending move.
 Here is our folder, holding three markdown files and an empty destination folder called "dest".`
     );
 
@@ -125,7 +125,7 @@ It only appears once we've cut something and might want to change our minds.`
       screenshotDir,
       step++,
       `Select All checks every item in the current folder at once — files and folders alike.
-Let's click it.`
+Let's click Select All and see what happens.`
     );
 
     await demoClick(selectAllItem);

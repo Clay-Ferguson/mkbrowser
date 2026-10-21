@@ -31,7 +31,7 @@ test.describe('Advanced Search Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser.
+      `Welcome to this quick tour of MkBrowser.
 In this demo we will explore the advanced search feature by running a boolean query across the Federalist Papers content.
 You can see the folder listing in front of us, including the federalist-papers folder.`
     );

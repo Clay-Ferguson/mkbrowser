@@ -91,7 +91,7 @@ test.describe('Private: Expanded Editing', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. We're looking at how the expanded — "maximized" — editor works.
+      `Welcome to this quick tour of MkBrowser. We're looking at how the expanded — "maximized" — editor works.
 This folder holds two markdown files. Let's open one of them for editing.`
     );
 

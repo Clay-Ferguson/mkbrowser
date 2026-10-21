@@ -29,7 +29,7 @@ test.describe('Search Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser.
+      `Welcome to this quick tour of MkBrowser.
 Today we'll be exploring the search feature by searching inside the Federalist Papers content.
 You can see the folder listing in front of us, including the federalist-papers folder.`
     );

@@ -34,7 +34,7 @@ test.describe('File Explorer Tree Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. In this demo we'll look at how the File Explorer Tree works.
+      `Welcome to this quick tour of MkBrowser. In this demo we'll look at how the File Explorer Tree works.
 The tree panel on the left-hand side of the app shows your file system as a navigable hierarchy of folders and files.`
     );
 

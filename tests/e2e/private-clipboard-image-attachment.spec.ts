@@ -128,7 +128,7 @@ test.describe('Private: Attach Image from Clipboard', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. Today we're looking at pasting images from your clipboard — every markdown file can attach whatever image you've copied, stored right next to the file.
+      `Welcome to this quick tour of MkBrowser. Today we're looking at pasting images from your clipboard — every markdown file can attach whatever image you've copied, stored right next to the file.
 Here is a single markdown file with no attachments yet; imagine you've just taken a screenshot, and let's attach it straight from the clipboard.`
     );
 

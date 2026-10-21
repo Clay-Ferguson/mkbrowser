@@ -92,7 +92,7 @@ test.describe('Private: Browse File', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. We're looking at single-file browsing.
+      `Welcome to this quick tour of MkBrowser. We're looking at single-file browsing.
 Right now the right-hand pane shows the whole folder listing — two markdown files among them.
 Let's pull one of them up on its own.`
     );
@@ -182,7 +182,7 @@ Over on the right, "Listing Hidden" reminds you that you're looking at one file 
       screenshotDir,
       step++,
       `Clicking the file's body opened the editor, just like it does in the folder listing.
-We've typed a new line at the end. Let's save it.`
+We've typed a new line at the end, and in a moment we'll save it.`
     );
 
     // The editor is ALWAYS maximized here — no toggling required, and the

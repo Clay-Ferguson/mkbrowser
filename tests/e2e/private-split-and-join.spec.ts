@@ -81,7 +81,7 @@ test.describe('Split and Join Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser.
+      `Welcome to this quick tour of MkBrowser.
 Today we're going to look at the Split and Join features, which let you break a document apart into separate files, and put it back together again.
 We'll start by opening this folder, which contains a single markdown file.`
     );

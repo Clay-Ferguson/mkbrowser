@@ -74,7 +74,7 @@ Now let's create the file and add a math formula.`
     writeNarration(
       screenshotDir,
       step++,
-      `Great! Our file is created and the editor is ready.
+      `Great, our file has been created and the editor is ready.
 Now let's add some [LaTeX](/lˈeɪtɛk/) content.
 We'll start with a brief explanation, then include the quadratic formula.`
     );
@@ -116,7 +116,7 @@ Now watch what happens when we save.`
     writeNarration(
       screenshotDir,
       step++,
-      `Amazing! The [LaTeX](/lˈeɪtɛk/) code has been automatically rendered into a beautiful, properly formatted math formula.
+      `Now that looks absolutely amazing! The [LaTeX](/lˈeɪtɛk/) code has been automatically rendered into a beautiful, properly formatted math formula.
 The quadratic formula is now displayed with professional typography — fractions, square roots, and math symbols are perfectly rendered.
 This makes MkBrowser ideal for taking notes on mathematics, physics, or any technical subject.
 No special tools needed — just write your [LaTeX](/lˈeɪtɛk/) between dollar sign delimiters and MkBrowser handles the rest.`

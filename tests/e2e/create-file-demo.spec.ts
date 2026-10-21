@@ -32,7 +32,7 @@ test.describe('Create File Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser.
+      `Welcome to this quick tour of MkBrowser.
 Here we can see our files displayed in a browsable list.
 Markdown files are rendered inline, and we can create, edit, and organize files right from this interface.
 Let's create a new file to see how it works.`
