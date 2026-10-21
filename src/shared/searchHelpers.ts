@@ -60,7 +60,6 @@ export function newSearchDefinition(searchText = ''): SearchDefinition {
     sortDirection: 'desc',
     searchImageExif: false,
     mostRecent: false,
-    calendarItemsOnly: false,
   };
 }
 
@@ -81,7 +80,6 @@ export function initialSearchDefinition(
     ...initial,
     searchImageExif: initial.searchImageExif ?? false,
     mostRecent: initial.mostRecent ?? false,
-    calendarItemsOnly: initial.calendarItemsOnly ?? false,
   };
 }
 
@@ -103,8 +101,7 @@ export function isSearchDefinitionDirty(form: SearchDefinition, saved: SearchDef
     || a.sortBy !== b.sortBy
     || a.sortDirection !== b.sortDirection
     || a.searchImageExif !== b.searchImageExif
-    || a.mostRecent !== b.mostRecent
-    || a.calendarItemsOnly !== b.calendarItemsOnly;
+    || a.mostRecent !== b.mostRecent;
 }
 
 /**

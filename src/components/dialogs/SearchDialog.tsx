@@ -36,8 +36,8 @@ interface PendingConfirm {
  * The full search dialog, laid out like TagsEditorView: a left panel listing the
  * saved search definitions (SearchDefinitionsPanel) and a right panel of search
  * options — the query, the target (file contents and/or names), the match type
- * (literal/wildcard/advanced), the EXIF / recent-files / calendar-items-only
- * toggles, and result sorting.
+ * (literal/wildcard/advanced), the EXIF / recent-files toggles, and result
+ * sorting.
  *
  * The form edits one SearchDefinition. Selecting a row in the list loads that
  * saved definition (its name is shown above the form); with no row selected the
@@ -72,7 +72,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   const noTarget = !searchContents && !searchNames;
   const searchImageExif = def.searchImageExif ?? false;
   const mostRecent = def.mostRecent ?? false;
-  const calendarItemsOnly = def.calendarItemsOnly ?? false;
   /** A change handler that sets one field of the definition being edited. */
   const set = <K extends keyof SearchDefinition>(key: K) => (value: SearchDefinition[K]) =>
     setDef((d) => ({ ...d, [key]: value }));
@@ -274,8 +273,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                   label="Search Image EXIF"
                   checked={searchImageExif}
                   onChange={set('searchImageExif')}
-                  // Images can never be calendar items, so the two are mutually exclusive.
-                  disabled={!searchContents || calendarItemsOnly}
+                  disabled={!searchContents}
                   testId="search-image-exif"
                   inputClassName={SEARCH_CHECKBOX_CLASS}
                 />
@@ -284,17 +282,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                   checked={mostRecent}
                   onChange={set('mostRecent')}
                   testId="search-most-recent"
-                  inputClassName={SEARCH_CHECKBOX_CLASS}
-                />
-                <CheckboxField
-                  label="Calendar Items"
-                  checked={calendarItemsOnly}
-                  onChange={set('calendarItemsOnly')}
-                  // Calendar-ness is a front-matter property, so it only means
-                  // something for a content search (see searchFolder, which
-                  // likewise ignores the flag in a names-only search).
-                  disabled={!searchContents}
-                  testId="search-calendar-items-only"
                   inputClassName={SEARCH_CHECKBOX_CLASS}
                 />
               </div>

@@ -150,43 +150,6 @@ describe('parseConfigYaml — settings tolerance', () => {
     expect((cfg?.settings as Record<string, unknown> | undefined)?.futureSetting).toBe(true);
   });
 
-  it('keeps a searchDefinition saved before calendarItemsOnly existed', () => {
-    // Legacy definitions have no calendarItemsOnly key at all. The field is
-    // optional, so the element must survive untouched and read back as
-    // undefined (which every consumer treats as false).
-    const legacy = {
-      name: 'legacy',
-      searchText: 'foo',
-      searchContents: true,
-      searchNames: false,
-      matchType: 'literal',
-      sortBy: 'modified-time',
-      sortDirection: 'desc',
-      searchImageExif: false,
-      mostRecent: false,
-    };
-    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [legacy] } });
-    expect(cfg?.settings?.searchDefinitions).toEqual([legacy]);
-    expect(cfg?.settings?.searchDefinitions?.[0]?.calendarItemsOnly).toBeUndefined();
-  });
-
-  it('round-trips a searchDefinition with calendarItemsOnly set', () => {
-    const def = {
-      name: 'cal',
-      searchText: 'standup',
-      searchContents: true,
-      searchNames: false,
-      matchType: 'literal',
-      sortBy: 'modified-time',
-      sortDirection: 'desc',
-      searchImageExif: false,
-      mostRecent: true,
-      calendarItemsOnly: true,
-    };
-    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
-    expect(cfg?.settings?.searchDefinitions?.[0]).toEqual(def);
-  });
-
   it('decodes legacy {{nl}} tokens in a saved searchText into real newlines', () => {
     const legacy = {
       name: 'multi',

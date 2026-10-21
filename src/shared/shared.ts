@@ -91,9 +91,6 @@ export interface SearchDefinition {
   searchImageExif?: boolean;
   /** Whether to limit the search to the 500 most recently modified files. */
   mostRecent?: boolean;
-  /** Whether to restrict the search to calendar files (markdown with a parseable
-   *  `due:` front-matter property). Content searches only. */
-  calendarItemsOnly?: boolean;
 }
 
 export interface Bookmark {

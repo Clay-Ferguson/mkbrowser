@@ -130,7 +130,6 @@ describe('initialSearchDefinition', () => {
     expect(initialSearchDefinition(saved('*.md'), 'highlighted')).toEqual({
       ...saved('*.md'),
       searchImageExif: false,
-      calendarItemsOnly: false,
     });
   });
 });
@@ -138,7 +137,7 @@ describe('initialSearchDefinition', () => {
 describe('isSearchDefinitionDirty', () => {
   const saved: SearchDefinition = { ...newSearchDefinition('foo'), name: 'saved' };
   // Older saved definitions may predate the optional flags.
-  const { searchImageExif: _e, mostRecent: _m, calendarItemsOnly: _c, ...legacy } = saved;
+  const { searchImageExif: _e, mostRecent: _m, ...legacy } = saved;
 
   it('is clean for a definition just loaded from the saved one', () => {
     expect(isSearchDefinitionDirty(initialSearchDefinition(legacy, null), legacy)).toBe(false);

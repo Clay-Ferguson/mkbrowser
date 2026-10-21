@@ -11,7 +11,7 @@
  *    searchImageExif is on).
  *  - searchContents + searchNames — a file is a hit when the query matches its
  *    NAME *or* its CONTENTS. The *name* half covers every file extension — except
- *    under mostRecent/calendarItemsOnly, where both halves run inside a window
+ *    under mostRecent, where both halves run inside a window
  *    drawn from the content files only. The name test is pure CPU, so it runs
  *    first and short-circuits: a name-matched file is never read. Folders are
  *    never matched in this mode.
@@ -28,7 +28,6 @@ import { createContentSearcher, compareSearchResults } from '../shared/searchHel
 import type { SearchDefinition, SearchMatchType } from '../shared/shared';
 import { compileAdvancedQuery, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
-import { isCalendarFrontMatter } from '../shared/calendarUtil';
 import { escapeRegexExceptWildcard, buildExcludePredicate, wildcardToAnchoredRegex } from '../shared/pathPattern';
 import { mapWithConcurrency } from '../shared/asyncUtil';
 import { logger } from '../shared/logUtil';
@@ -92,13 +91,9 @@ const EXIF_IMAGE_EXTENSIONS = new Set([
  * name. Shared by the crawl filter and the candidate partition so the two can
  * never disagree about what "readable" means.
  */
-function isContentCandidate(filePath: string, searchImageExif: boolean, calendarItemsOnly: boolean): boolean {
+function isContentCandidate(filePath: string, searchImageExif: boolean): boolean {
   const ext = path.extname(filePath).toLowerCase();
-  if (ext === '.md') return true;
-  // Calendar items are markdown-only, so nothing else can be a candidate —
-  // not .txt, and not images even with searchImageExif on.
-  if (calendarItemsOnly) return false;
-  if (ext === '.txt') return true;
+  if (ext === '.md' || ext === '.txt') return true;
   if (searchImageExif && EXIF_IMAGE_EXTENSIONS.has(ext)) return true;
   return false;
 }
@@ -347,69 +342,13 @@ async function statEntries(filePaths: string[], signal?: AbortSignal): Promise<S
   return stats.filter((s): s is StatEntry => s !== null);
 }
 
-/** Sort already-stat'd entries newest-first and keep the top MOST_RECENT_LIMIT.
- * Split out from filterMostRecent so a candidate set that has *already* been
- * stat'd (the calendar pre-pass below) can be trimmed without a second stat. */
-function takeMostRecent(entries: StatEntry[]): StatEntry[] {
-  // Copy before sorting: the caller's array is its own candidate list, and the
-  // pre-pass ordering shouldn't be clobbered as a side effect of trimming.
-  return [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs).slice(0, MOST_RECENT_LIMIT);
-}
-
 /**
  * Filter an array of file paths to the MOST_RECENT_LIMIT most recently modified,
  * carrying each one's captured stat times along for buildResult to reuse.
  */
 async function filterMostRecent(filePaths: string[], signal?: AbortSignal): Promise<StatEntry[]> {
-  return takeMostRecent(await statEntries(filePaths, signal));
-}
-
-/**
- * Reduce a candidate list to the *calendar files* in it — markdown files whose
- * front matter carries a parseable `due:` (see isCalendarFrontMatter, which is
- * the boolean form of the rule calendarLoader.ts uses to admit a calendar item,
- * so search and the Calendar view can never disagree).
- *
- * Runs as a pre-pass, before the mostRecent trim, so "Recent Files + Calendar
- * Items Only" yields the newest *calendar* items rather than the calendar subset
- * of the newest files (which is frequently empty in a large tree).
- *
- * Each file is read once here and its front matter parsed into `yamlCache`, so
- * the match phase's advanced-query `p` lookups don't re-parse it; the returned
- * StatEntry values also feed buildResult's cachedStat, removing the stat the
- * match phase would otherwise do. Net extra I/O is therefore one re-read of the
- * (much smaller) surviving calendar subset.
- */
-async function filterCalendarFiles(filePaths: string[], yamlCache: YamlCache, signal?: AbortSignal): Promise<StatEntry[]> {
-  const mdFiles = filePaths.filter(fp => path.extname(fp).toLowerCase() === '.md');
-  const entries = await mapWithConcurrency(
-    mdFiles,
-    SEARCH_FILE_CONCURRENCY,
-    async (fp): Promise<StatEntry | null> => {
-      signal?.throwIfAborted();
-      // Only the stat/read is wrapped: an unreadable or oversized file is an
-      // expected I/O condition we skip the same way the match phase does. The
-      // calendar test itself stays outside the catch so a genuine bug there
-      // surfaces instead of being miscategorized as "file skipped".
-      let times: StatTimes;
-      let content: string;
-      try {
-        const stat = await fs.promises.stat(fp);
-        times = { mtimeMs: stat.mtimeMs, birthtimeMs: stat.birthtimeMs, size: stat.size };
-        if (times.size > MAX_SEARCH_FILE_BYTES) {
-          logger.debug('search: skipping oversized file', fp, times.size);
-          return null;
-        }
-        content = await fs.promises.readFile(fp, 'utf-8');
-      } catch (err) {
-        logger.debug('search: skipping unreadable file in calendar filter', fp, err);
-        return null;
-      }
-      if (!isCalendarFrontMatter(getYaml(yamlCache, content, fp))) return null;
-      return { path: fp, ...times };
-    },
-  );
-  return entries.filter((e): e is StatEntry => e !== null);
+  const entries = await statEntries(filePaths, signal);
+  return entries.sort((a, b) => b.mtimeMs - a.mtimeMs).slice(0, MOST_RECENT_LIMIT);
 }
 
 /**
@@ -485,10 +424,6 @@ export type SearchFolderOptions = Partial<Omit<SearchDefinition, 'name' | 'searc
  *   In a contents search those are the 500 newest content files (.md/.txt, plus
  *   images with searchImageExif), and both name and content matching run inside
  *   that set; in a names-only search, the 500 newest files and folders.
- * - `calendarItemsOnly` — whether to restrict the search to calendar files (markdown
- *   with a parseable `due:` front-matter property). Applied *before* the mostRecent trim,
- *   and it also makes searchImageExif moot since an image can never be a calendar file.
- *   Ignored in a names-only search (the Search dialog disables the option there).
  * - `sortBy` — result order (see compareSearchResults); decides which
  *   results survive the cap
  * - `sortDirection` — 'asc' or 'desc'
@@ -508,7 +443,6 @@ export async function searchFolderWithTotal(
     ignoredPaths = [],
     searchImageExif = false,
     mostRecent = false,
-    calendarItemsOnly = false,
     sortBy = 'modified-time',
     sortDirection = 'desc',
     signal,
@@ -645,19 +579,17 @@ export async function searchFolderWithTotal(
     // tree. So advanced searches are content-only.
     const nameMatchActive = searchNames && matchPredicate !== null && matchType !== 'advanced';
 
-    // The candidate set is narrowed to a "window" when calendarItemsOnly or
-    // mostRecent is on, and BOTH halves of the search — name and content — then
-    // run inside that window. The window is always drawn from the content
-    // candidates (.md/.txt, plus images when searchImageExif is on), never from
-    // every file type: "only calendar items" must stay true, and the 500 newest
+    // The candidate set is narrowed to a "window" when mostRecent is on, and BOTH
+    // halves of the search — name and content — then run inside that window. The
+    // window is always drawn from the content candidates (.md/.txt, plus images
+    // when searchImageExif is on), never from every file type: the 500 newest
     // must be the same 500 documents whether or not there is a query, without
     // recently touched attachments/binaries taking slots from notes.
-    const narrowed = calendarItemsOnly || mostRecent;
 
     // Other file types (.pdf, .zip, …) can match by name, so the crawl widens
     // past the content candidates — but only when there is a name test and no
     // window, since a window never includes them.
-    const broadCrawl = nameMatchActive && !narrowed;
+    const broadCrawl = nameMatchActive && !mostRecent;
 
     const api = new fdir()
       .withFullPaths()
@@ -666,7 +598,7 @@ export async function searchFolderWithTotal(
         const fileName = path.basename(filePath);
         if (shouldExcludePath(fileName, filePath)) return false;
         if (broadCrawl) return true;
-        return isContentCandidate(filePath, searchImageExif, calendarItemsOnly);
+        return isContentCandidate(filePath, searchImageExif);
       })
       .withAbortSignal(abortSignal)
       .crawl(folderPath);
@@ -675,21 +607,13 @@ export async function searchFolderWithTotal(
     // An aborted fdir crawl resolves early with partial output, so check here.
     signal?.throwIfAborted();
     const contentCandidates = broadCrawl
-      ? crawled.filter(fp => isContentCandidate(fp, searchImageExif, calendarItemsOnly))
+      ? crawled.filter(fp => isContentCandidate(fp, searchImageExif))
       : crawled;
 
-    // Build the window, reusing the stats each filter captured (cached by path,
-    // fed to buildResult) so no file is stat'd twice:
-    //  - calendarItemsOnly: the calendar files, then — with mostRecent — the
-    //    newest 500 *of those* (see filterCalendarFiles).
-    //  - mostRecent alone: the 500 most recently modified content candidates.
-    let candidateWindow: StatEntry[] | null = null;
-    if (calendarItemsOnly) {
-      candidateWindow = await filterCalendarFiles(contentCandidates, yamlCache, signal);
-      if (mostRecent) candidateWindow = takeMostRecent(candidateWindow);
-    } else if (mostRecent) {
-      candidateWindow = await filterMostRecent(contentCandidates, signal);
-    }
+    // Build the window — the 500 most recently modified content candidates —
+    // reusing the stats filterMostRecent captured (cached by path, fed to
+    // buildResult) so no file is stat'd twice.
+    const candidateWindow = mostRecent ? await filterMostRecent(contentCandidates, signal) : null;
     const statCache = candidateWindow ? new Map<string, StatTimes>(candidateWindow.map(e => [e.path, e])) : null;
     let filesToSearch = candidateWindow ? candidateWindow.map(e => e.path) : contentCandidates;
 
