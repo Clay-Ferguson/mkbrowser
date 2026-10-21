@@ -253,9 +253,12 @@ export default function CalendarView() {
                encoding which selectors those happen to be. NOTE: no backticks in this block — it
                is a template literal, and one would end the string mid-stylesheet. */
             .mk-event-highlighted { border: 3px solid #a855f7 !important; }
-            /* The day the calendar was opened to show (a clicked date), in the same purple.
-               !important and after .rbc-today, so it wins over today's own background. */
-            .mk-day-target { background: rgba(168, 85, 247, 0.3) !important; }
+            /* The day the calendar was opened to show (a clicked date). Emerald, because events
+               are blue and the highlighted event is purple, so neither blends into it: a faint tint
+               plus a bright inset ring make the day easy to spot at a glance while keeping the
+               day number and events readable. !important and after .rbc-today, so it wins over
+               today's own background. */
+            .mk-day-target { background: rgba(16, 185, 129, 0.12) !important; box-shadow: inset 0 0 0 2px #34d399; }
             .rbc-selected { background: #2563eb !important; }
             /* Toolbar buttons. rbc styles :hover, :focus and :active with light greys of its own
                (#e6e6e6 and friends), at a higher specificity than a bare ".rbc-toolbar button" —
@@ -272,7 +275,7 @@ export default function CalendarView() {
             .rbc-toolbar button.rbc-active,
             .rbc-toolbar button.rbc-active:focus,
             .rbc-toolbar button.rbc-active:active { color: #fff; border-color: #3b82f6; background-color: #3b82f6; box-shadow: none; }
-            .rbc-toolbar button.rbc-active:hover { border-color: #2563eb; background-color: #2563eb; }
+            .rbc-toolbar button.rbc-active:hover { color: #fff; border-color: #2563eb; background-color: #2563eb; }
             .rbc-month-row { border-color: #334155; }
             .rbc-date-cell { color: #94a3b8; }
             .rbc-date-cell.rbc-now { color: #60a5fa; font-weight: 700; }
