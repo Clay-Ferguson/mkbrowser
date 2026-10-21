@@ -69,7 +69,6 @@ settings:
       mostRecent: false
   contentWidth: medium
   bookmarks: []
-  ocrToolsFolder: ''
   calendarItemsFolder: ''
   showPropsInEditor: false
 aiEnabled: false

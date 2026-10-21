@@ -23,7 +23,6 @@ export interface SettingsSlice {
   setShowPropsInEditor: (showPropsInEditor: boolean) => void;
   setIgnoredPaths: (ignoredPaths: string) => void;
   setContentWidth: (contentWidth: ContentWidth) => void;
-  setOcrToolsFolder: (ocrToolsFolder: string) => void;
   setCalendarItemsFolder: (calendarItemsFolder: string) => void;
   setIndexTreeWidth: (indexTreeWidth: IndexTreeWidth) => void;
   setImageSize: (imageSize: ImageSize) => void;
@@ -80,9 +79,6 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
     /** Update the content width setting. */
     setContentWidth: (contentWidth) => patchSettings('contentWidth', contentWidth),
 
-    /** Update the OCR tools folder setting. */
-    setOcrToolsFolder: (ocrToolsFolder) =>
-      patchSettings('ocrToolsFolder', ocrToolsFolder),
 
     /** Update the calendar items folder setting (where new calendar files are created). */
     setCalendarItemsFolder: (calendarItemsFolder) =>
@@ -215,10 +211,6 @@ export function setIgnoredPaths(ignoredPaths: string): void {
 
 export function setContentWidth(contentWidth: ContentWidth): void {
   getState().setContentWidth(contentWidth);
-}
-
-export function setOcrToolsFolder(ocrToolsFolder: string): void {
-  getState().setOcrToolsFolder(ocrToolsFolder);
 }
 
 export function setCalendarItemsFolder(calendarItemsFolder: string): void {

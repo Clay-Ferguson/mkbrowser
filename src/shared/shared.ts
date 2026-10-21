@@ -19,16 +19,6 @@ export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
 export type SearchSortDirection = 'asc' | 'desc';
 
 /**
- * A single OCR job to run in the external terminal. `path` is passed to ocr.sh
- * as its argument; the optional `label` is echoed as a progress header before it.
- * Both are treated as data and shell-quoted in the main process, never interpolated.
- */
-export interface OcrTarget {
-  path: string;
-  label?: string;
-}
-
-/**
  * Canonical type for the file-I/O operations injected into the transactional
  * edit utilities (`splitFile`, `joinFiles`). Grouping these callbacks into one
  * object — instead of passing each as a separate positional parameter — keeps
@@ -127,8 +117,6 @@ export interface AppSettings {
   searchDefinitions: SearchDefinition[];
   contentWidth: ContentWidth;
   bookmarks: Bookmark[];
-  /** Folder path where OCR tool utilities are stored. */
-  ocrToolsFolder: string;
   /** Folder path where new calendar item files are created. */
   calendarItemsFolder: string;
   /** Folder tree sidebar visibility and width. */
@@ -594,7 +582,6 @@ export interface ElectronAPI {
   onCalendarFileDeleted: (callback: (deletedPath: string, isFolder: boolean) => void) => () => void;
   onCalendarWatcherError: (callback: (message: string) => void) => () => void;
 
-  runOcrInTerminal: (ocrToolsFolder: string, targets: OcrTarget[]) => Promise<{ success: boolean; error?: string }>;
   insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;
   moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') => Promise<{ success: boolean; error?: string }>;

@@ -20,8 +20,8 @@ interface ExifDescriptionTarget {
  * Resolve the EXIF group/tag that should hold a Description for the given file
  * (accepts a path or a bare extension). Returns null for unsupported types.
  *
- * This mirrors the OCR script's EMBED_TAG_MAP (merlin_ocr.py) so embedded text
- * lands in the same place whether written here or by OCR — keep the two in sync.
+ * This matches the EMBED_TAG_MAP in the standalone merlin-ocr tool (merlin_ocr.py),
+ * so a hand-written Description lands where OCR text would.
  */
 function getExifDescriptionTarget(filePathOrExt: string): ExifDescriptionTarget | null {
   const ext = filePathOrExt.toLowerCase().split('.').pop();
@@ -157,7 +157,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   const handleAddDescription = () => {
     if (!editData) return;
 
-    // Where the Description belongs for this file type (shared with the OCR mapping).
+    // Where the Description belongs for this file type (matches merlin-ocr's mapping).
     const target = getExifDescriptionTarget(filePath);
     if (!target) {
       setAlertMessage('Description field is only supported for PNG and JPEG files.');

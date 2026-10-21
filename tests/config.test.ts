@@ -30,7 +30,6 @@ vi.mock('../src/store', () => ({
     searchDefinitions: [],
     contentWidth: 'medium',
     bookmarks: [],
-    ocrToolsFolder: '',
     calendarItemsFolder: '',
     indexTreeWidth: 'narrow',
     showPropsInEditor: true,

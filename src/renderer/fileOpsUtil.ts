@@ -1,8 +1,7 @@
 import type { ItemData } from '../shared/types';
-import type { OcrTarget } from '../shared/shared';
 import { api } from './api';
 import type { FileEntry } from '../global';
-import { isImageFile, isTextFile, isMarkdownFile } from '../shared/fileTypes';
+import { isTextFile, isMarkdownFile } from '../shared/fileTypes';
 import {
   deleteItems,
   clearAllSelections,
@@ -659,60 +658,6 @@ export async function makeFolderForFileOp(filePath: string): Promise<void> {
   setHighlightItem(folderPath);
   setPendingScrollToFile(folderPath);
   refreshDirectory();
-}
-
-/**
- * Launches an external terminal to run OCR on the selected image files, or on the entire
- * current folder if nothing is selected. Requires the OCR tools folder to be configured
- * in Settings; errors are surfaced via setAppError if it is missing or the launch fails.
- *
- * When items are selected: runs ocr.sh individually on each selected image file in sequence.
- * When nothing is selected: runs ocr.sh on the current folder path (batch mode).
- *
- * @param currentPath - Absolute path of the folder currently being viewed.
- * @param ocrToolsFolder - Absolute path to the folder containing ocr.sh. If undefined, an
- *   error is shown and the operation is aborted.
- * @param items - The current item map from the store, used to find selected image files.
- */
-export async function runOcr(
-  currentPath: string,
-  ocrToolsFolder: string | undefined,
-  items: ReadonlyMap<string, ItemData>
-): Promise<void> {
-  if (!ocrToolsFolder) {
-    setAppError('OCR tools folder is not configured. Set it in Settings → OCR.');
-    return;
-  }
-
-  const selectedImages = Array.from(items.values()).filter(
-    (item) => item.isSelected && !item.isDirectory && isImageFile(item.name)
-  );
-  const hasAnySelection = Array.from(items.values()).some((item) => item.isSelected);
-
-  // Pass paths/labels as structured data; the main process shell-quotes them so a
-  // path or filename can never be interpreted as shell syntax.
-  let targets: OcrTarget[];
-  if (hasAnySelection) {
-    if (selectedImages.length === 0) {
-      setAppError('No image files in the current selection. Select one or more image files to run OCR.');
-      return;
-    }
-    targets = selectedImages.map((img, i) => ({
-      path: img.path,
-      label: `--- OCR [${i + 1}/${selectedImages.length}]: ${img.name} ---`,
-    }));
-  } else {
-    targets = [{ path: currentPath }];
-  }
-
-  try {
-    const result = await api.runOcrInTerminal(ocrToolsFolder, targets);
-    if (!result.success) {
-      setAppError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
-    }
-  } catch (err: unknown) {
-    setAppError('Failed to launch OCR terminal: ' + toErrorMessage(err));
-  }
 }
 
 /**

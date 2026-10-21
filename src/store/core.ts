@@ -53,7 +53,6 @@ export const defaultSettings: AppSettings = {
   searchDefinitions: [],
   contentWidth: 'medium',
   bookmarks: [],
-  ocrToolsFolder: '',
   calendarItemsFolder: '',
   indexTreeWidth: 'narrow',
   showPropsInEditor: true,

@@ -8,7 +8,6 @@ import {
   setShowToc,
   setIgnoredPaths,
   setContentWidth,
-  setOcrToolsFolder,
   setCalendarItemsFolder,
   setIndexTreeWidth,
   setImageSize,
@@ -145,8 +144,7 @@ function DraftTextField({ value, onCommit, multiline = false, placeholder, rows,
 /**
  * General application settings page. Covers appearance (font size, content
  * width, folder tree width, image size, folders-on-top, table of contents),
- * files to ignore in searches, OCR tools folder path, and calendar items folder
- * path. Selects and checkboxes write to the store
+ * files to ignore in searches, and calendar items folder path. Selects and checkboxes write to the store
  * immediately and call `saveSettings` to persist to disk; free-text fields
  * (`DraftTextField`) commit only on blur/Enter.
  */
@@ -191,12 +189,6 @@ function SettingsView() {
 
   const handleImageSizeChange = (imageSize: ImageSize) => {
     setImageSize(imageSize);
-    saveSettings();
-  };
-
-  const handleOcrToolsFolderChange = (ocrToolsFolder: string) => {
-    setOcrToolsFolder(ocrToolsFolder);
-    // Trigger save to persist the setting
     saveSettings();
   };
 
@@ -313,21 +305,6 @@ function SettingsView() {
               placeholder={'node_modules\n.git\ndist'}
               rows={6}
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
-            />
-          </section>
-
-          {/* OCR Setting */}
-          <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-            <h2 className="text-lg font-semibold text-slate-100 mb-2">OCR</h2>
-            <p className="text-sm text-slate-400 mb-4">
-              Optical Character Recognition Tools Folder
-            </p>
-
-            <DraftTextField
-              value={settings.ocrToolsFolder}
-              onCommit={handleOcrToolsFolderChange}
-              placeholder="/path/to/ocr-tools"
-              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
             />
           </section>
 

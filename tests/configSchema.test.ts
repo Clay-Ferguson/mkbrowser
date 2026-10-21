@@ -81,7 +81,6 @@ describe('parseConfigYaml — top-level shape', () => {
         searchDefinitions: [],
         contentWidth: 'wide',
         bookmarks: [{ path: '/a', name: 'A' }],
-        ocrToolsFolder: '',
         calendarItemsFolder: '',
       },
     };

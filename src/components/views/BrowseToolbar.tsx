@@ -31,7 +31,7 @@ import {
 import { BUTTON_CLASS_BAR_BLUE, BUTTON_CLASS_BAR_RED, BUTTON_CLASS_TB_AMBER, BUTTON_CLASS_TB_BLUE, BUTTON_CLASS_TB_NORMAL } from '../../renderer/styles';
 import { runSearch } from '../../renderer/searchUtil';
 import { saveSettings } from '../../renderer/config';
-import { pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
+import { pasteFromClipboardOp } from '../../renderer/fileOpsUtil';
 import { showFolderCalendar } from '../../renderer/calendarNav';
 import { showFolderAnalysis, showFolderGraph } from '../../renderer/folderToolsOp';
 import { enableCustomOrdering } from '../../renderer/indexOrderOp';
@@ -183,11 +183,6 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
     runOp(async () => {
       await pasteFromClipboardOp(currentPath);
     }, 'Failed to paste from clipboard: ');
-  };
-
-  const handleRunOcr = () => {
-    if (!currentPath) return;
-    void runOcr(currentPath, useAS.getState().settings.ocrToolsFolder, useAS.getState().items);
   };
 
   const handleSelectSortOrder = (order: Parameters<typeof setSortOrder>[0]) => {
@@ -457,7 +452,6 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
           onMarkdownGraph={() => { if (currentPath) showFolderGraph(currentPath, true); }}
           onExport={() => onOpenOverlay({ kind: 'export' })}
           onExportHtml={() => onOpenOverlay({ kind: 'exportHtml' })}
-          onRunOcr={handleRunOcr}
           onNewAiChat={() => { if (currentPath) startAiChat(currentPath); }}
         />
       )}

@@ -152,7 +152,6 @@ A comprehensive list of what MkBrowser can do. See the [User Guide](docs/user_gu
 | Folder export | Export a folder's contents to a single Markdown file, with options for subfolders, filenames, and dividers. |
 | PDF export | Export Markdown content to PDF. |
 | Markdown-to-HTML autogen | An `autogen.outputFile` front-matter block regenerates a self-contained HTML file on every save. |
-| OCR | Run OCR on a folder's images via an external tools folder (Tools → Run OCR). |
 
 ### Appearance & Settings
 

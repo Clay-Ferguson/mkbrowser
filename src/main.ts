@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
+import type { AppConfig, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
 import { readDirectory, isFolderEmpty, deleteEmptyFolder } from './main/fileUtil';
@@ -36,7 +36,7 @@ import { readExifMetadata, readImageDimensions, writeExifMetadata } from './main
 import { logger, toErrorMessage } from './shared/logUtil';
 import { exportFolderContents, exportToPdf } from './main/exportUtil';
 import { checkExportTarget, exportFolderToHtml } from './main/htmlExport/folderHtmlExport';
-import { runShellScript, runOcrInTerminal } from './main/launcherUtil';
+import { runShellScript } from './main/launcherUtil';
 import { resolveStartupArg } from './main/startupArg';
 import { findHelpDocsFolder } from './main/helpDocs';
 
@@ -1099,14 +1099,6 @@ function setupIpcHandlers(): void {
   // Gather AI conversation thread entries for the ThreadView.
   ipcMain.handle('gather-thread-entries', async (_event, folderPath: string) => {
     return gatherThreadEntries(folderPath);
-  });
-
-  ipcMain.handle('run-ocr-in-terminal', async (_event, ocrToolsFolder: string, targets: OcrTarget[]): Promise<{ success: boolean; error?: string }> => {
-    try {
-      return await runOcrInTerminal(ocrToolsFolder, targets);
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
   });
 }
 

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppConfig, ElectronAPI, CalendarEventResult, HtmlExportOptions, OcrTarget, SearchDefinition } from './shared/shared';
+import type { AppConfig, ElectronAPI, CalendarEventResult, HtmlExportOptions, SearchDefinition } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
 // Expose protected methods to the renderer process
@@ -128,7 +128,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => { ipcRenderer.removeListener('calendar-watcher-error', listener); };
   },
 
-  runOcrInTerminal: (ocrToolsFolder: string, targets: OcrTarget[]) => ipcRenderer.invoke('run-ocr-in-terminal', ocrToolsFolder, targets),
   insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) =>
     ipcRenderer.invoke('insert-into-index-yaml', dirPath, newNames, insertAfterName),
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') =>

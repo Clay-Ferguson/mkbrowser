@@ -11,12 +11,11 @@ interface ToolsPopupMenuProps {
   onExport: () => void;
   onExportHtml: () => void;
   onNewAiChat: () => void;
-  onRunOcr: () => void;
 }
 
 /**
  * Popup menu for the Tools toolbar button. Exposes advanced folder operations:
- * AI chat (when AI is enabled), folder analysis, OCR, then (each group below a
+ * AI chat (when AI is enabled), folder analysis, then (each group below a
  * divider) the folder graph of all files or of Markdown files only, and the
  * export options.
  */
@@ -29,7 +28,6 @@ export default function ToolsPopupMenu({
   onExport,
   onExportHtml,
   onNewAiChat,
-  onRunOcr,
 }: ToolsPopupMenuProps) {
   // Read live from the store so toggling "Enable AI" in AI Settings takes effect without a restart.
   const aiEnabled = useAS(s => s.aiConfig.aiEnabled);
@@ -46,11 +44,6 @@ export default function ToolsPopupMenu({
         label="Folder Analysis"
         data-testid="menu-folder-analysis"
         onClick={() => { onFolderAnalysis(); onClose(); }}
-      />
-      <PopupMenuItem
-        label="Run OCR"
-        data-testid="menu-run-ocr"
-        onClick={() => { onRunOcr(); onClose(); }}
       />
       <PopupMenuDivider />
       <PopupMenuItem

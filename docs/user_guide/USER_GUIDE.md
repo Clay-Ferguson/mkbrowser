@@ -86,7 +86,6 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Search-based Graph](#search-based-graph)
 * [Exporting](#exporting)
   * [Export to Folder (HTML)](#export-to-folder-html)
-* [OCR](#ocr)
 * [Markdown Support](#markdown-support)
   * [Column Layout (`|||`)](#column-layout-)
 * [Wikilinks](#wikilinks)
@@ -1051,18 +1050,6 @@ What ends up in the output folder:
 Pages render much as they do in MkBrowser: tables, task lists, callouts, math, `|||` columns, and the object cards of your custom types (see [Objects and Custom Types](#objects-and-custom-types)) all carry over. Links between your Markdown files are rewritten to point at the matching `.html` pages (heading links like `Plan.md#goals` included), links to folders go to that folder's index page, and images and other linked files point at their copies. Links to anything outside the exported folder are left as written.
 
 The exported pages are fully self-contained and work offline, so code blocks — including Mermaid diagrams — appear as plain, unhighlighted text.
-
-# OCR
-
-MkBrowser can run Optical Character Recognition (OCR) on images in the current folder via **Tools → Run OCR**. This menu item only appears when the **OCR Tools Folder** path has been configured in Settings.
-
-To set it up:
-
-1. Open **Settings** and locate the **OCR** section.
-2. Enter the absolute path to your OCR tools folder in the **OCR Tools Folder** field.
-3. Once configured, navigate to a folder containing images and choose **Tools → Run OCR**.
-
-MkBrowser passes the images to the external OCR tool and writes the resulting text files into the current folder.
 
 # Markdown Support
 
