@@ -86,13 +86,21 @@ generate_video_for_test() {
     echo "Generating video for $test_name..."
     local current_folder="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     local kocreator_dir="$current_folder/../kocreator"
-    if [ ! -f "$kocreator_dir/.venv/bin/activate" ]; then
-        echo "kocreator not found at $kocreator_dir (or its .venv is missing) — skipping video generation."
+    if [ ! -f "$kocreator_dir/uv-env.sh" ]; then
+        echo "kocreator not found at $kocreator_dir — skipping video generation."
         return 1
     fi
-    source "$kocreator_dir/.venv/bin/activate"
-    python "$kocreator_dir/create-video.py" "$current_folder" "$test_name" --no-intro
-    deactivate
+    if ! command -v uv >/dev/null 2>&1; then
+        echo "uv not found in PATH (kocreator requires it) — skipping video generation."
+        return 1
+    fi
+    # kocreator keeps a per-machine venv (.venv-<hostname>) so a host and a VM
+    # sharing the folder don't break each other's interpreter symlinks.
+    # Subshell so UV_PROJECT_ENVIRONMENT doesn't leak into the rest of this script.
+    (
+        source "$kocreator_dir/uv-env.sh"
+        uv run --directory "$kocreator_dir" python "$kocreator_dir/create-video.py" "$current_folder" "$test_name" --no-intro
+    )
 }
 
 # Open the generated test-videos folder in the file manager (Linux only)
