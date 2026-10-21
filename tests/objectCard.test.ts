@@ -31,10 +31,19 @@ const TYPE_DEFS: TypeDefinitions = {
       topic: { description: '', type: 'text' },
     },
   },
+  trip: {
+    properties: {
+      destination: { description: '', type: 'text' },
+      departs: { description: 'Departure', type: 'date' },
+    },
+  },
 };
 
-/** The card for a file whose front matter is `yaml`, or '' when it holds no valid object. */
-function renderCard(yaml: string): string {
+/**
+ * The card for a file whose front matter is `yaml`, or '' when it holds no valid object.
+ * `onDateClick` is passed to GenericObject, as MarkdownEntry does.
+ */
+function renderCard(yaml: string, onDateClick?: (date: Date) => void): string {
   const content = `---\n${yaml}\n---\nBody text.`;
   const props = parseFrontMatter(content).yaml ?? {};
   const object = resolveFrontMatterObject(props, TYPE_DEFS);
@@ -44,7 +53,7 @@ function renderCard(yaml: string): string {
     type: object.type,
     source: content,
     onMouseUp: () => {},
-    children: jsx(GenericObject, { type: object.type, data: object.data }),
+    children: jsx(GenericObject, { type: object.type, data: object.data, onDateClick }),
   }));
 }
 
@@ -112,6 +121,20 @@ describe('object card', () => {
     expect(html).toMatch(/text-lg font-semibold[^>]*>10\/8\/2016 — [^<]*ago</);
     // A title of another type stays as written.
     expect(renderCard('type: person\nname: 10/8/2016')).not.toContain('10/8/2016 —');
+  });
+
+  it('makes date values links to the Calendar view when given onDateClick', () => {
+    const onDateClick = () => {};
+    // A date row, with its time delta inside the link.
+    const trip = renderCard('type: trip\ndestination: Paris\ndeparts: 10/8/2016', onDateClick);
+    expect(trip).toMatch(/<button[^>]*title="Departure: show in Calendar view"[^>]*>10\/8\/2016 — [^<]*ago<\/button>/);
+    // A date title.
+    const meeting = renderCard('type: meeting\nwhen: 10/8/2016\ntopic: Kickoff', onDateClick);
+    expect(meeting).toMatch(/<button[^>]*text-lg font-semibold[^>]*title="when: show in Calendar view"[^>]*>10\/8\/2016 — /);
+    // An unparseable date stays plain text.
+    expect(renderCard('type: trip\ndestination: Paris\ndeparts: someday', onDateClick)).not.toContain('Calendar view');
+    // Without onDateClick, dates aren't links.
+    expect(renderCard('type: trip\ndestination: Paris\ndeparts: 10/8/2016')).not.toContain('<button');
   });
 
   it('escapes markup in field values', () => {

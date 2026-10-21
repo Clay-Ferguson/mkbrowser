@@ -532,11 +532,18 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     openFrontMatterAt(frontMatterObject?.kind === 'object' ? (frontMatterObject.data.title?.key ?? 'type') : 'type');
   };
 
+  // A click on a date in the object's card jumps to that date on the Calendar tab, as a `due`
+  // pill's value does, highlighting this file so it's marked once the user comes back.
+  const handleObjectDateClick = (date: Date): void => {
+    setHighlightItem(entry.path);
+    openCalendarAtDate(getParentPath(entry.path), date);
+  };
+
   // Shown in view mode only, between the pills and the Markdown; while editing, the object is
   // its front-matter YAML. An object whose values don't fit its type shows why instead of a card.
   const objectCard = frontMatterObject?.kind === 'object' ? (
     <ObjectBlock type={frontMatterObject.type} source={content} onMouseUp={handleObjectMouseUp}>
-      <GenericObject type={frontMatterObject.type} data={frontMatterObject.data} />
+      <GenericObject type={frontMatterObject.type} data={frontMatterObject.data} onDateClick={handleObjectDateClick} />
     </ObjectBlock>
   ) : frontMatterObject?.kind === 'invalid' ? (
     <div className="mb-4" onMouseUp={handleObjectMouseUp}>
