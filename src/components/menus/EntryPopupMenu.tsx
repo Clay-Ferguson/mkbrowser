@@ -5,7 +5,7 @@ interface EntryPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   onOpenExternal: () => void;
-  /** When omitted, the "View File" item is hidden (e.g. this file is already the one on screen). */
+  /** When omitted, the "View File" item is hidden (folders, or this file is already the one on screen). */
   onViewFile?: () => void;
   /** When omitted, the "Attach: Clipboard" item is hidden. */
   onPasteClipboardAsAttachment?: () => void;

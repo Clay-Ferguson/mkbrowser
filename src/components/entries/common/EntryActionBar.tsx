@@ -207,7 +207,7 @@ export function EntryActionBar({
           anchorRef={menuButtonRef}
           onClose={() => setShowMenu(false)}
           onOpenExternal={handleOpenExternal}
-          onViewFile={isViewingThisFile ? undefined : handleViewFile}
+          onViewFile={isFolder || isViewingThisFile ? undefined : handleViewFile}
           onPasteClipboardAsAttachment={onPasteClipboardAsAttachment}
           onAttachFromFile={onAttachFromFile}
           onCreateAttachment={onCreateAttachment}
