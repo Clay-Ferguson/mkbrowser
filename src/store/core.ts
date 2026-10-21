@@ -133,6 +133,7 @@ const initialState: AppState = {
   calendarLoading: false,
   calendarViewType: 'month',
   calendarViewTime: new Date(),
+  calendarTargetDate: null,
   calendarWatcherWarning: null,
   aiConfig: defaultAiConfig,
   thesaurusWord: null,

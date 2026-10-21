@@ -15,6 +15,7 @@ import {
   setCalendarLoading,
   setCalendarEvents,
   setCalendarViewTime,
+  setCalendarTargetDate,
   showCalendarForFolder,
   setAppError,
 } from '../store';
@@ -32,8 +33,8 @@ export function setCalendarEventsIfCurrent(source: CalendarSource | null, events
 }
 
 /**
- * Switches to the Calendar tab centered on `date`, showing the calendar items found in
- * `folder`.
+ * Switches to the Calendar tab centered on `date`, with that day highlighted, showing the
+ * calendar items found in `folder`.
  *
  * The events are (re)scanned from `folder` unless the calendar is already sourced from that
  * same folder: a folder-sourced calendar is kept current by the main-process watcher, so a
@@ -43,6 +44,7 @@ export function setCalendarEventsIfCurrent(source: CalendarSource | null, events
  */
 export function openCalendarAtDate(folder: string, date: Date): void {
   setCalendarViewTime(date);
+  setCalendarTargetDate(date);
   showTab('calendar');
   setCurrentView('calendar');
 

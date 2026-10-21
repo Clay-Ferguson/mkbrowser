@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { format, parse, startOfWeek, getDay, isSameDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { api } from '../../renderer/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -108,6 +108,7 @@ export default function CalendarView() {
   const calendarSource = useAS(s => s.calendarSource);
   const watcherWarning = useAS(s => s.calendarWatcherWarning);
   const highlightItem = useAS(s => s.highlightItem);
+  const targetDate = useAS(s => s.calendarTargetDate);
   const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
   const isActive = useIsActiveView('calendar');
 
@@ -252,6 +253,9 @@ export default function CalendarView() {
                encoding which selectors those happen to be. NOTE: no backticks in this block — it
                is a template literal, and one would end the string mid-stylesheet. */
             .mk-event-highlighted { border: 3px solid #a855f7 !important; }
+            /* The day the calendar was opened to show (a clicked date), in the same purple.
+               !important and after .rbc-today, so it wins over today's own background. */
+            .mk-day-target { background: rgba(168, 85, 247, 0.3) !important; }
             .rbc-selected { background: #2563eb !important; }
             /* Toolbar buttons. rbc styles :hover, :focus and :active with light greys of its own
                (#e6e6e6 and friends), at a higher specificity than a bare ".rbc-toolbar button" —
@@ -295,6 +299,8 @@ export default function CalendarView() {
             eventPropGetter={(event: CalendarEvent) =>
               event.filePath && event.filePath === highlightItem ? { className: 'mk-event-highlighted' } : {}
             }
+            // The library's per-day hook: the month view's day cells and the week/day views' columns.
+            dayPropGetter={(day: Date) => (targetDate && isSameDay(day, targetDate) ? { className: 'mk-day-target' } : {})}
             selectable
             onSelectSlot={handleSelectSlot}
             tooltipAccessor={(event: CalendarEvent) => {

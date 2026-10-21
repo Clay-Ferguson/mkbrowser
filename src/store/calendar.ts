@@ -20,6 +20,7 @@ export interface CalendarSlice {
   setCalendarLoading: (loading: boolean) => void;
   setCalendarViewType: (viewType: CalendarViewType) => void;
   setCalendarViewTime: (date: Date) => void;
+  setCalendarTargetDate: (date: Date | null) => void;
   setCalendarWatcherWarning: (message: string | null) => void;
 }
 
@@ -45,6 +46,7 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
         currentView: 'calendar',
         calendarSource: { kind: 'folder', folder },
         calendarLoading: true,
+        calendarTargetDate: null,
       });
     },
 
@@ -91,6 +93,9 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
     /** Set the date the calendar is centered on. */
     setCalendarViewTime: (date) => set({ calendarViewTime: date }),
 
+    /** Set (or clear, with null) the day drawn highlighted in the calendar. */
+    setCalendarTargetDate: (date) => set({ calendarTargetDate: date }),
+
     /** Set (or clear, with null) the one-time file-watcher warning banner. */
     setCalendarWatcherWarning: (message) => set({ calendarWatcherWarning: message }),
   };
@@ -129,6 +134,10 @@ export function setCalendarViewType(viewType: CalendarViewType): void {
 
 export function setCalendarViewTime(date: Date): void {
   getState().setCalendarViewTime(date);
+}
+
+export function setCalendarTargetDate(date: Date | null): void {
+  getState().setCalendarTargetDate(date);
 }
 
 export function setCalendarWatcherWarning(message: string | null): void {

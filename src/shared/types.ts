@@ -585,6 +585,9 @@ export interface AppState {
    */
   calendarViewTime: Date;
 
+  /** The day the calendar was opened to show (a clicked date), drawn highlighted; null for none. */
+  calendarTargetDate: Date | null;
+
   /**
    * A one-time, user-facing warning from the file watcher (e.g. inotify
    * exhaustion) — null when there is nothing to show. Displayed as a dismissible

@@ -16,6 +16,7 @@ import {
   showTab,
   setCalendarSource,
   setCalendarLoading,
+  setCalendarTargetDate,
   setAppError,
   useAS,
 } from '../../store';
@@ -181,6 +182,7 @@ function SearchResultsView() {
       totalResults: searchResults.length,
     };
     setCalendarSource(source);
+    setCalendarTargetDate(null);
     setCalendarLoading(true);
     void api.loadCalendarEventsForFiles(searchResults.map(r => r.path))
       .then((results) => {
