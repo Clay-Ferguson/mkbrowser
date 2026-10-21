@@ -114,7 +114,7 @@ function ImageEntry(props: ImageEntryProps) {
         {/* Expanded image content */}
         {/* No ENTRY_BODY_BORDER here, unlike the other entry types: the image carries its own border. */}
         <div>
-          <div className="bg-slate-900 pb-1.5 flex items-center justify-center">
+          <div className="bg-slate-900 pb-1.5 flex items-center justify-start">
             <div className="relative inline-block">
               <img
                 src={imageUrl}
