@@ -43,9 +43,20 @@ export interface JoinOptions {
    * blank line, above that file's content in the joined result.
    */
   includeFilenames: boolean;
+  /**
+   * Literal text (already parsed, so `\n` is a real newline) placed between each
+   * pair of joined files, always with a blank line on each side: `joinFiles`
+   * wraps it as `\n\n…\n\n`, so `---` joins as a Markdown horizontal rule
+   * rather than turning the line above it into a setext heading. Empty or omitted means the default
+   * separator, {@link DEFAULT_JOIN_SEPARATOR}.
+   */
+  delimiter?: string;
 }
 
-export const DEFAULT_JOIN_OPTIONS: JoinOptions = { includeFilenames: false };
+export const DEFAULT_JOIN_OPTIONS: JoinOptions = { includeFilenames: false, delimiter: '' };
+
+/** Separator used between joined files when the user gives no delimiter. */
+export const DEFAULT_JOIN_SEPARATOR = '\n\n\n';
 
 /**
  * Inserts a bold filename heading above a part's content. For the lead file the
@@ -76,8 +87,9 @@ export interface JoinFilesResult {
 }
 
 /**
- * Join multiple files into a single file using double-blank-line as separator.
- * Files are sorted alphabetically, concatenated with '\n\n\n' between parts,
+ * Join multiple files into a single file. Files are sorted alphabetically,
+ * concatenated with the user's delimiter between parts (or '\n\n\n' when none
+ * was given — see {@link JoinOptions.delimiter}),
  * and the result is written to the alphabetically first file.
  * Other files are deleted only after verifying the write succeeded.
  *
@@ -139,8 +151,9 @@ export async function joinFiles(
       contents.push(options.includeFilenames ? addFilenameHeading(filePath!, content, i === 0) : content);
     }
     
-    // Concatenate with double blank line separator
-    const joinedContent = contents.join('\n\n\n');
+    // Concatenate with the delimiter, set off by blank lines, between parts (none after the last one)
+    const separator = options.delimiter ? `\n\n${options.delimiter}\n\n` : DEFAULT_JOIN_SEPARATOR;
+    const joinedContent = contents.join(separator);
 
     // Write to the first file (alphabetically). Note that writeFile may
     // legitimately normalize/transform the content (e.g. markdown TOC

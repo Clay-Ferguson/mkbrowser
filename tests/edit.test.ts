@@ -924,6 +924,26 @@ describe('joinFiles (Include Filenames option)', () => {
   });
 });
 
+describe('joinFiles (delimiter option)', () => {
+  it('puts the delimiter, set off by blank lines, between files but not after the last one', async () => {
+    const fs = makeJoinFs({ '/docs/a.md': 'one', '/docs/b.md': 'two', '/docs/c.md': 'three' });
+
+    const result = await joinFiles(['/docs/a.md', '/docs/b.md', '/docs/c.md'], fs, { includeFilenames: false, delimiter: '---' });
+
+    expect(result.success).toBe(true);
+    expect(fs.store['/docs/a.md']).toBe('one\n\n---\n\ntwo\n\n---\n\nthree');
+  });
+
+  it('falls back to the default separator when the delimiter is empty', async () => {
+    const fs = makeJoinFs({ '/docs/a.md': 'one', '/docs/b.md': 'two' });
+
+    const result = await joinFiles(['/docs/a.md', '/docs/b.md'], fs, { includeFilenames: false, delimiter: '' });
+
+    expect(result.success).toBe(true);
+    expect(fs.store['/docs/a.md']).toBe('one\n\n\ntwo');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // joinFiles — delete gating + error/edge paths
 // ---------------------------------------------------------------------------
