@@ -6,6 +6,7 @@ import {
   writeNarration,
   demoClick,
   setCheckbox,
+  insertText,
   logScreenshotSummary,
   cleanupScreenshots,
   cleanupTestDataFiles,
@@ -19,11 +20,14 @@ import {
  * Demonstrates the Split and Join items in the Edit popup menu:
  *   1. Seeds a subfolder containing a single markdown file with three
  *      paragraphs separated by double blank lines (the split delimiter).
- *   2. Selects the file and uses Edit menu > Split, producing three numbered
- *      files (-00, -01, -02), one paragraph each.
- *   3. Selects all three files with their checkboxes and uses Edit menu > Join,
- *      merging them back into the alphabetically-first file (-00) and deleting
- *      the others.
+ *   2. Selects the file and uses Edit menu > Split. The Split Options dialog is
+ *      shown and narrated, and its default delimiter (a blank line) is kept,
+ *      producing three numbered files (-00, -01, -02), one paragraph each.
+ *   3. Selects all three files with their checkboxes and uses Edit menu > Join.
+ *      In the Join Options dialog it enters `---` as the delimiter and checks
+ *      Include Filenames, then merges the files back into the
+ *      alphabetically-first file (-00) — each part headed by its bold filename
+ *      and separated by a horizontal rule — and deletes the others.
  *
  * The demo runs inside its own subfolder so only these files are on screen.
  */
@@ -99,7 +103,7 @@ We'll start by opening this folder, which contains a single markdown file.`
       screenshotDir,
       step++,
       `Here is our file. It contains the three opening paragraphs of Moby Dick, with each paragraph separated from the next by a double blank line.
-That double blank line is important, because it's exactly what the Split feature uses as its dividing point.`
+Since our paragraphs are set apart by blank lines, they make a natural dividing point, and we'll tell the Split feature to cut the file there.`
     );
 
     // Select the file — Split requires exactly one selected file.
@@ -132,15 +136,27 @@ Now let's open the Edit menu, where the Split option lives.`
       screenshotDir,
       step++,
       `The Edit menu is open, and we can see both the Split and Join options.
-We'll click Split, which asks for a delimiter and then divides the selected file at every blank line.`
+We'll click Split.`
     );
 
     await demoClick(splitMenuItem);
 
     // Split first asks for its options; the default delimiter (a blank line)
-    // splits at the paragraph breaks.
+    // splits at the paragraph breaks, so it is left as-is.
     await expect(mainWindow.getByTestId('split-options-dialog')).toBeVisible();
-    await expect(mainWindow.getByTestId('split-options-delimiter-input')).toHaveValue('\\n\\n');
+    const splitDelimiterInput = mainWindow.getByTestId('split-options-delimiter-input');
+    await expect(splitDelimiterInput).toHaveValue('\\n\\n');
+
+    await takeScreenshot(mainWindow, splitDelimiterInput, screenshotDir, step++, 'split-options-dialog');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Before splitting, MkBrowser shows the Split Options dialog.
+The Split Delimiter field holds whatever text you want the file cut apart at, so you can split on anything, like a line of three dashes or a special marker.
+A backslash n stands for a newline, so the default, backslash n backslash n, means a blank line.
+Because our file's paragraphs are separated by blank lines, the default is exactly what we need, so we'll keep it and click Split.`
+    );
+
     await demoClick(mainWindow.getByTestId('split-options-submit-button'));
 
     // The split produces three numbered files; the original name is gone.
@@ -198,33 +214,69 @@ We've checked the checkboxes on all three files, and we'll head back into the Ed
       screenshotDir,
       step++,
       `This time we click Join.
-Join sorts the selected files alphabetically, merges their contents into the first one with double blank lines between the parts, and removes the leftover files.`
+Join sorts the selected files alphabetically, merges their contents into the first one, and removes the leftover files.`
     );
 
     await demoClick(joinMenuItem);
 
-    // Join first asks for its options; the defaults keep the plain join.
+    // Join first asks for its options.
     await expect(mainWindow.getByTestId('join-options-dialog')).toBeVisible();
+
+    // Enter `---` as the delimiter: joinFiles sets it off with blank lines, so
+    // it renders as a horizontal rule between the parts.
+    const joinDelimiterInput = mainWindow.getByTestId('join-options-delimiter-input');
+    await insertText(mainWindow, '---', true, joinDelimiterInput);
+    await expect(joinDelimiterInput).toHaveValue('---');
+
+    await takeScreenshot(mainWindow, joinDelimiterInput, screenshotDir, step++, 'join-delimiter-entered');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Before joining, MkBrowser shows the Join Options dialog.
+We've entered three dashes as the delimiter to go between each file, which Markdown renders as a horizontal line.`
+    );
+
+    const includeFilenamesCheckbox = mainWindow.getByTestId('join-options-include-filenames');
+    await setCheckbox(includeFilenamesCheckbox, true);
+    await expect(includeFilenamesCheckbox).toBeChecked();
+
+    await takeScreenshot(mainWindow, includeFilenamesCheckbox, screenshotDir, step++, 'join-include-filenames-checked');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We've also checked Include Filenames, which puts each file's name in bold above its content, so we'll be able to see which file each paragraph came from.
+Now we click Join.`
+    );
+
     await demoClick(mainWindow.getByTestId('join-options-submit-button'));
 
     // The join merges everything into the alphabetically-first file (-00) and
-    // deletes the other two.
+    // deletes the other two. The other files' names still appear on screen —
+    // as bold headings inside the joined content — so their removal is checked
+    // through their selection checkboxes, which only exist on file entries.
     const joinedFileName = splitFileNames[0]!;
-    await expect(mainContent.getByText(joinedFileName).first()).toBeVisible({ timeout: 10000 });
+    await expect(mainContent.getByRole('checkbox', { name: `Select ${joinedFileName}` })).toBeVisible({ timeout: 10000 });
     for (const file of splitFileNames.slice(1)) {
-      await expect(mainContent.getByText(file)).toHaveCount(0, { timeout: 10000 });
+      await expect(mainContent.getByRole('checkbox', { name: `Select ${file}` })).toHaveCount(0, { timeout: 10000 });
     }
-    // All three paragraphs are rendered together again in the one file.
+    // All three paragraphs are rendered together again in the one file, each
+    // under its bold filename, with horizontal rules between them.
     for (const snippet of snippets) {
       await expect(mainContent.getByText(snippet).first()).toBeVisible();
     }
+    for (const file of splitFileNames) {
+      await expect(mainContent.locator('strong', { hasText: file })).toBeVisible();
+    }
+    await expect(mainContent.locator('hr').first()).toBeVisible();
 
-    // Verify on disk: one file containing all three paragraphs, the rest gone.
+    // Verify on disk: one file holding each paragraph under its bold filename,
+    // the parts separated by `---` set off with blank lines, and the rest gone.
     await expect(async () => {
       const content = fs.readFileSync(path.join(demoFolderPath, joinedFileName), 'utf-8');
-      for (const snippet of snippets) {
-        expect(content).toContain(snippet);
-      }
+      const expected = splitFileNames
+        .map((file, i) => `**${file}**\n\n${paragraphs[i]}`)
+        .join('\n\n---\n\n') + '\n';
+      expect(content).toBe(expected);
       for (const file of splitFileNames.slice(1)) {
         expect(fs.existsSync(path.join(demoFolderPath, file))).toBe(false);
       }
@@ -234,7 +286,8 @@ Join sorts the selected files alphabetically, merges their contents into the fir
     writeNarration(
       screenshotDir,
       step++,
-      `The three files have been merged back into a single document containing all three paragraphs, in the right order.`
+      `The three files have been merged back into a single document containing all three paragraphs, in the right order.
+Each paragraph is headed by the name of the file it came from, and a horizontal rule, drawn from our three-dash delimiter, separates each one from the next.`
     );
 
     // Cleanup: remove the joined file so the demo folder is left empty and
