@@ -65,7 +65,12 @@ export default function TypesEditorView() {
   const [loading, setLoading] = useState(true);
   // Bumped by Revert to re-run the load effect.
   const [loadNonce, setLoadNonce] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  // A load or save failure, shown until the next save attempt or Revert.
+  const [ioError, setIoError] = useState<string | null>(null);
+  // Set when a save is refused by validation. From then on the validation message is
+  // recomputed from the current model on every render, so fixing the problem by any edit
+  // (rename, delete, property change) clears it at once — not only the next save.
+  const [showValidation, setShowValidation] = useState(false);
   const [saving, setSaving] = useState(false);
   // Id of a just-added property whose name input should grab focus when it mounts.
   const [focusPropId, setFocusPropId] = useState<string | null>(null);
@@ -90,7 +95,7 @@ export default function TypesEditorView() {
       .catch((err: unknown) => {
         if (cancelled) return;
         logger.error('[TypesEditorView] failed to load types', err);
-        setError(err instanceof Error ? err.message : 'Failed to load types');
+        setIoError(err instanceof Error ? err.message : 'Failed to load types');
         setLoading(false);
       });
     return () => {
@@ -105,6 +110,7 @@ export default function TypesEditorView() {
   const selectedType = types.find((t) => t.id === selectedTypeId) ?? null;
   const sortedTypes = sortByName(types);
   const dirty = !loading && snapshotOf(types) !== savedSnapshot;
+  const error = ioError ?? (showValidation ? validate(dropBlankProperties(types)) : null);
 
   // --- Type operations ---
 
@@ -212,10 +218,10 @@ export default function TypesEditorView() {
 
   const save = (model: EditorType[]) => {
     const toSave = dropBlankProperties(model);
-    const validationError = validate(toSave);
-    if (validationError) { setError(validationError); return; }
+    if (validate(toSave)) { setShowValidation(true); return; }
     setSaving(true);
-    setError(null);
+    setShowValidation(false);
+    setIoError(null);
     const defs = toTypeDefs(toSave);
     api.updateConfig({ types: defs })
       .then(() => {
@@ -227,7 +233,7 @@ export default function TypesEditorView() {
       })
       .catch((err: unknown) => {
         logger.error('[TypesEditorView] failed to save types', err);
-        setError(err instanceof Error ? err.message : 'Failed to save.');
+        setIoError(err instanceof Error ? err.message : 'Failed to save.');
         setSaving(false);
       });
   };
@@ -235,7 +241,8 @@ export default function TypesEditorView() {
   const revert = () => {
     reselectNameRef.current = selectedType ? selectedType.name : null;
     setRenamingTypeId(null);
-    setError(null);
+    setIoError(null);
+    setShowValidation(false);
     setLoading(true);
     setLoadNonce((n) => n + 1);
   };
