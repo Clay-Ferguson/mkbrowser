@@ -132,6 +132,11 @@ describe('planObjectInsertion', () => {
       .toBe('---\ntype: "person "\nname: Clay\nemail: |\nnotes: \n---\nBody');
   });
 
+  it('matches the existing type ignoring case, keeping its type line as written', () => {
+    expect(insert('---\ntype: Person\nname: Clay\n---\nBody'))
+      .toBe('---\ntype: Person\nname: Clay\nemail: |\nnotes: \n---\nBody');
+  });
+
   it('changes nothing but the cursor when the object already has every property', () => {
     expect(insert('---\ntype: person\nname: Clay\nemail: c@x.com\nnotes: hi\n---\nBody'))
       .toBe('---\ntype: person\nname: Clay|\nemail: c@x.com\nnotes: hi\n---\nBody');

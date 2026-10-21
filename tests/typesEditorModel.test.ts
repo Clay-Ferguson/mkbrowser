@@ -94,6 +94,11 @@ describe('validate', () => {
     expect(validate([makeType('a'), makeType(' a ')])).toMatch(/must be unique/);
   });
 
+  it('rejects type names that differ only in case', () => {
+    expect(validate([makeType('Contact'), makeType('contact')])).toMatch(/"Contact" and "contact" are the same type/);
+    expect(validate([makeType('contact'), makeType('t'), makeType('CONTACT')])).toMatch(/must be unique/);
+  });
+
   it('rejects a property with a description but no name', () => {
     expect(validate([makeType('t', [['', 'desc']])])).toMatch(/need a name/);
   });

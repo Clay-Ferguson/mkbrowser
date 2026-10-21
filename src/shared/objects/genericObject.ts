@@ -40,23 +40,34 @@ export type ResolvedObject =
   /** A defined type whose values don't fit — render a hint instead of the card. */
   | { kind: 'invalid'; type: string; error: string };
 
-/** The definition of `type`, or undefined. hasOwn: `type: toString` must not find a prototype member. */
-function definitionOf(defs: TypeDefinitions, type: string): TypeDefinition | undefined {
-  return Object.hasOwn(defs, type) ? defs[type] : undefined;
+/** Whether two type names are the same type. Type names are case-insensitive: `Person` is `person`. */
+export function sameTypeName(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
 }
 
 /**
- * The front matter's object type and its definition, or null when the front matter has no
- * `type`, its `type` isn't a non-empty string, or it names no defined type (matched exactly —
- * `Person` is not `person`).
+ * The defined type name that `name` refers to, ignoring case, or undefined. An exact match wins,
+ * so a hand-edited config that defines both `Person` and `person` (which the Types Editor
+ * refuses to save) still resolves each one to itself. Only own keys are considered: `type:
+ * toString` must not find a prototype member.
+ */
+export function findTypeName(defs: TypeDefinitions, name: string): string | undefined {
+  if (Object.hasOwn(defs, name)) return name;
+  return Object.keys(defs).find((key) => sameTypeName(key, name));
+}
+
+/**
+ * The front matter's object type (as the definition spells it) and its definition, or null when
+ * the front matter has no `type`, its `type` isn't a non-empty string, or it names no defined
+ * type (matched ignoring case — `Person` is `person`).
  */
 function objectTypeOf(props: Record<string, unknown>, defs: TypeDefinitions): { type: string; def: TypeDefinition } | null {
   // hasOwn, not `props.type`: never read an inherited property off parsed, untrusted data.
   const raw = Object.hasOwn(props, 'type') ? props['type'] : undefined;
   if (typeof raw !== 'string') return null;
-  const type = raw.trim();
-  const def = type === '' ? undefined : definitionOf(defs, type);
-  return def ? { type, def } : null;
+  const name = raw.trim();
+  const type = name === '' ? undefined : findTypeName(defs, name);
+  return type === undefined ? null : { type, def: defs[type]! };
 }
 
 /**

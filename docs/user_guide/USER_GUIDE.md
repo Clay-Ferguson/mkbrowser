@@ -1307,8 +1307,9 @@ Types are stored in MkBrowser's configuration file (`config.yaml`, under a `type
 Type names and property names:
 
 - may contain only letters, digits, and underscores (`_`), and cannot start with a digit — e.g. `person`, `cell_phone`, `room_2`;
-- are case-sensitive (`Person` and `person` are different types);
 - must be unique — no two types with the same name, and no two properties with the same name within one type. Different types may share property names freely (e.g. two types can both have a `due` property).
+
+**Type names ignore capitalization.** `Person`, `person`, and `PERSON` all name the same type, so you can't define two types whose names differ only in capitalization (Save reports the clash), and a file whose front matter says `type: Person` shows the card of your `person` type. Property names, on the other hand, are case-sensitive: `Email` and `email` are different properties.
 
 The only property name you can't use is `type`, because that front-matter line says which type the object is. Any other name is allowed — including names MkBrowser also uses for its own front-matter properties. Such a property keeps that meaning too: for example, a `due` property also puts the object on the [Calendar](#calendar).
 
@@ -1370,7 +1371,7 @@ A YAML code block (` ```yaml `) in the body of a file is always displayed as ord
 
 ### When There Is No Card
 
-A file shows no card when its front matter has no `type:`, or its `type:` doesn't match any of your types (check the spelling and capitalization — `Person` and `person` are different types).
+A file shows no card when its front matter has no `type:`, or its `type:` doesn't match any of your types (check the spelling; capitalization doesn't matter).
 
 If the type *does* match but a value can't be shown — a property's value is a list or a nested set of values instead of plain text — a short amber note is shown in place of the card, explaining which property is the problem (for example, **"Invalid person: address must be text"**).
 

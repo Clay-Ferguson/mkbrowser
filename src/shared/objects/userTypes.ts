@@ -1,5 +1,5 @@
 import { findTopLevelKeys } from './objectBlock';
-import { objectPropertyKeys } from './genericObject';
+import { objectPropertyKeys, sameTypeName } from './genericObject';
 import { assembleFrontMatter, splitFrontMatter } from '../frontMatterUtil';
 import { loadYaml } from '../yamlUtil';
 import { formatDate } from '../timeUtil';
@@ -53,8 +53,9 @@ const OPEN_FENCE = '---\n';
  * `today` (`MM/DD/YY`). A blank `type:` is given the type name.
  *
  * Inserting the type the file's object already is just fills in that object's missing properties
- * (e.g. ones added to the type since). Front matter whose `type` names any other value is refused:
- * a second object can never be added over a first one.
+ * (e.g. ones added to the type since); type names are case-insensitive, so `type: Person` already
+ * is a `person`, and its `type:` line is kept as written. Front matter whose `type` names any other
+ * value is refused: a second object can never be added over a first one.
  *
  * Where the added lines go: for a new object, at the top of the block, so `type:` comes first;
  * when the front matter already has a `type:` line, at the end, after the existing object.
@@ -99,7 +100,7 @@ export function planObjectInsertion(content: string, defs: TypeDefinitions, type
   const hasType = Object.hasOwn(existing, 'type');
   if (hasType && !isBlank(existing['type'])) {
     const current = existing['type'];
-    if (typeof current !== 'string' || current.trim() !== type) {
+    if (typeof current !== 'string' || !sameTypeName(current.trim(), type)) {
       return { ok: false, error: `This file already holds an object (type: ${String(current)}). A file can hold only one object; inserting that same type adds any properties it is missing.` };
     }
   } else if (hasType) {
@@ -118,7 +119,7 @@ export function planObjectInsertion(content: string, defs: TypeDefinitions, type
   try {
     const check = loadYaml(newYaml) as Record<string, unknown> | undefined;
     const checkType = check?.['type'];
-    if (typeof checkType !== 'string' || checkType.trim() !== type) throw new Error('type not set');
+    if (typeof checkType !== 'string' || !sameTypeName(checkType.trim(), type)) throw new Error('type not set');
   } catch {
     return { ok: false, error: 'The front matter is in a form an object can\'t be added to. Rewrite it as one "key: value" per line first.' };
   }

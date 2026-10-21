@@ -134,13 +134,28 @@ describe('resolveFrontMatterObject', () => {
 
   it.each([
     ['an undefined type', 'type: gadget\nname: x'],
-    ['a type that differs only in case', 'type: Person\nname: Clay'],
     ['a type naming an Object.prototype member', 'type: toString\nname: Clay'],
     ['front matter without a type', 'name: Clay'],
     ['a blank type', 'type:\nname: Clay'],
     ['a non-string type', 'type: [person]\nname: Clay'],
   ])('returns null for %s', (_label, yaml) => {
     expect(resolveFrontMatterObject(fm(yaml), PERSON_DEFS)).toBeNull();
+  });
+
+  it('matches the type name ignoring case, reporting the defined spelling', () => {
+    const resolved = resolveFrontMatterObject(fm('type: PERSON\nname: Clay'), PERSON_DEFS);
+    expect(resolved?.kind).toBe('object');
+    expect(resolved?.type).toBe('person');
+    expect(resolved?.kind === 'object' && resolved.data.title?.value).toBe('Clay');
+  });
+
+  it('prefers an exact match when the config defines names differing only in case', () => {
+    const defs: TypeDefinitions = {
+      Gadget: { properties: { model: { description: '', type: 'text' } } },
+      gadget: { properties: { serial: { description: '', type: 'text' } } },
+    };
+    expect(resolveFrontMatterObject(fm('type: gadget\nserial: 1'), defs)?.type).toBe('gadget');
+    expect(resolveFrontMatterObject(fm('type: Gadget\nmodel: X'), defs)?.type).toBe('Gadget');
   });
 
   it('returns null when no types are defined', () => {

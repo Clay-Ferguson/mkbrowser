@@ -122,8 +122,8 @@ export function dropBlankProperties(editor: EditorType[]): EditorType[] {
 /**
  * Returns the first validation problem as a user-facing message, or null when
  * the types are valid: type and property names must be non-empty, match
- * TYPE_NAME_PATTERN, and be unique (types globally, properties within their
- * type), and no property may be named TYPE_KEY. Expects fully blank properties to have been
+ * TYPE_NAME_PATTERN, and be unique (types globally and ignoring case, properties
+ * within their type), and no property may be named TYPE_KEY. Expects fully blank properties to have been
  * removed already (see dropBlankProperties).
  */
 export function validate(editor: EditorType[]): string | null {
@@ -131,7 +131,17 @@ export function validate(editor: EditorType[]): string | null {
   if (typeNames.some((n) => n === '')) return 'Type names cannot be empty.';
   const badType = typeNames.find((n) => !TYPE_NAME_PATTERN.test(n));
   if (badType !== undefined) return `Invalid type name "${badType}": use letters, digits, and underscores, not starting with a digit.`;
-  if (new Set(typeNames).size !== typeNames.length) return 'Type names must be unique.';
+  // Type names are case-insensitive (`Person` is `person`; see findTypeName), so they must be unique ignoring case.
+  const seen = new Map<string, string>();
+  for (const name of typeNames) {
+    const clash = seen.get(name.toLowerCase());
+    if (clash !== undefined) {
+      return clash === name
+        ? `Type names must be unique: "${name}" is used more than once.`
+        : `Type names must be unique, ignoring capitalization: "${clash}" and "${name}" are the same type.`;
+    }
+    seen.set(name.toLowerCase(), name);
+  }
   for (const type of editor) {
     const typeName = type.name.trim();
     const propNames = type.properties.map((p) => p.name.trim());
