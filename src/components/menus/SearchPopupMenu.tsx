@@ -38,6 +38,7 @@ export default function SearchPopupMenu({
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
       <PopupMenuItem
         label="New Search..."
+        data-testid="menu-new-search"
         onClick={() => { onNewSearch(); onClose(); }}
       />
       {getGlobalHighlightText() && (

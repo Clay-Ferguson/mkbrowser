@@ -9,13 +9,15 @@ import { takeScreenshot, writeNarration, demoClick, demoRightClick, insertText, 
  *
  * Demonstrates defining a custom object type and using it in a document:
  *   1. Open the System Menu and choose "Types" to open the Types Editor.
- *   2. Add a "contact" type with a description and five properties
+ *   2. Add a "contact" type with a description and six properties
  *      (name, birthday, cell_phone, email, address, website), then Save.
  *   3. Back in the Browse view, create a new Markdown file (light narration —
  *      other demos already cover file creation).
  *   4. Right-click in the editor and choose Insert Object ▸ Contact, then fill
  *      in each property's value in the front matter YAML.
  *   5. Save the file and show the rendered object card.
+ *   6. Run an Advanced search for `p.type=='contact'`, saved as "Contacts",
+ *      and show the Search Results listing the one contact.
  *
  * The seed config defines no types, so the "contact" name is always free, and
  * the type lives only in the test's throwaway user-data dir.
@@ -390,14 +392,102 @@ Each other property has its own line with an icon, the phone, email, address, an
 Clicking anywhere else on the card opens the editor again.`
     );
 
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'final-view');
+    // ── 16. Search for every contact ──────────────────────────────────
+    // A search covers the browsed folder and its subfolders; we're still in the
+    // root folder that holds my-contact.md, so no navigation is needed.
+    const searchMenuButton = mainWindow.getByTestId('search-menu-button');
+    await expect(searchMenuButton).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, searchMenuButton, screenshotDir, step++, 'highlight-search-menu');
     writeNarration(
       screenshotDir,
       step++,
-      `That's all it takes to use custom types. Define a type once in the Types Editor, then insert it into any note to turn it into a structured, easy to read record, while your file stays plain, portable Markdown.`
+      `Because every contact is marked with its type, we can also search for all of our contacts at once.
+Let's click the search icon to open the search menu.`
     );
 
-    // ── 16. Disk check: the object was written to the file's front matter ──
+    await demoClick(searchMenuButton);
+
+    const newSearchItem = mainWindow.getByTestId('menu-new-search');
+    await expect(newSearchItem).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, newSearchItem, screenshotDir, step++, 'highlight-new-search');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We'll click "New Search..." to open the search dialog.`
+    );
+
+    await demoClick(newSearchItem);
+
+    const advancedOption = mainWindow.getByTestId('search-type-advanced');
+    await expect(advancedOption).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, advancedOption, screenshotDir, step++, 'highlight-advanced-mode');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We'll select "Advanced" mode, which lets us search with a JavaScript expression.`
+    );
+
+    await demoClick(advancedOption);
+
+    const searchInput = mainWindow.getByTestId('search-query-input');
+    await expect(searchInput).toBeVisible({ timeout: 5000 });
+    await insertText(mainWindow, `p.type=='contact'`, true, searchInput);
+
+    await takeScreenshot(mainWindow, searchInput, screenshotDir, step++, 'contact-query-entered');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `In an advanced search, a file's front matter properties can always be referenced through a variable named "p".
+So the expression p dot type, double-equals, "contact", matches every file whose object is a contact.`
+    );
+
+    // Save the query as a named search definition (the ＋ button saves the current search)
+    const addSearchButton = mainWindow.getByTestId('search-definition-add-button');
+    await expect(addSearchButton).toBeVisible({ timeout: 5000 });
+    await demoClick(addSearchButton);
+
+    const searchNameInput = mainWindow.getByTestId('search-definition-name-input');
+    await expect(searchNameInput).toBeVisible({ timeout: 5000 });
+    await insertText(mainWindow, 'Contacts', true, searchNameInput);
+
+    await takeScreenshot(mainWindow, searchNameInput, screenshotDir, step++, 'search-name-entered');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We'll save this as a search named "Contacts", so we can run it again any time from the search menu.`
+    );
+
+    await searchNameInput.press('Enter');
+    await expect(mainWindow.getByTestId('search-definition-row-Contacts')).toBeVisible({ timeout: 5000 });
+    await expect(mainWindow.getByTestId('search-dialog-editing-label')).toContainText('Contacts');
+
+    const executeSearchButton = mainWindow.getByTestId('execute-search-button');
+    await expect(executeSearchButton).toBeEnabled({ timeout: 5000 });
+    await takeScreenshot(mainWindow, executeSearchButton, screenshotDir, step++, 'highlight-execute-search');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Now let's click the "Search" button to find our contacts.`
+    );
+
+    await demoClick(executeSearchButton);
+
+    // ── 17. The search results: exactly our one contact ───────────────
+    const searchResultsView = mainWindow.getByTestId('view-search-results');
+    await expect(searchResultsView).toHaveAttribute('data-active-view', 'true', { timeout: 10000 });
+    await expect(searchResultsView).toContainText('1 file found', { timeout: 10000 });
+    await expect(searchResultsView).toContainText('my-contact.md');
+    await mainWindow.waitForTimeout(500);
+
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'search-results-shown');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `The search results list exactly one file, our new contact, since it's the only contact we've created so far.
+That's all it takes to use custom types. Define a type once in the Types Editor, then insert it into any note to turn it into a structured, easy to read record that you can search for, while your file stays plain, portable Markdown.`
+    );
+
+    // ── 18. Disk check: the object was written to the file's front matter ──
     const contactFile = path.join(testDataPath, 'my-contact.md');
     await expect(async () => {
       const content = fs.readFileSync(contactFile, 'utf8');
