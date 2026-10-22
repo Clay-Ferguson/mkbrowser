@@ -6,27 +6,6 @@ This README is aimed at developers; a separate [User Guide](docs/user_guide/USER
 
 **[Demo Videos](https://clay-ferguson.github.io/videos/)**
 
-## Screenshots
-
-### View Files Collapsed
-![collapsed-files](docs/user_guide/img/collapsed-files.png)
-
-### View Files Expanded
-![expanded-file](docs/user_guide/img/expanded-file.png)
-
-### Editing a File
-![expanded-file](docs/user_guide/img/editing-file.png)
-
-### Searching
-![expanded-file](docs/user_guide/img/searching.png)
-
-### Export
-![export-dialog](docs/user_guide/img/export-dialog.png)
-
-### Settings
-![settings-page](docs/user_guide/img/settings-page.png)
-
-
 ## Features
 
 A comprehensive list of what MkBrowser can do. See the [User Guide](docs/user_guide/USER_GUIDE.md) for full details on any item.
