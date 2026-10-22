@@ -2,8 +2,6 @@
 
 MkBrowser is a file explorer and Markdown editor that helps you manage Markdown notes with inline rendering. This User Guide gives complete instructions, but watching **[All Demo Videos](https://clay-ferguson.github.io/videos/)** first is an easier way to get started.
 
-![Screenshot](./img/screenshot.png)
-
 <!-- TOC -->
 * [MkBrowser User Guide](#mkbrowser-user-guide)
 * [Tab Bar](#tab-bar)
@@ -24,6 +22,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [Managing your hashtag library (Tags Editor)](#managing-your-hashtag-library-tags-editor)
   * [Renaming](#renaming)
   * [File Operations (Cut, Copy, Paste, Delete)](#file-operations-cut-copy-paste-delete)
+  * [Make Folder (Wrap a File in a Folder)](#make-folder-wrap-a-file-in-a-folder)
   * [Navigating Folders](#navigating-folders)
     * [Recent Folders](#recent-folders)
     * [Up Level](#up-level)
@@ -133,8 +132,6 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [AI Model](#ai-model)
       * [Create / Edit / Delete models](#create--edit--delete-models)
     * [llama.cpp Base URL](#llamacpp-base-url)
-    * [AI Settings View](#ai-settings-view)
-    * [Supported Models](#supported-models)
     * [Agentic Mode](#agentic-mode)
     * [Allowed Folders](#allowed-folders)
     * [API keys for cloud providers](#api-keys-for-cloud-providers)
@@ -270,7 +267,7 @@ You can also link to a specific **heading** inside a Markdown file by adding the
 
 The part after `#` is the heading converted to a link-safe form, the same way GitHub does it: lowercased, spaces turned into hyphens, and most punctuation dropped (so `## Getting Started!` becomes `getting-started`). When a file has two headings with the same text, the second gets `-1`, the third `-2`, and so on. Clicking such a link opens the file on its own (single-file mode) and scrolls to that heading. If you later rename the heading, the link still opens the file but no longer scrolls to it.
 
-Image files are inserted as inline images (`![diagram.png](../images/diagram.png)`), so they display directly in the rendered document.
+Image files are inserted as inline images, so they display directly in the rendered document.
 
 You can also link to a **folder**. Clicking a folder link in the rendered Markdown opens that folder in the browser view:
 
@@ -520,6 +517,8 @@ Deleted files go into your operating system trash bin rather than being permanen
 ## Split and Join
 
 MkBrowser provides **Split** and **Join** operations to help you break apart large files or combine multiple files into one. These features work with text (`.txt`) and Markdown (`.md`) files.
+
+![File Explorer Demo](./img/animated-gifs/split-and-join-demo.gif)
 
 ### Split
 
@@ -1177,6 +1176,8 @@ MkBrowser lets you turn a Markdown note into a structured record — a contact, 
 
 An object lives in the file's **front matter** (the `---` block at the very top of the file): a `type:` line naming the type, plus the type's properties. For example, once you have defined a `person` type, a file starting like this:
 
+![File Explorer Demo](./img/animated-gifs/custom-data-types-demo.gif)
+
 ```markdown
 ---
 type: person
@@ -1481,14 +1482,6 @@ This setting is saved when the field loses focus (click away / tab out).
 
 MkBrowser does **not** start, stop, or otherwise manage the llama-server process — it only sends requests to whatever is already listening at this URL. Running the server is entirely up to you; start it before selecting a `LLAMACPP` model, and if it isn't reachable, AI requests will simply fail with a connection error.
 
-### AI Settings View
-
-![AI Settings](./img/ai-settings.png)
-
-### Supported Models
-
-![Models Page 1](./img/models-part1.png)
-![Models Page 2](./img/models-part2.png)
 
 ### Agentic Mode
 

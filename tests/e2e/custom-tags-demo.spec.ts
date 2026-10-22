@@ -76,7 +76,7 @@ test.describe('Custom Hashtags Demo', () => {
     // ── 4. Show the Tags tab ──────────────────────────────────────────
     const tagsView = mainWindow.getByTestId('view-tags-editor');
     await expect(tagsView).toHaveAttribute('data-active-view', 'true', { timeout: 5000 });
-    await expect(tagsView.getByText('Categories', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(tagsView.getByTestId('tags-editor-add-category-button')).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'tags-editor-open');
     writeNarration(
       screenshotDir,
