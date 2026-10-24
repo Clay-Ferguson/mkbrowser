@@ -142,7 +142,6 @@ A comprehensive list of what MkBrowser can do. See the [User Guide](docs/user_gu
 | Folders on top | Always sort folders above files. |
 | Configurable sorting | Multiple sort orders for file listings. |
 | Show Table of Contents | Toggle inline rendering of `<!-- TOC -->` blocks. |
-| Desktop icon (Linux) | Install script to add MkBrowser to the application launcher. |
 
 ## Tech Stack
 
@@ -278,7 +277,7 @@ At this point you have a working development environment. The remaining steps ar
 
 #### 6. (Optional) Build and install MkBrowser as a desktop app
 
-To install MkBrowser like a normal application (so you can launch it from the app menu or as `mk-browser` from a terminal), run these three scripts in order:
+To install MkBrowser like a normal application (so you can launch it from the app menu or as `mk-browser` from a terminal), run these two scripts in order:
 
 ```bash
 ./build.sh
@@ -290,13 +289,7 @@ Runs the unit tests and linter (via `pre-package.sh`), then runs `npm run make` 
 ./install.sh
 ```
 
-Installs the `.deb` produced by `build.sh` using `sudo dpkg -i`. Note that despite its name, this script does **not** install development dependencies; it only installs the already-built app, so `build.sh` must run first. If `dpkg` reports missing dependencies, run `sudo apt-get install -f`.
-
-```bash
-./install-desktop-icon.sh
-```
-
-Adds a `mkbrowser.desktop` launcher entry to `~/.local/share/applications` so MkBrowser shows up in your application list (you can then right-click it to add it to the dock).
+Installs the `.deb` produced by `build.sh` using `sudo dpkg -i`. Note that despite its name, this script does **not** install development dependencies; it only installs the already-built app, so `build.sh` must run first. If `dpkg` reports missing dependencies, run `sudo apt-get install -f`. The package includes its own application-menu entry and icon, so MkBrowser appears in your app list once it's installed (right-click it there to add it to the dock).
 
 To pick up later code changes, re-run `./build.sh` and `./install.sh`.
 
@@ -310,7 +303,6 @@ To pick up later code changes, re-run `./build.sh` and `./install.sh`.
 | `install-node.sh` | Installs nvm + Node.js 22.22.3 | Once, on a new machine (step 3) |
 | `build.sh` | Tests + lint, then builds the `.deb` package | Whenever you want an installable build |
 | `install.sh` | Installs the `.deb` built by `build.sh` | After each `build.sh` |
-| `install-desktop-icon.sh` | Adds MkBrowser to the desktop application menu | Once, after the first `install.sh` |
 | `pre-package.sh` | Runs unit tests + lint (the shared quality gate) | Called by `build.sh` and `playwright-test.sh`; can also be run on its own |
 | `playwright-test.sh` | Interactive menu to rebuild and run the Playwright e2e tests, optionally generating demo videos | When running e2e tests |
 
