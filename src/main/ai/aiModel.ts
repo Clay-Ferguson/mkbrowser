@@ -182,8 +182,9 @@ export function createChatModel() {
   const { provider, model, llamacppBaseUrl } = getActiveModelConfig();
   debugLog('createChatModel → provider:', provider, 'model:', model);
   if (provider === 'LLAMACPP') {
-    // Local server — no API key required.
-    return new ChatOpenAI({ model, configuration: { baseURL: llamacppBaseUrl }, callbacks: aiFileLogCallbacks });
+    // Local server (llama.cpp, LM Studio) ignores the key, but ChatOpenAI throws
+    // "Missing credentials" without one, so pass a placeholder.
+    return new ChatOpenAI({ model, apiKey: 'local-no-key', configuration: { baseURL: llamacppBaseUrl }, callbacks: aiFileLogCallbacks });
   }
   if (provider === 'OPENAI') {
     warnIfApiKeyMissing('OPENAI_API_KEY');
