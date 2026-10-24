@@ -132,6 +132,8 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [AI Model](#ai-model)
       * [Create / Edit / Delete models](#create--edit--delete-models)
     * [llama.cpp Base URL](#llamacpp-base-url)
+    * [Using LM Studio](#using-lm-studio)
+    * [Using llama.cpp Directly](#using-llamacpp-directly)
     * [Agentic Mode](#agentic-mode)
     * [Allowed Folders](#allowed-folders)
     * [API keys for cloud providers](#api-keys-for-cloud-providers)
@@ -1473,14 +1475,111 @@ The model table also shows two columns that are useful for cost planning:
 
 ### llama.cpp Base URL
 
-The **llama.cpp Base URL** field is only shown when the selected model's **Provider** is `LLAMACPP`.
+The **Base URL** field (under **llama.cpp Server**) is only shown when the selected model's **Provider** is `LLAMACPP`.
 
-- Default: `http://localhost:8080/v1`
-- Change this if your llama-server is running on a different host or port.
+The `LLAMACPP` provider works with any local server that speaks the OpenAI-compatible chat API. The two common choices are [LM Studio](#using-lm-studio) and a plain [llama.cpp `llama-server`](#using-llamacpp-directly); both are covered below.
+
+- Default: `http://localhost:8080/v1` (llama.cpp's default port)
+- For LM Studio, use `http://localhost:1234/v1`
+- Change this if your server is running on a different host or port.
 
 This setting is saved when the field loses focus (click away / tab out).
 
-MkBrowser does **not** start, stop, or otherwise manage the llama-server process — it only sends requests to whatever is already listening at this URL. Running the server is entirely up to you; start it before selecting a `LLAMACPP` model, and if it isn't reachable, AI requests will simply fail with a connection error.
+MkBrowser does **not** start, stop, or otherwise manage the local server process — it only sends requests to whatever is already listening at this URL. Running the server is entirely up to you; start it before selecting a `LLAMACPP` model, and if it isn't reachable, AI requests will simply fail with a connection error.
+
+No API key is needed for local servers.
+
+### Using LM Studio
+
+[LM Studio](https://lmstudio.ai) is a desktop app for downloading and running local models. It has a built-in OpenAI-compatible server, so there is nothing extra to install — but **chatting in the LM Studio window does not start that server**. You have to turn it on.
+
+**1. Start the server in LM Studio**
+
+1. Open LM Studio and go to the **Developer** tab.
+2. Flip the **Status** switch at the top to on (or press `Ctrl+R` / `⌘R`). It should read **Running**.
+3. Make sure a model is loaded.
+
+When you start the server this way, LM Studio remembers it and **starts the server automatically the next time LM Studio launches**. If you turn the switch off, it stays off on the next launch too.
+
+**2. Keep the server running without the LM Studio window (optional)**
+
+To have the server available even when the LM Studio window is closed, open LM Studio's app settings (`Ctrl+,` / `⌘,`) and, under **Local LLM Service (headless)**, turn on **Enable Local LLM Service**. LM Studio then runs the server in the background and keeps it running in the system tray after you close the window.
+
+You can also control the server from a terminal with LM Studio's `lms` command-line tool (installed at `~/.lmstudio/bin/lms`):
+
+```bash
+lms server start
+```
+
+```bash
+lms server status
+```
+
+Note that starting the server with `lms server start` does **not** turn on the start-on-launch behavior described above; only the **Developer** tab switch does.
+
+**3. Point MkBrowser at LM Studio**
+
+1. In **Settings → AI Settings**, select a model whose **Provider** is `LLAMACPP` (the built-in **Local LLAMA.CPP** entry works).
+2. Set **Base URL** to `http://localhost:1234/v1` (LM Studio's default port is `1234`; if you changed it in LM Studio, use that port).
+
+**Choosing the model**
+
+- With the built-in entry (model name `local`), LM Studio answers with whichever model is currently loaded.
+- To use a specific model, create a `LLAMACPP` model entry whose **Model** is LM Studio's model identifier (for example `google/gemma-4-e2b`). You can see the identifiers in LM Studio or by opening `http://localhost:1234/v1/models` in a browser. LM Studio's just-in-time model loading (on by default) loads that model on request if it isn't loaded yet.
+
+**Context length**
+
+LM Studio loads models with a fairly small context window by default (often 4096–8192 tokens). Agentic Mode, `#file:` attachments, and long threads can exceed that. If replies get cut off or requests fail on long prompts, raise the **Context Length** in the model's load settings in LM Studio and reload the model.
+
+**Thinking models**
+
+LM Studio sends a reasoning model's "thinking" separately from the answer. MkBrowser picks this up and shows it as thinking, the same way it does for cloud models.
+
+**Checking the connection**
+
+If MkBrowser can't connect, check that the server is up:
+
+```bash
+curl http://localhost:1234/v1/models
+```
+
+This should print a JSON list of your models. A "connection refused" error means the server isn't running — go back to step 1.
+
+### Using llama.cpp Directly
+
+If you don't use LM Studio, you can run [llama.cpp](https://github.com/ggml-org/llama.cpp)'s `llama-server` yourself. Install llama.cpp (prebuilt releases are on its GitHub page, or build from source), and get a model in GGUF format.
+
+**1. Start the server**
+
+```bash
+llama-server -m ~/models/your-model.gguf --port 8080 -c 8192 -ngl 99
+```
+
+- `-m` — path to the `.gguf` model file. Alternatively, use `-hf <user>/<repo>` to download a model from Hugging Face, for example `-hf ggml-org/gemma-3-4b-it-GGUF`.
+- `--port 8080` — the port to listen on (`8080` matches MkBrowser's default).
+- `-c 8192` — the context size in tokens. Raise it for Agentic Mode or long threads if your memory allows.
+- `-ngl 99` — offloads model layers to the GPU. Leave it out to run on the CPU only.
+
+The server listens only on `localhost` by default. Leave the terminal open while you use MkBrowser; stopping `llama-server` (`Ctrl+C`) stops the AI.
+
+**2. Point MkBrowser at it**
+
+1. In **Settings → AI Settings**, select a model whose **Provider** is `LLAMACPP` (the built-in **Local LLAMA.CPP** entry works).
+2. Set **Base URL** to `http://localhost:8080/v1` (this is already the default). If you used a different `--port`, change the port in the URL to match.
+
+`llama-server` serves exactly one model — the one you started it with — so the **Model** name in your MkBrowser entry doesn't matter; `local` is fine.
+
+**Thinking models**
+
+MkBrowser shows a reasoning model's thinking whether `llama-server` sends it separately (its default) or inline as `<think>...</think>` tags (`--reasoning-format none`).
+
+**Checking the connection**
+
+```bash
+curl http://localhost:8080/v1/models
+```
+
+This should print a JSON description of the loaded model. "Connection refused" means `llama-server` isn't running or is on a different port.
 
 
 ### Agentic Mode
