@@ -14,6 +14,7 @@ echo "This script will install:"
 echo "  • ffmpeg (video encoding for test captures)"
 echo "  • xdotool (window manipulation for test automation)"
 echo "  • exiftool (reading/writing image EXIF metadata)"
+echo "  • fakeroot (needed by 'npm run make' / build.sh to create the .deb package)"
 echo ""
 echo "Note: For Node.js and npm, run install-node.sh instead."
 echo ""
@@ -52,6 +53,7 @@ echo "📋 Current status:"
 echo "  ffmpeg:   $(get_version ffmpeg)"
 echo "  xdotool:  $(get_version xdotool)"
 echo "  exiftool: $(get_version exiftool)"
+echo "  fakeroot: $(get_version fakeroot)"
 echo ""
 
 # Ask if user wants to proceed
@@ -71,10 +73,13 @@ echo "📦 Installing system prerequisites..."
 echo "  • Build tools (curl, ca-certificates, gnupg)"
 echo "  • Test automation tools (ffmpeg, xdotool)"
 echo "  • ExifTool (libimage-exiftool-perl)"
+echo "  • Debian packaging tools (fakeroot, dpkg)"
 # MkBrowser runs the system `exiftool` from the PATH to write image metadata — it
 # does not ship the perl distribution vendored in exiftool-vendored (see the comment
 # in src/main/exifUtil.ts). Without it, only EXIF saving fails; the app still runs.
-sudo apt-get install -y curl ca-certificates gnupg ffmpeg xdotool libimage-exiftool-perl
+# Electron Forge's .deb maker (`npm run make`, build.sh) refuses to run unless both
+# `fakeroot` and `dpkg` are on the PATH; fresh Ubuntu installs ship dpkg but not fakeroot.
+sudo apt-get install -y curl ca-certificates gnupg ffmpeg xdotool libimage-exiftool-perl fakeroot dpkg
 
 # Final status
 echo ""
@@ -84,6 +89,7 @@ echo "📋 Final versions:"
 echo "  ffmpeg:   $(ffmpeg -version | head -n 1)"
 echo "  xdotool:  $(xdotool --version 2>&1 | head -n 1)"
 echo "  exiftool: $(exiftool -ver 2>&1 | head -n 1)"
+echo "  fakeroot: $(fakeroot --version 2>&1 | head -n 1)"
 echo ""
 echo "✨ Next steps:"
 echo "  1. Run './install-node.sh' to install Node.js (includes npm)"

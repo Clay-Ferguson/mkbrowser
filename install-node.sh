@@ -31,6 +31,13 @@ else
     rm -f "$INSTALL_SCRIPT"
 fi
 
+# nvm is not written for strict mode: sourcing nvm.sh returns non-zero when no
+# Node version is installed yet (always the case on a clean machine), which
+# under `set -e` silently ended this script before Node was installed. Its
+# functions also reference unset variables, so relax -e/-u while using nvm and
+# check each nvm command's result explicitly instead.
+set +eu
+
 # shellcheck source=/dev/null
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
@@ -43,10 +50,16 @@ echo "nvm version: $(nvm --version)"
 
 echo "Installing Node.js ${NODE_VERSION}..."
 
-nvm install "${NODE_VERSION}"
-nvm use "${NODE_VERSION}"
-nvm alias default "${NODE_VERSION}"
+nvm install "${NODE_VERSION}" || { echo "ERROR: nvm install ${NODE_VERSION} failed."; exit 1; }
+nvm use "${NODE_VERSION}" || { echo "ERROR: nvm use ${NODE_VERSION} failed."; exit 1; }
+nvm alias default "${NODE_VERSION}" || { echo "ERROR: nvm alias default ${NODE_VERSION} failed."; exit 1; }
+
+set -eu
 
 echo ""
 echo "Node.js $(node --version) installed and set as default."
 echo "npm version: $(npm --version)"
+echo ""
+echo "IMPORTANT: nvm, node and npm are only available in NEW terminal windows."
+echo "Close this terminal and open a new one (or run: source ~/.nvm/nvm.sh)"
+echo "before running 'npm install'."
