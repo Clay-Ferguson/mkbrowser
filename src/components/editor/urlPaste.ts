@@ -27,12 +27,23 @@ function hasBalancedParens(url: string): boolean {
 }
 
 /**
+ * Whether `title` adds nothing as link text for `url`: blank, or just the URL itself. Such a
+ * title is never suggested in the dialog, and a link with one is written as the bare URL.
+ */
+export function isUselessLinkTitle(title: string, url: string): boolean {
+  const trimmed = title.trim();
+  return !trimmed || trimmed === url.trim();
+}
+
+/**
  * `[title](url)`, with the title's `\`, `[` and `]` escaped so it can't end the link text
  * early, and the URL wrapped in `<…>` when it holds characters a bare link destination can't
- * (whitespace, unbalanced parentheses, `<`/`>`). A blank title falls back to the URL itself.
+ * (whitespace, unbalanced parentheses, `<`/`>`). A blank title, or one that is just the URL,
+ * gives the bare URL instead — `[url](url)` is never better than `url`.
  */
 export function formatUrlMarkdownLink(title: string, url: string): string {
-  const label = (title.trim() || url).replace(/[\\[\]]/g, '\\$&');
+  if (isUselessLinkTitle(title, url)) return url;
+  const label = title.trim().replace(/[\\[\]]/g, '\\$&');
   const dest = /[\s<>]/.test(url) || !hasBalancedParens(url) ? `<${url.replace(/[<>]/g, encodeURIComponent)}>` : url;
   return `[${label}](${dest})`;
 }

@@ -4,7 +4,7 @@
  * from the start of the body).
  */
 import { describe, it, expect, vi } from 'vitest';
-import { formatUrlMarkdownLink, isPastedUrl } from '../src/components/editor/urlPaste';
+import { formatUrlMarkdownLink, isPastedUrl, isUselessLinkTitle } from '../src/components/editor/urlPaste';
 import { decodeHtmlEntities, extractHtmlTitle, fetchUrlTitle, MAX_TITLE_BYTES } from '../src/main/urlTitle';
 
 describe('isPastedUrl', () => {
@@ -45,13 +45,22 @@ describe('formatUrlMarkdownLink', () => {
     expect(formatUrlMarkdownLink('a [b] \\c', 'https://x.io')).toBe('[a \\[b\\] \\\\c](https://x.io)');
   });
 
-  it('falls back to the URL for a blank title', () => {
-    expect(formatUrlMarkdownLink('  ', 'https://x.io')).toBe('[https://x.io](https://x.io)');
+  it('writes the bare URL for a blank title or one that is just the URL', () => {
+    expect(formatUrlMarkdownLink('  ', 'https://x.io')).toBe('https://x.io');
+    expect(formatUrlMarkdownLink(' https://x.io ', 'https://x.io')).toBe('https://x.io');
   });
 
   it('keeps balanced parentheses bare and wraps unbalanced ones', () => {
     expect(formatUrlMarkdownLink('W', 'https://en.wikipedia.org/wiki/Foo_(bar)')).toBe('[W](https://en.wikipedia.org/wiki/Foo_(bar))');
     expect(formatUrlMarkdownLink('W', 'https://x.io/a)b')).toBe('[W](<https://x.io/a)b>)');
+  });
+});
+
+describe('isUselessLinkTitle', () => {
+  it('is true for a blank title or the URL itself', () => {
+    expect(isUselessLinkTitle('', 'https://x.io')).toBe(true);
+    expect(isUselessLinkTitle(' https://x.io', 'https://x.io')).toBe(true);
+    expect(isUselessLinkTitle('X', 'https://x.io')).toBe(false);
   });
 });
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { EditorView } from '@codemirror/view';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
-import { formatUrlMarkdownLink, isPastedUrl } from './urlPaste';
+import { formatUrlMarkdownLink, isPastedUrl, isUselessLinkTitle } from './urlPaste';
 
 /** A link waiting on the "Insert link" dialog — from a pasted URL or the "Make Link" menu item. */
 export interface PendingUrlPaste {
@@ -44,8 +44,8 @@ function insertAt(view: EditorView, from: number, to: number, text: string, user
  * The editor's "Insert link" dialog, opened two ways:
  *
  * - Pasting a lone http(s) URL into a Markdown editor (Ctrl+V or the context menu's Paste):
- *   OK inserts `[title](url)`, Cancel pastes the raw URL. The title starts as the selected
- *   text when there is a selection.
+ *   OK inserts `[title](url)` (or the bare URL when the title is blank or just the URL),
+ *   Cancel pastes the raw URL. The title starts as the selected text when there is a selection.
  * - "Make Link" on a selection: the selected text becomes the link destination. OK replaces
  *   it with `[title](text)`, Cancel leaves it alone.
  *
@@ -64,6 +64,8 @@ export function useUrlPaste({ viewRef, enabled }: UseUrlPasteProps) {
         logger.warn('Failed to fetch page title:', err);
         return '';
       })
+      // A "title" that is just the URL is left out, so a blank field means "insert the bare URL".
+      .then((fetched) => (isUselessLinkTitle(fetched, entry.url) ? '' : fetched))
       // Identity check: ignore a late title for a dialog that was already closed or replaced.
       .then((fetched) => setPending(p => (p === entry ? { ...p, title: fetched, fetching: false } : p)));
   };

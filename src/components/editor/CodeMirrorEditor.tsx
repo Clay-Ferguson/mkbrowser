@@ -144,7 +144,7 @@ function scrollFirstChunkIntoView(view: EditorView | null): void {
   }
 }
 
-/** Link text from the "Insert link" dialog's field (a blank one becomes the URL in formatUrlMarkdownLink). */
+/** Link text from the "Insert link" dialog's field (a blank one inserts the bare URL, see formatUrlMarkdownLink). */
 const trimLinkTitle = (raw: string): string => raw.trim();
 
 /**
@@ -1069,7 +1069,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           onCreate={confirmUrlPaste}
           onCancel={cancelUrlPaste}
           submitLabel="OK"
-          note={`Enter the title for the markdown link for: ${pendingUrlPaste.url}`}
+          note={`Enter the title for the markdown link for: ${pendingUrlPaste.url} (leave blank to insert just the URL)`}
           inputTestId="insert-link-title-input"
           createTestId="insert-link-ok-button"
         />
