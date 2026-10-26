@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ensureFrontMatterId: (filePath: string) => ipcRenderer.invoke('ensure-front-matter-id', filePath),
   findMarkdownById: (id: string, likelyDir: string, rootDir: string) =>
     ipcRenderer.invoke('find-markdown-by-id', id, likelyDir, rootDir),
+  findFileByIdSuffix: (id: string, ext: string, likelyDir: string, rootDir: string) =>
+    ipcRenderer.invoke('find-file-by-id-suffix', id, ext, likelyDir, rootDir),
   writeFile: (filePath: string, content: string) => ipcRenderer.invoke('write-file', filePath, content),
   getFileSize: (filePath: string) => ipcRenderer.invoke('get-file-size', filePath),
   getFileMtime: (filePath: string) => ipcRenderer.invoke('get-file-mtime', filePath),

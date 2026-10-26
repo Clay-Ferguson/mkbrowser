@@ -4,6 +4,7 @@ import { setAppError, setHighlightItem, setItemRenaming, renameItem } from '../.
 import type { RenameState } from './types';
 import { getFileName, getParentPath, joinPath } from '../../../renderer/pathUtil';
 import { saveSettings } from '../../../renderer/config';
+import { idSuffixLost } from '../../../shared/fileIdSuffix';
 
 interface UseRenameOptions {
   /** Full path of the entry */
@@ -16,6 +17,12 @@ interface UseRenameOptions {
   onRename: () => void;
   /** Whether to select full name (folders) or name without extension (files) */
   selectFullName?: boolean;
+  /**
+   * Whether to ask before a rename drops or changes the `--ID` the name carries (or its
+   * extension), which would stop links to the file from repairing themselves (see
+   * shared/fileIdSuffix.ts). Set for files; folders carry no id.
+   */
+  guardIdSuffix?: boolean;
 }
 
 /**
@@ -63,9 +70,12 @@ export function useRename({
   isRenaming,
   onRename,
   selectFullName = false,
+  guardIdSuffix = false,
 }: UseRenameOptions): RenameState {
   const [newName, setNewName] = useState(name);
   const [saving, setSaving] = useState(false);
+  // A new name that would lose the file's `--ID`, waiting on the user's confirmation.
+  const [pendingIdRename, setPendingIdRename] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus input when entering rename mode
@@ -97,10 +107,17 @@ export function useRename({
     setItemRenaming(path, false);
   };
 
+  const commitRename = (trimmedName: string) => {
+    setSaving(true);
+    void performRename(path, trimmedName, onRename).finally(() => setSaving(false));
+  };
+
   // Fire-and-forget (`() => void`): bound to the rename input's onBlur and the
   // Enter key, never awaited, so the async rename + its error handling live
   // in performRename and callers can invoke it directly.
   const handleSave = () => {
+    // The confirmation dialog taking focus blurs the input, which lands here again.
+    if (pendingIdRename !== null) return;
     // Trim leading/trailing whitespace from the whole name, then also trim
     // the stem separately so spaces before the extension are removed too.
     const full = newName.trim();
@@ -113,8 +130,24 @@ export function useRename({
       return;
     }
 
-    setSaving(true);
-    void performRename(path, trimmedName, onRename).finally(() => setSaving(false));
+    if (guardIdSuffix && idSuffixLost(name, trimmedName)) {
+      setPendingIdRename(trimmedName);
+      return;
+    }
+    commitRename(trimmedName);
+  };
+
+  // The id-loss confirmation's "Rename": goes ahead with the held name.
+  const handleIdRenameConfirm = () => {
+    const pending = pendingIdRename;
+    setPendingIdRename(null);
+    if (pending !== null) commitRename(pending);
+  };
+
+  // The id-loss confirmation's "Cancel": stays in rename mode so the name can be fixed
+  // (closing the dialog hands focus back to whatever had it, the input after an Enter).
+  const handleIdRenameCancel = () => {
+    setPendingIdRename(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -138,5 +171,8 @@ export function useRename({
     handleCancel,
     handleSave,
     handleKeyDown,
+    pendingIdRename,
+    handleIdRenameConfirm,
+    handleIdRenameCancel,
   };
 }

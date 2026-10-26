@@ -1,6 +1,7 @@
 import { getFileName, getParentPath, isAbsolutePath, joinPath, pathSep, splitPath, splitPathSegments } from './pathUtil';
 import { decodeMarkdownUrl, splitHeadingFragment } from '../shared/markdownLinks';
 import { isImageFile, isMarkdownFile } from '../shared/fileTypes';
+import { stripFileIdSuffix } from '../shared/fileIdSuffix';
 
 // Pure link-syntax helpers live in shared/ so the main process can use them too
 // (the folder graph's link scan); re-exported so renderer call sites import them from here.
@@ -216,7 +217,8 @@ export function formatMarkdownFileLink(
  * by the editor menu's "Paste Link": a Markdown file's link as `formatMarkdownFileLink` makes
  * it (carrying `id`), an image as an inline image `![diagram.png](../images/diagram.png)`, and
  * anything else — a folder included — as `[name](../dest)`. `fragment` and `rawLabel` are as
- * for `formatMarkdownFileLink`; a non-Markdown label defaults to the full file or folder name.
+ * for `formatMarkdownFileLink`; a non-Markdown label defaults to the full file or folder name,
+ * minus any id it carries (`report--3D6B20DDF.pdf` is labelled `report.pdf`).
  */
 export function formatFileLink(
   fromFilePath: string,
@@ -229,7 +231,7 @@ export function formatFileLink(
   const name = getFileName(targetPath);
   if (!isDirectory && isMarkdownFile(name)) return formatMarkdownFileLink(fromFilePath, targetPath, id, fragment, rawLabel);
   const dest = appendLinkFragment(formatLinkDestination(getRelativePath(fromFilePath, targetPath)), fragment ?? '');
-  const link = `[${rawLabel ?? escapeLinkLabel(name)}](${dest})`;
+  const link = `[${rawLabel ?? escapeLinkLabel(isDirectory ? name : stripFileIdSuffix(name))}](${dest})`;
   return !isDirectory && isImageFile(name) ? `!${link}` : link;
 }
 

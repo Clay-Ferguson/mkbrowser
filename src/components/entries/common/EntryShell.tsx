@@ -5,6 +5,7 @@ import { buildEntryHeaderId } from '../../../renderer/entryDom';
 import { formatFlyoverInfo } from '../../../shared/fileTypes';
 import { makeEntryDragStartHandler, canDropAsAttachment, dropAsAttachment } from '../../../renderer/dragAndDrop';
 import ConfirmDialog from '../../dialogs/ConfirmDialog';
+import { idSuffixLossMessage } from '../../../shared/fileIdSuffix';
 import { RenameInput } from './RenameInput';
 import { SelectionCheckbox } from './SelectionCheckbox';
 import { useDropTarget } from './useDropTarget';
@@ -176,6 +177,16 @@ export function EntryShell({
         {!isRenaming && headerRight}
       </div>
       {isExpanded && children}
+      {rename.pendingIdRename !== null && (
+        <ConfirmDialog
+          title="Remove Link ID?"
+          message={idSuffixLossMessage(entry.name, rename.pendingIdRename)}
+          confirmLabel="Rename"
+          cancelLabel="Cancel"
+          onConfirm={rename.handleIdRenameConfirm}
+          onCancel={rename.handleIdRenameCancel}
+        />
+      )}
       {del.showDeleteConfirm && (
         <ConfirmDialog
           message={deleteMessage ?? `Move "${entry.name}" to trash?`}

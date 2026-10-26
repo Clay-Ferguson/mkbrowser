@@ -257,6 +257,14 @@ Because the id is part of the link itself, the link can be resolved by id even i
 
 If the link's target *does* exist but its front matter `id` doesn't match the id in the link (for example, the original file was renamed and a different file later took its name), MkBrowser still opens it but shows a warning that you may be viewing a different file than the one originally linked. If the file carrying the link's id can be found, the warning names it and offers an **Open Linked File** button. The link is not changed in this case.
 
+Other files — PDFs, images, documents, anything that isn't Markdown — have no front matter, so their id goes in the **file name** instead, after a double hyphen: `report--3D6B20DDF.pdf`. When you **Paste Link** a file whose name has no id yet, MkBrowser asks first (**Add ID to File Name?**), showing the new name: **Add ID & Link** renames the file (carrying along its attachments folder, if it has one) and links to it under the new name; **Plain Link** inserts the link and leaves the file untouched. The link itself is an ordinary link, labelled with the file name minus the id:
+
+```
+[report.pdf](../reference/report--3D6B20DDF.pdf)
+```
+
+Such a file can be renamed or moved freely **as long as the `--3D6B20DDF` part and the file extension are kept** — `annual-report--3D6B20DDF.pdf` in another folder is still found. When you click a link to it whose target no longer exists, MkBrowser looks for a file whose name carries the same id *and the same extension*, first in the folder the link pointed to and then across the whole root folder (skipping hidden folders and your Ignored Paths), opens it, and rewrites the link just as for Markdown files. A file whose extension was changed is deliberately not matched. If you rename a file in a way that drops or changes its `--ID` or its extension, MkBrowser asks you to confirm (**Remove Link ID?**), since links to it could then no longer repair themselves. Note that adding an id renames the file, so any *other* existing links to its old name are not updated, and that images embedded in a document (`![...](...)`) are not repaired automatically — only links you click.
+
 You can also link to a specific **heading** inside a Markdown file by adding the heading after a `#` at the end of the link. The quickest way is to hover over the heading in the rendered document, click the chain-link icon that appears to its right to copy a link to it, then use **Paste Link** in the editor. You can also paste a link to the file as above, then type the `#` part yourself:
 
 ```

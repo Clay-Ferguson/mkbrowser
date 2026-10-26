@@ -15,16 +15,18 @@ import {
   getCurrentPath,
   getHasIndexFile,
   renameItem,
+  getItem,
 } from '../store';
 import { saveSettings } from './config';
 import { pasteCutItems, runCutPasteExclusive, deleteSelectedItems, performSplitFile, performJoinFiles, orderPastedNames, findCutItemsFromDifferentFolders } from './edit';
 import { pasteFromClipboard } from './clipboard';
 import { refreshDirectory } from './directoryLoader';
 import { getFileName, getParentPath, joinPath, isSamePath } from './pathUtil';
-import { toErrorMessage } from '../shared/logUtil';
+import { logger, toErrorMessage } from '../shared/logUtil';
 import { generateTimestampFileName } from '../shared/timeUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { removeFrontMatterExceptId } from '../shared/frontMatterUtil';
+import { withFileIdSuffix } from '../shared/fileIdSuffix';
 import { DEFAULT_JOIN_OPTIONS, type JoinOptions } from './joinUtil';
 import { DEFAULT_SPLIT_DELIMITER, parseSplitDelimiter } from './splitUtil';
 
@@ -658,6 +660,39 @@ export async function makeFolderForFileOp(filePath: string): Promise<void> {
   setHighlightItem(folderPath);
   setPendingScrollToFile(folderPath);
   refreshDirectory();
+}
+
+/**
+ * Gives the non-Markdown file at `filePath` an id in its name — `report.pdf` →
+ * `report--<id>.pdf` (see shared/fileIdSuffix.ts) — so a link to it can later be repaired
+ * by id. Only called once the user has agreed to the rename (the editor's "Paste Link",
+ * via AddLinkIdDialog). The rename carries the file's `.attach` folder and `.INDEX.yaml`
+ * entry along, and the store and listings are updated as after any rename. A file open in
+ * the editor is left alone (renaming it would fight the edit buffer).
+ *
+ * Resolves to the file's new path, or to `filePath` itself when it wasn't renamed
+ * (failures are logged, and the caller then links to the file as it is); never rejects.
+ */
+export async function addFileIdSuffixOp(filePath: string, id: string): Promise<string> {
+  if (getItem(filePath)?.editing) return filePath;
+  const newName = withFileIdSuffix(getFileName(filePath), id);
+  const newPath = joinPath(getParentPath(filePath), newName);
+  try {
+    if (!(await api.renameFile(filePath, newPath))) {
+      logger.warn(`[fileOps] Could not rename ${filePath} to add its id: "${newName}" may already exist`);
+      return filePath;
+    }
+  } catch (err: unknown) {
+    logger.warn(`[fileOps] Failed to rename ${filePath} to add its id:`, err);
+    return filePath;
+  }
+  // Remaps bookmarks, calendar events, etc. to the renamed file; true means a bookmark
+  // changed and settings must be persisted.
+  if (renameItem(filePath, newPath, newName)) {
+    saveSettings();
+  }
+  refreshDirectory();
+  return newPath;
 }
 
 /**

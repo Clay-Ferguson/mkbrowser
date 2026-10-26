@@ -14,7 +14,7 @@ import { writeFileAtomic } from './main/atomicWrite';
 import { processTOC } from './shared/tocUtil';
 import { orderObjectFrontMatter } from './shared/objects/userTypes';
 import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
-import { findMarkdownById } from './main/findById';
+import { findFileByIdSuffix, findMarkdownById } from './main/findById';
 import { parseIgnoredPaths } from './shared/searchHelpers';
 import { searchFolderWithTotal } from './main/search';
 import { getAdvancedQuerySyntaxError } from './main/advancedQuery';
@@ -668,6 +668,17 @@ function setupIpcHandlers(): void {
       return await findMarkdownById(id, likelyDir, rootDir, ignoredPaths);
     } catch (error) {
       logger.error('Error finding markdown file by id:', error);
+      return null;
+    }
+  });
+
+  // Find the file whose name carries the id before the given extension (link auto-repair)
+  ipcMain.handle('find-file-by-id-suffix', async (_event, id: string, ext: string, likelyDir: string, rootDir: string): Promise<string | null> => {
+    try {
+      const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
+      return await findFileByIdSuffix(id, ext, likelyDir, rootDir, ignoredPaths);
+    } catch (error) {
+      logger.error('Error finding file by id suffix:', error);
       return null;
     }
   });

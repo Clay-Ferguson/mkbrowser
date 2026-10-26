@@ -56,6 +56,7 @@ import { createFileOp } from '../../renderer/fileOpsUtil';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
+import { idSuffixLossMessage, idSuffixLost } from '../../shared/fileIdSuffix';
 
 const INDENT_SIZE = 20;
 
@@ -313,6 +314,8 @@ function IndexTreeView() {
   const [createFileParent, setCreateFileParent] = useState<string | null>(null);
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
+  // A rename that would drop a file's `--ID` (see shared/fileIdSuffix.ts), awaiting confirmation.
+  const [pendingIdRename, setPendingIdRename] = useState<{ target: { path: string; name: string; isDirectory: boolean }; newName: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
   // File whose cut would strand an attachments folder, held while the user confirms.
   const [cutOrphanAttachTarget, setCutOrphanAttachTarget] = useState<FileEntry | null>(null);
@@ -659,11 +662,19 @@ function IndexTreeView() {
     }, 'Failed to create folder: ');
   };
 
+  // The rename dialog's choice: asks first when the new name would lose the file's `--ID`.
   const handleRename = (newName: string) => {
     const target = renameTarget;
     setRenameTarget(null);
     if (!target) return;
+    if (!target.isDirectory && idSuffixLost(target.name, newName)) {
+      setPendingIdRename({ target, newName });
+      return;
+    }
+    renameTreeItem(target, newName);
+  };
 
+  const renameTreeItem = (target: { path: string; name: string; isDirectory: boolean }, newName: string) => {
     runOp(async () => {
       const parentPath = getParentPath(target.path);
       const newPath = joinPath(parentPath, newName);
@@ -935,6 +946,19 @@ function IndexTreeView() {
           isDirectory={renameTarget.isDirectory}
           onRename={handleRename}
           onCancel={() => setRenameTarget(null)}
+        />
+      )}
+      {pendingIdRename && (
+        <ConfirmDialog
+          title="Remove Link ID?"
+          message={idSuffixLossMessage(pendingIdRename.target.name, pendingIdRename.newName)}
+          confirmLabel="Rename"
+          cancelLabel="Cancel"
+          onConfirm={() => {
+            setPendingIdRename(null);
+            renameTreeItem(pendingIdRename.target, pendingIdRename.newName);
+          }}
+          onCancel={() => setPendingIdRename(null)}
         />
       )}
       {deleteTarget && (

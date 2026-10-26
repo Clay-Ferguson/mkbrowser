@@ -47,6 +47,7 @@ export function useEntry(props: BaseEntryProps, options: UseEntryOptions = {}): 
     isRenaming: core.isRenaming,
     onRename: props.onRename,
     selectFullName,
+    guardIdSuffix: !props.entry.isDirectory,
   });
 
   const del = useDelete({ path, onDelete: props.onDelete });

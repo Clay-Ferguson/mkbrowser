@@ -1,12 +1,15 @@
 /**
- * Locates a Markdown file by the `id` in its front matter. Backs link auto-repair:
- * a link written as `[label](<dest> "id:3D6B20DDF")` whose destination no longer
- * exists is re-targeted at whichever `.md` file now carries that id.
+ * Locates a file by its id, backing link auto-repair. A Markdown file carries its id
+ * in its front matter, and a link to it as `[label](<dest> "id:3D6B20DDF")`
+ * (findMarkdownById); any other file carries it in its name, `report--3D6B20DDF.pdf`,
+ * and a link to it is a plain one (findFileByIdSuffix). Either way, a link whose
+ * destination no longer exists is re-targeted at whichever file now carries the id.
  */
 import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
 import { buildExcludePredicate } from '../shared/pathPattern';
+import { parseFileIdSuffix } from '../shared/fileIdSuffix';
 
 /** Bytes read from the head of each file. Ids are written first in the front
  * matter block (injectFrontMatterId), so the id line sits well inside this. */
@@ -119,4 +122,52 @@ export async function findMarkdownById(
     .crawl(rootDir)
     .withPromise();
   return findFirstWithId(all.filter((f) => !checked.has(f)), id);
+}
+
+/**
+ * True when the file name `name` carries the id `id` and the extension `ext` (the
+ * extension compared ignoring case). A file whose extension was changed never matches:
+ * it is no longer the file the link meant.
+ */
+function nameHasIdSuffix(name: string, id: string, ext: string): boolean {
+  const parsed = parseFileIdSuffix(name);
+  return parsed !== null && parsed.id === id && parsed.ext.toLowerCase() === ext.toLowerCase();
+}
+
+/**
+ * Finds the file whose name carries the id `id` before the extension `ext` (`.pdf`, or
+ * '' for none) — `report--3D6B20DDF.pdf`. First looks in `likelyDir` (the folder the
+ * broken link points into — the file was probably just renamed), then crawls all of
+ * `rootDir` (it was probably moved), skipping hidden folders and the user's ignored
+ * paths. Only names are compared; no file is read. The first match wins. Resolves to
+ * null when not found.
+ */
+export async function findFileByIdSuffix(
+  id: string,
+  ext: string,
+  likelyDir: string,
+  rootDir: string,
+  ignoredPaths: string[],
+): Promise<string | null> {
+  if (likelyDir) {
+    const entries = await fs.promises.readdir(likelyDir, { withFileTypes: true }).catch(() => []);
+    const hit = entries.find((e) => e.isFile() && !e.name.startsWith('.') && nameHasIdSuffix(e.name, id, ext));
+    if (hit) return path.join(likelyDir, hit.name);
+  }
+
+  if (!rootDir || !(await fs.promises.stat(rootDir).then((s) => s.isDirectory(), () => false))) {
+    return null;
+  }
+
+  const shouldExclude = buildExcludePredicate(ignoredPaths);
+  const found = await new fdir()
+    .withFullPaths()
+    .exclude((dirName, dirPath) => shouldExclude(dirName, dirPath))
+    .filter((filePath) => {
+      const name = path.basename(filePath);
+      return nameHasIdSuffix(name, id, ext) && !shouldExclude(name, filePath);
+    })
+    .crawl(rootDir)
+    .withPromise();
+  return found[0] ?? null;
 }

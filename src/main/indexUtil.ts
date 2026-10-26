@@ -2,11 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { dump } from 'js-yaml';
 import { z } from 'zod';
-import { customAlphabet } from 'nanoid';
 import { parseFrontMatter, splitFrontMatter } from '../shared/frontMatterUtil';
 import type { FrontMatterIdResult } from '../shared/shared';
 import { loadYaml } from '../shared/yamlUtil';
 import { compareNames } from '../shared/fileTypes';
+import { generateFileId } from '../shared/fileIdSuffix';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from '../shared/specialFiles';
 import { writeFileAtomic } from './atomicWrite';
 import { mapWithConcurrency } from '../shared/asyncUtil';
@@ -49,8 +49,6 @@ import { logger } from '../shared/logUtil';
  *    surfaces to the user as a blocking error dialog. This is enforced by using
  *    `readIndexYamlChecked` (never `readIndexYaml`) in every writing path.
  */
-
-const generateId = customAlphabet('0123456789ABCDEF', 9);
 
 /**
  * Bound on concurrent filesystem operations during reconciliation. Each visible
@@ -188,8 +186,8 @@ function injectFrontMatterId(
   content: string,
   isTaken: (id: string) => boolean = () => false,
 ): { content: string; id: string } {
-  let id = generateId();
-  while (isTaken(id)) id = generateId();
+  let id = generateFileId();
+  while (isTaken(id)) id = generateFileId();
 
   const { yaml: fm, content: body } = parseFrontMatter(content);
 

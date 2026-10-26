@@ -232,6 +232,13 @@ describe('formatFileLink', () => {
     expect(formatFileLink('/r/a/note.md', '/r/img/diagram.png', false, '')).toBe('![diagram.png](../img/diagram.png)');
   });
 
+  it('labels a file carrying an id in its name without the id', () => {
+    expect(formatFileLink('/r/a/note.md', '/r/docs/report--3D6B20DDF.pdf', false, ''))
+      .toBe('[report.pdf](../docs/report--3D6B20DDF.pdf)');
+    expect(formatFileLink('/r/a/note.md', '/r/img/diagram--3D6B20DDF.png', false, ''))
+      .toBe('![diagram.png](../img/diagram--3D6B20DDF.png)');
+  });
+
   it('links a folder by name, angle-bracketing a destination with spaces', () => {
     expect(formatFileLink('/r/a/note.md', '/r/my docs', true, '')).toBe('[my docs](<../my docs>)');
   });

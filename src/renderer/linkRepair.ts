@@ -1,17 +1,21 @@
 /**
- * Auto-repair of Markdown links that carry their target's front-matter id in the
- * link title — `[label](<dest> "id:3D6B20DDF")`, as written by the editor's "Paste
- * Link". When such a link is clicked and its destination no longer exists (the target, or the file containing the link,
- * was renamed or moved), the target is found by its id, opened, and the link's
+ * Auto-repair of links whose target carries an id. A Markdown target carries it in its
+ * front matter, and the link in its title — `[label](<dest> "id:3D6B20DDF")`, as written
+ * by the editor's "Paste Link". Any other file carries it in its name —
+ * `[report.pdf](../docs/report--3D6B20DDF.pdf)` (see shared/fileIdSuffix.ts). When such a
+ * link is clicked and its destination no longer exists (the target, or the file containing
+ * the link, was renamed or moved), the target is found by its id, opened, and the link's
  * destination is silently rewritten.
  */
 import { api } from './api';
 import { appendLinkFragment, decodeMarkdownUrl, formatLinkDestination, getRelativePath, resolveLinkPath, splitHeadingFragment } from './linkUtil';
 import { getFileName, getParentPath, joinPath } from './pathUtil';
 import { getVisibleElementById, scrollElementIntoView } from './entryDom';
-import { getItem, setBrowseFile, setHighlightItem, setItemContent, setLinkIdMismatch, setPendingScrollToHeadingSlug, useAS } from '../store';
+import { getItem, navigateToBrowserPath, setBrowseFile, setHighlightItem, setItemContent, setLinkIdMismatch, setPendingScrollToHeadingSlug, useAS } from '../store';
 import { logger } from '../shared/logUtil';
 import { parseFrontMatter } from '../shared/frontMatterUtil';
+import { isMarkdownFile } from '../shared/fileTypes';
+import { fileIdSuffixOf } from '../shared/fileIdSuffix';
 
 /**
  * A link destination (`<...>` or bare) followed by a double-quoted title, ending the
@@ -19,6 +23,13 @@ import { parseFrontMatter } from '../shared/frontMatterUtil';
  * (still backslash-escaped) title text.
  */
 const LINK_WITH_TITLE_RE = /\]\(\s*(<[^<>\n]*>|[^\s<]\S*?)\s+"((?:[^"\\\n]|\\.)*)"\s*\)/g;
+
+/**
+ * The `](...)` of any inline link or image, with or without a title. Group 1 is the raw
+ * destination: `<...>`, or bare — which may hold balanced parentheses, as
+ * formatLinkDestination leaves them.
+ */
+const ANY_LINK_RE = /\]\(\s*(<[^<>\n]*>|(?:[^\s<()]|\([^\s()]*\))(?:[^\s()]|\([^\s()]*\))*)(?:\s+"(?:[^"\\\n]|\\.)*")?\s*\)/g;
 
 /**
  * Opens a file on its own in BrowseView (single-file mode), as from the index tree.
@@ -42,6 +53,19 @@ export function openFileSingle(path: string, headingSlug?: string): void {
     setPendingScrollToHeadingSlug(headingSlug);
   }
   setBrowseFile(getParentPath(path), getFileName(path));
+}
+
+/**
+ * Opens a link's target: a folder is browsed into; anything else — including a failed
+ * stat — opens on its own in single-file mode (see openFileSingle).
+ */
+export function openLinkTarget(path: string, headingSlug?: string): void {
+  void api.isDirectory(path)
+    .catch(() => false)
+    .then((isDir) => {
+      if (isDir) navigateToBrowserPath(path);
+      else openFileSingle(path, headingSlug);
+    });
 }
 
 /**
@@ -69,16 +93,41 @@ export function replaceIdLinkDestinations(
 }
 
 /**
- * Rewrites the broken id links in `sourcePath` to point at `newTarget` and refreshes
- * the store's cached content. Skipped while the file is being edited (checked again
- * just before the write, in case editing began during the read); a later click
- * repairs it then. Never rejects — failures are only logged.
+ * Returns `content` with the destination of every inline link or image — titled or not —
+ * that resolves (relative to `sourcePath`) to `brokenTarget` rewritten to point at
+ * `newTarget`, relative to `sourcePath`. The label, title and any heading fragment are left
+ * untouched, as is any link pointing elsewhere. Used for links whose target carries its id
+ * in its name, where the destination itself is all that identifies the link. Pure, for
+ * testability.
  */
-async function repairLinkInFile(sourcePath: string, brokenTarget: string, id: string, newTarget: string): Promise<void> {
+export function replaceLinkDestinations(
+  content: string,
+  sourcePath: string,
+  brokenTarget: string,
+  newTarget: string,
+): string {
+  const newDest = formatLinkDestination(getRelativePath(sourcePath, newTarget));
+  return content.replace(ANY_LINK_RE, (match: string, rawDest: string) => {
+    const dest = rawDest.startsWith('<') ? rawDest.slice(1, -1) : rawDest;
+    const { path, fragment } = splitHeadingFragment(dest);
+    if (resolveLinkPath(sourcePath, decodeMarkdownUrl(path)) !== brokenTarget) return match;
+    // A function replacement, so a `$` in the new path is never read as a pattern.
+    return match.replace(rawDest, () => (fragment ? appendLinkFragment(newDest, fragment) : newDest));
+  });
+}
+
+/**
+ * Rewrites the broken links in `sourcePath` with `rewrite` (one of the replace*
+ * functions above, bound to the broken and new targets) and refreshes the store's cached
+ * content. Skipped while the file is being edited (checked again just before the write,
+ * in case editing began during the read); a later click repairs it then. Never rejects —
+ * failures are only logged.
+ */
+async function repairLinkInFile(sourcePath: string, rewrite: (content: string) => string): Promise<void> {
   if (getItem(sourcePath)?.editing) return;
   const read = await api.readFile(sourcePath);
   if (!read.ok) return;
-  const fixed = replaceIdLinkDestinations(read.content, sourcePath, brokenTarget, id, newTarget);
+  const fixed = rewrite(read.content);
   if (fixed === read.content || getItem(sourcePath)?.editing) return;
   const result = await api.writeFile(sourcePath, fixed);
   if (!result.ok) {
@@ -100,14 +149,21 @@ export function readLinkTargetId(path: string): Promise<string> {
 }
 
 /**
- * Resolves to the front-matter id a new link to the Markdown file at `path` should carry
- * (see readLinkTargetId), and whether the user must first be asked to add one: true only
- * when the file has no id and isn't open in the editor. An id is never added silently — an
- * injected front-matter block is visible to anyone reading the file (e.g. a README.md on
- * GitHub) — and a file open in the editor can't be rewritten (it would fight the edit
- * buffer), so that one just gets a plain link. Never rejects.
+ * Resolves to the front-matter id a new link to the file at `path` should carry in its
+ * title (see readLinkTargetId), and whether the user must first be asked to add an id:
+ * true only when the file has none and isn't open in the editor. An id is never added
+ * silently — an injected front-matter block is visible to anyone reading the file (e.g. a
+ * README.md on GitHub), and a file-name id renames the file — and a file open in the
+ * editor can't be rewritten or renamed (it would fight the edit buffer), so that one just
+ * gets a plain link.
+ *
+ * A non-Markdown file's id is in its name (see shared/fileIdSuffix.ts), so its link never
+ * carries a title: `id` is always '' and only `needsConsent` matters. Never rejects.
  */
 export function resolveLinkTargetId(path: string): Promise<{ id: string; needsConsent: boolean }> {
+  if (!isMarkdownFile(path)) {
+    return Promise.resolve({ id: '', needsConsent: !fileIdSuffixOf(path) && !getItem(path)?.editing });
+  }
   return readLinkTargetId(path).then((id) => ({ id, needsConsent: !id && !getItem(path)?.editing }));
 }
 
@@ -189,10 +245,44 @@ export function openIdLink(sourcePath: string, targetPath: string, id: string, h
       return findById(id, getParentPath(targetPath)).then((found) => {
         openFileSingle(found ?? targetPath, headingSlug);
         if (found) {
-          repairLinkInFile(sourcePath, targetPath, id, found).catch((err: unknown) => {
+          const rewrite = (content: string) => replaceIdLinkDestinations(content, sourcePath, targetPath, id, found);
+          repairLinkInFile(sourcePath, rewrite).catch((err: unknown) => {
             logger.warn(`[linkRepair] Failed to repair link in ${sourcePath}:`, err);
           });
         }
       });
+    });
+}
+
+/**
+ * Opens the target of a link to a non-Markdown file that carries its id in its name
+ * (`report--3D6B20DDF.pdf` — see shared/fileIdSuffix.ts). If `targetPath` exists it is
+ * opened as usual; its name holds the id, so it can't be some other file. Otherwise the
+ * file whose name carries the same id and extension is looked up — first in the target's
+ * folder, then across the whole root folder — and, when found, opened while the link in
+ * `sourcePath` is repaired in the background. When nothing is found, `targetPath` is
+ * opened anyway so the usual not-found handling applies. A file whose extension was
+ * changed is deliberately never matched.
+ */
+export function openIdSuffixLink(sourcePath: string, targetPath: string, headingSlug?: string): void {
+  const suffix = fileIdSuffixOf(targetPath);
+  void api.pathExists(targetPath)
+    .catch(() => false)
+    .then((exists) => {
+      if (exists || !suffix) {
+        openLinkTarget(targetPath, headingSlug);
+        return;
+      }
+      return api.findFileByIdSuffix(suffix.id, suffix.ext, getParentPath(targetPath), useAS.getState().rootPath)
+        .catch(() => null)
+        .then((found) => {
+          openFileSingle(found ?? targetPath, headingSlug);
+          if (found) {
+            const rewrite = (content: string) => replaceLinkDestinations(content, sourcePath, targetPath, found);
+            repairLinkInFile(sourcePath, rewrite).catch((err: unknown) => {
+              logger.warn(`[linkRepair] Failed to repair link in ${sourcePath}:`, err);
+            });
+          }
+        });
     });
 }

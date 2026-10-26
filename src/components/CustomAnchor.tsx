@@ -2,9 +2,10 @@ import React, { useContext } from 'react';
 import { clsx } from 'clsx';
 import type { ExtraProps } from 'react-markdown';
 import { api } from '../renderer/api';
-import { navigateToBrowserPath, recordHistoryVisit } from '../store';
+import { recordHistoryVisit } from '../store';
 import { decodeMarkdownUrl, isFileLinkHref, resolveLinkPath, splitHeadingFragment } from '../renderer/linkUtil';
-import { openFileSingle, openIdLink } from '../renderer/linkRepair';
+import { openIdLink, openIdSuffixLink, openLinkTarget } from '../renderer/linkRepair';
+import { fileIdSuffixOf } from '../shared/fileIdSuffix';
 import { openWikiLink } from '../renderer/wikiLinks';
 import { WIKILINK_TITLE } from '../shared/mkUtil';
 import { MarkdownEntryContext } from './markdownEntryContext';
@@ -94,17 +95,16 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
         return;
       }
 
+      // A non-Markdown file carrying its id in its name (`report--3D6B20DDF.pdf`)
+      // likewise repairs a link to it that has broken.
+      if (fileIdSuffixOf(targetPath)) {
+        openIdSuffixLink(entryPath, targetPath, headingSlug);
+        return;
+      }
+
       // A folder link browses into that folder; anything else (including a
       // failed stat) opens the file in single-file mode, as from the index tree.
-      void api.isDirectory(targetPath)
-        .catch(() => false)
-        .then((isDir) => {
-          if (isDir) {
-            navigateToBrowserPath(targetPath);
-          } else {
-            openFileSingle(targetPath, headingSlug);
-          }
-        });
+      openLinkTarget(targetPath, headingSlug);
       return;
     }
   };

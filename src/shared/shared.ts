@@ -516,6 +516,13 @@ export interface ElectronAPI {
    * match wins; resolves to null when none is found.
    */
   findMarkdownById: (id: string, likelyDir: string, rootDir: string) => Promise<string | null>;
+  /**
+   * Finds the file whose name carries `id` before the extension `ext` (`report--3D6B20DDF.pdf`;
+   * `ext` with its dot, or '' for none, compared ignoring case): first among the direct
+   * children of `likelyDir`, then anywhere under `rootDir` (honoring ignored paths). Only
+   * names are compared. The first match wins; resolves to null when none is found.
+   */
+  findFileByIdSuffix: (id: string, ext: string, likelyDir: string, rootDir: string) => Promise<string | null>;
   writeFile: (filePath: string, content: string) => Promise<FileWriteResult>;
   /**
    * Returns the front-matter id of a .md file, first adding a fresh one when it has

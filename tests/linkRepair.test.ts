@@ -6,6 +6,8 @@ vi.mock('../src/renderer/api', () => ({
     readFile: vi.fn(),
     writeFile: vi.fn(),
     findMarkdownById: vi.fn(),
+    findFileByIdSuffix: vi.fn(),
+    isDirectory: vi.fn(),
   },
   // pathUtil reads the separator through getApi(); undefined selects its '/' fallback.
   getApi: () => undefined,
@@ -13,7 +15,7 @@ vi.mock('../src/renderer/api', () => ({
 
 import { api } from '../src/renderer/api';
 import { useAS } from '../src/store';
-import { openIdLink, replaceIdLinkDestinations, resolveLinkTargetId } from '../src/renderer/linkRepair';
+import { openIdLink, openIdSuffixLink, replaceIdLinkDestinations, replaceLinkDestinations, resolveLinkTargetId } from '../src/renderer/linkRepair';
 import type { ItemData } from '../src/shared/types';
 
 const SRC = '/notes/thread/index.md';
@@ -172,9 +174,96 @@ describe('resolveLinkTargetId', () => {
     await expect(resolveLinkTargetId(TARGET)).resolves.toEqual({ id: '', needsConsent: true });
   });
 
+  it('asks before adding an id to the name of a non-Markdown file without one', async () => {
+    await expect(resolveLinkTargetId('/notes/a/report.pdf')).resolves.toEqual({ id: '', needsConsent: true });
+    expect(api.readFile).not.toHaveBeenCalled();
+  });
+
+  it('links a non-Markdown file already carrying an id without asking', async () => {
+    await expect(resolveLinkTargetId('/notes/a/report--3D6B20DDF.pdf')).resolves.toEqual({ id: '', needsConsent: false });
+  });
+
   it('gives a file open in the editor a plain link without asking', async () => {
     vi.mocked(api.readFile).mockResolvedValue({ ok: true, content: 'No front matter' });
     useAS.setState({ items: new Map([[TARGET, { path: TARGET, editing: true } as ItemData]]) });
     await expect(resolveLinkTargetId(TARGET)).resolves.toEqual({ id: '', needsConsent: false });
+  });
+});
+
+describe('replaceLinkDestinations', () => {
+  const SOURCE = '/notes/thread/index.md';
+  const OLD = '/notes/docs/report--3D6B20DDF.pdf';
+  const NEW = '/notes/archive/annual--3D6B20DDF.pdf';
+
+  it('rewrites a plain link and an image link to the broken target', () => {
+    const content = 'See [report.pdf](../docs/report--3D6B20DDF.pdf) and ![x](../docs/report--3D6B20DDF.pdf).';
+    expect(replaceLinkDestinations(content, SOURCE, OLD, NEW))
+      .toBe('See [report.pdf](../archive/annual--3D6B20DDF.pdf) and ![x](../archive/annual--3D6B20DDF.pdf).');
+  });
+
+  it('rewrites an angle-bracket destination and keeps a title', () => {
+    const content = '[r](<../my docs/report--3D6B20DDF.pdf> "Report")';
+    expect(replaceLinkDestinations(content, SOURCE, '/notes/my docs/report--3D6B20DDF.pdf', NEW))
+      .toBe('[r](../archive/annual--3D6B20DDF.pdf "Report")');
+  });
+
+  it('handles balanced parentheses in a bare destination', () => {
+    const content = '[r](../docs/report(v2)--3D6B20DDF.pdf)';
+    expect(replaceLinkDestinations(content, SOURCE, '/notes/docs/report(v2)--3D6B20DDF.pdf', NEW))
+      .toBe('[r](../archive/annual--3D6B20DDF.pdf)');
+  });
+
+  it('leaves links to other files alone', () => {
+    const content = '[a](../docs/other.pdf) [b](https://example.com/x.pdf)';
+    expect(replaceLinkDestinations(content, SOURCE, OLD, NEW)).toBe(content);
+  });
+
+  it('never reads a $ in the new path as a replacement pattern', () => {
+    const content = '[r](../docs/report--3D6B20DDF.pdf)';
+    expect(replaceLinkDestinations(content, SOURCE, OLD, '/notes/$1--3D6B20DDF.pdf'))
+      .toBe('[r](../$1--3D6B20DDF.pdf)');
+  });
+});
+
+describe('openIdSuffixLink', () => {
+  const SOURCE = '/notes/index.md';
+  const TARGET = '/notes/docs/report--3D6B20DDF.pdf';
+  const settle = () => new Promise((r) => { setTimeout(r, 0); });
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    useAS.setState({ rootPath: '/notes', highlightItem: null, items: new Map() });
+    vi.mocked(api.isDirectory).mockResolvedValue(false);
+  });
+
+  it('opens an existing target without searching', async () => {
+    vi.mocked(api.pathExists).mockResolvedValue(true);
+    openIdSuffixLink(SOURCE, TARGET);
+    await settle();
+    expect(useAS.getState().highlightItem).toBe(TARGET);
+    expect(api.findFileByIdSuffix).not.toHaveBeenCalled();
+    expect(api.writeFile).not.toHaveBeenCalled();
+  });
+
+  it('finds a moved target by id and extension, opens it, and repairs the link', async () => {
+    const found = '/notes/archive/annual--3D6B20DDF.pdf';
+    vi.mocked(api.pathExists).mockResolvedValue(false);
+    vi.mocked(api.findFileByIdSuffix).mockResolvedValue(found);
+    vi.mocked(api.readFile).mockResolvedValue({ ok: true, content: '[report.pdf](docs/report--3D6B20DDF.pdf)' });
+    vi.mocked(api.writeFile).mockResolvedValue({ ok: true, content: '', mtime: 1 });
+    openIdSuffixLink(SOURCE, TARGET);
+    await settle();
+    expect(api.findFileByIdSuffix).toHaveBeenCalledWith('3D6B20DDF', '.pdf', '/notes/docs', '/notes');
+    expect(useAS.getState().highlightItem).toBe(found);
+    expect(api.writeFile).toHaveBeenCalledWith(SOURCE, '[report.pdf](archive/annual--3D6B20DDF.pdf)');
+  });
+
+  it('opens the broken target and writes nothing when no file carries the id', async () => {
+    vi.mocked(api.pathExists).mockResolvedValue(false);
+    vi.mocked(api.findFileByIdSuffix).mockResolvedValue(null);
+    openIdSuffixLink(SOURCE, TARGET);
+    await settle();
+    expect(useAS.getState().highlightItem).toBe(TARGET);
+    expect(api.writeFile).not.toHaveBeenCalled();
   });
 });

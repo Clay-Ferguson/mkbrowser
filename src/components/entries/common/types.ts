@@ -92,6 +92,12 @@ export interface RenameState {
   handleSave: () => void;
   /** Handle keyboard events in rename input */
   handleKeyDown: (e: React.KeyboardEvent) => void;
+  /** A new name that would drop the file's `--ID` (see shared/fileIdSuffix.ts), awaiting confirmation; null when none */
+  pendingIdRename: string | null;
+  /** Go ahead with `pendingIdRename` */
+  handleIdRenameConfirm: () => void;
+  /** Drop `pendingIdRename`, staying in rename mode */
+  handleIdRenameCancel: () => void;
 }
 
 /**

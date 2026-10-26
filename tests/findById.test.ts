@@ -6,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { findMarkdownById, headHasId } from '../src/main/findById';
+import { findFileByIdSuffix, findMarkdownById, headHasId } from '../src/main/findById';
 
 let tmpDir: string;
 
@@ -89,5 +89,48 @@ describe('findMarkdownById', () => {
 
   it('returns null for a missing root and missing likely folder', async () => {
     expect(await findMarkdownById('888', path.join(tmpDir, 'nope'), path.join(tmpDir, 'nope'), [])).toBeNull();
+  });
+});
+
+describe('findFileByIdSuffix', () => {
+  const ID = '3D6B20DDF';
+
+  it('finds a renamed file in the likely folder', async () => {
+    await writeFile('docs/other--111111111.pdf', '');
+    const renamed = await writeFile(`docs/annual--${ID}.pdf`, '');
+    expect(await findFileByIdSuffix(ID, '.pdf', path.join(tmpDir, 'docs'), tmpDir, [])).toBe(renamed);
+  });
+
+  it('finds a moved file anywhere under the root', async () => {
+    const moved = await writeFile(`a/b/c/report--${ID}.pdf`, '');
+    expect(await findFileByIdSuffix(ID, '.pdf', path.join(tmpDir, 'gone'), tmpDir, [])).toBe(moved);
+  });
+
+  it('matches the extension ignoring case, but never a different extension', async () => {
+    await writeFile(`x/report--${ID}.png`, '');
+    expect(await findFileByIdSuffix(ID, '.pdf', path.join(tmpDir, 'x'), tmpDir, [])).toBeNull();
+    const upper = await writeFile(`y/report--${ID}.PDF`, '');
+    expect(await findFileByIdSuffix(ID, '.pdf', '', tmpDir, [])).toBe(upper);
+  });
+
+  it('finds a file with no extension', async () => {
+    const bare = await writeFile(`Makefile--${ID}`, '');
+    expect(await findFileByIdSuffix(ID, '', '', tmpDir, [])).toBe(bare);
+  });
+
+  it('skips hidden folders and ignored paths in the root crawl', async () => {
+    await writeFile(`.hidden/a--${ID}.pdf`, '');
+    await writeFile(`archive/b--${ID}.pdf`, '');
+    expect(await findFileByIdSuffix(ID, '.pdf', '', tmpDir, ['archive'])).toBeNull();
+  });
+
+  it('never takes a folder or a timestamp name for a match', async () => {
+    await fs.promises.mkdir(path.join(tmpDir, `folder--${ID}.pdf`));
+    await writeFile('2026-10-25--03-04-05-PM.pdf', '');
+    expect(await findFileByIdSuffix(ID, '.pdf', tmpDir, tmpDir, [])).toBeNull();
+  });
+
+  it('returns null for a missing root and missing likely folder', async () => {
+    expect(await findFileByIdSuffix(ID, '.pdf', path.join(tmpDir, 'nope'), path.join(tmpDir, 'nope'), [])).toBeNull();
   });
 });

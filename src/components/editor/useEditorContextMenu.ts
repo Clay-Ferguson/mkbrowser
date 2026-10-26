@@ -126,8 +126,8 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   // Why Insert Object refused (e.g. the file already holds an object of another type); shown in an alert.
   const [insertObjectError, setInsertObjectError] = useState<string | null>(null);
-  // A "Paste Link" to a Markdown file with no front-matter id, waiting on the user's choice
-  // of whether to add one (see AddLinkIdDialog).
+  // A "Paste Link" to a file with no id, waiting on the user's choice of whether to add
+  // one (see AddLinkIdDialog).
   const [pendingIdLink, setPendingIdLink] = useState<PasteLinkTarget | null>(null);
   const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
   const wordWrap = useAS(s => s.settings.wordWrap);
@@ -294,15 +294,16 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   // "Paste Link" — inserts a link to the file or folder the clipboard names (see
   // findClipboardLinkTarget), relative to this file, in place of the selection, keeping the
   // clipboard link's label (the heading text) when it had one. An image becomes an inline
-  // image. A Markdown target's front-matter id goes in the link title; when it has none the
-  // user is first asked whether to add one (pendingIdLink → AddLinkIdDialog), unless it can't
-  // be given one (see resolveLinkTargetId).
+  // image. A Markdown target's front-matter id goes in the link title; any other file's id
+  // is part of its name (`report--3D6B20DDF.pdf`). When the file has no id the user is first
+  // asked whether to add one (pendingIdLink → AddLinkIdDialog), unless it can't be given one
+  // (see resolveLinkTargetId). A folder just gets a plain link.
   const handlePasteMarkdownLink = () => {
     const target = contextMenu.pasteLink;
     closeContextMenu();
     if (!viewRef.current || !target || !filePath) return;
 
-    if (target.isDirectory || !isMarkdownFile(target.targetPath)) {
+    if (target.isDirectory) {
       insertPasteLink(target, '');
       return;
     }
@@ -312,9 +313,10 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     });
   };
 
-  // The ID dialog's choice: the id to link with ('' for a plain link).
-  const handleIdLinkChosen = (id: string) => {
-    if (pendingIdLink) insertPasteLink(pendingIdLink, id);
+  // The ID dialog's choice: the id to put in the link title ('' for none) and where the
+  // target now is (a non-Markdown file is renamed to carry its id).
+  const handleIdLinkChosen = (id: string, targetPath: string) => {
+    if (pendingIdLink) insertPasteLink({ ...pendingIdLink, targetPath }, id);
   };
 
   // Clears the pending "Paste Link" once the ID dialog closes, whatever the choice; a
