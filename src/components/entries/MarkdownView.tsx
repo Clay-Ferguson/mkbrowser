@@ -36,7 +36,29 @@ const MARKDOWN_COMPONENTS: Components = {
   pre: CustomPre,
 };
 
-const ARTICLE_CLASS = 'prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2';
+const PROSE_CLASS = 'prose prose-invert prose-base prose-hr:border-slate-400 prose-hr:my-2';
+const ARTICLE_CLASS = `${PROSE_CLASS} max-w-none`;
+
+// `|||` columns are a wrapping flex row, responsive to the window width: one per row below `sm`
+// (a phone in portrait), two per row from `sm` (a phone in landscape, a tablet), and all in one
+// row from `lg`. A flex item never shrinks below its min-content width, so a column holding a word
+// too long to wrap widens just enough to fit it, and when the columns' widths can't all fit in the
+// row, the extra columns wrap onto the next row instead of running off the right edge.
+// `max-w-full` caps that minimum at the row's width, so a word wider than the whole view (a long
+// URL) is broken by `break-words` as a last resort. Code blocks don't wrap, so
+// `contain-inline-size` keeps a long code line from widening its column; it scrolls instead.
+// The exported HTML (exportMDtoHTML.ts, htmlExport/exportStyles.ts) mirrors this in plain CSS.
+//
+// Dividers: wrap points depend on the content, so every column draws a top and a left border
+// (centered in the gap by the matching padding) and the row is pulled up and left by a gap plus
+// the border, so the borders of the first row and of each row's first column fall outside the
+// scroll container, which clips them (overflow above or left of it is unreachable).
+const COLUMNS_SCROLL_CLASS = 'overflow-x-auto';
+const COLUMNS_CLASS = 'flex flex-wrap gap-6 -mt-[calc(1.5rem+1px)] -ml-[calc(1.5rem+1px)]';
+const COLUMN_CLASS = clsx(
+  'grow basis-full sm:basis-[calc(50%-0.75rem)] lg:basis-0 max-w-full break-words',
+  'border-t border-l border-slate-600 pt-6 pl-6 [&_pre]:contain-inline-size',
+);
 
 interface MarkdownViewProps {
   content: string;
@@ -83,19 +105,21 @@ function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownView
 
   if (columns.length > 1) {
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}>
-        {columns.map((col, i) => (
-          // Columns are positional (split on `|||`, never reordered), so the index *is* their
-          // identity; keying on lineOffset remounted every later column when an earlier one
-          // changed length.
-          <article
-            // eslint-disable-next-line react/no-array-index-key
-            key={i}
-            className={clsx(ARTICLE_CLASS, i > 0 && 'border-l border-slate-600 pl-6')}
-          >
-            {renderColumn(col.text, col.lineOffset)}
-          </article>
-        ))}
+      <div className={COLUMNS_SCROLL_CLASS}>
+        <div className={COLUMNS_CLASS}>
+          {columns.map((col, i) => (
+            // Columns are positional (split on `|||`, never reordered), so the index *is* their
+            // identity; keying on lineOffset remounted every later column when an earlier one
+            // changed length.
+            <article
+              // eslint-disable-next-line react/no-array-index-key
+              key={i}
+              className={clsx(PROSE_CLASS, COLUMN_CLASS)}
+            >
+              {renderColumn(col.text, col.lineOffset)}
+            </article>
+          ))}
+        </div>
       </div>
     );
   }

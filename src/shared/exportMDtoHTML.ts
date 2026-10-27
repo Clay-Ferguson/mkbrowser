@@ -142,6 +142,8 @@ const DEFAULT_CSS = `
 
   img { max-width: 100%; height: auto; }
 
+  pre { overflow-x: auto; }
+
   blockquote {
     margin: 1rem 0;
     padding: 0.5rem 1rem;
@@ -179,24 +181,35 @@ const DEFAULT_CSS = `
 
   hr { border: none; border-top: 1px solid #e1e4e8; margin: 2rem 0; }
 
-  /* |||  column layout */
+  /* |||  column layout, a wrapping flex row like the app's MarkdownView: one per row on a phone
+     in portrait, two per row from 640px (Tailwind's sm), and all in one row from 1024px (lg).
+     A flex item never shrinks below its min-content width, so a word too long to wrap widens its
+     column just enough to fit, and columns that can't all fit wrap onto the next row instead of
+     running off the page. max-width caps that minimum at the row's width, so a word wider than
+     the page (a long URL) breaks as a last resort; code blocks are contained so a long code line
+     scrolls instead. */
   .columns {
     display: flex;
+    flex-wrap: wrap;
     gap: 2rem;
     align-items: flex-start;
     margin: 1rem 0;
-    width: 100%;
-    max-width: 100%;
     min-height: 60vh;
-    box-sizing: border-box;
   }
   .col {
-    flex: 1 1 0;
-    min-width: 0;
-    width: 100%;
     box-sizing: border-box;
+    flex: 1 1 100%;
+    max-width: 100%;
+    overflow-wrap: break-word;
     display: flex;
     flex-direction: column;
+  }
+  .col pre { contain: inline-size; }
+  @media (min-width: 640px) {
+    .col { flex-basis: calc(50% - 1rem); }
+  }
+  @media (min-width: 1024px) {
+    .col { flex-basis: 0; }
   }
 `.trim();
 
@@ -218,8 +231,9 @@ async function renderChunk(md: string): Promise<string> {
  *
  * - GFM (tables, task lists, strikethrough) is enabled.
  * - LaTeX math ($…$ and $$…$$) is rendered as MathML (no external CSS needed).
- * - Lines containing only `|||` split the content into equal-width CSS flex columns
- *   (delimiters inside fenced code blocks are ignored, matching the in-app renderer).
+ * - Lines containing only `|||` split the content into equal-width CSS flex columns that
+ *   wrap and stack on narrow screens (delimiters inside fenced code blocks are ignored, matching the
+ *   in-app renderer).
  * - Front-matter YAML blocks are silently stripped.
  * - The returned string includes `<!DOCTYPE html>` and an embedded stylesheet;
  *   no external resources are referenced.

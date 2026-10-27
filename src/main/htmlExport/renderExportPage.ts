@@ -144,7 +144,7 @@ export async function renderMarkdownPage(
   const rendered = await Promise.all(chunks.map((c, i) => renderChunk(c.text, ctx, i === 0 ? object : null, collapsibleObjects)));
 
   const inner = rendered.length > 1
-    ? `<div class="columns" style="grid-template-columns: repeat(${rendered.length}, minmax(0, 1fr))">\n${rendered.map((html) => `<div class="col">\n${html}\n</div>`).join('\n')}\n</div>`
+    ? `<div class="columns-scroll"><div class="columns">\n${rendered.map((html) => `<div class="col">\n${html}\n</div>`).join('\n')}\n</div></div>`
     : (rendered[0] ?? '');
 
   const nav = indexPages ? breadcrumbHtml(breadcrumb(manifest, mdPath, false)) : '';

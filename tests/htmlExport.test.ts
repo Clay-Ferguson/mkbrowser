@@ -246,7 +246,7 @@ describe('renderMarkdownPage', () => {
 
   it('splits ||| pages into columns and embeds the stylesheet', async () => {
     const html = await renderMarkdownPage('left\n|||\nright\n', ctx(p('docs', 'deep', 'leaf.md')), {});
-    expect(html).toContain('class="columns"');
+    expect(html).toContain('<div class="columns-scroll"><div class="columns">');
     expect(html.match(/class="col"/g)).toHaveLength(2);
     expect(html).toMatch(/<head>[\s\S]*<style>[\s\S]*\.object-block \{[\s\S]*<\/style>[\s\S]*<\/head>/);
     expect(html).not.toContain('<link rel="stylesheet"');

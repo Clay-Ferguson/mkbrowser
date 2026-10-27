@@ -1063,6 +1063,14 @@ MkBrowser renders Markdown using **GitHub Flavored Markdown (GFM)**, which inclu
 
 Placing `|||` on a line by itself within a Markdown file designates a column break. MkBrowser will split the document at each such delimiter and render the resulting sections side-by-side in an equal-width multi-column layout. Other Markdown renderers that are unaware of this convention will display `|||` as plain text.
 
+The layout adapts to the available width, both in the MkBrowser window and in generated HTML (autogen output and folder exports):
+
+- **Narrow (under 640px, e.g. a phone in portrait):** the columns stack vertically, one after another.
+- **Medium (640px–1023px, e.g. a phone in landscape or a tablet):** two columns per row; any further columns wrap onto the next row.
+- **Wide (1024px and up):** all columns sit side-by-side.
+
+Columns share the width equally, except that a column holding a word too long to wrap (a long heading word or URL) widens just enough to fit it. When the columns can't all fit in a row at their needed widths, the extra columns wrap onto the next row rather than being cut off.
+
 # Wikilinks
 
 MkBrowser supports wikilink syntax, a popular convention (used by Obsidian, Notion, and other tools) for linking between files using double square brackets. Wikilinks are automatically converted into standard Markdown links when rendered.
@@ -1888,7 +1896,7 @@ A great use for this feature is to keep your favorite links and notes in a Markd
 - The HTML output is updated every time you save the Markdown file in MkBrowser.
 - The output file path can be absolute or relative (relative paths are resolved against the Markdown file's location).
 - The HTML includes all styling and assets inline—no external dependencies.
-- The special `|||` syntax splits your content into columns in the HTML output.
+- The special `|||` syntax splits your content into columns in the HTML output. The columns are responsive: on a phone they stack vertically, so the page stays readable on a narrow screen (see [Column Layout](#column-layout-)).
 - You can use this for any purpose: dashboards, link pages, project overviews, or even as a personal wiki.
 
 **Tip:** You can maintain multiple Markdown files with different `autogen.outputFile` targets, each generating a different HTML dashboard or landing page.

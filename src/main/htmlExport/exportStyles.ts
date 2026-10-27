@@ -116,10 +116,35 @@ table { border-collapse: collapse; margin: 1em 0; font-size: 0.95em; }
 th, td { border: 1px solid var(--border); padding: 0.4em 0.75em; text-align: left; vertical-align: top; }
 th { color: var(--heading); background: var(--surface); font-weight: 600; }
 
-/* Pages split into columns with |||, as in the app */
-.columns { display: grid; gap: 1.5rem; }
-.columns > .col { min-width: 0; }
-.columns > .col + .col { border-left: 1px solid var(--border); padding-left: 1.5rem; }
+/* Pages split into columns with |||, a wrapping flex row as in the app (MarkdownView): one per
+   row on a phone in portrait, two per row from 640px (Tailwind's sm), and all in one row from
+   1024px (lg). A flex item never shrinks below its min-content width, so a word too long to wrap
+   widens its column just enough to fit, and columns that can't all fit wrap onto the next row
+   instead of running off the page. max-width caps that minimum at the row's width, so a word wider
+   than the page (a long URL) breaks as a last resort; code blocks are contained so a long code
+   line scrolls instead.
+   Dividers: wrap points depend on the content, so every column draws a top and a left border
+   (centered in the gap by the matching padding) and the row is pulled up and left by a gap plus
+   the border, so the borders of the first row and of each row's first column fall outside the
+   .columns-scroll container, which clips them (overflow above or left of it is unreachable). */
+.columns-scroll { overflow-x: auto; }
+.columns { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: calc(-1.5rem - 1px) 0 0 calc(-1.5rem - 1px); }
+.columns > .col {
+  box-sizing: border-box;
+  flex: 1 1 100%;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  padding: 1.5rem 0 0 1.5rem;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+.columns > .col pre { contain: inline-size; }
+@media (min-width: 640px) {
+  .columns > .col { flex-basis: calc(50% - 0.75rem); }
+}
+@media (min-width: 1024px) {
+  .columns > .col { flex-basis: 0; }
+}
 
 /* Typed object cards (Types Editor), mirroring the app's ObjectBlock + GenericObject */
 .object-block {
