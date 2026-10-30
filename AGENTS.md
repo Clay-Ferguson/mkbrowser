@@ -139,7 +139,7 @@ Note: We're not yet on the latest vesion of TypeScript, and the file named `Type
 ## Logging
 Never use `console.log`/`console.error`. Use approach in './shared/logUtil'
 
-## Skills Files (SKILLS.md)
+## Skills Files
 Our policy is to never use SKILLS.md files, so never create those. If you think something would benefit this project as a SKILL.md, and would've created it otherwise then just tell me about it, but never create a `SKILLS.md` file.
 
 

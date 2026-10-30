@@ -38,7 +38,7 @@ describe('extractLinkDestinations', () => {
   });
 
   it('reads a linked image as a link to its target', () => {
-    expect(dests('[![badge](badge.png)](target.md)')).toEqual(['target.md']);
+    expect(dests('[![badge](badge.png)]( target.md )')).toEqual(['target.md']);
   });
 
   it('skips external URLs and in-page anchors', () => {

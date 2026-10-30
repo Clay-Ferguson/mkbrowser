@@ -47,7 +47,7 @@ export interface ContextMenuState {
 
 /**
  * Resolves to the existing file or folder the clipboard text names, if any: a Markdown link
- * `[Heading](docs/file.md#slug)` (as copied by right-clicking a rendered heading) or a bare
+ * `[Heading]( docs/file.md#slug )` (as copied by right-clicking a rendered heading) or a bare
  * path (as copied by the index tree's "Copy Path"), either one relative to the browsing root
  * or absolute, with an optional heading slug. Resolves to null otherwise, including when the
  * clipboard can't be read; never rejects.

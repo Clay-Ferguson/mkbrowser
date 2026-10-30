@@ -47,7 +47,7 @@ export interface LinkDestination {
 }
 
 // Link text: anything but brackets, allowing escapes and one level of nested
-// brackets, so `[![img](i.png)](target.md)` still reads as a link to target.md.
+// brackets, so `[![img](i.png)]( target.md )` still reads as a link to target.md.
 const LINK_TEXT = String.raw`(?:[^\[\]\\]|\\.|\[(?:[^\[\]\\]|\\.)*\])*`;
 
 /**

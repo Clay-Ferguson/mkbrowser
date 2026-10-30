@@ -193,7 +193,7 @@ function escapeLinkLabel(label: string): string {
 
 /**
  * The Markdown link to the Markdown file `targetPath` inserted into the file `fromFilePath` by
- * the editor menu's "Paste Link" (see `formatFileLink`) — `[README](../a/README.md#usage "id:36F7385CA")`:
+ * the editor menu's "Paste Link" (see `formatFileLink`) — `[README]( ../a/README.md#usage "id:36F7385CA")`:
  * a relative destination (angle-bracketed or encoded as needed, see `formatLinkDestination`)
  * with an optional heading `fragment`, labelled with `rawLabel` — Markdown label text, used
  * verbatim, so any escapes it carries are kept — or, by default, the file name minus `.md`. A non-empty `id` (the target's front-matter id) rides in the link title, so a
@@ -236,7 +236,7 @@ export function formatFileLink(
 }
 
 /**
- * The link copied by right-clicking a rendered heading: `[Heading Text](docs/file.md#slug)`,
+ * The link copied by right-clicking a rendered heading: `[Heading Text]( docs/file.md#slug )`,
  * where `relPath` is the file's path relative to the browsing root (so the link is only
  * meaningful to "Paste Link", which re-targets it relative to the file it is pasted into).
  */
@@ -250,7 +250,7 @@ const WHOLE_LINK_RE = /^\[((?:[^\]\\]|\\.)*)\]\(\s*(<[^<>\n]*>|[^\s<]\S*?)(?:\s+
 /**
  * Reads clipboard text as a file reference and returns the absolute paths it could name,
  * most specific first, with the heading fragment and link label split off; the caller checks
- * which (if any) exists. The text is either a Markdown link — `[Heading](docs/file.md#slug)`
+ * which (if any) exists. The text is either a Markdown link — `[Heading]( docs/file.md#slug )`
  * as copied by right-clicking a rendered heading (see `formatHeadingLink`), whose destination
  * is decoded and whose label is kept as written (still escaped) — or a bare path with an optional `#slug` (`label`
  * is then null). Each path is tried as an absolute path (when it is one) and relative to the

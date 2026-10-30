@@ -92,7 +92,7 @@ function copyHeadingLink(link: string): void {
 
 /**
  * A heading block that, besides click-to-edit, shows a chain-link icon on hover which copies
- * a Markdown link to the heading — `[Heading Text](docs/file.md#heading-slug)`: the file's
+ * a Markdown link to the heading — `[Heading Text]( docs/file.md#heading-slug )`: the file's
  * path relative to the browsing root (the breadcrumb's Home folder) plus the heading's slug
  * (the id rehype-slug assigns). "Paste Link" in the editor turns it into a link relative to
  * the file it is pasted into. Files outside the root (e.g. the bundled User Guide in

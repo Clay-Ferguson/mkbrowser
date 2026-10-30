@@ -90,8 +90,8 @@ export const WIKILINK_TITLE = 'mk:wikilink';
  * Supports:
  *   [[file]]              → [file](file)
  *   [[file|description]]  → [description](file)
- *   [[file#Section]]      → [file#Section](file.md#section)
- *   [[file#Section|desc]] → [desc](file.md#section)
+ *   [[file#Section]]      → [file#Section]( file.md#section )
+ *   [[file#Section|desc]] → [desc]( file.md#section )
  *   [[#Section]]          → [#Section](#section)
  *
  * With `markTitle`, each converted link also gets the title `WIKILINK_TITLE`

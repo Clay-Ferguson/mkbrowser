@@ -244,13 +244,13 @@ While editing a Markdown file you can quickly insert a link to any other file or
 MkBrowser inserts a Markdown link at the cursor position, with the path computed **relative to the file you are editing** — so you can link to anything in the tree, including files in completely different folders. For example:
 
 ```
-[notes](../reference/notes.md)
+[notes]( ../reference/notes.md )
 ```
 
 If the target file is a Markdown file, its front matter `id` property is stored as the link's title (standard Markdown, shown as the link's hover tooltip). If the target has no `id` yet, MkBrowser asks first (**Add ID to Linked File?**): **Add ID & Link** gives the file an id (adding a front matter block if it has none), in any folder — not only Document Mode folders — and links with it; **Plain Link** inserts the link without an id and leaves the file untouched. (A target that is itself open in an editor just gets a plain link.)
 
 ```
-[notes](../reference/notes.md "id:abc123")
+[notes]( ../reference/notes.md "id:abc123" )
 ```
 
 Because the id is part of the link itself, the link can be resolved by id even if the file is later renamed or moved. MkBrowser repairs such links automatically: when you click a link whose target no longer exists, it looks for the Markdown file carrying that id, first in the folder the link pointed to and then across the whole root folder, skipping hidden folders and your Ignored Paths. If it finds the file, it opens it and quietly rewrites the link to the file's new location (relative to the document containing the link). If that document is open in the editor at the time, the link is left as-is and repaired on a later click.
@@ -268,7 +268,7 @@ Such a file can be renamed or moved freely **as long as the `--3D6B20DDF` part a
 You can also link to a specific **heading** inside a Markdown file by adding the heading after a `#` at the end of the link. The quickest way is to hover over the heading in the rendered document, click the chain-link icon that appears to its right to copy a link to it, then use **Paste Link** in the editor. You can also paste a link to the file as above, then type the `#` part yourself:
 
 ```
-[notes — Getting Started](../reference/notes.md#getting-started "id:abc123")
+[notes — Getting Started]( ../reference/notes.md#getting-started "id:abc123" )
 ```
 
 The part after `#` is the heading converted to a link-safe form, the same way GitHub does it: lowercased, spaces turned into hyphens, and most punctuation dropped (so `## Getting Started!` becomes `getting-started`). When a file has two headings with the same text, the second gets `-1`, the third `-2`, and so on. Clicking such a link opens the file on its own (single-file mode) and scrolls to that heading. If you later rename the heading, the link still opens the file but no longer scrolls to it.
@@ -284,7 +284,7 @@ You can also link to a **folder**. Clicking a folder link in the rendered Markdo
 If the path contains spaces, the link target is wrapped in angle brackets (standard Markdown) so the spaces can stay as they are:
 
 ```
-[HUMAN](<../Job Interview Thread/HUMAN.md>)
+[HUMAN]( <../Job Interview Thread/HUMAN.md> )
 ```
 
 ### Inserting Objects
