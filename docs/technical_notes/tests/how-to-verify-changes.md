@@ -1,9 +1,7 @@
----
-name: verify
-description: Build, launch, and drive MkBrowser (packaged Electron app) to verify a change end-to-end with screenshot evidence.
----
-
 # Verifying MkBrowser changes at runtime
+
+Note: AI Agents should not automatically run any playwright tests without 
+first asking the human developer.
 
 ## Build (required after ANY src/ or vite config change)
 
@@ -12,7 +10,8 @@ npm run package        # rebuilds .vite/build/ + .vite/renderer/ (~1 min)
 ```
 
 The Playwright harness launches `.vite/build/main.js` and does NOT detect
-stale bundles — skipping this step silently runs the OLD code.
+stale bundles (`tests/e2e/global-setup.ts` only builds when the bundle is
+missing) — skipping this step silently runs the OLD code.
 
 ## Drive it: write a scratch Playwright spec
 
@@ -26,17 +25,25 @@ replayable evidence in `screenshots/<spec-name>/`.
   `private-` filename prefix on new tests.
 - Import fixtures from `./fixtures/electronApp` (`test`, `expect`,
   `mainWindow`, `testDataPath`) and helpers from `./helpers/mediaUtils`
-  (`demoClick`, `insertText`, `takeScreenshot`, `cleanupTestDataFiles`,
-  `resetSettings`).
-- Name created markdown files `my-*.md` — `cleanupTestDataFiles()` removes
-  those automatically at the start of each run.
+  (`demoClick`, `demoRefresh`, `insertText`, `takeScreenshot`,
+  `cleanupScreenshots`, `cleanupTestDataFiles`, `resetSettings`).
+- Name created markdown files `my-*.md` and created folders `my-*` —
+  `cleanupTestDataFiles()` removes those (folders with all their contents)
+  at the start of each run.
+- `resetSettings(mainWindow)` turns the `expandedEditor` preference ON, so
+  editing a file from the folder listing opens the maximized editor in
+  single-file mode. Pass `{ expandedEditor: false }` to verify inline
+  editing, and `{ aiEnabled: true }` for AI features (AI is off by default).
+- Full conventions: `playwright.md` in this folder.
 - Run one spec: `npx playwright test tests/e2e/<name>.spec.ts` (~20 s;
   opens a visible window on the local display).
 
 ## Useful test ids
 
 `browser-main-content`, `create-file-button`, `create-file-dialog-input`,
-`create-file-dialog-create-button`, `entry-save-button`. To refresh, call
+`create-file-dialog-create-button`, `entry-save-button`, `entry-cancel-button`,
+`entry-action-bar` (hover-revealed; its `entry-menu-button` opens the per-entry
+menu — use `openEntryMenu()`). To refresh, call
 `demoRefresh(mainWindow)` (it clicks the current-folder breadcrumb).
 The inline editor is `.cm-editor`; `insertText(mainWindow, text, true)`
 types into the focused editor.
@@ -48,3 +55,6 @@ types into the focused editor.
   the scenario needs an unchanged mtime.
 - Assert rendered markdown via `mainContent.getByText(...)`, scoped to
   `browser-main-content` to avoid matching the file tree.
+- Views are hidden with `display:none`, never unmounted, so a page-wide
+  lookup can match a hidden tab — scope to `activeView(mainWindow)` after
+  switching views.
