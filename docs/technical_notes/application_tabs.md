@@ -2,7 +2,7 @@
 
 ## Overview 
 
-This application uses a Tab-layout where tabs/views are the different top level views (aka panels) that we display in the application. Their names are defined in file `src/store/types.ts` in the following line of code. 
+This application uses a Tab-layout where tabs/views are the different top level views (aka panels) that we display in the application. Their names are defined in file `src/shared/types.ts` in the following line of code. 
 
 ```
 export type AppView = 'browser' | 'search-results' | 'settings' ...;
@@ -26,7 +26,7 @@ Because each view owns its own scroll container (`<main className="...overflow-y
 
 ### The one exception: BrowseView per-folder scroll
 
-`BrowseView` is a single mounted instance that is **reused across folder navigation** (the `currentPath` changes while the same DOM container stays mounted). So it still saves/restores scroll position **per folder path** via `getBrowserScrollPosition` / `setBrowserScrollPosition` in `src/store/scroll.ts`. That store now only holds browser per-folder positions; the old per-view scroll positions and the `useScrollPersistence` hook were removed once views stopped unmounting.
+`BrowseView` is a single mounted instance that is **reused across folder navigation** (the `currentPath` changes while the same DOM container stays mounted). So it still saves/restores scroll position **per folder path** via `getBrowserScrollPosition` / `setBrowserScrollPosition` in `src/store/scroll.ts`. That store now only holds browser per-folder positions; the old per-view scroll positions and the `useScrollPersistence` hook were removed once views stopped unmounting. For the full picture (per-folder restore, pending scroll requests, the settle phase, and hidden-view pitfalls) see `scroll_management.md`.
 
 ## React Global State Management
 
