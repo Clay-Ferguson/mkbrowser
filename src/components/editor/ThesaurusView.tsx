@@ -26,6 +26,8 @@ import { insertSynonymAfterWord } from '../../renderer/editor/editorThesaurusUti
  * looked up while the user types.
  *
  * Rendered only by `BrowseFile`, and only while editing.
+ *
+ * See: (docs/technical_notes/features/thesaurus_view.md#thesaurusview-rendering)
  */
 
 /** What is currently on screen: the word looked up under the cursor, and what came back. */
@@ -62,6 +64,7 @@ function ThesaurusView() {
     // Nothing to look up. The last result is left in state rather than cleared: the render
     // below keys off `word`, so it is not shown, and clearing here would be a synchronous
     // setState in an effect (a cascading render, which the lint rules reject).
+    // See: (docs/technical_notes/features/thesaurus_view.md#gotchas)
     if (word === null) return;
 
     // Guards against out-of-order responses: the cursor can land on a second word while
@@ -98,6 +101,7 @@ function ThesaurusView() {
   // idle plugin holds a reference to (the store channel only runs editor → strip). A
   // failure here means that editor is gone, in which case there is nothing to insert into
   // and nothing worth telling the user.
+  // See: (docs/technical_notes/features/thesaurus_view.md#getting-back-into-the-editor)
   const handleSynonymClick = (synonym: string) => {
     if (!insertSynonymAfterWord(synonym)) {
       logger.warn('Thesaurus insert ignored: no editor to insert into');
@@ -113,6 +117,7 @@ function ThesaurusView() {
   // Switched off: no strip in the DOM at all, so the editor above simply gets that height
   // back. This is the whole reason the on/off control moved to the editor's context menu —
   // a switch living in here would have to keep a row of chrome on screen to be clickable.
+  // See: (docs/technical_notes/features/thesaurus_view.md#the-onoff-switch-enablethesaurus)
   if (!enabled) return null;
 
   return (

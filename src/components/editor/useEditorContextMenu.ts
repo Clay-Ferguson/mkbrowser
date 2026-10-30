@@ -91,8 +91,10 @@ interface UseEditorContextMenuProps {
   /**
    * Whether this editor is one the thesaurus plugin was installed into — live prose only,
    * the same gate `CodeMirrorEditor` applies when building its extension list. False here
-   * hides the Enable/Disable Thesaurus item, since toggling a setting no plugin is reading
+   * hides the Show/Hide Thesaurus item, since toggling a setting no plugin is reading
    * would do nothing.
+   *
+   * See: (docs/technical_notes/features/thesaurus_view.md#where-the-item-appears)
    */
   thesaurusCapable?: boolean;
   /**
@@ -135,6 +137,7 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   // `browseFileName` being set means. Offering the switch in a folder-listing inline editor
   // would turn the feature on with nowhere for the synonyms to appear.
   // See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
+  // See: (docs/technical_notes/features/thesaurus_view.md#where-the-item-appears)
   const singleFileMode = useAS(s => s.browseFileName !== null);
   // The user-defined object types (Types Editor) that "Insert Object" offers.
   const typeDefs = useAS(s => s.typeDefs);
@@ -444,6 +447,7 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   // Handing focus back to the editor is not just tidiness — the idle plugin schedules on
   // `focusChanged`, so it is what re-arms the countdown when the feature is switched on
   // mid-edit. Synonyms appear a couple of seconds later with no further gesture.
+  // See: (docs/technical_notes/features/thesaurus_view.md#the-onoff-switch-enablethesaurus)
   const handleToggleThesaurus = () => {
     const view = viewRef.current;
     setEnableThesaurus(!thesaurusEnabled);

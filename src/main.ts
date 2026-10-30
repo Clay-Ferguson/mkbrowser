@@ -226,6 +226,7 @@ function setupIpcHandlers(): void {
   // lazily on the first call (see thesaurusUtil), so users who never open the editor
   // never pay for it. A missing or corrupt file resolves to no synonyms rather than
   // rejecting — the pane simply stays empty instead of surfacing an error mid-edit.
+  // See: (docs/technical_notes/features/thesaurus_view.md#the-ipc-surface)
   ipcMain.handle('lookup-thesaurus', async (_event, word: string): Promise<ThesaurusLookup> => {
     return lookupThesaurus(word, {
       resourcesPath: process.resourcesPath,

@@ -96,6 +96,8 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
      * Turn the editor's synonym strip on or off. Switching it off also drops any
      * word the idle plugin had already published, so re-enabling starts from a
      * clean strip rather than showing synonyms for wherever the cursor last sat.
+     *
+     * See: (docs/technical_notes/features/thesaurus_view.md#the-onoff-switch-enablethesaurus)
      */
     setEnableThesaurus: (enableThesaurus) => {
       if (get().settings.enableThesaurus === enableThesaurus) return;

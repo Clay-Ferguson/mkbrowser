@@ -631,6 +631,8 @@ export interface AppState {
    * down inside the entry component, so there is no prop path between them.
    *
    * Holds only the word — the synonym lookup is the pane's own concern. Not persisted.
+   *
+   * See: (docs/technical_notes/features/thesaurus_view.md#the-store-slice-and-why-it-exists)
    */
   thesaurusWord: string | null;
 

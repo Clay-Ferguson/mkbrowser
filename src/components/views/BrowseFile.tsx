@@ -87,9 +87,13 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
  * a file's attachments are visible here just as they are in the listing. They
  * are hidden while editing, when the maximized editor owns the whole pane.
  *
+ * Thesaurus: while editing, the synonym strip (`ThesaurusView`) is mounted below
+ * `<main>` as a sibling, and only here — inline edits in the folder listing get none.
+ *
  * See: (docs/technical_notes/features/file_attachments.md#single-file-mode-srccomponentsviewsbrowsefiletsx)
  * See: (docs/technical_notes/features/single_file_browsing.md#overview)
  * See: (docs/technical_notes/features/single_file_browsing.md#what-browsefile-renders)
+ * See: (docs/technical_notes/features/thesaurus_view.md#thesaurusview-rendering)
  */
 function BrowseFile() {
   const currentPath = useAS(s => s.currentPath);

@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFile: (title: string) => ipcRenderer.invoke('select-file', title),  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
     ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
+  // Synonyms for the editor's thesaurus strip. See: (docs/technical_notes/features/thesaurus_view.md#the-ipc-surface)
   lookupThesaurus: (word: string) => ipcRenderer.invoke('lookup-thesaurus', word),
   fetchUrlTitle: (url: string) => ipcRenderer.invoke('fetch-url-title', url),
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),

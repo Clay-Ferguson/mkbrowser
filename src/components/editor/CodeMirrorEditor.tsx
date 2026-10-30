@@ -152,6 +152,8 @@ const trimLinkTitle = (raw: string): string => raw.trim();
  * and the thesaurus are skipped for these — neither has anything useful to say about
  * source code. Module-level so the mount effect can consult it while building the
  * extension list and again when deciding whether to load the dictionary.
+ *
+ * See: (docs/technical_notes/features/thesaurus_view.md#wiring-into-codemirroreditor)
  */
 function isCodeLanguage(language: CodeMirrorEditorProps['language']): boolean {
   return language === 'javascript' || language === 'typescript' || language === 'python' || language === 'shell';
@@ -528,6 +530,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     onSave: onSaveKeepEditing !== undefined && !reviewing ? handleContextMenuSave : undefined,
     // The same gate the extension list below applies: the menu offers the thesaurus switch
     // only on editors that actually have the plugin installed.
+    // See: (docs/technical_notes/features/thesaurus_view.md#where-the-item-appears)
     thesaurusCapable: !readOnly && !isCodeLanguage(language),
     // Insert Object writes into the front matter, so it has to be visible first: with the hide
     // extensions still installed, the cursor guard would clamp the cursor out of the new lines.
@@ -604,6 +607,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // folder listing can have mounted at once never compete over the pane. The enabled
       // flag is passed as a getter, not a value: this list is built once at mount, and the
       // context-menu item that flips the flag belongs to this same editor.
+      // See: (docs/technical_notes/features/thesaurus_view.md#wiring-into-codemirroreditor)
       ...(cfg.readOnly || isCodeLanguage(cfg.language)
         ? []
         : [createThesaurusPlugin(setThesaurusWord, () => getSettings().enableThesaurus)]),

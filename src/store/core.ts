@@ -59,6 +59,7 @@ export const defaultSettings: AppSettings = {
   expandedEditor: false,
   imageSize: DEFAULT_IMAGE_SIZE,
   // Off by default — see the note on the same field in `configSchema.ts`.
+  // See: (docs/technical_notes/features/thesaurus_view.md#the-onoff-switch-enablethesaurus)
   enableThesaurus: false,
   wordWrap: true,
 };

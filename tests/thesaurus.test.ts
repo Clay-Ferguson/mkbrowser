@@ -9,6 +9,8 @@
  * share of the words in ordinary prose would find nothing at all. That runs in two stages —
  * the AGID-derived alias table, then the suffix rules — and both are covered here, along
  * with the guarantees `buildAliases` must uphold for single-hop resolution to be safe.
+ *
+ * See: (docs/technical_notes/features/thesaurus_view.md#testing)
  */
 import fs from 'node:fs';
 import os from 'node:os';

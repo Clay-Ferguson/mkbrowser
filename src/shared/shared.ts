@@ -142,6 +142,8 @@ export interface AppSettings {
    * is not rendered at all (the editor keeps that height), and nothing upstream
    * of it runs either: the editor's idle plugin never arms its timer, so no work
    * happens while the user types.
+   *
+   * See: (docs/technical_notes/features/thesaurus_view.md#the-onoff-switch-enablethesaurus)
    */
   enableThesaurus: boolean;
   /**
@@ -478,6 +480,8 @@ export interface AIUsageWithCosts {
  * answered from its root ("walk"). `lemma` reports which entry the synonyms actually came
  * from — the word as typed when it had its own entry, the root when it did not, and null
  * when nothing was found at all.
+ *
+ * See: (docs/technical_notes/features/thesaurus_view.md#the-ipc-surface)
  */
 export interface ThesaurusLookup {
   lemma: string | null;
@@ -488,6 +492,8 @@ export interface ThesaurusLookup {
    * after, alphabetical within each group. There is no relevance ranking to order them by —
    * Moby publishes none — so this puts the drop-in-ready single words where the user is
    * looking. See `singleWordsFirst`.
+   *
+   * See: (docs/technical_notes/features/thesaurus_view.md#ordering-single-words-first)
    */
   synonyms: string[];
 }
@@ -503,6 +509,7 @@ export interface ElectronAPI {
   testHooksEnabled: boolean;
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
+  // Synonyms for the editor's thesaurus strip. See: (docs/technical_notes/features/thesaurus_view.md#the-ipc-surface)
   lookupThesaurus: (word: string) => Promise<ThesaurusLookup>;
   /** Title of the HTML page at an http(s) URL (read from at most its first 256 KB), or '' when there is none. Never rejects. */
   fetchUrlTitle: (url: string) => Promise<string>;

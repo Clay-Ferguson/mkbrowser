@@ -7,16 +7,24 @@
   * [Where the item appears](#where-the-item-appears)
 * [Why Moby, and What Was Rejected](#why-moby-and-what-was-rejected)
 * [The Data File and Its Generator](#the-data-file-and-its-generator)
+  * [The file format](#the-file-format)
 * [Packaging the Data](#packaging-the-data)
 * [Main Process: `thesaurusUtil.ts`](#main-process-thesaurusutilts)
   * [Ordering: single words first](#ordering-single-words-first)
 * [Finding the Root Word](#finding-the-root-word)
+  * [Why there are two mechanisms](#why-there-are-two-mechanisms)
+  * [Why the alias table wins over the rules](#why-the-alias-table-wins-over-the-rules)
+  * [Why the rules were kept](#why-the-rules-were-kept)
+  * [Alternatives that were evaluated and rejected](#alternatives-that-were-evaluated-and-rejected)
+  * [Invariants the generator guarantees](#invariants-the-generator-guarantees)
 * [The IPC Surface](#the-ipc-surface)
 * [Renderer: Detecting the Word Under the Cursor](#renderer-detecting-the-word-under-the-cursor)
 * [Wiring Into `CodeMirrorEditor`](#wiring-into-codemirroreditor)
 * [The Store Slice, and Why It Exists](#the-store-slice-and-why-it-exists)
 * [`ThesaurusView` Rendering](#thesaurusview-rendering)
 * [Clicking a Pill: Insert, Never Replace](#clicking-a-pill-insert-never-replace)
+  * [Where it goes](#where-it-goes)
+  * [Getting back into the editor](#getting-back-into-the-editor)
 * [Testing](#testing)
 * [Gotchas](#gotchas)
 * [Invariants](#invariants)
@@ -50,7 +58,7 @@ Only the **word** travels through the store. The lookup itself happens in `Thesa
 
 ## The On/Off Switch (`enableThesaurus`)
 
-An **Enable Thesaurus / Disable Thesaurus** item in the editor's right-click menu is the feature's master switch, backed by `settings.enableThesaurus` (a `boolean`, defaulting to **false**) and persisted to `config.yaml` like any other setting.
+A **Show Thesaurus / Hide Thesaurus** item in the editor's right-click menu is the feature's master switch, backed by `settings.enableThesaurus` (a `boolean`, defaulting to **false**) and persisted to `config.yaml` like any other setting.
 
 **Off means gone.** `ThesaurusView` returns `null`, so there is no strip in the DOM and the maximized editor keeps every pixel of the pane. That is exactly why the switch is in the context menu and not in the strip: a checkbox inside the strip has to keep a row of chrome on screen to stay clickable, and that row was dead space in the overwhelmingly common case of not using the thesaurus. (An earlier version did exactly that; the row is what motivated this design.)
 
@@ -258,7 +266,7 @@ export interface ThesaurusLookup {
 }
 ```
 
-`lemma` exists so the UI can be honest that a cursor on `walked` is showing `walk`'s synonyms — a base form next to an inflected one is a grammar mismatch the user should see coming when they click a pill.
+`lemma` exists so the UI can be honest that a cursor on `walked` is showing `walk`'s synonyms — a base form next to an inflected one is a grammar mismatch the user should see coming when they click a pill. The strip discloses it in the pill area's tooltip (see [`ThesaurusView` Rendering](#thesaurusview-rendering)), not in a visible chip.
 
 The main handler **swallows errors** and resolves `{ lemma: null, synonyms: [] }` after logging. A missing or corrupt data file leaves the pane empty rather than surfacing an error dialog mid-edit.
 
@@ -325,13 +333,13 @@ One wrap flow occupying the full width of the pane, with no chrome of its own �
 | No word under cursor | `thesaurus-idle` |
 | Lookup in flight, nothing shown yet | `thesaurus-loading` |
 | Word found nothing | `thesaurus-empty` |
-| Pills | `thesaurus-synonyms` (container), `thesaurus-label` (the lemma chip) |
+| Pills | `thesaurus-synonyms` (container) |
 
 The component takes **no props**. It reads `thesaurusWord` and `settings.enableThesaurus` from the store, and the switch that writes the latter lives in the editor's context menu (see [The On/Off Switch](#the-onoff-switch-enablethesaurus)), so there is nothing for `BrowseFile` to pass down.
 
 **Stale handling.** While a new word's lookup is in flight, the *previous* result stays on screen (`result` still holds the old word) and is dimmed via `stale ? ' opacity-50' : ''`. A cursor crossing a sentence would otherwise blank the strip repeatedly, which is more distracting than briefly stale pills.
 
-**The lemma chip.** Rendered only when `result.lemma !== result.word` — i.e. only when there is a base form to disclose. It sits **inside the wrap flow**, not in a column of its own, so when there is nothing to disclose the strip is 100% synonyms. (Two earlier versions put fixed chrome in a column to its left — first a permanent "THESAURUS" label, then the on/off checkbox. Both were removed; the pills now get the full width.)
+**Disclosing the root.** There is no on-screen lemma chip: the strip is 100% synonyms. When the synonyms came from a root rather than the word under the cursor (`walked` → `walk`), the only disclosure is the pill area's `title` tooltip, `Synonyms for "<lemma ?? word>"`. (Earlier versions spent width on chrome — first a permanent "THESAURUS" label in a column to the left, then the on/off checkbox in that column, and later a `thesaurus-label` chip showing the lemma inside the wrap flow. All three were removed; the pills now get the full width.)
 
 **Scroll position resets on every new entry.** The pill area scrolls once an entry exceeds `PILL_ROWS` rows (see **Height** below), and a scroll offset left over from the previous word means nothing for the next one — a cursor moving from `cut` (1446 synonyms) to a short entry would otherwise leave the strip parked partway down a list it no longer shows. A `useEffect` keyed on `result` sets `scrollTop = 0` via a ref on the wrap container. Keyed on the `result` **object**, which `setResult` replaces once per completed lookup, so it fires exactly when the pills are replaced and never on an unrelated re-render — notably not while the strip is merely `stale`, where the old pills are still the ones on screen. The ref is null in the idle/loading/empty states, which is why the effect null-checks rather than assuming the container exists.
 
@@ -383,20 +391,20 @@ The pills carry `cursor-pointer`, a title, and a `hover:` that brightens the **b
 | `tests/thesaurus.test.ts` | `parseMoby`/`parseAgid`/`buildAliases`/`serialize` from the generator; `parseThesaurus`, `findRoot` (rules *and* aliases), `singleWordsFirst`, `lookupThesaurus`; assertions on the **shipped** data file, including that no alias dangles or chains |
 | `tests/thesaurusWordAtCursor.test.ts` | `thesaurusWordAtCursor` and `synonymInsertPos` against bare `EditorState`s — word boundaries, front matter, minimum length; insert offsets at word edges, on whitespace, at line and document ends |
 
-The e2e spec is the only thing that exercises plugin → store → IPC → data file → render together. It asserts: no strip while browsing, and none on entering the editor either (the default is off); **Enable Thesaurus** in the context menu brings it up on the already-open editor; an **inflected** word (`replied`) is answered from its root with the `reply` label; moving the cursor swaps the pills and the label disappears for a word with its own entry; the strip stays under half the pane height (a runaway guard on the `PILL_ROWS` cap, not a pixel spec); **Disable Thesaurus** removes the strip from the DOM entirely and the editor pane grows by that height, and re-enabling brings synonyms back; clicking a pill inserts that word into the document after the looked-up word; ending the edit removes it.
+**There is no e2e spec.** `tests/e2e/private-thesaurus.spec.ts` used to exercise plugin → store → IPC → data file → render together; it was removed (commit `f88065e`), so that end-to-end chain — the menu toggle, the idle timer, the focus guard, pill insertion — is now verified only by hand in the running app. The unit tests above cover the pure pieces.
 
-The spec relies on the menu item handing focus back to the editor: the keystrokes after it go to the document, and the plugin reports only from the focused editor. It does **not** click back into the editor first — doing so would hide a regression in that focus handoff, which is also what re-arms the idle plugin on re-enable.
+If an e2e spec is ever reinstated, these lessons from the old one still apply:
 
-Note the seed config (`tests/e2e/fixtures/seed-config.yaml`) does not set `enableThesaurus`, so the zod `.catch(default)` supplies **false** — the "nothing is there until you ask" phase depends on that, and adding the key to the seed would quietly defeat it.
-
-The pill-click phase **undoes its own insertion** (Ctrl+Z) before the final phase, and must: `TextEntry` ignores Escape while the buffer differs from the file, so a modified document would strand the "ending the edit removes the strip" assertion. The undo doubles as a check that the insertion is an ordinary entry in CodeMirror's history.
-
-⚠️ **`npm run package` before running e2e after any `src/` change.** `tests/e2e/global-setup.ts` only builds when the bundle is *missing* — it does not detect staleness, so you will silently test old code.
+- **Rely on the menu's focus handoff.** After **Show Thesaurus**, type straight into the document without clicking back into the editor first. Clicking would hide a regression in `handleToggleThesaurus`'s `view?.focus()`, which is also what re-arms the idle plugin on re-enable.
+- **Keep `enableThesaurus` out of the seed config.** `tests/e2e/fixtures/seed-config.yaml` does not set it, so the zod `.catch(default)` supplies **false** — exactly what a "nothing is there until you ask" assertion needs.
+- **Undo any pill insertion before ending the edit.** `TextEntry` ignores Escape while the buffer differs from the file, so a modified document strands an "ending the edit removes the strip" assertion. The Ctrl+Z doubles as a check that the insertion is an ordinary entry in CodeMirror's history.
+- **Assert on the lemma via the tooltip.** There is no lemma chip any more; the root shows up only in the `thesaurus-synonyms` container's `title`.
+- ⚠️ **`npm run package` before running e2e after any `src/` change.** `tests/e2e/global-setup.ts` only builds when the bundle is *missing* — it does not detect staleness, so you will silently test old code.
 
 ## Gotchas
 
 - **The committed data file can silently drift from the generator.** Nothing checks that `moby.txt.gz` was produced by the current `build-thesaurus.mjs`. The unit tests exercise its parser functions against small synthetic inputs and separately assert properties of the shipped file, but neither notices that regenerating would now yield different bytes. Change the generator's logic → re-run it → commit the output.
-- **Picking e2e test words is not obvious.** `shouted` looks like a good lemmatization test but has its own Moby entry (as an adjective) and never reaches `findRoot`. Verify a candidate is genuinely absent from the data before asserting on it.
+- **Picking lemmatization test words is not obvious.** `shouted` looks like a good lemmatization test but has its own Moby entry (as an adjective) and never reaches `findRoot`. Verify a candidate is genuinely absent from the data before asserting on it.
 - **`tsconfig.node.json` has a thesaurus-specific entry.** `tests/thesaurusWordAtCursor.test.ts` imports `editorThesaurusUtil`, which reaches `spellChecker.ts` and so `typo-js` (which ships no types). That project's `include` therefore lists `src/renderer/typo-js.d.ts` alongside `src/global.d.ts`. Removing it breaks `npm run lint` at the *second* `tsc` only.
 - **Do not clear `result` when `word` becomes null.** The `react-hooks/set-state-in-effect` lint rule rejects a synchronous `setState` in an effect body. The render already keys off `word`, so the stale result is simply not displayed.
 - **No `useCallback`/`useMemo`** anywhere in this feature — React Compiler. Run `node compiler-coverage.mjs src/components/editor/ThesaurusView.tsx` after touching it.
@@ -436,7 +444,7 @@ The pill-click phase **undoes its own insertion** (Ctrl+Z) before the final phas
 | `src/renderer/editor/editorThesaurusUtil.ts` | Idle `ViewPlugin`, `thesaurusWordAtCursor`, `sourceView` + `synonymInsertPos` / `insertSynonymAfterWord` |
 | `src/components/editor/CodeMirrorEditor.tsx` | Extension wiring (~line 540), `isCodeLanguage` (~line 130), `thesaurusCapable` passed to the menu hook |
 | `src/components/editor/useEditorContextMenu.ts` | `handleToggleThesaurus` (flips + persists the setting), `canToggleThesaurus` |
-| `src/components/editor/EditorContextMenu.tsx` | The Enable/Disable Thesaurus item (`editor-toggle-thesaurus`) |
+| `src/components/editor/EditorContextMenu.tsx` | The Show/Hide Thesaurus item (`editor-toggle-thesaurus`) |
 | `src/components/editor/ThesaurusView.tsx` | The strip and the pill click handler; renders `null` when disabled |
 | `src/components/views/BrowseFile.tsx` | Mounts the strip (~line 241) |
 | `src/components/editor/spellChecker.ts` | Source of the shared `wordAt` tokenizer |

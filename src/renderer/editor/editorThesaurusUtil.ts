@@ -11,6 +11,8 @@ import { frontMatterEndLine } from './editorFrontMatterUtil';
  * typing, and synonyms show up — so this watches for *stillness* rather than for an
  * explicit gesture: any cursor movement or document change restarts the timer, and only
  * when nothing has happened for `THESAURUS_IDLE_MS` is the word looked up.
+ *
+ * See: (docs/technical_notes/features/thesaurus_view.md#renderer-detecting-the-word-under-the-cursor)
  */
 
 // How long the cursor must sit still (and no typing occur) before a lookup fires.
@@ -58,6 +60,8 @@ export function thesaurusWordAtCursor(state: EditorState): string | null {
  * produced the word the pills belong to, and it is dropped when that editor reports no word
  * or is torn down. `null` therefore means "no pills are actionable", and every insert path
  * checks it.
+ *
+ * See: (docs/technical_notes/features/thesaurus_view.md#getting-back-into-the-editor)
  */
 let sourceView: EditorView | null = null;
 
@@ -74,6 +78,8 @@ function setSourceView(view: EditorView | null): void {
  *
  * Split out from the insert (and taking the `EditorState`, like `thesaurusWordAtCursor`)
  * so the position rule can be unit-tested with no DOM.
+ *
+ * See: (docs/technical_notes/features/thesaurus_view.md#where-it-goes)
  */
 export function synonymInsertPos(state: EditorState): number | null {
   const { head } = state.selection.main;
@@ -96,6 +102,8 @@ export function synonymInsertPos(state: EditorState): number | null {
  * A leading space is part of the inserted text — without it `walked` + `stride` would come
  * out as `walkedstride`. The cursor lands after the insertion and focus returns to the
  * editor, so the user can carry straight on typing (or immediately delete the original).
+ *
+ * See: (docs/technical_notes/features/thesaurus_view.md#clicking-a-pill-insert-never-replace)
  */
 export function insertSynonymAfterWord(synonym: string): boolean {
   const view = sourceView;
@@ -130,6 +138,8 @@ export function insertSynonymAfterWord(synonym: string): boolean {
  *   fed by whichever one happened to be constructed last.
  * - **Repeats.** Re-reporting the word already showing is suppressed, so arrow-keying
  *   within one word doesn't re-trigger a lookup and make the pills flicker.
+ *
+ * See: (docs/technical_notes/features/thesaurus_view.md#the-onoff-switch-enablethesaurus)
  */
 export function createThesaurusPlugin(
   onWord: (word: string | null) => void,
