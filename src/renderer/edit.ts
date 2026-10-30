@@ -274,6 +274,7 @@ export async function pasteCutItems(
  *   order (empty when the source is not a document).
  *
  * See: (docs/technical_notes/features/document_mode.md#insert-bars)
+ * See: (docs/technical_notes/features/file_attachments.md#document-mode-ordering-srcmainindexutilts)
  */
 export function orderPastedNames(names: readonly string[], sourceIndexNames: readonly string[]): string[] {
   const pos = new Map(sourceIndexNames.map((name, i) => [name, i]));

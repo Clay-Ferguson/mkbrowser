@@ -27,6 +27,8 @@ interface EntryPopupMenuProps {
  * per-entry actions that don't warrant a dedicated icon button, keeping the
  * hover bar from growing unbounded. Text-only by design — no icons. The
  * "Attach" items sit at the bottom, below a divider.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  */
 export default function EntryPopupMenu({
   anchorRef,

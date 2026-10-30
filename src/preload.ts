@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getFileMtime: (filePath: string) => ipcRenderer.invoke('get-file-mtime', filePath),
   writeFileBinary: (filePath: string, base64Data: string) => ipcRenderer.invoke('write-file-binary', filePath, base64Data),
   createFile: (filePath: string, content: string) => ipcRenderer.invoke('create-file', filePath, content),
+  // Main also renames the file's sibling `.attach` folder. See: (docs/technical_notes/features/file_attachments.md#rename-synchronization-srcmaints)
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),

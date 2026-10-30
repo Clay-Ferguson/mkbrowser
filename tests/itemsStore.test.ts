@@ -170,8 +170,9 @@ describe('items store — stale entry reconciliation', () => {
     });
 
     it('does not prune non-child items passed alongside the listing (attachments)', () => {
-      // App passes each markdown file's attachments in the same batch; they live
-      // under a subfolder, so they are not direct children of the loaded dir.
+      // applyDirectoryListing passes each .attach folder's pre-loaded attachments
+      // in the same batch; they live under a subfolder, so they are not direct
+      // children of the loaded dir.
       const attachment = entry('/notes/attachments/pic.png');
       syncDirectoryItems(DIR, [entry(NOTE), attachment]);
 

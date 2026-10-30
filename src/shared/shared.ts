@@ -256,9 +256,17 @@ export interface FileEntry {
    * See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
    */
   indexOrder?: number;
-  /** Contents of an associated .attach folder, pre-loaded by readDirectory */
+  /**
+   * Contents of an associated .attach folder, pre-loaded by readDirectory
+   *
+   * See: (docs/technical_notes/features/file_attachments.md#fileentry-interface-srcsharedsharedts)
+   */
   attachments?: FileEntry[];
-  /** True when a sibling .attach folder exists for this file */
+  /**
+   * True when a sibling .attach folder exists for this file
+   *
+   * See: (docs/technical_notes/features/file_attachments.md#fileentry-interface-srcsharedsharedts)
+   */
   hasAttachFolder?: boolean;
 }
 
@@ -541,6 +549,7 @@ export interface ElectronAPI {
   getFileMtime: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   createFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
+  // Also renames the file's sibling `.attach` folder, if any. See: (docs/technical_notes/features/file_attachments.md#rename-synchronization-srcmaints)
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
   openExternal: (filePath: string) => Promise<boolean>;

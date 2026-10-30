@@ -48,6 +48,8 @@ interface EntryActionBarProps {
  * hamburger button opening EntryPopupMenu — which holds the remaining actions
  * (open with OS app, view file, bookmark, make folder, copy path, and the three "Attach:" items) as
  * text items, so the hover bar doesn't grow unbounded.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  */
 export function EntryActionBar({
   path,
@@ -224,7 +226,7 @@ export function EntryActionBar({
 
 /**
  * Binds an entry's {@link AttachMenuProps} — which take the owning file's path, since
- * one set of handlers in BrowseView serves the whole listing — to the zero-argument
+ * one set of handlers (attachmentOp.ts, wired in by BrowseView) serves the whole listing — to the zero-argument
  * form EntryActionBar passes down to its menu. Every file entry spreads the result
  * into its EntryActionBar, so the three items behave identically on Markdown, image,
  * text, PDF and generic rows, and a handler left out by the caller stays undefined
@@ -232,6 +234,8 @@ export function EntryActionBar({
  *
  * A plain module-level function rather than a hook: the React Compiler doesn't
  * compile these, and the entry components call it during render.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#one-set-of-handlers-every-file-type)
  */
 export function bindAttachMenu(
   path: string,

@@ -86,6 +86,8 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
  * and indentation BrowseView uses (`FolderEntry` + `AttachFolderContents`), so
  * a file's attachments are visible here just as they are in the listing. They
  * are hidden while editing, when the maximized editor owns the whole pane.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#single-file-mode-srccomponentsviewsbrowsefiletsx)
  */
 function BrowseFile() {
   const currentPath = useAS(s => s.currentPath);
@@ -111,6 +113,7 @@ function BrowseFile() {
   // The file's attachment folder, if it has one. readDirectory pre-loads its
   // contents into `attachments`, so like the entry itself it needs no extra read.
   // A cut attach folder is hidden, matching BrowseView's filtering of cut rows.
+  // See: (docs/technical_notes/features/file_attachments.md#single-file-mode-srccomponentsviewsbrowsefiletsx)
   const attachFolder = entry?.hasAttachFolder
     ? entries.find((e) => e.isDirectory && e.name === `${entry.name}${ATTACH_SUFFIX}`)
     : undefined;
@@ -205,6 +208,7 @@ function BrowseFile() {
   // Pastes cut items into a folder shown here — the attach folder or a folder
   // nested inside it. Reads the item map non-reactively: this view has no other
   // use for it, and subscribing would re-render the pane on every store write.
+  // See: (docs/technical_notes/features/file_attachments.md#single-file-mode-srccomponentsviewsbrowsefiletsx)
   const handlePasteIntoFolder = (folderPath: string) => {
     runOp(async () => {
       await pasteIntoFolder(folderPath, useAS.getState().items);

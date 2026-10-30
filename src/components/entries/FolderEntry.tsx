@@ -22,7 +22,9 @@ import type { BaseEntryProps } from './common';
 interface FolderEntryProps extends BaseEntryProps {
   onNavigate: (path: string) => void;
   onPasteIntoFolder?: (folderPath: string) => void;
+  // An attach folder row: no move buttons in Document Mode. See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
   isAttachFolder?: boolean;
+  // Indents the row under its owning file and labels it `*.attach`. See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
   indentFolder?: boolean;
 }
 
@@ -30,8 +32,10 @@ interface FolderEntryProps extends BaseEntryProps {
  * Entry component for directories. Clicking navigates into the folder; right-click starts inline
  * rename. Also acts as a drag-and-drop target: items dragged from the entry list or index tree can
  * be dropped here to move them into this folder. Attach folders (created automatically as siblings
- * of their parent file) suppress the move-up/down buttons even in indexed (document) mode, since
+ * of their parent file) suppress the move-up/down buttons in indexed (document) mode, since
  * their position in the index is tied to their parent file.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
  */
 function FolderEntry(props: FolderEntryProps) {
   const { entry, onNavigate, onPasteIntoFolder, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder, indentFolder } = props;

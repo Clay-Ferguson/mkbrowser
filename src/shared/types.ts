@@ -249,6 +249,8 @@ export type CalendarViewType = 'month' | 'week' | 'work_week' | 'day' | 'agenda'
  * (used by the store's path-based updater), expansion/loading state, and children.
  * A directory's children are its listing; a file's only possible child is its
  * attachment folder (see makeFileChildren in treeNodes.ts).
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
  */
 export interface FileNode {
   path: string;
@@ -259,11 +261,17 @@ export interface FileNode {
   /** null = never loaded; populated array = loaded (may be empty) */
   children: FileNode[] | null;
   indexOrder?: number;
-  /** File nodes only: a sibling `<name>.attach` folder exists (from FileEntry.hasAttachFolder). */
+  /**
+   * File nodes only: a sibling `<name>.attach` folder exists (from FileEntry.hasAttachFolder).
+   *
+   * See: (docs/technical_notes/features/file_attachments.md#where-the-data-comes-from--no-extra-io)
+   */
   hasAttachFolder?: boolean;
   /**
    * An attachment folder shown as its owning file's child (labelled `*.attach`). An
    * orphaned `.attach` folder is an ordinary folder node and shows its real name.
+   *
+   * See: (docs/technical_notes/features/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
    */
   isOwnedAttach?: boolean;
 }

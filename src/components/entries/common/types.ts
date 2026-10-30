@@ -42,10 +42,12 @@ export interface BaseEntryProps {
  * convention is keyed off the whole filename, so an image or a PDF owns
  * attachments exactly as a Markdown file does.
  *
- * Each takes the owning file's path, because the handlers live in BrowseView
- * (which knows the folder and its index) and are shared verbatim by every entry
- * in the listing. Folders deliberately have none of these: a folder is already
- * an attachment destination through its own Paste button.
+ * Each takes the owning file's path, because one set of handlers
+ * (src/renderer/attachmentOp.ts, wired in by BrowseView) is shared verbatim by
+ * every entry in the listing. Folders deliberately have none of these: a folder
+ * is already an attachment destination through its own Paste button.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#one-set-of-handlers-every-file-type)
  */
 export interface AttachMenuProps {
   /** Writes the clipboard (image or text) into this file's attach folder. */

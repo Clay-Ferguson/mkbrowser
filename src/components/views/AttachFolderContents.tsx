@@ -22,12 +22,14 @@ interface AttachFolderContentsProps {
 /**
  * Recursively renders the contents of an attachment folder (a sibling folder
  * whose name ends with the ATTACH_SUFFIX convention). Entries are indented by
- * `level` so they visually nest under their parent markdown file. Directories
+ * `level` so they visually nest under their parent file. Directories
  * inside the attachment folder are rendered recursively; files are dispatched
  * to the appropriate entry component by type.
  *
  * Shared by both right-hand panes: BrowseView (under each file in the folder
  * listing) and BrowseFile (under the one file shown in single-file mode).
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
  */
 function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, onPasteIntoFolder }: AttachFolderContentsProps) {
   // Only the cut paths, not the whole items Map: the Map is replaced on every

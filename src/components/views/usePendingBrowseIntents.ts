@@ -128,6 +128,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     // attachment lives in a .attach folder below currentPath yet is rendered as
     // a row here. Store-only: expanding and editing are state changes the
     // entry renders from, so nothing here waits on the DOM.
+    // See: (docs/technical_notes/features/file_attachments.md#the-pending-edit-request-has-to-survive-an-attachment-path)
     if (pendingEditFile && pendingEditView === 'browser') {
       if (useAS.getState().items.has(pendingEditFile)) {
         setItemExpanded(pendingEditFile, true);

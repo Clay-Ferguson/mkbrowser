@@ -17,7 +17,11 @@ export const AI_FILENAME = 'AI.md';
 /** Filename holding AI "thinking" content, written alongside {@link AI_FILENAME}. */
 export const THINK_FILENAME = 'THINK.md';
 
-/** Suffix marking a hidden attachment folder (e.g. `foo.md.attach`). */
+/**
+ * Suffix marking a hidden attachment folder (e.g. `foo.md.attach`).
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#naming-convention)
+ */
 export const ATTACH_SUFFIX = '.attach';
 
 /**

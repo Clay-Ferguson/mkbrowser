@@ -60,6 +60,7 @@ import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE
 interface MarkdownEntryProps extends BaseEntryProps, AttachMenuProps {
   entry: FileEntry;
   view: AppView;
+  // The paperclip button: pastes the cut items into this file's attach folder. See: (docs/technical_notes/features/file_attachments.md#paperclip-button-srccomponentsentriesmarkdownentrytsx)
   onPasteAsAttachment?: (filePath: string) => void;
   isAttachment?: boolean;
 }
@@ -152,6 +153,8 @@ async function saveCalendarProps(path: string, newContent: string): Promise<void
  * - Paste-as-attachment workflows (both cut-items and clipboard), plus creating
  *   a brand-new Markdown attachment to edit on the spot
  * In document mode, timestamp-based file names are hidden from the header row.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#paperclip-button-srccomponentsentriesmarkdownentrytsx)
  */
 function MarkdownEntry(props: MarkdownEntryProps) {
   const { entry, view, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, isAttachment = false, alwaysExpandedEditor = false } = props;

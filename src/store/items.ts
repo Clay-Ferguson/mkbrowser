@@ -378,9 +378,12 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * A pruned folder takes its cached subtree with it, since none of those
      * descendants exist any more either.
      *
-     * `items` may legitimately contain non-children (App passes each markdown
-     * file's attachments alongside it); those are upserted but never considered
-     * for pruning, which only ever looks at direct children of `dirPath`.
+     * `items` may legitimately contain non-children (applyDirectoryListing passes
+     * each `.attach` folder's pre-loaded attachments alongside it); those are upserted
+     * but never considered for pruning, which only ever looks at direct children of
+     * `dirPath`.
+     *
+     * See: (docs/technical_notes/features/file_attachments.md#global-store-interaction-srcstoreitemsts)
      */
     syncDirectoryItems: (dirPath, items) => {
       const newItems = syncListingItems(get().items, dirPath, items);
@@ -395,6 +398,8 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * listing entry without its item. In single-file mode the shown file is
      * expanded in that same update: when setBrowseFile moved to a different
      * folder, this is the first update in which its item exists.
+     *
+     * See: (docs/technical_notes/features/file_attachments.md#global-store-interaction-srcstoreitemsts)
      */
     applyDirectoryListing: (dirPath, entries) => {
       const state = get();

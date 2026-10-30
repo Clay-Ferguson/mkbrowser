@@ -30,6 +30,7 @@ import type { JoinOptions } from '../../renderer/joinUtil';
 import { getFileName, getParentPath, isSamePath, joinPath } from '../../renderer/pathUtil';
 import { exportFolder, exportFolderHtml, replaceInFolder } from '../../renderer/folderToolsOp';
 import { reconcileAndRefresh, moveInIndex, moveToEdgeInIndex } from '../../renderer/indexOrderOp';
+// The per-file attach workflows, wired into every listing row. See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
 import { pasteCutAsAttachment, pasteClipboardAsAttachment, attachFromFile, createAttachment } from '../../renderer/attachmentOp';
 import { NO_OVERLAY, type BrowseOverlay } from './browseOverlay';
 import { getSelectedItems, getSortedEntries } from './browseListing';
@@ -61,6 +62,7 @@ interface BrowseViewProps {
  * IndexInsertBars replace the create buttons.
  *
  * See: (docs/technical_notes/features/document_mode.md#overview)
+ * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
  */
 function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps) {
   const [overlay, setOverlay] = useState<BrowseOverlay>(NO_OVERLAY);

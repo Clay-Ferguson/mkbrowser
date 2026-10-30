@@ -26,9 +26,15 @@ interface BrowseEntryRowProps {
    * For an attach folder listed directly after the file that owns it, that
    * file's path: the folder is indented under it and shown only while the
    * owner is expanded. Null for every other row.
+   *
+   * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
    */
   ownerPath: string | null;
-  /** Show an IndexInsertBar below this row (Document Mode, next row is not an attach folder). */
+  /**
+   * Show an IndexInsertBar below this row (Document Mode, next row is not an attach folder).
+   *
+   * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
+   */
   showInsertBarAfter: boolean;
   /** Include the paste button in that IndexInsertBar (items are cut and can be pasted here). */
   showPasteHere: boolean;
@@ -68,6 +74,7 @@ interface BrowseEntryRowProps {
  * props, and memo() (below) skips rows whose props didn't change.
  *
  * See: (docs/technical_notes/features/document_mode.md#insert-bars)
+ * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
  */
 function BrowseEntryRow({
   entry, index, isFirst, isLast, hasIndexFile, ownerPath, showInsertBarAfter, showPasteHere, spanFull, hiddenAttachPath, allImages,
@@ -89,6 +96,7 @@ function BrowseEntryRow({
   // `<file>.attach` convention is keyed off the whole filename, so an image or a
   // PDF owns attachments exactly as a Markdown file does. Spread as one group so
   // the listing can't drift into offering them on some rows but not others.
+  // See: (docs/technical_notes/features/file_attachments.md#one-set-of-handlers-every-file-type)
   const attachMenuHandlers = { onPasteClipboardAsAttachment, onAttachFromFile, onCreateAttachment };
 
   return (

@@ -52,6 +52,7 @@ interface BrowseEntryListProps {
  * grid in which images sit side by side and every other entry is full-width.
  *
  * See: (docs/technical_notes/features/document_mode.md#insert-bars)
+ * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
  */
 function BrowseEntryList({
   onNavigate, onRename, onDelete, onPasteIntoFolder,

@@ -6,6 +6,8 @@
  * Each is a fire-and-forget workflow for a user action (`void`, run through
  * {@link runOp}), so a component only wires a menu item to it: failures reach
  * the app-wide error dialog.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  */
 
 import { api } from './api';
@@ -16,7 +18,11 @@ import { getFileName, joinPath } from './pathUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { setAppError, setPendingExpandFile, setPendingScrollToFile, useAS } from '../store';
 
-/** Moves the cut items into `filePath`'s attach folder. */
+/**
+ * Moves the cut items into `filePath`'s attach folder (the paperclip button).
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#paperclip-button-srccomponentsentriesmarkdownentrytsx)
+ */
 export function pasteCutAsAttachment(filePath: string): void {
   runOp(async () => {
     const attachFolderPath = await ensureAttachFolder(filePath);
@@ -25,7 +31,11 @@ export function pasteCutAsAttachment(filePath: string): void {
   }, 'Failed to paste as attachment: ');
 }
 
-/** Saves the system clipboard's contents as a new file in `filePath`'s attach folder. */
+/**
+ * Saves the system clipboard's contents as a new file in `filePath`'s attach folder.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
+ */
 export function pasteClipboardAsAttachment(filePath: string): void {
   runOp(async () => {
     const attachFolderPath = await ensureAttachFolder(filePath);
@@ -38,6 +48,8 @@ export function pasteClipboardAsAttachment(filePath: string): void {
  * Moves (not copies) a file chosen with the OS picker into `filePath`'s attach
  * folder, via the same path as a drag-and-drop attach. The picker runs first,
  * so cancelling never leaves an empty .attach folder behind.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  */
 export function attachFromFile(filePath: string): void {
   runOp(async () => {
@@ -61,6 +73,8 @@ export function attachFromFile(filePath: string): void {
  * editing it — the from-scratch counterpart to {@link attachFromFile}'s "attach
  * a file that already exists". No dialog: the file is timestamp-named like any
  * inserted new file, and the user renames it afterwards if they want to.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  */
 export function createAttachment(filePath: string): void {
   runOp(async () => {

@@ -17,6 +17,8 @@ import {
 /**
  * Private E2E Test: Attach Image from Clipboard
  *
+ * See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
+ *
  * The image-path sibling of private-clipboard-attachment.spec.ts (the text
  * path). Exercises the "Attach: Clipboard" feature when the OS
  * clipboard holds an image rather than text:

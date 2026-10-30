@@ -18,6 +18,7 @@ import {
 } from './common';
 import { BUTTON_CLASS_SCRIM } from '../../renderer/styles';
 
+// AttachMenuProps: the three "Attach:" menu items every file entry offers. See: (docs/technical_notes/features/file_attachments.md#one-set-of-handlers-every-file-type)
 interface ImageEntryProps extends BaseEntryProps, AttachMenuProps {
   allImages: FileEntryType[];
   isAttachment?: boolean;

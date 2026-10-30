@@ -539,6 +539,7 @@ function setupIpcHandlers(): void {
       // Update the file's entry in .INDEX.yaml if present
       await renameInIndexYaml(dirPath, oldName, newName);
       // Rename the associated attach folder if it exists, and update its index entry
+      // See: (docs/technical_notes/features/file_attachments.md#rename-synchronization-srcmaints)
       const oldAttachName = `${oldName}${ATTACH_SUFFIX}`;
       const newAttachName = `${newName}${ATTACH_SUFFIX}`;
       try {

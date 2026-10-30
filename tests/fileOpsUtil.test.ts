@@ -301,6 +301,7 @@ describe('joinSelectedFiles (Document Mode index sync)', () => {
 
 // ---------------------------------------------------------------------------
 // createAttachmentFileOp — new-attachment-from-scratch flow
+// See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
 // ---------------------------------------------------------------------------
 
 describe('createAttachmentFileOp', () => {

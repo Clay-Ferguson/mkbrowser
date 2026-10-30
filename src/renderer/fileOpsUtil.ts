@@ -45,6 +45,7 @@ import { DEFAULT_SPLIT_DELIMITER, parseSplitDelimiter } from './splitUtil';
  * @returns The attachment folder path, or null if creation failed (error already reported).
  *
  * See: (docs/technical_notes/features/document_mode.md#insertintoindexyaml)
+ * See: (docs/technical_notes/features/file_attachments.md#creating-the-folder-ensureattachfolder-srcrendererfileopsutilts)
  */
 export async function ensureAttachFolder(filePath: string): Promise<string | null> {
   const attachFolderPath = `${filePath}${ATTACH_SUFFIX}`;
@@ -76,6 +77,8 @@ export async function ensureAttachFolder(filePath: string): Promise<string | nul
  * document, so no naming dialog is needed and two clicks in a row can't collide.
  *
  * @param filePath - Absolute path of the file that will own the attachment.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  */
 export async function createAttachmentFileOp(
   filePath: string

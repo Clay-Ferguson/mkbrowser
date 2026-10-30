@@ -97,6 +97,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     // own ancestors makes this recursion fan out (bounded only by the kernel's
     // symlink-resolution limit, ~40 levels deep) and hang the main process.
     // Attach folders the app creates are always real directories.
+    // See: (docs/technical_notes/features/file_attachments.md#backend-file-system-scanning-srcmainfileutilts)
     if (isDirectory && !entry.isSymbolicLink() && entry.name.endsWith(ATTACH_SUFFIX)) {
       try {
         fileEntry.attachments = await readDirectory(fullPath, aiEnabled);
@@ -144,6 +145,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
   }
 
   // Mark files that have a sibling .attach folder so the GUI can skip the paperclip button
+  // See: (docs/technical_notes/features/file_attachments.md#backend-file-system-scanning-srcmainfileutilts)
   const attachNames = new Set(fileEntries.filter(e => e.isDirectory && e.name.endsWith(ATTACH_SUFFIX)).map(e => e.name));
   for (const entry of fileEntries) {
     if (!entry.isDirectory && attachNames.has(`${entry.name}${ATTACH_SUFFIX}`)) {

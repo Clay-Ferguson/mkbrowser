@@ -46,26 +46,32 @@ The `readDirectory` function builds the `FileEntry[]` array used by the entire a
 
 **Pass 1 — pre-load attach folder contents**
 
-When iterating directory entries, any folder whose name ends with `.attach` has its children eagerly loaded:
+When iterating directory entries, any folder whose name ends with `ATTACH_SUFFIX` has its children eagerly loaded:
 
 ```ts
-if (isDirectory && entry.name.endsWith('.attach')) {
-  fileEntry.attachments = await readDirectory(fullPath, aiEnabled);
+if (isDirectory && !entry.isSymbolicLink() && entry.name.endsWith(ATTACH_SUFFIX)) {
+  try {
+    fileEntry.attachments = await readDirectory(fullPath, aiEnabled);
+  } catch (err) {
+    // Unreadable attach folder — leave attachments undefined
+  }
 }
 ```
 
-This means the renderer never needs to make a second IPC call to read attachment contents; the data arrives fully assembled in the initial directory load.
+This means the renderer never needs to make a second IPC call to read attachment contents; the data arrives fully assembled in the initial directory load. The recursion also pre-loads an attach folder nested inside another one.
+
+- **Symlinks never recurse.** A link named `*.attach` that resolves to one of its own ancestors would make the recursion fan out and hang the main process. Attach folders the app creates are always real directories.
+- **An unreadable attach folder** leaves `attachments` undefined instead of failing the whole listing.
+- **Bounded fan-out.** Entries are processed through `mapWithConcurrency` with `READDIR_CONCURRENCY` (32), because the recursive pre-load holds file descriptors open and an unbounded `Promise.all` over a large folder could hit `EMFILE`.
 
 **Pass 2 — mark files that already have an attach folder**
 
 After building the full `fileEntries` array, a second scan marks files that have a sibling `.attach` folder:
 
 ```ts
-const attachNames = new Set(
-  fileEntries.filter(e => e.isDirectory && e.name.endsWith('.attach')).map(e => e.name)
-);
+const attachNames = new Set(fileEntries.filter(e => e.isDirectory && e.name.endsWith(ATTACH_SUFFIX)).map(e => e.name));
 for (const entry of fileEntries) {
-  if (!entry.isDirectory && attachNames.has(`${entry.name}.attach`)) {
+  if (!entry.isDirectory && attachNames.has(`${entry.name}${ATTACH_SUFFIX}`)) {
     entry.hasAttachFolder = true;
   }
 }
@@ -77,28 +83,35 @@ This is O(n) and requires no filesystem access beyond what was already done.
 
 ## Frontend: Rendering (`src/components/views/BrowseView.tsx`)
 
-BrowseView has two rendering paths: Document Mode (`.INDEX.yaml`-ordered) and normal mode. Both follow the same pattern for attachments.
+`BrowseView` renders its folder listing through `BrowseEntryList` (`src/components/views/BrowseEntryList.tsx`), which walks the sorted entries (cut entries hidden) and renders one `BrowseEntryRow` (`src/components/views/BrowseEntryRow.tsx`) per entry. Document Mode (`.INDEX.yaml`-ordered) and normal mode share this one code path.
 
-**Attach folder rendering** — when the current entry is an attach folder (`entry.name.endsWith(ATTACH_SUFFIX)`):
-
-- The `FolderEntry` receives `isAttachFolder={true}`, which triggers:
-  - The folder **name text** fades in/out on hover (same animation as `EntryActionBar`) in Document Mode, keeping the view clean.
-  - **Move Up / Move Down** buttons are always hidden.
-  - In Document Mode with edit mode off, the entire `FolderEntry` row is suppressed — only its contents are shown.
-- The folder row is wrapped in a `paddingLeft: '32px'` container to visually indent it below its parent file.
-- Immediately after the `FolderEntry`, the `entry.attachments` array is rendered as a nested list using the same `AttachmentList` sub-component (also inside `BrowseView`), which itself calls the same entry rendering logic recursively, passing `level + 1` for deeper nesting if attach folders are themselves nested.
-
-**Insert bars (Document Mode)** — the `IndexInsertBar` that appears between entries to let users insert new files or folders is suppressed immediately before any attach folder:
+**Owned attach folders.** `BrowseEntryList` treats an attach folder listed directly after the file that owns it as *owned*:
 
 ```ts
-{editMode && !expandedEditor && !visibleEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
-  <IndexInsertBar ... />
-)}
+const isOwnedAttach = entry.name.endsWith(ATTACH_SUFFIX) && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
+```
+
+and passes the owner's path to that row as `ownerPath`. This is the normal case, because the listing keeps an attach folder right behind its file: by name order, or by `.INDEX.yaml` order, which `reorderAttachFolders` keeps adjacent (see Document Mode Ordering below). For an owned attach folder, `BrowseEntryRow`:
+
+- Renders it only while the owning file is **expanded**. It reads the owner's `ItemData.isExpanded` with its own selector (`parentExpanded`), so expanding or collapsing a file re-renders only the attach row beneath it.
+- Gives the `FolderEntry` both `isAttachFolder` and `indentFolder`:
+  - `indentFolder` indents the row (`pl-8`) and replaces the folder name with an italic, dimmed `*.attach` label.
+  - `isAttachFolder` hides Move Up / Down / Top / Bottom in Document Mode, since the folder's position in the index is tied to its file.
+- Renders `entry.attachments` directly below the folder row with `AttachFolderContents` at `level={1}`.
+
+An **orphaned** attach folder (its file is not directly above it, e.g. the file was moved away) gets `isAttachFolder` but not `indentFolder`. It shows its real name, is always visible, and still lists its contents below it.
+
+**`AttachFolderContents`** (`src/components/views/AttachFolderContents.tsx`) renders an attach folder's pre-loaded contents, indented by `level * 32px`, skipping cut entries. Each file goes to the matching entry component with `isAttachment={true}` (which hides "Reveal in folder tree"). These rows get no move handlers and no attach callbacks. An attach folder nested inside is rendered recursively at `level + 1`. The component lives in its own file because both right-hand panes use it (see the next section).
+
+**Image grid.** With `imageCols > 1` (outside Document Mode), images sit side by side in a CSS grid, and a full-width attach-folder row would break up the run of images. So an image's owned attach folder is not rendered in the grid. Instead the image row gets `hiddenAttachPath` and shows an **Attachments** link that browses into the folder.
+
+**Insert bars (Document Mode).** An `IndexInsertBar`, which lets users insert new files or folders between entries, is never placed directly before an attach folder. `BrowseEntryList` skips the leading bar when the first entry is an attach folder, and otherwise tells each row whether to draw one after it:
+
+```ts
+showInsertBarAfter={hasIndexFile && !nextEntry?.name.endsWith(ATTACH_SUFFIX)}
 ```
 
 This prevents the user from inserting items between a file and its attachment folder.
-
-**Shared renderer** — `AttachFolderContents` lives in its own file, `src/components/views/AttachFolderContents.tsx`, because both right-hand panes render attachments with it (see the next section).
 
 ---
 
@@ -119,29 +132,37 @@ So when the browsed entry has `hasAttachFolder`, `BrowseFile` finds the sibling 
 
 The `PaperClipIcon` button appears on a `MarkdownEntry` row only when:
 
-1. There are currently cut items waiting to be pasted (`hasCutItems` is true in the global store).
-2. The `onPasteAsAttachment` callback prop is provided.
-3. `entry.hasAttachFolder` is `false` (or absent) — once an attach folder exists the user can use the normal Paste button on the `FolderEntry` directly.
+1. There are currently cut items waiting to be pasted (`hasAnyCutItems` over the store's items).
+2. The `onPasteAsAttachment` callback prop is provided. Only the folder listing (`BrowseEntryRow`) passes it, so attachment rows and the single-file pane never show the button.
+3. `entry.hasAttachFolder` is `false` (or absent). Once an attach folder exists, the user can use the normal Paste button on its `FolderEntry` directly.
 
 ```tsx
 {hasCutItems && onPasteAsAttachment && !entry.hasAttachFolder && (
-  <button onClick={() => onPasteAsAttachment(entry)} title="Paste cut items as attachments to this file">
+  <button
+    type="button"
+    onClick={(e) => { e.stopPropagation(); onPasteAsAttachment(entry.path); }}
+    title="Paste cut items as attachments to this file"
+  >
     <PaperClipIcon className="w-4 h-4 text-white" />
   </button>
 )}
 ```
 
-The `onPasteAsAttachment` handler lives in `BrowseView.tsx` (`doPasteAsAttachment`). It calls `ensureAttachFolder(filePath)` (below) and then the shared `pasteIntoFolder(attachFolderPath, items, ...)` utility to move the cut items.
+The handler is `pasteCutAsAttachment` in `src/renderer/attachmentOp.ts`, which `BrowseView` passes down as `onPasteAsAttachment`. It calls `ensureAttachFolder(filePath)` (below) and then the shared `pasteIntoFolder(attachFolderPath, items)` to move the cut items.
 
 ---
 
 ## Entry Menu: the Three "Attach:" Items (`src/components/menus/EntryPopupMenu.tsx`)
 
-The hamburger menu on **any file entry's** row — Markdown, image, text, PDF or generic — ends with three attach items, separated from the other items by a divider. All three create the attach folder on demand via `ensureAttachFolder`:
+The hamburger menu on **any file entry's** row (Markdown, image, text, PDF or generic) ends with three attach items, separated from the other items by a divider. Their handlers are fire-and-forget workflows in `src/renderer/attachmentOp.ts`, run through `runOp` so failures reach the app-wide error dialog. `BrowseView` passes them down to the listing. All three create the attach folder on demand via `ensureAttachFolder`:
 
-- **Attach: Clipboard** — `doPasteClipboardAsAttachment` in `BrowseView.tsx` calls `pasteFromClipboardOp(attachFolderPath, …)`, which writes the clipboard image/text as a timestamp-named file.
-- **Attach: Existing File** — `doAttachFromFile` in `BrowseView.tsx` shows the OS file picker (`api.selectFile` → IPC `select-file`) **before** anything touches the disk, so cancelling leaves no empty attach folder behind. The chosen file is then **moved** (not copied) into the attach folder through the same path as a drag-and-drop attach: `canDropAsAttachment` validates it and `dropAsAttachment` (`src/renderer/dragAndDrop.ts`) creates the folder and performs the move with `completeEntryDrop`. That shares the drop's name-collision refusal, index reconciliation, store pruning, and view refresh, so a file picked from the folder being browsed disappears from its old spot. On success the moved file is scrolled to and expanded. Because the move is a rename, it fails for a file on a different filesystem than the attach folder.
-- **Attach: New Markdown** — `doCreateAttachment` in `BrowseView.tsx` calls `createAttachmentFileOp` (`src/renderer/fileOpsUtil.ts`), which makes the attach folder, writes an **empty** `.md` file into it named by `generateTimestampFileName()` (the same convention as a new file inserted into a document, so no naming dialog is needed), and then queues `setPendingScrollToFile` + `setPendingEditFile` for it. The user lands directly in the editor for a brand-new attachment and can rename it later. This is the only attach item that creates content rather than moving something that already exists.
+- **Attach: Clipboard** — `pasteClipboardAsAttachment` calls `ensureAttachFolder`, then `pasteFromClipboardOp(attachFolderPath)`. That writes the clipboard image or text as a timestamp-named file, reconciles the attach folder's index, and queues `setPendingScrollToFile` + `setPendingExpandFile` for the new file.
+- **Attach: Existing File** — `attachFromFile` shows the OS file picker (`api.selectFile` → IPC `select-file`) **before** anything touches the disk, so cancelling leaves no empty attach folder behind. The chosen file is then **moved** (not copied) into the attach folder through the same path as a drag-and-drop attach:
+  - `canDropAsAttachment` validates it. A refusal is reported as "it is this file itself, or is already attached to it".
+  - `dropAsAttachment` (`src/renderer/dragAndDrop.ts`) creates the folder and performs the move with `completeEntryDrop`. That shares the drop's name-collision refusal, index reconciliation, store pruning and view refresh, so a file picked from the folder being browsed disappears from its old spot.
+  - On success, the moved file is scrolled to and expanded (`setPendingScrollToFile` + `setPendingExpandFile`).
+  - Because the move is a rename, it fails for a file on a different filesystem than the attach folder.
+- **Attach: New Markdown** — `createAttachment` calls `createAttachmentFileOp` (`src/renderer/fileOpsUtil.ts`). That makes the attach folder and writes an **empty** `.md` file into it named by `generateTimestampFileName()`, the same convention as a new file inserted into a document, so no naming dialog is needed. It then reconciles the attach folder's index and queues `setPendingScrollToFile` + `setPendingEditFile` for the file. The user lands directly in the editor for a brand-new attachment and can rename it later. This is the only attach item that creates content rather than moving something that already exists.
 
 All three end by reconciling the attach folder's index and refreshing the view.
 
@@ -149,13 +170,13 @@ All three end by reconciling the attach folder's index and refreshing the view.
 
 Nothing about attachments is Markdown-specific — `<file>.attach` is keyed off the whole filename — so the three callbacks are declared once as **`AttachMenuProps`** (`src/components/entries/common/types.ts`) and mixed into every file entry's prop type (`MarkdownEntry`, `ImageEntry`, `TextEntry`, `PDFEntry`, `GenericEntry`). `FolderEntry` deliberately does not take them: a folder is already an attachment destination through its own Paste button.
 
-Each callback takes the owning file's path, because the handlers live in `BrowseView` and one set serves the whole listing; `BrowseView` groups them into a single `attachMenuHandlers` object and spreads it into every file entry, so the listing can't drift into offering the items on some row types but not others. Each entry then spreads **`bindAttachMenu(entry.path, props)`** (`common/EntryActionBar.tsx`) into its `EntryActionBar`, which converts the path-taking props into the zero-argument form the menu wants and leaves an omitted handler `undefined` (which hides that item). It's a plain module-level function, not a hook, so the React Compiler leaves it alone.
+Each callback takes the owning file's path, because one set of handlers (`attachmentOp.ts`, wired in by `BrowseView`) serves the whole listing. `BrowseEntryRow` groups the three into a single `attachMenuHandlers` object and spreads it into every file entry, so the listing can't drift into offering the items on some row types but not others. Each entry then spreads **`bindAttachMenu(entry.path, props)`** (`src/components/entries/common/EntryActionBar.tsx`) into its `EntryActionBar`, which converts the path-taking props into the zero-argument form the menu wants and leaves an omitted handler `undefined` (which hides that item). It's a plain module-level function, not a hook, so the React Compiler leaves it alone.
 
 The **paperclip** button is the one attach affordance that is still Markdown-only (see above) — it is a `MarkdownEntry`-local button rather than a menu item.
 
 ### The pending-edit request has to survive an attachment path
 
-`setPendingEditFile` is consumed by the settle effect in `BrowseView`, which waits for the new file to appear in the item store and otherwise **drops** the request once its folder can no longer show up in this listing. That test is `affectsBrowseListing(getParentPath(editFile), currentPath)` — not folder equality — precisely because of this feature: a new attachment's parent is the `.attach` folder, one level *below* `currentPath`, yet it is rendered as a row here. With a plain `isSamePath` check, a refresh that took longer than the 100ms settle timer would silently drop the edit and leave the user staring at an unopened empty file.
+`setPendingEditFile` is consumed by `usePendingBrowseIntents` (`src/components/views/usePendingBrowseIntents.ts`), BrowseView's hook for pending scroll/expand/edit requests. It waits for the new file's item to appear in the store, and **drops** the request once the file's folder can no longer show up in this listing. That test is `affectsBrowseListing(getParentPath(editFile), currentPath)`, not folder equality, precisely because of this feature. A new attachment's parent is the `.attach` folder, one level *below* `currentPath`, yet it is rendered as a row here. With a plain `isSamePath` check, the request would be dropped whenever the hook ran before the refreshed listing had added the new file to the store. The user would then be left staring at an unopened empty file.
 
 ---
 
@@ -168,7 +189,7 @@ The single place an attach folder comes into existence. Given a file path it:
 3. Otherwise calls `api.createFolder`; on failure it reports via `setAppError` and returns `null`.
 4. If the file lives in the folder currently being browsed **and** that folder is in Document Mode, calls `api.insertIntoIndexYaml(parentFolder, attachFolderName, fileName)` so the new folder lands immediately after its parent file rather than being appended to the end of the document by the next reconcile. The check is on the file's own parent folder, so a file nested inside another `.attach` folder does not wrongly consult the browsed folder's `hasIndexFile`.
 
-Both the paperclip paste and the drag-and-drop path (below) go through it.
+Every attach path goes through it: the paperclip paste, the three "Attach:" menu items, and drag-and-drop (below).
 
 ---
 
@@ -201,7 +222,9 @@ and so on. The node keeps its real name and path (`notes.md.attach`) — only th
 is rewritten (`TreeFileRow`), because drag, rename, cut and paste all need the real name.
 
 Clicking any file in the tree still opens it in single-file mode, and now also **toggles the
-file's expansion** — showing its attach folder.
+file's expansion** — showing its attach folder. A file that owns an attach folder carries a small
+amber paperclip after its name (`data-testid="tree-attach-indicator"`), so the user can tell which
+files have attachments before expanding them.
 
 ### Where the data comes from — no extra I/O
 
@@ -242,7 +265,7 @@ Every path that puts folder children into the tree still goes through the builde
 |------|---------|
 | Root load, lazy expand, reveal walk (`IndexTreeView.tsx`) | `makeTreeNodes` / `mergeTreeNodes` |
 | `reloadExpandedTreeFolder` — drag-and-drop, cut/paste, rename, delete | `mergeTreeNodes` |
-| `refreshExpandedNodes` (`src/renderer/directoryLoader.ts`) — full rebuild behind `refreshDirectory` | `mergeTreeNodes` |
+| `refreshExpandedNodes` (`src/renderer/treeNodes.ts`, called by `refreshIndexTree` in `src/renderer/directoryLoader.ts`) — full rebuild behind `refreshDirectory` | `mergeTreeNodes` |
 
 Membership and display order are decided in one place each, which is what keeps the tree from
 disagreeing with itself. The builders decide **which entries exist**; `flattenVisible`
@@ -263,30 +286,32 @@ browse view with `affectsBrowseListing` rather than `folder === currentPath`, th
 `completeEntryDrop` uses.
 
 Cutting a file still leaves its attach folder behind, so `IndexTreeView` confirms that case
-first (`cutOrphanAttachTarget`).
+first (`cutOrphanAttachTarget`). The browse view does the same: its Cut button
+(`handleCutClick` in `BrowseToolbar.tsx`) opens the `cutOrphanConfirm` dialog when a selected
+file's attach folder is not also selected.
 
 ---
 
 ## Rename Synchronization (`src/main.ts`)
 
-When the user renames a file via the rename input in `EntryActionBar`, the IPC handler for `renameFile` in `src/main.ts` automatically renames the sibling attach folder if one exists:
+When the user renames a file (the inline rename input in the listing, or a rename from the index tree), the `rename-file` IPC handler (`api.renameFile`) in `src/main.ts` renames the file, updates its `.INDEX.yaml` entry, and then automatically renames the sibling attach folder if one exists:
 
 ```ts
-const oldAttachName = `${oldName}.attach`;
-const newAttachName = `${newName}.attach`;
+// Rename the associated attach folder if it exists, and update its index entry
+const oldAttachName = `${oldName}${ATTACH_SUFFIX}`;
+const newAttachName = `${newName}${ATTACH_SUFFIX}`;
 try {
   await fs.promises.access(path.join(dirPath, oldAttachName));
-  await fs.promises.rename(
-    path.join(dirPath, oldAttachName),
-    path.join(dirPath, newAttachName)
-  );
+  await fs.promises.rename(path.join(dirPath, oldAttachName), path.join(dirPath, newAttachName));
   await renameInIndexYaml(dirPath, oldAttachName, newAttachName);
 } catch {
-  // No attach folder — nothing to do
+  // No attach folder exists, nothing to do
 }
 ```
 
-This is done unconditionally in the main process so that the rename always stays atomic: the file and its attach folder are renamed together in one IPC round-trip. The index YAML entry for the attach folder is also updated via `renameInIndexYaml`.
+This is done unconditionally in the main process, so the file and its attach folder are renamed together in one IPC round-trip. The index YAML entry for the attach folder is also updated via `renameInIndexYaml`.
+
+The attach folder is only carried along **within the same directory** (`dirPath` is the file's old folder). A *move* through `renameFile`, such as cut/paste or drag-and-drop, leaves the attach folder behind, which is why cutting a file without its attach folder asks for confirmation. The one move that takes the attach folder along is **Make Folder** (`makeFolderForFileOp` in `src/renderer/fileOpsUtil.ts`), which wraps a file in a new folder and moves its `.attach` folder in explicitly.
 
 ---
 
@@ -305,18 +330,18 @@ It is deliberately *not* a separate exported pass. An earlier `validateAttachFol
 
 ---
 
-## Global Store Interaction (`src/App.tsx`)
+## Global Store Interaction (`src/store/items.ts`)
 
-When the global file list is flattened for store-level operations (e.g., building the search index or the cut/paste item list), attachment contents are expanded inline:
+When a directory listing is installed in the store (`applyDirectoryListing`), each `.attach` folder's pre-loaded contents are added to the items Map alongside the listing:
 
 ```ts
-if (file.attachments) {
-  const attachItems = file.attachments.map((a) => ({ ... }));
-  return [...base, ...attachItems];
-}
+const incoming = entries.flatMap(file => [
+  toIncomingItem(file),
+  ...(file.attachments ?? []).map(toIncomingItem),
+]);
 ```
 
-This means attachment files participate in search, bulk selection, and other global operations without any special-casing in those subsystems.
+So every attachment row has its own `ItemData` (expansion, editing, selection, cut state). The entry components and the bulk operations (select, cut, delete) work on attachments without any special-casing. `syncDirectoryItems` upserts these non-children but never prunes them, since pruning only looks at direct children of the loaded folder. On a rename, `remapEntry` remaps the paths of a listing entry's pre-loaded `attachments` along with the entry itself.
 
 ---
 
@@ -327,7 +352,11 @@ This means attachment files participate in search, bulk selection, and other glo
 | `src/shared/specialFiles.ts` | The `ATTACH_SUFFIX` constant, shared by the main process and the renderer |
 | `src/shared/shared.ts` | `FileEntry.attachments` and `FileEntry.hasAttachFolder` fields |
 | `src/main/fileUtil.ts` | Pre-loads attach folder contents and sets `hasAttachFolder` during directory scan |
-| `src/components/views/BrowseView.tsx` | Renders attach folders inline; `doPasteAsAttachment` handler |
+| `src/components/views/BrowseView.tsx` | Wires the attach handlers from `attachmentOp.ts` into the listing |
+| `src/components/views/BrowseEntryList.tsx` | Detects owned attach folders; suppresses insert bars before them; image-grid handling |
+| `src/components/views/BrowseEntryRow.tsx` | Renders an owned attach folder (and its contents) only while its file is expanded; `attachMenuHandlers` |
+| `src/renderer/attachmentOp.ts` | `pasteCutAsAttachment`, `pasteClipboardAsAttachment`, `attachFromFile`, `createAttachment` — the per-file attach workflows |
+| `src/components/views/usePendingBrowseIntents.ts` | Consumes the pending edit for a new attachment (uses `affectsBrowseListing`) |
 | `src/components/views/AttachFolderContents.tsx` | Recursive renderer for an attach folder's contents, shared by both panes |
 | `src/components/views/BrowseFile.tsx` | Shows the browsed file's attach folder and contents in single-file mode |
 | `src/renderer/fileOpsUtil.ts` | `ensureAttachFolder` — the one place an `.attach` folder is created; `createAttachmentFileOp` — creates a new empty Markdown attachment and queues the edit |
@@ -337,7 +366,8 @@ This means attachment files participate in search, bulk selection, and other glo
 | `src/components/entries/MarkdownEntry.tsx` | Paperclip button (`PaperClipIcon`) shown when cut items exist and no attach folder yet |
 | `src/components/entries/common/types.ts` | `AttachMenuProps` — the three attach callbacks every file entry accepts |
 | `src/components/entries/common/EntryActionBar.tsx` | `bindAttachMenu` — binds those callbacks to the entry's path for the popup menu |
-| `src/components/entries/FolderEntry.tsx` | `isAttachFolder` prop; hides name text on hover, hides move buttons, hides row in read-only Document Mode |
+| `src/components/entries/FolderEntry.tsx` | `isAttachFolder` hides the move buttons in Document Mode; `indentFolder` indents the row and labels it `*.attach` |
 | `src/main/indexUtil.ts` | `reorderAttachFolders` — keeps `.INDEX.yaml` ordering correct after moves |
-| `src/main.ts` | IPC `renameFile` handler automatically renames the sibling `.attach` folder |
+| `src/main.ts` | IPC `rename-file` handler automatically renames the sibling `.attach` folder |
+| `src/store/items.ts` | `applyDirectoryListing` adds each attach folder's contents to the items Map; `remapEntry` remaps them on rename |
 | `src/renderer/treeNodes.ts` | `makeTreeNodes` / `mergeTreeNodes` / `makeFileChildren` / `expandFileNode` / `refreshExpandedNodes` — the only builders of index-tree children; attach folders become the first child of their owning file |

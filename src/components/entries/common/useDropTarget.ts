@@ -26,6 +26,8 @@ export interface DropTargetState {
  *   `canDropAsAttachment`). Called on drop; a rejected payload is silently ignored.
  * @param onDropPayload - Performs the drop. Fire-and-forget: the DataTransfer has already
  *   been read by the time this runs.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
  */
 export function useDropTarget(
   accepts: (payload: DragPayload) => boolean,

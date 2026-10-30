@@ -8,6 +8,7 @@ import { logger } from '../shared/logUtil';
 // IndexTreeView node builders — the one place tree children are built from a
 // directory listing (shared by lazy expand, drag-and-drop, cut/paste, and the
 // full refresh in directoryLoader).
+// See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
 // ============================================================================
 
 /** A directory listing entry, as far as the tree builders need it. */
@@ -24,6 +25,9 @@ type TreeEntry = { path: string; name: string; isDirectory: boolean; indexOrder?
  * Which files own one comes straight from `hasAttachFolder`, which `readDirectory` already
  * computes in one pass over the listing; one Set of the owned folder names built from it
  * makes the filter O(n), with no lookup or I/O of the tree's own.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
+ * See: (docs/technical_notes/features/file_attachments.md#where-the-data-comes-from--no-extra-io)
  */
 export function makeTreeNodes(entries: TreeEntry[]): FileNode[] {
   const owned = new Set<string>();
@@ -46,6 +50,8 @@ export function makeTreeNodes(entries: TreeEntry[]): FileNode[] {
  * The tree node for `file`'s attachment folder. It keeps the folder's real name and
  * path (drag, rename, cut and paste all need them); `isOwnedAttach` makes only the
  * row's label show `*.attach`.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
  */
 function makeAttachNode(file: FileNode): FileNode {
   return {
@@ -62,6 +68,8 @@ function makeAttachNode(file: FileNode): FileNode {
 /**
  * The children of an expanded file node: its attachment folder when it has one,
  * otherwise none. The one place a file's child list is assembled.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
  */
 export function makeFileChildren(file: FileNode): FileNode[] {
   return file.hasAttachFolder ? [makeAttachNode(file)] : [];
@@ -72,6 +80,8 @@ export function makeFileChildren(file: FileNode): FileNode[] {
  * on disk: drops the old attachment-folder node and, when the folder now exists, adds a
  * fresh one. Unloaded children (null) stay unloaded — the first expand builds them with
  * makeFileChildren.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
  */
 function syncAttachChild(children: FileNode[] | null, file: FileNode): FileNode[] | null {
   return children ? makeFileChildren(file) : children;
@@ -80,6 +90,8 @@ function syncAttachChild(children: FileNode[] | null, file: FileNode): FileNode[
 /**
  * Expands a file node in the tree. Children already loaded are simply shown again;
  * otherwise they are built (the attachment folder node, if any).
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
  */
 export function expandFileNode(node: FileNode): void {
   expandIndexTreeNode(node.path, node.children ?? makeFileChildren(node));
@@ -97,6 +109,8 @@ export function expandFileNode(node: FileNode): void {
  *
  * @param entries - The directory listing to rebuild from.
  * @param previousChildren - The node's current children, or null if it had none loaded.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
  */
 export function mergeTreeNodes(
   entries: TreeEntry[],
@@ -125,6 +139,8 @@ export function mergeTreeNodes(
 /**
  * Depth-first search for a directory/file node by absolute path within the tree,
  * including attachment-folder nodes under (loaded) file nodes.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
  */
 export function findTreeNodeByPath(root: FileNode, path: string): FileNode | null {
   if (root.path === path) return root;
@@ -174,6 +190,8 @@ export async function reloadExpandedTreeFolder(folderPath: string): Promise<void
  * order is not decided here — `flattenVisible` in IndexTreeView orders rows at
  * render time, so builder order only survives for index-ordered (Document Mode)
  * siblings, which it passes through from the listing.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
  */
 export async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isExpanded) return node;
@@ -194,6 +212,8 @@ export async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
  * The file-node half of refreshExpandedNodes: an expanded file's only child is its
  * attachment folder, which is refreshed like any folder. Returns `file` itself when
  * nothing under it changed.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
  */
 async function refreshFileChildren(file: FileNode): Promise<FileNode> {
   const old = file.children;

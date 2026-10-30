@@ -27,7 +27,7 @@ import { getParentPath, getFileName, isSamePath } from '../renderer/pathUtil';
  * - `currentView === 'browser'` excludes ThreadView, which renders its entries
  *   in a scrolling block and ignores expanded editing in practice.
  * - `getParentPath(path) === currentPath` excludes attachments: files inside a
- *   `*_attach` folder are rendered by `AttachFolderContents` from a *different*
+ *   `*.attach` folder are rendered by `AttachFolderContents` from a *different*
  *   folder, so they keep editing inline (a deliberate simplification).
  * - `browseFileName === null` means we are not already in single-file mode.
  *   Editing a file reached by 'browse' must leave its mode alone — that caller
@@ -37,6 +37,8 @@ import { getParentPath, getFileName, isSamePath } from '../renderer/pathUtil';
  * editing". Such a scan is what produced the bug this design removes: the map
  * is global and long-lived, so it stays true after navigating away from the
  * file being edited.
+ *
+ * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
  */
 export function enterExpandedEditPatch(state: AppState, path: string): Partial<AppState> | null {
   if (!state.settings.expandedEditor) return null;

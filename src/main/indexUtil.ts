@@ -991,6 +991,7 @@ export async function reconcileIndexedFiles(
       // folder that just (re)appeared — e.g. moved back in, by the app or by an
       // external tool — at the bottom of the document. Restore attach adjacency
       // in this same write, as every other index mutator does.
+      // See: (docs/technical_notes/features/file_attachments.md#document-mode-ordering-srcmainindexutilts)
       const files = reorderAttachFolders(
         appendNewEntries(reconciledFiles, visibleEntries, handledNames, {
           nameToId,
@@ -1032,6 +1033,7 @@ export async function reconcileIndexedFiles(
  * the folder jump to the bottom of the document the moment its file left.
  *
  * See: (docs/technical_notes/features/document_mode.md#algorithm-reconcileindexedfiles-and-other-helpers)
+ * See: (docs/technical_notes/features/file_attachments.md#document-mode-ordering-srcmainindexutilts)
  */
 function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
   const listedNames = new Set(files.map((f) => f.name));
@@ -1086,6 +1088,7 @@ export async function moveInIndexYaml(
   // function's single write (via reorderAttachFolders) rather than done as a
   // second read-modify-write — fewer disk ops, and no risk of a follow-up
   // helper deadlocking on the lock this call already holds.
+  // See: (docs/technical_notes/features/file_attachments.md#document-mode-ordering-srcmainindexutilts)
   return withIndexLock(dirPath, async () => {
     const indexFilePath = indexPathFor(dirPath);
     try {
@@ -1448,6 +1451,7 @@ async function buildEntryForName(dirPath: string, name: string): Promise<IndexEn
  * a single-entry file.
  *
  * See: (docs/technical_notes/features/document_mode.md#insertintoindexyaml)
+ * See: (docs/technical_notes/features/file_attachments.md#document-mode-ordering-srcmainindexutilts)
  */
 export async function insertIntoIndexYaml(
   dirPath: string,
