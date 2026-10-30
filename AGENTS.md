@@ -123,24 +123,12 @@ npm run package    # rebuilds .vite/build/ + .vite/renderer/
 
 Forgetting this produces baffling failures where a fix (or a test selector that depends on a renderer change) appears not to work even though the source is correct. Test-only changes under `tests/` do **not** need a rebuild.
 
-
-## Grepping (UTF-8)
-Some source files (e.g. `FolderGraphView.tsx`) contain valid UTF-8 punctuation (`—`, `→`, `…`, `•`, `·`). In a single-byte locale (`LC_ALL=C`/POSIX) `grep` mislabels these files "binary" and silently skips them. Always search with `grep -a` (a.k.a. `--text`) so matches in those files aren't dropped.
-
-## Git Commits
-Never commit changes to the 'git' repository yourself, unless you're asked to.
-
 ## TypeScript Language Version
 Note: We're not yet on the latest vesion of TypeScript, and the file named `TypeScript7-Conversion-Blocker.md` describes why we aren't
-
-## Adding new NPM Packages
-*NEVER* add a new package/dependency without first asking the human to authorize it.
 
 ## Logging
 Never use `console.log`/`console.error`. Use approach in './shared/logUtil'
 
-## Skills Files
-Our policy is to never use SKILLS.md files, so never create those. If you think something would benefit this project as a SKILL.md, and would've created it otherwise then just tell me about it, but never create a `SKILLS.md` file.
 
 
 
