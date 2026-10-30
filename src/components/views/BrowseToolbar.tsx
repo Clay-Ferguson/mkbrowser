@@ -98,6 +98,7 @@ interface BrowseToolbarProps {
 function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: BrowseToolbarProps) {
   const rootPath = useAS(s => s.rootPath);
   const currentPath = useAS(s => s.currentPath);
+  // Document Mode hides the sort menu and the header create buttons. See: (docs/technical_notes/features/document_mode.md#enabling-custom-ordering)
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const sortOrder = useAS(s => s.settings.sortOrder);
   const imageCols = useAS(s => s.settings.imageCols);

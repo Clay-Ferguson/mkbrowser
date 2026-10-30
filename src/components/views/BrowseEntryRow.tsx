@@ -66,6 +66,8 @@ interface BrowseEntryRowProps {
  * every BrowseView render rebuilt every row's move/insert closures and
  * re-rendered every entry. Here each row builds its own handlers from stable
  * props, and memo() (below) skips rows whose props didn't change.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insert-bars)
  */
 function BrowseEntryRow({
   entry, index, isFirst, isLast, hasIndexFile, ownerPath, showInsertBarAfter, showPasteHere, spanFull, hiddenAttachPath, allImages,

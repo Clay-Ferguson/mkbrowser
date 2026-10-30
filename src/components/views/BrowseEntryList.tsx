@@ -50,6 +50,8 @@ interface BrowseEntryListProps {
  * hidden — as one BrowseEntryRow each, plus the leading IndexInsertBar in
  * Document Mode. With `imageCols > 1` (outside Document Mode) the list is a CSS
  * grid in which images sit side by side and every other entry is full-width.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insert-bars)
  */
 function BrowseEntryList({
   onNavigate, onRename, onDelete, onPasteIntoFolder,

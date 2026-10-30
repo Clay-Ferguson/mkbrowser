@@ -1,3 +1,5 @@
+// Tests for Document Mode's .INDEX.yaml engine (src/main/indexUtil.ts). See: (docs/technical_notes/features/document_mode.md)
+
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';

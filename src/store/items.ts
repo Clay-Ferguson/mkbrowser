@@ -209,6 +209,8 @@ function stripTrailingSep(path: string): string {
  * process stamps `indexOrder` on entries only then. `hasIndexFile` is derived from
  * the listing here, in the same set() that installs it, so no render ever pairs a
  * listing with the previous folder's flag.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#overview)
  */
 function listingHasIndex(entries: FileEntry[]): boolean {
   return entries.some((e) => e.indexOrder !== undefined);

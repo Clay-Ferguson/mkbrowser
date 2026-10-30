@@ -163,6 +163,8 @@ const corruptIndexAlerted = new Set<string>();
  * impossible-to-miss error dialog. The renderer largely fires these operations
  * without checking results, so main is the one place this can be made loud.
  * Passes the result through unchanged for the IPC reply.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#atomic-serialized-index-updates)
  */
 function alertIfCorruptIndex(dirPath: string, result: IndexMutationResult): IndexMutationResult {
   if (result.corruptIndex) {
@@ -409,6 +411,7 @@ function setupIpcHandlers(): void {
         // before it landed (MAIN_ISSUES.md issue 1). Only the writeFile (and the
         // stat capturing its resulting mtime, which must not observe a later
         // write) is inside the lock.
+        // See: (docs/technical_notes/features/document_mode.md#saving-never-adds-an-id)
         const contentToWrite = finalContent;
         savedStats = await withIndexLock(path.dirname(filePath), async () => {
           await writeFileAtomic(filePath, contentToWrite);
@@ -616,6 +619,7 @@ function setupIpcHandlers(): void {
 
 
   // Insert one or more new entries into .INDEX.yaml at the specified position
+  // See: (docs/technical_notes/features/document_mode.md#insert-bars)
   ipcMain.handle('insert-into-index-yaml', async (_event, dirPath: string, newNames: string | string[], insertAfterName: string | null): Promise<{ success: boolean; error?: string }> => {
     return alertIfCorruptIndex(dirPath, await insertIntoIndexYaml(dirPath, newNames, insertAfterName));
   });
@@ -630,7 +634,8 @@ function setupIpcHandlers(): void {
     return alertIfCorruptIndex(dirPath, await moveToEdgeInIndexYaml(dirPath, name, edge));
   });
 
-  // Reconcile .INDEX.yaml with the filesystem (phase 1: ensure all markdown files have a front-matter id)
+  // Reconcile .INDEX.yaml with the filesystem (renames, additions, deletions; never adds a front-matter id)
+  // See: (docs/technical_notes/features/document_mode.md#when-reconciliation-runs)
   ipcMain.handle('reconcile-indexed-files', async (_event, dirPath: string, createIfMissing = false): Promise<{ success: boolean; error?: string }> => {
     return alertIfCorruptIndex(dirPath, await reconcileIndexedFiles(dirPath, createIfMissing));
   });
@@ -652,6 +657,7 @@ function setupIpcHandlers(): void {
   });
 
   // Get a .md file's front-matter id, adding one if missing ("Paste Link")
+  // See: (docs/technical_notes/features/document_mode.md#stable-identity-via-front-matter-ids)
   ipcMain.handle('ensure-front-matter-id', async (_event, filePath: string): Promise<FrontMatterIdResult> => {
     try {
       return await ensureFrontMatterId(filePath);

@@ -130,6 +130,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => { ipcRenderer.removeListener('calendar-watcher-error', listener); };
   },
 
+  // Document Mode (.INDEX.yaml) operations. See: (docs/technical_notes/features/document_mode.md#code-locations)
   insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) =>
     ipcRenderer.invoke('insert-into-index-yaml', dirPath, newNames, insertAfterName),
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') =>

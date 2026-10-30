@@ -87,6 +87,7 @@ function flattenVisible(
   depth = 0
 ): Array<{ node: FileNode; depth: number }> {
   // Document Mode (indexed) nodes must preserve their existing order.
+  // See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
   const hasIndexOrder = nodes.some(n => n.indexOrder !== undefined);
   const sorted = hasIndexOrder ? nodes : [...nodes].sort((a, b) => {
     if (foldersOnTop && a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
@@ -616,6 +617,8 @@ function IndexTreeView() {
    * Any other folder gets the name prompt that BrowseView's "Create File" button
    * shows, and is navigated to first so the dialog is confirmed over the folder it
    * writes into.
+   *
+   * See: (docs/technical_notes/features/document_mode.md#insert-bars)
    */
   const startNewFile = (folderPath: string) => {
     runOp(async () => {

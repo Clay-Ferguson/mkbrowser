@@ -250,7 +250,11 @@ export interface FileEntry {
   content?: string;
   /** Preview text from HUMAN.md or AI.md for AI conversation folders */
   aiHint?: string;
-  /** Position from .INDEX.yaml; undefined means not listed (appears after indexed entries) */
+  /**
+   * Position from .INDEX.yaml; undefined means not listed (appears after indexed entries)
+   *
+   * See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
+   */
   indexOrder?: number;
   /** Contents of an associated .attach folder, pre-loaded by readDirectory */
   attachments?: FileEntry[];
@@ -529,6 +533,8 @@ export interface ElectronAPI {
    * none (in any folder, not only Document Mode ones). Used by the editor's "Paste
    * Link" (after the user consents) so a link to a Markdown file carries an id for
    * auto-repair.
+   *
+   * See: (docs/technical_notes/features/document_mode.md#stable-identity-via-front-matter-ids)
    */
   ensureFrontMatterId: (filePath: string) => Promise<FrontMatterIdResult>;
   getFileSize: (filePath: string) => Promise<number>;
@@ -589,6 +595,7 @@ export interface ElectronAPI {
   onCalendarFileDeleted: (callback: (deletedPath: string, isFolder: boolean) => void) => () => void;
   onCalendarWatcherError: (callback: (message: string) => void) => () => void;
 
+  // Document Mode (.INDEX.yaml) operations. See: (docs/technical_notes/features/document_mode.md#code-locations)
   insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;
   moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') => Promise<{ success: boolean; error?: string }>;

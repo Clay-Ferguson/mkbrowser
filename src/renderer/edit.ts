@@ -272,6 +272,8 @@ export async function pasteCutItems(
  * @param names - Names of the pasted items, in any order.
  * @param sourceIndexNames - Entry names of the source folder's index, in document
  *   order (empty when the source is not a document).
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insert-bars)
  */
 export function orderPastedNames(names: readonly string[], sourceIndexNames: readonly string[]): string[] {
   const pos = new Map(sourceIndexNames.map((name, i) => [name, i]));

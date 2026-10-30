@@ -121,6 +121,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
   // Sort once, choosing the comparator based on whether an .INDEX is present.
   // An index defines an explicit order (with name as the tiebreaker); otherwise
   // we fall back to directories-first, then natural name order within each group.
+  // See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
   const indexYaml = await readIndexYaml(dirPath);
   const indexFiles = indexYaml?.files;
   if (indexFiles) {

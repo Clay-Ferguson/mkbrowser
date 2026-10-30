@@ -15,6 +15,8 @@ interface IndexInsertBarProps {
  * Uses a zero-height wrapper so the bar occupies no vertical space in the layout;
  * the buttons are positioned absolutely into the gutter column reserved by the
  * entry list's padding.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insert-bars)
  */
 function IndexInsertBar({ onInsertFile, onInsertFolder, onPaste }: IndexInsertBarProps) {
   return (

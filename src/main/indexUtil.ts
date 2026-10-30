@@ -1,3 +1,6 @@
+// Document Mode's .INDEX.yaml engine: reconcile, insert, move, rename, and entry identity.
+// See: (docs/technical_notes/features/document_mode.md)
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { dump } from 'js-yaml';
@@ -104,6 +107,8 @@ function indexPathFor(dirPath: string): string {
  * read-to-write window and get clobbered by a stale rewrite (MAIN_ISSUES.md
  * issue 1). NOT reentrant — never call it from inside a section already holding
  * the same directory's lock (that deadlocks the chain).
+ *
+ * See: (docs/technical_notes/features/document_mode.md#atomic-serialized-index-updates)
  */
 const indexLocks = new Map<string, Promise<void>>();
 
@@ -247,6 +252,8 @@ function corruptIndexFailure(readError: string): IndexMutationResult {
  * the new layout added. Readers are deliberately *not* guarded (see
  * {@link readIndexYaml}): displaying a future file's ordering as best we can is
  * harmless, writing to it is not.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#schema-version)
  */
 export const CURRENT_INDEX_VERSION = 1;
 
@@ -264,6 +271,8 @@ export const CURRENT_INDEX_VERSION = 1;
  *  - a `files` value that isn't an array → empty list
  *  - individual entries that aren't `{ name: string }` → dropped (good ones kept)
  *  - a missing / non-object `options` → empty options
+ *
+ * See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
  */
 const IndexEntrySchema = z.object({
   name: z.string(),
@@ -324,6 +333,8 @@ export type IndexReadResult =
  * doesn't understand. Phrased as a load failure because that is how every
  * mutator already treats it (corruptIndexFailure → blocking dialog), and the
  * user's remedy is the same: update the app, or fix the file by hand.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#schema-version)
  */
 function unsupportedVersionError(version: number): string {
   return `declares version ${version}, but this build understands at most version ${CURRENT_INDEX_VERSION}`;
@@ -370,6 +381,8 @@ async function readIndexYamlRaw(dirPath: string): Promise<IndexReadResult> {
  * (see CURRENT_INDEX_VERSION). Rewriting such a file in the older layout would
  * silently discard whatever the newer layout added, which is the same
  * unrecoverable data loss the corrupt-index refusal exists to prevent.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#atomic-serialized-index-updates)
  */
 export async function readIndexYamlChecked(dirPath: string): Promise<IndexReadResult> {
   const result = await readIndexYamlRaw(dirPath);
@@ -391,6 +404,8 @@ export async function readIndexYamlChecked(dirPath: string): Promise<IndexReadRe
  * `files` list, and ordering the view by it is strictly better than silently
  * falling back to alphabetical. Only *writing* such a file is dangerous, and
  * that path goes through readIndexYamlChecked.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#schema-version)
  */
 export async function readIndexYaml(dirPath: string): Promise<IndexYaml | null> {
   const result = await readIndexYamlRaw(dirPath);
@@ -405,6 +420,8 @@ type Fingerprint = { createTime: number; size: number };
  * (any non-markdown file, or a markdown file the user never gave an id) is
  * recorded for rename detection. Centralized so the build, match, and filter sites can't
  * drift apart on how the key is composed.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#files-without-an-id-fingerprint-identity-and-its-limits)
  */
 function fingerprintOf(createTime: number, size: number, name: string): string {
   return `${createTime}:${size}:${path.extname(name).toLowerCase()}`;
@@ -437,6 +454,8 @@ async function readVisibleEntries(dirPath: string): Promise<fs.Dirent[]> {
  * type. So a fingerprint can legitimately map to several disk files — we keep the
  * full list (rather than last-writer-wins) so reconcileEntries can recognize the
  * ambiguity and refuse to re-point an entry to the wrong file. See reconcileEntries.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#files-without-an-id-fingerprint-identity-and-its-limits)
  */
 async function buildFileFingerprints(
   dirPath: string,
@@ -497,6 +516,8 @@ async function buildFileFingerprints(
  * duplicate is re-keyed. So a freshly pasted copy is the one that gets a fresh id,
  * while the original keeps its identity (and its existing .INDEX.yaml entry). A
  * re-keyed file already had an `id` field, so no new front matter appears.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#stable-identity-via-front-matter-ids)
  */
 async function collectMarkdownIds(
   dirPath: string,
@@ -656,6 +677,8 @@ async function collectMarkdownIds(
  * Pure: reads only the supplied maps and returns the filtered entries plus the
  * handled-name set — no filesystem access. (Entry objects are mutated in place
  * for renames/id-assignment.)
+ *
+ * See: (docs/technical_notes/features/document_mode.md#algorithm-reconcileindexedfiles-and-other-helpers)
  */
 export function reconcileEntries(
   files: IndexEntry[],
@@ -834,6 +857,8 @@ function setEntryFingerprint(entry: IndexEntry, stat: Fingerprint | undefined): 
  *
  * Pure: returns a new array (the existing entries first, then any appended
  * ones) — no filesystem access.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#algorithm-reconcileindexedfiles-and-other-helpers)
  */
 export function appendNewEntries(
   files: IndexEntry[],
@@ -878,6 +903,8 @@ export function appendNewEntries(
  * This is a thin orchestrator over the focused helpers above; the rename/filter
  * (reconcileEntries) and append (appendNewEntries) steps are pure and unit-tested
  * directly.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#reconciliation)
  */
 export async function reconcileIndexedFiles(
   dirPath: string,
@@ -1003,6 +1030,8 @@ export async function reconcileIndexedFiles(
  * moved away) is treated as an ordinary entry and keeps its position. Since
  * reconcile runs this on every navigation, sending orphans to the end would make
  * the folder jump to the bottom of the document the moment its file left.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#algorithm-reconcileindexedfiles-and-other-helpers)
  */
 function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
   const listedNames = new Set(files.map((f) => f.name));
@@ -1044,6 +1073,8 @@ function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
 
 /**
  * Moves an entry up or down one position in .INDEX.yaml by swapping it with its neighbor.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#atomic-serialized-index-updates)
  */
 export async function moveInIndexYaml(
   dirPath: string,
@@ -1095,6 +1126,8 @@ export async function moveInIndexYaml(
 
 /**
  * Does the 'move to top' and 'move to bottom' of a file
+ *
+ * See: (docs/technical_notes/features/document_mode.md#atomic-serialized-index-updates)
  */
 export async function moveToEdgeInIndexYaml(
   dirPath: string,
@@ -1146,6 +1179,8 @@ export async function moveToEdgeInIndexYaml(
  * (`getSortedDirEntries` → exportUtil) build their ordering from this one
  * function, so the exported document order can never silently diverge from the
  * on-screen order for an indexed folder. (See issue 015.)
+ *
+ * See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
  */
 export function compareByIndexOrder(
   indexFiles: IndexEntry[],
@@ -1177,6 +1212,8 @@ export function compareByIndexOrder(
  * still degrades to alphabetical order on its own failure, per the reader rule.)
  *
  * @throws if `fs.promises.readdir(dirPath)` fails (missing/inaccessible dir).
+ *
+ * See: (docs/technical_notes/features/document_mode.md#code-locations)
  */
 export async function getSortedDirEntries(
   dirPath: string,
@@ -1220,6 +1257,8 @@ export async function getSortedDirEntries(
  *
  * Serialized per-directory via withIndexLock so it can't interleave with a
  * concurrent reconcile/move/insert and lose the update (issue 013).
+ *
+ * See: (docs/technical_notes/features/document_mode.md#saving-never-adds-an-id)
  */
 export async function recordFrontMatterIdInIndex(filePath: string, fileId: string): Promise<void> {
   const dirPath = path.dirname(filePath);
@@ -1267,6 +1306,8 @@ export async function recordFrontMatterIdInIndex(filePath: string, fileId: strin
  * A file whose front matter is present but malformed (or not a mapping) is left
  * untouched with `id: null`: injecting would wrap a second block around the
  * unparseable one. `written` is set only when the file was rewritten.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#stable-identity-via-front-matter-ids)
  */
 export async function ensureFrontMatterId(filePath: string): Promise<FrontMatterIdResult> {
   const result = await withIndexLock(path.dirname(filePath), async (): Promise<FrontMatterIdResult> => {
@@ -1298,6 +1339,8 @@ export async function ensureFrontMatterId(filePath: string): Promise<FrontMatter
  * isn't found. Returns the module-standard `{ success, error }` (see the
  * error-handling contract at the top of this file); best-effort, so it also logs
  * on failure for the caller (the rename IPC handler) that doesn't surface it.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#atomic-serialized-index-updates)
  */
 export async function renameInIndexYaml(
   dirPath: string,
@@ -1356,6 +1399,8 @@ async function readFileFrontMatterId(filePath: string): Promise<string | null> {
  * Best-effort: a stat failure degrades to a name-only entry,
  * exactly as the bulk append path does when a file can't be stat'd/read — the
  * next reconcile fills in the missing identity.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insertintoindexyaml)
  */
 async function buildEntryForName(dirPath: string, name: string): Promise<IndexEntry> {
   const entry: IndexEntry = { name };
@@ -1401,6 +1446,8 @@ async function buildEntryForName(dirPath: string, name: string): Promise<IndexEn
  * Creates the index when absent; refuses (with `corruptIndex`) when it exists
  * but can't be loaded — starting "fresh" would replace the whole ordering with
  * a single-entry file.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insertintoindexyaml)
  */
 export async function insertIntoIndexYaml(
   dirPath: string,

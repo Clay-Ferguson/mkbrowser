@@ -92,6 +92,7 @@ export async function exportFolderContents(
 
     // Sorted entries — honours .INDEX.yaml document-mode ordering when present,
     // falls back to alphabetical for folders without one.
+    // See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
     const sortedEntries = await getSortedDirEntries(folderPath);
 
     const imageExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.tif']);

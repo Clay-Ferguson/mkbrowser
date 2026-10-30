@@ -206,6 +206,8 @@ export function getIndexTreeRoot(): FileNode | null {
 /**
  * Whether the folder currently being browsed has an .INDEX.yaml (Document Mode),
  * read without subscribing (for use in async callbacks).
+ *
+ * See: (docs/technical_notes/features/document_mode.md#overview)
  */
 export function getHasIndexFile(): boolean {
   return getState().hasIndexFile;

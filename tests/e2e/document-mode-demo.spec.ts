@@ -1,3 +1,5 @@
+// Document Mode demo walkthrough. See: (docs/technical_notes/features/document_mode.md)
+
 import * as fs from 'fs';
 import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';

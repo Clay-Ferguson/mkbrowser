@@ -47,7 +47,11 @@ interface EditPopupMenuProps {
   splitDisabled: boolean;
   joinDisabled: boolean;
   removePropertiesDisabled: boolean;
-  /** When provided, an "Enable Document Mode" item is appended after a divider. */
+  /**
+   * When provided, an "Enable Document Mode" item is appended after a divider.
+   *
+   * See: (docs/technical_notes/features/document_mode.md#enabling-custom-ordering)
+   */
   onEnableCustomOrdering?: () => void;
 }
 

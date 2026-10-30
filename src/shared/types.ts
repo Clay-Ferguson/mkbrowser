@@ -546,12 +546,16 @@ export interface AppState {
    * True when the current directory contains a .INDEX.yaml file.
    * Controls sort behavior and related UI across the app. Derived from
    * `currentEntries` (set in the same update), never written on its own.
+   *
+   * See: (docs/technical_notes/features/document_mode.md#overview)
    */
   hasIndexFile: boolean;
 
   /**
    * Parsed contents of .INDEX.yaml for the current directory.
    * Null when no index file exists or has not yet been loaded.
+   *
+   * See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
    */
   indexYaml: { version?: number; files?: { name: string; id?: string }[]; options?: Record<string, unknown> } | null;
 

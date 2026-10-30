@@ -318,6 +318,8 @@ function stripFrontMatter(text: string): string {
  * against the rest of the prompt. {@link runRewrite} is what wraps these in `<context>`,
  * since it also holds the other kind of surrounding material — the rest of the current
  * file, when only a selection is being rewritten.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#overview)
  */
 async function buildDocumentContext(
   filePath: string,

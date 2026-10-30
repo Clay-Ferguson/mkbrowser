@@ -22,6 +22,8 @@ export function listingTimes(items: Map<string, ItemData>, entries: FileEntry[])
  * The listing exactly as BrowseView shows it: cut entries hidden, each entry's
  * times taken from `times` (see {@link listingTimes}), and sorted by index
  * order in Document Mode or by the user's sort order otherwise.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
  */
 export function sortListing(
   entries: FileEntry[],

@@ -59,6 +59,8 @@ interface BrowseViewProps {
  * whose per-folder position and pending intents usePendingBrowseIntents
  * manages. In index-ordered (document) mode the sort menu is hidden and inline
  * IndexInsertBars replace the create buttons.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#overview)
  */
 function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps) {
   const [overlay, setOverlay] = useState<BrowseOverlay>(NO_OVERLAY);
@@ -85,6 +87,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
   const handleMainScroll = usePendingBrowseIntents(mainContainerRef);
 
   // Load the current folder's .INDEX.yaml into the store when it is index-ordered
+  // See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
   useEffect(() => {
     // A slow readIndexYaml can resolve after navigation (or after a newer run
     // for the same folder), so its write is gated on this run still being the
@@ -115,6 +118,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
   }, [entries, currentPath]);
 
   // Reconcile on folder navigation only (not on every file-operation refresh)
+  // See: (docs/technical_notes/features/document_mode.md#when-reconciliation-runs)
   useEffect(() => {
     if (!currentPath) return;
     void api.reconcileIndexedFiles(currentPath, false);
@@ -138,6 +142,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
   };
 
   // An insert bar's paste button: paste the cut items at that document position.
+  // See: (docs/technical_notes/features/document_mode.md#insert-bars)
   const handlePasteAt = (insertIndex: number) => {
     if (!currentPath) return;
     runOp(async () => {
@@ -187,6 +192,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     exportFolderHtml(currentPath, outputFolder, options, onSetLastExportFolder, (message) => setResultAlert({ title: 'Export to Folder (HTML)', message }));
   };
 
+  // Document Mode insert bars ("Create File here" / "Create Folder here"). See: (docs/technical_notes/features/document_mode.md#insert-bars)
   const handleInsertFileAt = (insertIndex: number) => {
     const fileName = generateTimestampFileName();
     runOp(async () => {

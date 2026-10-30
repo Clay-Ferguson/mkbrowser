@@ -43,6 +43,8 @@ import { DEFAULT_SPLIT_DELIMITER, parseSplitDelimiter } from './splitUtil';
  *
  * @param filePath - Absolute path of the file that owns the attachments.
  * @returns The attachment folder path, or null if creation failed (error already reported).
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insertintoindexyaml)
  */
 export async function ensureAttachFolder(filePath: string): Promise<string | null> {
   const attachFolderPath = `${filePath}${ATTACH_SUFFIX}`;
@@ -125,6 +127,8 @@ function insertAfterNameAt(insertAtIndex: number, sortedEntries: FileEntry[]): s
  *   document (see {@link reorderCutItemsInIndex}).
  * @param sortedEntries - The destination's current sorted listing, used to resolve
  *   the "insert after" sibling name when insertAtIndex is set.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insert-bars)
  */
 export async function pasteIntoFolder(
   folderPath: string,
@@ -227,6 +231,8 @@ async function pasteIntoFolderNow(
  * entry before splicing. `sortedEntries` hides the cut items, so the resolved
  * "insert after" name is never one of them. Pasting them right back where they were
  * is allowed and simply rewrites the same order.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insert-bars)
  */
 async function reorderCutItemsInIndex(
   folderPath: string,
@@ -257,6 +263,8 @@ async function reorderCutItemsInIndex(
  * @param currentPath - Absolute path of the folder being viewed, used for index reconciliation.
  * @param hasIndexFile - Whether the current folder has an .INDEX.yaml file to reconcile.
  * @param onDismissConfirm - Callback invoked to close any active confirmation dialog.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#when-reconciliation-runs)
  */
 export async function deleteSelected(
   selectedItems: ItemData[],
@@ -335,6 +343,8 @@ export async function deleteEmptyFolderOp(folderPath: string): Promise<void> {
  * @param currentPath - Absolute path of the folder that was split into.
  * @param originalName - Filename of the file that was split (now deleted).
  * @param filePaths - All files produced by the split, `-00` first (document order).
+ *
+ * See: (docs/technical_notes/features/document_mode.md#when-reconciliation-runs)
  */
 async function insertSplitPartsIntoIndex(
   currentPath: string,
@@ -424,6 +434,8 @@ export async function splitSelectedFile(
  * @param selectedItems - The selected items; two or more text or Markdown files are expected.
  * @param hasIndexFile - Whether the current folder has an .INDEX.yaml file to reconcile.
  * @param options - Join options chosen in the Join Options dialog (e.g. filename headings).
+ *
+ * See: (docs/technical_notes/features/document_mode.md#when-reconciliation-runs)
  */
 export async function joinSelectedFiles(
   currentPath: string,
@@ -468,6 +480,8 @@ export async function joinSelectedFiles(
  * @param onCloseDialog - Closes the originating dialog; always called exactly once.
  * @param refresh - Brings the view up to date once the item exists; see {@link createFileOp}.
  * @param onCreated - Optional post-create hook, invoked with the new item's absolute path.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insert-bars)
  */
 async function createItemOp(
   itemName: string,
@@ -594,6 +608,8 @@ export async function createFolderOp(
  * (with an app error) when something already exists at the folder's path.
  *
  * @param filePath - Absolute path of the file to wrap in a folder.
+ *
+ * See: (docs/technical_notes/features/document_mode.md#insertintoindexyaml)
  */
 export async function makeFolderForFileOp(filePath: string): Promise<void> {
   const parentFolder = getParentPath(filePath);
@@ -702,6 +718,8 @@ export async function addFileIdSuffixOp(filePath: string, id: string): Promise<s
  *
  * @param currentPath - Absolute path of the folder where the clipboard content will be saved.
  *   Pass null to no-op (e.g. when no folder is open).
+ *
+ * See: (docs/technical_notes/features/document_mode.md#when-reconciliation-runs)
  */
 export async function pasteFromClipboardOp(
   currentPath: string | null
