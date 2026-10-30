@@ -48,7 +48,7 @@ export const defaultSettings: AppSettings = {
   imageSize: DEFAULT_IMAGE_SIZE,
   // Off by default: the synonym strip renders nothing at all while it is off, so a fresh
   // install gets the full editor height. It is opted into from the editor's right-click menu.
-  // See: (docs/technical_notes/features/thesaurus_view.md#the-onoff-switch-enablethesaurus)
+  // See: (docs/technical_notes/thesaurus_view.md#the-onoff-switch-enablethesaurus)
   enableThesaurus: false,
   wordWrap: true,
 };

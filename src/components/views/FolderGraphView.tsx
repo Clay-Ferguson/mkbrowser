@@ -411,7 +411,7 @@ function FolderGraphView() {
       } else {
         // A file opens on its own (single-file mode, as from the index tree and
         // search results) rather than scrolled-to in its folder's listing.
-        // See: (docs/technical_notes/features/single_file_browsing.md#why-browsefilemode)
+        // See: (docs/technical_notes/single_file_browsing.md#why-browsefilemode)
         setBrowseFile(getParentPath(d.id), getFileName(d.id));
       }
     });

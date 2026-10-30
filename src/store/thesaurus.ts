@@ -3,7 +3,7 @@ import type { StoreSet } from './core';
 
 // ============================================================================
 // Thesaurus - the word the synonym pane is currently showing
-// See: (docs/technical_notes/features/thesaurus_view.md#the-store-slice-and-why-it-exists)
+// See: (docs/technical_notes/thesaurus_view.md#the-store-slice-and-why-it-exists)
 // ============================================================================
 
 /**

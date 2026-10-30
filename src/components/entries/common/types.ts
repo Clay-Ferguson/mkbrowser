@@ -33,7 +33,7 @@ export interface BaseEntryProps {
    * also gives the entry the whole pane, but there the global setting is what
    * put it there, so the toggle must stay live — see `AppState.browseFileMode`.
    *
-   * See: (docs/technical_notes/features/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
+   * See: (docs/technical_notes/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
    */
   alwaysExpandedEditor?: boolean;
 }
@@ -49,7 +49,7 @@ export interface BaseEntryProps {
  * every entry in the listing. Folders deliberately have none of these: a folder
  * is already an attachment destination through its own Paste button.
  *
- * See: (docs/technical_notes/features/file_attachments.md#one-set-of-handlers-every-file-type)
+ * See: (docs/technical_notes/file_attachments.md#one-set-of-handlers-every-file-type)
  */
 export interface AttachMenuProps {
   /** Writes the clipboard (image or text) into this file's attach folder. */

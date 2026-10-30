@@ -90,10 +90,10 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
  * Thesaurus: while editing, the synonym strip (`ThesaurusView`) is mounted below
  * `<main>` as a sibling, and only here — inline edits in the folder listing get none.
  *
- * See: (docs/technical_notes/features/file_attachments.md#single-file-mode-srccomponentsviewsbrowsefiletsx)
- * See: (docs/technical_notes/features/single_file_browsing.md#overview)
- * See: (docs/technical_notes/features/single_file_browsing.md#what-browsefile-renders)
- * See: (docs/technical_notes/features/thesaurus_view.md#thesaurusview-rendering)
+ * See: (docs/technical_notes/file_attachments.md#single-file-mode-srccomponentsviewsbrowsefiletsx)
+ * See: (docs/technical_notes/single_file_browsing.md#overview)
+ * See: (docs/technical_notes/single_file_browsing.md#what-browsefile-renders)
+ * See: (docs/technical_notes/thesaurus_view.md#thesaurusview-rendering)
  */
 function BrowseFile() {
   const currentPath = useAS(s => s.currentPath);
@@ -108,20 +108,20 @@ function BrowseFile() {
   // See the two modes above. In 'expanded-edit' mode `settings.expandedEditor`
   // is true by construction, so the entry maximizes itself off the setting and
   // the toggle stays live.
-  // See: (docs/technical_notes/features/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
+  // See: (docs/technical_notes/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
   const alwaysExpandedEditor = browseFileMode === 'browse';
 
   // The listing for currentPath is already loaded (loadDirectoryContents ran
   // on the path change and installed it in the store together with its items
   // via applyDirectoryListing), so the entry is found here rather than
   // re-read, and its ItemData is guaranteed to exist.
-  // See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
+  // See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
   const entry = entries.find((e) => e.name === browseFileName && !e.isDirectory);
 
   // The file's attachment folder, if it has one. readDirectory pre-loads its
   // contents into `attachments`, so like the entry itself it needs no extra read.
   // A cut attach folder is hidden, matching BrowseView's filtering of cut rows.
-  // See: (docs/technical_notes/features/file_attachments.md#single-file-mode-srccomponentsviewsbrowsefiletsx)
+  // See: (docs/technical_notes/file_attachments.md#single-file-mode-srccomponentsviewsbrowsefiletsx)
   const attachFolder = entry?.hasAttachFolder
     ? entries.find((e) => e.isDirectory && e.name === `${entry.name}${ATTACH_SUFFIX}`)
     : undefined;
@@ -135,7 +135,7 @@ function BrowseFile() {
   // editing" scan: the items map is global and long-lived, so such a scan goes
   // stale the moment the user navigates elsewhere with a file still open for
   // editing.
-  // See: (docs/technical_notes/features/single_file_browsing.md#invariants)
+  // See: (docs/technical_notes/single_file_browsing.md#invariants)
   const editing = useAS(s => (entry ? (s.items.get(entry.path)?.editing ?? false) : false));
 
   // Consume a pending edit aimed at this view's file (the search results' Edit
@@ -161,7 +161,7 @@ function BrowseFile() {
   // previous folder's listing — then fires and forgets: scrollElementIntoView
   // itself polls for the heading to render and keeps it centered while the
   // document's late content reflows.
-  // See: (docs/technical_notes/features/single_file_browsing.md#heading-links-in-single-file-mode)
+  // See: (docs/technical_notes/single_file_browsing.md#heading-links-in-single-file-mode)
   const pendingHeadingSlug = useAS(s => s.pendingScrollToHeadingSlug);
   const isCurrentEntry = !!entryPath && !!browseFileName && entryPath === joinPath(currentPath, browseFileName);
   useEffect(() => {
@@ -179,7 +179,7 @@ function BrowseFile() {
   // `settings.expandedEditor` is on — but written this way the rule reads as
   // what it is. The folder listing's inline editor is a separate thing entirely
   // and never renders through this component.
-  // See: (docs/technical_notes/features/single_file_browsing.md#badge-hidden-while-the-editor-is-maximized)
+  // See: (docs/technical_notes/single_file_browsing.md#badge-hidden-while-the-editor-is-maximized)
   const editorMaximized = editing && (alwaysExpandedEditor || expandedEditor);
 
   // Plain-text files fill the pane at all times, editing or not: TextEntry's CodeMirror
@@ -187,12 +187,12 @@ function BrowseFile() {
   // the folder listing, wasted space for the one file that owns this view). Markdown keeps
   // its natural, page-scrolled height unless it is being edited. Keep in sync with
   // useEditorChrome's `fillPaneWhenViewing` (on for TextEntry, off for MarkdownEntry).
-  // See: (docs/technical_notes/features/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
+  // See: (docs/technical_notes/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
   const fillsPane = !!entry && !entry.isMarkdown && !isImageFile(entry.name) && (isTextFile(entry.name) || isPdfFile(entry.name));
   const flexPane = editing || fillsPane;
 
   // The folder's images, in listing order — the fullscreen viewer's navigation set.
-  // See: (docs/technical_notes/features/single_file_browsing.md#what-browsefile-renders)
+  // See: (docs/technical_notes/single_file_browsing.md#what-browsefile-renders)
   const folderImages = entries.filter((e) => !e.isDirectory && isImageFile(e.name));
 
   // A breadcrumb segment click: go to that folder's listing. Leaving
@@ -211,7 +211,7 @@ function BrowseFile() {
   // only the rightmost segment matches. BrowseView consumes pendingScrollToFile
   // only once it finds the element, so a path belonging to another folder would
   // linger and hijack a later navigation there.
-  // See: (docs/technical_notes/features/single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
+  // See: (docs/technical_notes/single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
   const handleBreadcrumbNavigate = (path: string) => {
     const scrollToFile = highlightItem && getParentPath(highlightItem) === path
       ? highlightItem
@@ -222,7 +222,7 @@ function BrowseFile() {
   // Pastes cut items into a folder shown here — the attach folder or a folder
   // nested inside it. Reads the item map non-reactively: this view has no other
   // use for it, and subscribing would re-render the pane on every store write.
-  // See: (docs/technical_notes/features/file_attachments.md#single-file-mode-srccomponentsviewsbrowsefiletsx)
+  // See: (docs/technical_notes/file_attachments.md#single-file-mode-srccomponentsviewsbrowsefiletsx)
   const handlePasteIntoFolder = (folderPath: string) => {
     runOp(async () => {
       await pasteIntoFolder(folderPath, useAS.getState().items);

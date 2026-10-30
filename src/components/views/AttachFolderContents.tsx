@@ -29,7 +29,7 @@ interface AttachFolderContentsProps {
  * Shared by both right-hand panes: BrowseView (under each file in the folder
  * listing) and BrowseFile (under the one file shown in single-file mode).
  *
- * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
+ * See: (docs/technical_notes/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
  */
 function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, onPasteIntoFolder }: AttachFolderContentsProps) {
   // Only the cut paths, not the whole items Map: the Map is replaced on every

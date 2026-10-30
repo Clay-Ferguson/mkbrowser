@@ -33,7 +33,7 @@ The way a user would initialize this special "Document View" for any given folde
 
 The document-editing controls (insert bars, selection checkboxes, and the ordering/creation buttons) are always visible whenever a folder is a document — there is no separate "Edit Mode" toggle.
 
-This document covers the implementation. For the user-facing description of Document Mode (how to enable and disable it, and how to use it), see the [Document Mode](../../user_guide/USER_GUIDE.md#document-mode) section of the User Guide.
+This document covers the implementation. For the user-facing description of Document Mode (how to enable and disable it, and how to use it), see the [Document Mode](../user_guide/USER_GUIDE.md#document-mode) section of the User Guide.
 
 
 ## The `.INDEX.yaml` File

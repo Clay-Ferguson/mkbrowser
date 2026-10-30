@@ -319,7 +319,7 @@ function stripFrontMatter(text: string): string {
  * since it also holds the other kind of surrounding material — the rest of the current
  * file, when only a selection is being rewritten.
  *
- * See: (docs/technical_notes/features/document_mode.md#overview)
+ * See: (docs/technical_notes/document_mode.md#overview)
  */
 async function buildDocumentContext(
   filePath: string,

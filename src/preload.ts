@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFile: (title: string) => ipcRenderer.invoke('select-file', title),  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
     ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
-  // Synonyms for the editor's thesaurus strip. See: (docs/technical_notes/features/thesaurus_view.md#the-ipc-surface)
+  // Synonyms for the editor's thesaurus strip. See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
   lookupThesaurus: (word: string) => ipcRenderer.invoke('lookup-thesaurus', word),
   fetchUrlTitle: (url: string) => ipcRenderer.invoke('fetch-url-title', url),
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),
@@ -37,7 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getFileMtime: (filePath: string) => ipcRenderer.invoke('get-file-mtime', filePath),
   writeFileBinary: (filePath: string, base64Data: string) => ipcRenderer.invoke('write-file-binary', filePath, base64Data),
   createFile: (filePath: string, content: string) => ipcRenderer.invoke('create-file', filePath, content),
-  // Main also renames the file's sibling `.attach` folder. See: (docs/technical_notes/features/file_attachments.md#rename-synchronization-srcmaints)
+  // Main also renames the file's sibling `.attach` folder. See: (docs/technical_notes/file_attachments.md#rename-synchronization-srcmaints)
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
@@ -132,7 +132,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => { ipcRenderer.removeListener('calendar-watcher-error', listener); };
   },
 
-  // Document Mode (.INDEX.yaml) operations. See: (docs/technical_notes/features/document_mode.md#code-locations)
+  // Document Mode (.INDEX.yaml) operations. See: (docs/technical_notes/document_mode.md#code-locations)
   insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) =>
     ipcRenderer.invoke('insert-into-index-yaml', dirPath, newNames, insertAfterName),
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') =>

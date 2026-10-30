@@ -11,7 +11,7 @@ import {
 import { toggleItemExpanded } from '../../store';
 import { ENTRY_BODY_BORDER } from '../../renderer/styles';
 
-// AttachMenuProps: the three "Attach:" menu items every file entry offers. See: (docs/technical_notes/features/file_attachments.md#one-set-of-handlers-every-file-type)
+// AttachMenuProps: the three "Attach:" menu items every file entry offers. See: (docs/technical_notes/file_attachments.md#one-set-of-handlers-every-file-type)
 type PDFEntryProps = BaseEntryProps & AttachMenuProps;
 
 /**
@@ -22,7 +22,7 @@ type PDFEntryProps = BaseEntryProps & AttachMenuProps;
  * Header actions (rename, bookmark, delete, move) mirror the other entry
  * types — the PDF itself is read-only here, so there is no edit path.
  *
- * See: (docs/technical_notes/features/single_file_browsing.md#what-browsefile-renders)
+ * See: (docs/technical_notes/single_file_browsing.md#what-browsefile-renders)
  */
 function PDFEntry(props: PDFEntryProps) {
   const { entry, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;

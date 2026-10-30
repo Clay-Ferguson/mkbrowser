@@ -80,7 +80,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     // position was last written by the debounced scroll save, so it comes back
     // accurate to within 150ms. At app startup nothing is saved yet and the
     // restore is a harmless scrollTo(0).
-    // See: (docs/technical_notes/features/single_file_browsing.md#routing-in-apptsx--swap-not-hide)
+    // See: (docs/technical_notes/single_file_browsing.md#routing-in-apptsx--swap-not-hide)
     const isFirstMount = previousPathRef.current === null;
 
     // Save scroll position for the previous folder before switching
@@ -129,7 +129,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     // attachment lives in a .attach folder below currentPath yet is rendered as
     // a row here. Store-only: expanding and editing are state changes the
     // entry renders from, so nothing here waits on the DOM.
-    // See: (docs/technical_notes/features/file_attachments.md#the-pending-edit-request-has-to-survive-an-attachment-path)
+    // See: (docs/technical_notes/file_attachments.md#the-pending-edit-request-has-to-survive-an-attachment-path)
     if (pendingEditFile && pendingEditView === 'browser') {
       if (useAS.getState().items.has(pendingEditFile)) {
         setItemExpanded(pendingEditFile, true);

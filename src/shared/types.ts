@@ -127,7 +127,7 @@ export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analys
  * Why the browser view is showing a single file instead of the folder listing.
  * See `AppState.browseFileMode` for what each value changes.
  *
- * See: (docs/technical_notes/features/single_file_browsing.md#why-browsefilemode)
+ * See: (docs/technical_notes/single_file_browsing.md#why-browsefilemode)
  */
 export type BrowseFileMode = 'browse' | 'expanded-edit';
 
@@ -252,7 +252,7 @@ export type CalendarViewType = 'month' | 'week' | 'work_week' | 'day' | 'agenda'
  * A directory's children are its listing; a file's only possible child is its
  * attachment folder (see makeFileChildren in treeNodes.ts).
  *
- * See: (docs/technical_notes/features/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+ * See: (docs/technical_notes/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
  */
 export interface FileNode {
   path: string;
@@ -266,14 +266,14 @@ export interface FileNode {
   /**
    * File nodes only: a sibling `<name>.attach` folder exists (from FileEntry.hasAttachFolder).
    *
-   * See: (docs/technical_notes/features/file_attachments.md#where-the-data-comes-from--no-extra-io)
+   * See: (docs/technical_notes/file_attachments.md#where-the-data-comes-from--no-extra-io)
    */
   hasAttachFolder?: boolean;
   /**
    * An attachment folder shown as its owning file's child (labelled `*.attach`). An
    * orphaned `.attach` folder is an ordinary folder node and shows its real name.
    *
-   * See: (docs/technical_notes/features/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+   * See: (docs/technical_notes/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
    */
   isOwnedAttach?: boolean;
 }
@@ -340,7 +340,7 @@ export interface AppState {
    * together by `setBrowseFile`, and any change to `currentPath` clears this,
    * so it can never name a file outside the folder being browsed.
    *
-   * See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
+   * See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
    */
   browseFileName: string | null;
 
@@ -360,7 +360,7 @@ export interface AppState {
    * writes it, so a value left behind by a previous single-file session can
    * never be read stale.
    *
-   * See: (docs/technical_notes/features/single_file_browsing.md#why-browsefilemode)
+   * See: (docs/technical_notes/single_file_browsing.md#why-browsefilemode)
    */
   browseFileMode: BrowseFileMode;
 
@@ -561,7 +561,7 @@ export interface AppState {
    * Controls sort behavior and related UI across the app. Derived from
    * `currentEntries` (set in the same update), never written on its own.
    *
-   * See: (docs/technical_notes/features/document_mode.md#overview)
+   * See: (docs/technical_notes/document_mode.md#overview)
    */
   hasIndexFile: boolean;
 
@@ -569,7 +569,7 @@ export interface AppState {
    * Parsed contents of .INDEX.yaml for the current directory.
    * Null when no index file exists or has not yet been loaded.
    *
-   * See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
+   * See: (docs/technical_notes/document_mode.md#the-indexyaml-file)
    */
   indexYaml: { version?: number; files?: { name: string; id?: string }[]; options?: Record<string, unknown> } | null;
 
@@ -632,7 +632,7 @@ export interface AppState {
    *
    * Holds only the word — the synonym lookup is the pane's own concern. Not persisted.
    *
-   * See: (docs/technical_notes/features/thesaurus_view.md#the-store-slice-and-why-it-exists)
+   * See: (docs/technical_notes/thesaurus_view.md#the-store-slice-and-why-it-exists)
    */
   thesaurusWord: string | null;
 

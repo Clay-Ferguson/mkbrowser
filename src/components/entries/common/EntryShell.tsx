@@ -103,7 +103,7 @@ export function EntryShell({
   // Drop target: an entry dragged onto this file becomes one of its attachments,
   // creating the file's `.attach` folder on demand. Every file-type entry gets
   // this by virtue of rendering through the shell.
-  // See: (docs/technical_notes/features/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
+  // See: (docs/technical_notes/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
   const drop = useDropTarget(
     payload => canDropAsAttachment(payload, entry.path),
     payload => void dropAsAttachment(payload, entry.path)

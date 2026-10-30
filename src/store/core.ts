@@ -59,7 +59,7 @@ export const defaultSettings: AppSettings = {
   expandedEditor: false,
   imageSize: DEFAULT_IMAGE_SIZE,
   // Off by default — see the note on the same field in `configSchema.ts`.
-  // See: (docs/technical_notes/features/thesaurus_view.md#the-onoff-switch-enablethesaurus)
+  // See: (docs/technical_notes/thesaurus_view.md#the-onoff-switch-enablethesaurus)
   enableThesaurus: false,
   wordWrap: true,
 };
@@ -92,7 +92,7 @@ const initialState: AppState = {
   entriesLoading: true,
   currentPath: '',
   currentView: 'browser', // browser | search-results | settings
-  // Starts in listing mode; setBrowseFile enters single-file mode. See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
+  // Starts in listing mode; setBrowseFile enters single-file mode. See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
   browseFileName: null,
   browseFileMode: 'browse',
   pendingScrollToFile: null,

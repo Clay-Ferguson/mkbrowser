@@ -65,7 +65,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * also clears item selections and exits single-file browsing, atomically
      * with the path change.
      *
-     * See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
+     * See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
      */
     setCurrentPath: (path) => {
       if (get().currentPath === path) {
@@ -94,7 +94,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * Optionally accepts a 'view' parameter to specify which view to navigate
      * to (default is 'browser').
      *
-     * See: (docs/technical_notes/features/single_file_browsing.md#leaving-single-file-mode-the-index-tree)
+     * See: (docs/technical_notes/single_file_browsing.md#leaving-single-file-mode-the-index-tree)
      */
     navigateToBrowserPath: (path, scrollToFile, view = 'browser') => {
       const newState: Partial<AppState> = {
@@ -137,8 +137,8 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * (same folder, or one visited before); otherwise applyDirectoryListing
      * expands it as the new folder's listing lands.
      *
-     * See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
-     * See: (docs/technical_notes/features/single_file_browsing.md#why-browsefilemode)
+     * See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
+     * See: (docs/technical_notes/single_file_browsing.md#why-browsefilemode)
      */
     setBrowseFile: (folderPath, fileName, mode = 'browse') => {
       const newState: Partial<AppState> = {
@@ -163,7 +163,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     /**
      * Exit single-file browsing and return to the folder listing.
      *
-     * See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
+     * See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
      */
     clearBrowseFile: () => {
       if (get().browseFileName === null) return;
@@ -182,7 +182,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      *
      * Callers still invoke `saveSettings()` (renderer/config) afterwards to persist the flag.
      *
-     * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+     * See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
      */
     toggleExpandedEditor: (path) => {
       const state = get();
@@ -319,7 +319,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * root paired with a path inside the old one), the view switches to the
      * browser, single-file browsing is exited, and selections are cleared.
      *
-     * See: (docs/technical_notes/features/single_file_browsing.md#invariants)
+     * See: (docs/technical_notes/single_file_browsing.md#invariants)
      */
     openRootFolder: (folder) => {
       const state = get();

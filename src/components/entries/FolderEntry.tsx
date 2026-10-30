@@ -22,9 +22,9 @@ import type { BaseEntryProps } from './common';
 interface FolderEntryProps extends BaseEntryProps {
   onNavigate: (path: string) => void;
   onPasteIntoFolder?: (folderPath: string) => void;
-  // An attach folder row: no move buttons in Document Mode. See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
+  // An attach folder row: no move buttons in Document Mode. See: (docs/technical_notes/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
   isAttachFolder?: boolean;
-  // Indents the row under its owning file and labels it `*.attach`. See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
+  // Indents the row under its owning file and labels it `*.attach`. See: (docs/technical_notes/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
   indentFolder?: boolean;
 }
 
@@ -35,7 +35,7 @@ interface FolderEntryProps extends BaseEntryProps {
  * of their parent file) suppress the move-up/down buttons in indexed (document) mode, since
  * their position in the index is tied to their parent file.
  *
- * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
+ * See: (docs/technical_notes/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
  */
 function FolderEntry(props: FolderEntryProps) {
   const { entry, onNavigate, onPasteIntoFolder, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder, indentFolder } = props;

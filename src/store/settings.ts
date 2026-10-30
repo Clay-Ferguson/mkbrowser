@@ -72,7 +72,7 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
     // `expandedEditor` is deliberately NOT settable on its own: flipping it
     // has to move the editor between the folder listing and BrowseFile in the
     // same update. Use `toggleExpandedEditor(path)` in the view slice.
-    // See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+    // See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
 
     /** Update the ignored paths setting. */
     setIgnoredPaths: (ignoredPaths) => patchSettings('ignoredPaths', ignoredPaths),
@@ -97,7 +97,7 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
      * word the idle plugin had already published, so re-enabling starts from a
      * clean strip rather than showing synonyms for wherever the cursor last sat.
      *
-     * See: (docs/technical_notes/features/thesaurus_view.md#the-onoff-switch-enablethesaurus)
+     * See: (docs/technical_notes/thesaurus_view.md#the-onoff-switch-enablethesaurus)
      */
     setEnableThesaurus: (enableThesaurus) => {
       if (get().settings.enableThesaurus === enableThesaurus) return;

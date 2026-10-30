@@ -80,7 +80,7 @@ function isAnyExpanded(nodes: FileNode[]): boolean {
  * mode) nodes preserve their existing order; all other nodes are sorted
  * alphabetically with optional folders-on-top.
  *
- * See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
+ * See: (docs/technical_notes/file_attachments.md#building-the-children--srcrenderertreenodests)
  */
 function flattenVisible(
   nodes: FileNode[],
@@ -89,7 +89,7 @@ function flattenVisible(
   depth = 0
 ): Array<{ node: FileNode; depth: number }> {
   // Document Mode (indexed) nodes must preserve their existing order.
-  // See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
+  // See: (docs/technical_notes/document_mode.md#the-indexyaml-file)
   const hasIndexOrder = nodes.some(n => n.indexOrder !== undefined);
   const sorted = hasIndexOrder ? nodes : [...nodes].sort((a, b) => {
     if (foldersOnTop && a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
@@ -156,7 +156,7 @@ function TreeFileRow({
 
   const isSh = isShellScript(node);
   // Only an attachment folder shown under its file; an orphaned one is an ordinary folder.
-  // See: (docs/technical_notes/features/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+  // See: (docs/technical_notes/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
   const isAttach = node.isOwnedAttach === true;
 
   // Two independent cues, so the tree reads at a glance: a solid purple
@@ -273,7 +273,7 @@ const MemoTreeFileRow = memo(TreeFileRow);
  * expands to reveal it. Clicking a file opens it in the browse view; a shell
  * script's context menu has a "Run" item.
  *
- * See: (docs/technical_notes/features/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+ * See: (docs/technical_notes/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
  */
 function IndexTreeView() {
   const rootPath = useAS(s => s.rootPath);
@@ -324,7 +324,7 @@ function IndexTreeView() {
   const [pendingIdRename, setPendingIdRename] = useState<{ target: { path: string; name: string; isDirectory: boolean }; newName: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
   // File whose cut would strand an attachments folder, held while the user confirms.
-  // See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
+  // See: (docs/technical_notes/file_attachments.md#building-the-children--srcrenderertreenodests)
   const [cutOrphanAttachTarget, setCutOrphanAttachTarget] = useState<FileEntry | null>(null);
   const widthClass = indexTreeWidth === 'wide' ? 'w-1/2' : indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
@@ -397,7 +397,7 @@ function IndexTreeView() {
         }
 
         // An attachment folder lives under its owning file, so open that file first.
-        // See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
+        // See: (docs/technical_notes/file_attachments.md#building-the-children--srcrenderertreenodests)
         if (segment.endsWith(ATTACH_SUFFIX)) {
           const latest = getIndexTreeRoot();
           const owner = latest && findNodeByPath(latest, joinPath(ancestorPath, segment.slice(0, -ATTACH_SUFFIX.length)));
@@ -455,8 +455,8 @@ function IndexTreeView() {
    * - Directory (including an attachment folder): toggles expansion; reads
    *   directory contents on first expand.
    *
-   * See: (docs/technical_notes/features/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
-   * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-tree-click)
+   * See: (docs/technical_notes/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+   * See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-tree-click)
    */
   const handleNodeClick = async (node: FileNode) => {
     // Every file — markdown or not — opens in single-file browsing, alongside
@@ -525,7 +525,7 @@ function IndexTreeView() {
         // If the browse view is currently showing this folder, refresh it. Read the
         // path now, not from the render that built the menu: the user can navigate
         // while the moves above are in flight.
-        // See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
+        // See: (docs/technical_notes/file_attachments.md#building-the-children--srcrenderertreenodests)
         if (affectsBrowseListing(node.path, useAS.getState().currentPath)) {
           refreshDirectory();
         }
@@ -562,7 +562,7 @@ function IndexTreeView() {
    * loaded yet) that a cut would leave behind, which the user confirms first, as
    * BrowseView does.
    *
-   * See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
+   * See: (docs/technical_notes/file_attachments.md#building-the-children--srcrenderertreenodests)
    */
   // Fire-and-forget UI handler: sync signature with the async body run through
   // runOp so failures are reported instead of leaking an unhandled
@@ -631,7 +631,7 @@ function IndexTreeView() {
    * shows, and is navigated to first so the dialog is confirmed over the folder it
    * writes into.
    *
-   * See: (docs/technical_notes/features/document_mode.md#insert-bars)
+   * See: (docs/technical_notes/document_mode.md#insert-bars)
    */
   const startNewFile = (folderPath: string) => {
     runOp(async () => {
@@ -811,7 +811,7 @@ function IndexTreeView() {
    * showing it alone is what the click meant; no scroll-to-file is needed since
    * it is the only thing on screen. A bookmarked folder browses its listing.
    *
-   * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-tree-click)
+   * See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-tree-click)
    */
   const handleBookmarkNavigate = (fullPath: string, isDirectory: boolean) => {
     if (isDirectory) {
@@ -830,7 +830,7 @@ function IndexTreeView() {
    * editor's "Paste Link" turns into a relative Markdown link.
    *
    * "Browse" always lands in a folder listing, so it is also an exit from single-file mode.
-   * See: (docs/technical_notes/features/single_file_browsing.md#leaving-single-file-mode-the-index-tree)
+   * See: (docs/technical_notes/single_file_browsing.md#leaving-single-file-mode-the-index-tree)
    */
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();

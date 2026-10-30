@@ -57,7 +57,7 @@ type MenuKind = 'tools' | 'edit' | 'search' | 'sort' | 'imageCols';
  * edited. Nothing in this view is edit-driven any more — a maximized editor
  * lives only in BrowseFile — so don't add one back.
  *
- * See: (docs/technical_notes/features/single_file_browsing.md#invariants)
+ * See: (docs/technical_notes/single_file_browsing.md#invariants)
  */
 function summarizeSelection(items: Map<string, ItemData>) {
   let selectedCount = 0;
@@ -100,7 +100,7 @@ interface BrowseToolbarProps {
 function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: BrowseToolbarProps) {
   const rootPath = useAS(s => s.rootPath);
   const currentPath = useAS(s => s.currentPath);
-  // Document Mode hides the sort menu and the header create buttons. See: (docs/technical_notes/features/document_mode.md#enabling-custom-ordering)
+  // Document Mode hides the sort menu and the header create buttons. See: (docs/technical_notes/document_mode.md#enabling-custom-ordering)
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const sortOrder = useAS(s => s.settings.sortOrder);
   const imageCols = useAS(s => s.settings.imageCols);

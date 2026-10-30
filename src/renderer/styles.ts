@@ -229,7 +229,7 @@ export const BUTTON_CLASS_ROW = `${BTN} w-full flex items-center justify-between
  * Chip / pill button (thesaurus synonyms). `ThesaurusView`'s pill-area height is computed
  * from this class's `leading-5`, `py-0.5` and border, so change them together.
  *
- * See: (docs/technical_notes/features/thesaurus_view.md#thesaurusview-rendering)
+ * See: (docs/technical_notes/thesaurus_view.md#thesaurusview-rendering)
  */
 export const BUTTON_CLASS_CHIP = `${BTN} px-2 py-0.5 shrink-0 rounded-md text-sm leading-5 whitespace-nowrap select-none bg-btn-chip text-btn-label-hover border border-btn-border hover:border-btn-border-hover`;
 

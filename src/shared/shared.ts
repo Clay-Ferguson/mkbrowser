@@ -128,7 +128,7 @@ export interface AppSettings {
    * it enters single-file mode (`browseFileMode: 'expanded-edit'`), so BrowseFile
    * hosts the editor with the whole pane.
    *
-   * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+   * See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
    */
   expandedEditor: boolean;
   /**
@@ -143,7 +143,7 @@ export interface AppSettings {
    * of it runs either: the editor's idle plugin never arms its timer, so no work
    * happens while the user types.
    *
-   * See: (docs/technical_notes/features/thesaurus_view.md#the-onoff-switch-enablethesaurus)
+   * See: (docs/technical_notes/thesaurus_view.md#the-onoff-switch-enablethesaurus)
    */
   enableThesaurus: boolean;
   /**
@@ -258,19 +258,19 @@ export interface FileEntry {
   /**
    * Position from .INDEX.yaml; undefined means not listed (appears after indexed entries)
    *
-   * See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
+   * See: (docs/technical_notes/document_mode.md#the-indexyaml-file)
    */
   indexOrder?: number;
   /**
    * Contents of an associated .attach folder, pre-loaded by readDirectory
    *
-   * See: (docs/technical_notes/features/file_attachments.md#fileentry-interface-srcsharedsharedts)
+   * See: (docs/technical_notes/file_attachments.md#fileentry-interface-srcsharedsharedts)
    */
   attachments?: FileEntry[];
   /**
    * True when a sibling .attach folder exists for this file
    *
-   * See: (docs/technical_notes/features/file_attachments.md#fileentry-interface-srcsharedsharedts)
+   * See: (docs/technical_notes/file_attachments.md#fileentry-interface-srcsharedsharedts)
    */
   hasAttachFolder?: boolean;
 }
@@ -481,7 +481,7 @@ export interface AIUsageWithCosts {
  * from — the word as typed when it had its own entry, the root when it did not, and null
  * when nothing was found at all.
  *
- * See: (docs/technical_notes/features/thesaurus_view.md#the-ipc-surface)
+ * See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
  */
 export interface ThesaurusLookup {
   lemma: string | null;
@@ -493,7 +493,7 @@ export interface ThesaurusLookup {
    * Moby publishes none — so this puts the drop-in-ready single words where the user is
    * looking. See `singleWordsFirst`.
    *
-   * See: (docs/technical_notes/features/thesaurus_view.md#ordering-single-words-first)
+   * See: (docs/technical_notes/thesaurus_view.md#ordering-single-words-first)
    */
   synonyms: string[];
 }
@@ -509,7 +509,7 @@ export interface ElectronAPI {
   testHooksEnabled: boolean;
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
-  // Synonyms for the editor's thesaurus strip. See: (docs/technical_notes/features/thesaurus_view.md#the-ipc-surface)
+  // Synonyms for the editor's thesaurus strip. See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
   lookupThesaurus: (word: string) => Promise<ThesaurusLookup>;
   /** Title of the HTML page at an http(s) URL (read from at most its first 256 KB), or '' when there is none. Never rejects. */
   fetchUrlTitle: (url: string) => Promise<string>;
@@ -552,14 +552,14 @@ export interface ElectronAPI {
    * Link" (after the user consents) so a link to a Markdown file carries an id for
    * auto-repair.
    *
-   * See: (docs/technical_notes/features/document_mode.md#stable-identity-via-front-matter-ids)
+   * See: (docs/technical_notes/document_mode.md#stable-identity-via-front-matter-ids)
    */
   ensureFrontMatterId: (filePath: string) => Promise<FrontMatterIdResult>;
   getFileSize: (filePath: string) => Promise<number>;
   getFileMtime: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   createFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
-  // Also renames the file's sibling `.attach` folder, if any. See: (docs/technical_notes/features/file_attachments.md#rename-synchronization-srcmaints)
+  // Also renames the file's sibling `.attach` folder, if any. See: (docs/technical_notes/file_attachments.md#rename-synchronization-srcmaints)
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
   openExternal: (filePath: string) => Promise<boolean>;
@@ -614,7 +614,7 @@ export interface ElectronAPI {
   onCalendarFileDeleted: (callback: (deletedPath: string, isFolder: boolean) => void) => () => void;
   onCalendarWatcherError: (callback: (message: string) => void) => () => void;
 
-  // Document Mode (.INDEX.yaml) operations. See: (docs/technical_notes/features/document_mode.md#code-locations)
+  // Document Mode (.INDEX.yaml) operations. See: (docs/technical_notes/document_mode.md#code-locations)
   insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;
   moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') => Promise<{ success: boolean; error?: string }>;

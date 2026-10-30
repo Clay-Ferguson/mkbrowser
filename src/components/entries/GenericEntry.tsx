@@ -9,7 +9,7 @@ import {
 } from './common';
 import { toggleItemExpanded } from '../../store';
 
-// AttachMenuProps: the three "Attach:" menu items every file entry offers. See: (docs/technical_notes/features/file_attachments.md#one-set-of-handlers-every-file-type)
+// AttachMenuProps: the three "Attach:" menu items every file entry offers. See: (docs/technical_notes/file_attachments.md#one-set-of-handlers-every-file-type)
 type GenericEntryProps = BaseEntryProps & AttachMenuProps;
 
 /**

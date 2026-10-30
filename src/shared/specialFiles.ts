@@ -20,13 +20,13 @@ export const THINK_FILENAME = 'THINK.md';
 /**
  * Suffix marking a hidden attachment folder (e.g. `foo.md.attach`).
  *
- * See: (docs/technical_notes/features/file_attachments.md#naming-convention)
+ * See: (docs/technical_notes/file_attachments.md#naming-convention)
  */
 export const ATTACH_SUFFIX = '.attach';
 
 /**
  * Hidden file that marks a folder as a Document Mode "document" and stores entry ordering.
  *
- * See: (docs/technical_notes/features/document_mode.md#the-indexyaml-file)
+ * See: (docs/technical_notes/document_mode.md#the-indexyaml-file)
  */
 export const INDEX_FILENAME = '.INDEX.yaml';

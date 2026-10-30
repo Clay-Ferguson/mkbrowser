@@ -43,7 +43,7 @@ import { scrollItemIntoView } from '../../renderer/entryDom';
  * the next one — callers that could produce such a path guard against it (see
  * BrowseFile's `handleBreadcrumbNavigate`).
  *
- * See: (docs/technical_notes/features/single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
+ * See: (docs/technical_notes/single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
  *
  * ## Drift after the commit
  *
