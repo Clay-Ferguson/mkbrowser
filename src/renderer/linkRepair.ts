@@ -32,7 +32,7 @@ const LINK_WITH_TITLE_RE = /\]\(\s*(<[^<>\n]*>|[^\s<]\S*?)\s+"((?:[^"\\\n]|\\.)*
 const ANY_LINK_RE = /\]\(\s*(<[^<>\n]*>|(?:[^\s<()]|\([^\s()]*\))(?:[^\s()]|\([^\s()]*\))*)(?:\s+"(?:[^"\\\n]|\\.)*")?\s*\)/g;
 
 /**
- * Opens a file on its own in BrowseView (single-file mode), as from the index tree.
+ * Opens a file on its own in BrowseFile (single-file mode), as from the index tree.
  *
  * With `headingSlug` (the rendered heading's id, the GitHub-style slug rehype-slug assigns)
  * it also scrolls to that heading: in place when this file is already the one on
@@ -40,6 +40,8 @@ const ANY_LINK_RE = /\]\(\s*(<[^<>\n]*>|(?:[^\s<()]|\([^\s()]*\))(?:[^\s()]|\([^
  * doesn't remount it; otherwise by queueing `pendingScrollToHeadingSlug`, which
  * BrowseFile consumes once the file renders. browseFileName has to be checked as
  * well as the slug, because two documents can yield the same slug.
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md#heading-links-in-single-file-mode)
  */
 export function openFileSingle(path: string, headingSlug?: string): void {
   setHighlightItem(path);

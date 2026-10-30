@@ -32,6 +32,8 @@ export interface BaseEntryProps {
    * Passed only in BrowseFile's `'browse'` mode. Its `'expanded-edit'` mode
    * also gives the entry the whole pane, but there the global setting is what
    * put it there, so the toggle must stay live — see `AppState.browseFileMode`.
+   *
+   * See: (docs/technical_notes/features/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
    */
   alwaysExpandedEditor?: boolean;
 }

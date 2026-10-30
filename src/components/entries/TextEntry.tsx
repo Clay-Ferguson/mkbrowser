@@ -57,6 +57,7 @@ function TextEntry(props: TextEntryProps) {
     // `alwaysExpandedEditor` callers (BrowseFile) hand this entry the whole pane, so it fills
     // the available height in *view* mode too — not just while editing. In the folder listing
     // the entry is one row among many, so there maximizing stays tied to editing.
+    // See: (docs/technical_notes/features/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
     fillPaneWhenViewing: true,
     onCancel: edit.handleCancel,
   });

@@ -80,6 +80,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     // position was last written by the debounced scroll save, so it comes back
     // accurate to within 150ms. At app startup nothing is saved yet and the
     // restore is a harmless scrollTo(0).
+    // See: (docs/technical_notes/features/single_file_browsing.md#routing-in-apptsx--swap-not-hide)
     const isFirstMount = previousPathRef.current === null;
 
     // Save scroll position for the previous folder before switching

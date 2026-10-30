@@ -134,6 +134,7 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   // Only `BrowseFile` (single-file mode) mounts the synonym strip, and that is what
   // `browseFileName` being set means. Offering the switch in a folder-listing inline editor
   // would turn the feature on with nowhere for the synonyms to appear.
+  // See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
   const singleFileMode = useAS(s => s.browseFileName !== null);
   // The user-defined object types (Types Editor) that "Insert Object" offers.
   const typeDefs = useAS(s => s.typeDefs);

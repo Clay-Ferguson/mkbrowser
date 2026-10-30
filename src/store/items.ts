@@ -135,6 +135,8 @@ export function withSelectionsCleared(items: Map<string, ItemData>): Map<string,
  * front matter already parsed when the content was loaded — rather than
  * re-parsing, and lands in the same `set()` so the editor mounts with the front
  * matter already shown. It stays on until the user turns it off.
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
  */
 function editingPatch(
   state: AppState,
@@ -161,12 +163,13 @@ function editingPatch(
   // keeps the user in the maximized editor.
   //
   // Leaving also queues the scroll that puts the just-edited file back in
-  // view, the same request a search-result click and BrowseFile's "Browse
-  // Folder" link make: the listing this drops back into is the one the user
+  // view, the same request a search result's folder card and a BrowseFile
+  // breadcrumb click make: the listing this drops back into is the one the user
   // left, which may be scrolled anywhere, so without it the highlighted file
   // can land off screen. `path` is known to live in `currentPath` —
   // isExpandedEditOf checks exactly that — so BrowseView is guaranteed to
   // find the element and consume the request.
+  // See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
   const showProps = editing && !state.settings.showPropsInEditor && isMarkdownFile(existing.name)
     && hasObjectType(existing.props ?? {}, state.typeDefs);
 
@@ -190,6 +193,8 @@ function editingPatch(
  * would be a dead end), and folding the expand into the same `set()` that shows
  * the file (setBrowseFile, applyDirectoryListing) means the view never renders
  * it collapsed first.
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md#what-browsefile-renders)
  */
 export function withItemExpanded(items: Map<string, ItemData>, path: string): Map<string, ItemData> | null {
   const existing = items.get(path);
@@ -408,6 +413,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
         ...(file.attachments ?? []).map(toIncomingItem),
       ]);
       let newItems = syncListingItems(state.items, dirPath, incoming);
+      // Single-file mode shows its one file expanded. See: (docs/technical_notes/features/single_file_browsing.md#what-browsefile-renders)
       if (state.browseFileName !== null && isSamePath(dirPath, state.currentPath)) {
         const items = newItems ?? state.items;
         newItems = withItemExpanded(items, joinPath(dirPath, state.browseFileName)) ?? newItems;
@@ -782,6 +788,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       }
       // `browseFileName` is relative to `currentPath`, so it only changes when
       // the single file being viewed is itself the renamed item.
+      // See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
       if (state.browseFileName !== null && joinPath(state.currentPath, state.browseFileName) === oldPath) {
         patch.browseFileName = newName;
       }
@@ -866,6 +873,8 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * @param goToLine - Optional 1-based line number to scroll to when editing starts
      * @returns true when starting the edit turned on Show Properties (see
      *   editingPatch); the caller must then persist it with saveSettings().
+     *
+     * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
      */
     setItemEditing: (path, editing, goToLine) => {
       const patch = editingPatch(get(), path, editing, goToLine);

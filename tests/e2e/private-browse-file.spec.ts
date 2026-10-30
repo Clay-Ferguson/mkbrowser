@@ -32,8 +32,8 @@ import {
  *      file's own folder) and the home icon are exercised. The non-clickable
  *      "Listing Hidden" badge beside the breadcrumb is asserted present while
  *      reading — it is the only thing telling the user the folder listing is
- *      not what they are looking at — and asserted GONE, along with the
- *      breadcrumb, once the maximized editor takes the pane, then back after
+ *      not what they are looking at — and asserted GONE once the maximized
+ *      editor takes the pane (the breadcrumb stays visible), then back after
  *      the save.
  *   4. "Browse" on a file returns to the listing too, and clicking a folder in
  *      the tree navigates rather than entering single-file mode.
@@ -41,6 +41,9 @@ import {
  * This test is private (not part of the demo video set) — it still writes
  * screenshots/narration per the shared conventions, but its purpose is
  * automated verification.
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md)
+ * See: (docs/technical_notes/features/single_file_browsing.md#badge-hidden-while-the-editor-is-maximized)
  */
 test.describe('Private: Browse File', () => {
   test('browse a single file, edit it there, and return to the folder listing', async ({ mainWindow, testDataPath }) => {

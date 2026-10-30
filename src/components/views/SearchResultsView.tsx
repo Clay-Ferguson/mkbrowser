@@ -93,6 +93,7 @@ function SearchResultsView() {
       // A file opens on its own (single-file mode, as from the index tree), so
       // stepping through results shows just the one clicked each time — no
       // scroll-to-file needed since it is the only thing on screen.
+      // See: (docs/technical_notes/features/single_file_browsing.md#why-browsefilemode)
       setBrowseFile(folderPath, getFileName(resultPath));
     }
   };

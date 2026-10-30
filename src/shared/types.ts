@@ -126,6 +126,8 @@ export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analys
 /**
  * Why the browser view is showing a single file instead of the folder listing.
  * See `AppState.browseFileMode` for what each value changes.
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md#why-browsefilemode)
  */
 export type BrowseFileMode = 'browse' | 'expanded-edit';
 
@@ -337,6 +339,8 @@ export interface AppState {
    * normal listing. Always resolved against `currentPath`: the two are set
    * together by `setBrowseFile`, and any change to `currentPath` clears this,
    * so it can never name a file outside the folder being browsed.
+   *
+   * See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
    */
   browseFileName: string | null;
 
@@ -355,6 +359,8 @@ export interface AppState {
    * Only meaningful while `browseFileName` is non-null. `setBrowseFile` always
    * writes it, so a value left behind by a previous single-file session can
    * never be read stale.
+   *
+   * See: (docs/technical_notes/features/single_file_browsing.md#why-browsefilemode)
    */
   browseFileMode: BrowseFileMode;
 

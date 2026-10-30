@@ -16,6 +16,8 @@ import { getParentPath, getFileName, isSamePath } from '../renderer/pathUtil';
 // their result into their own single `set()` call, keeping the multi-field
 // patch atomic as AGENTS.md requires. Living in their own module also keeps the
 // items ↔ view slice imports acyclic.
+//
+// See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
 // ============================================================================
 
 /**
@@ -39,6 +41,7 @@ import { getParentPath, getFileName, isSamePath } from '../renderer/pathUtil';
  * file being edited.
  *
  * See: (docs/technical_notes/features/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
+ * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
  */
 export function enterExpandedEditPatch(state: AppState, path: string): Partial<AppState> | null {
   if (!state.settings.expandedEditor) return null;
@@ -48,7 +51,11 @@ export function enterExpandedEditPatch(state: AppState, path: string): Partial<A
   return { browseFileName: getFileName(path), browseFileMode: 'expanded-edit' };
 }
 
-/** True while the pane is given over to a maximized edit of any file. */
+/**
+ * True while the pane is given over to a maximized edit of any file.
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md#why-browsefilemode)
+ */
 export function isExpandedEditing(state: AppState): boolean {
   return state.browseFileName !== null && state.browseFileMode === 'expanded-edit';
 }
@@ -58,6 +65,8 @@ export function isExpandedEditing(state: AppState): boolean {
  * Used to decide whether an edit *ending* should drop back to the listing: an
  * unrelated file leaving edit mode (a stale `editing: true` from another folder
  * closed by the global Escape handler) must not evict the file on screen.
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
  */
 export function isExpandedEditOf(state: AppState, path: string): boolean {
   return isExpandedEditing(state)

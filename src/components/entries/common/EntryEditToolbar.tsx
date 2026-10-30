@@ -9,6 +9,8 @@ interface EntryEditToolbarProps {
    * Toggle the expanded editor. Omit to hide the expand/collapse button
    * entirely — for callers whose editor is always expanded and where the
    * toggle would therefore be a no-op (see `alwaysExpandedEditor`).
+   *
+   * See: (docs/technical_notes/features/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
    */
   onToggleExpandedEditor?: () => void;
 

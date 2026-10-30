@@ -124,8 +124,11 @@ export interface AppSettings {
   /** Whether to show front matter (Properties) in the editor. */
   showPropsInEditor: boolean;
   /**
-   * When true, BrowseView hides all entries except the one being edited,
-   * giving the CodeMirror editor the full scrollable area.
+   * When true, starting an edit in the folder listing opens the editor maximized:
+   * it enters single-file mode (`browseFileMode: 'expanded-edit'`), so BrowseFile
+   * hosts the editor with the whole pane.
+   *
+   * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
    */
   expandedEditor: boolean;
   /**

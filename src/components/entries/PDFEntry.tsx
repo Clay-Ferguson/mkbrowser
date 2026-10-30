@@ -18,9 +18,11 @@ type PDFEntryProps = BaseEntryProps & AttachMenuProps;
  * Entry component for PDF files. Expands to render the document inline via
  * PdfViewer (Chromium's built-in PDF viewer). Collapsed by default so a folder
  * listing doesn't spawn an embed per PDF until one is clicked; in single-file
- * mode BrowseFile's auto-expand effect opens it. Header actions (rename,
- * bookmark, delete, move) mirror the other entry types — the PDF itself is
- * read-only here, so there is no edit path.
+ * mode it is shown expanded (setBrowseFile / applyDirectoryListing expand it).
+ * Header actions (rename, bookmark, delete, move) mirror the other entry
+ * types — the PDF itself is read-only here, so there is no edit path.
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md#what-browsefile-renders)
  */
 function PDFEntry(props: PDFEntryProps) {
   const { entry, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;

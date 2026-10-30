@@ -28,7 +28,7 @@ The browser tab is a two-pane layout: `IndexTreeView` on the left, and on the ri
 | Listing mode | `BrowseView.tsx` — every file and folder in `currentPath`, as a scrolling list of entry components | `null` |
 | Single-file mode | `BrowseFile.tsx` — exactly one entry, filling the pane | the bare file **name** |
 
-Single-file mode is not a different editor and not a different entry component: it renders the very same `MarkdownEntry` / `TextEntry` / `ImageEntry` / `GenericEntry` that the listing renders, just without any of its siblings. This matters when reasoning about it — there is no "single-file version" of an entry to keep in sync.
+Single-file mode is not a different editor and not a different entry component: it renders the very same `MarkdownEntry` / `TextEntry` / `ImageEntry` / `PDFEntry` / `GenericEntry` that the listing renders, just without any of its siblings. This matters when reasoning about it — there is no "single-file version" of an entry to keep in sync.
 
 It serves two purposes, told apart by `browseFileMode`: *reading/focus* (the user asked for this one file) and *expanded editing* (a maximized editor took over the pane). **`BrowseFile` is the only place a maximized editor lives** — `BrowseView` renders a folder listing and nothing else.
 
@@ -39,7 +39,7 @@ Lives in the view slice (`src/store/view.ts`), declared on `AppState` in `src/sh
 It holds a bare **name**, not a path, and is always resolved against `currentPath`. The two are set together and can never drift:
 
 - `setBrowseFile(folderPath, fileName, mode = 'browse')` sets `currentPath`, `currentView: 'browser'`, `browseFileName` and `browseFileMode` in **one** `set()` call.
-- Any change of `currentPath` clears `browseFileName`. `setCurrentPath` and `navigateToBrowserPath` both include `browseFileName: null` in their patch unconditionally.
+- Any change of `currentPath` clears `browseFileName`. `setCurrentPath`, `navigateToBrowserPath` and `openRootFolder` all include `browseFileName: null` in their patch unconditionally.
 - `clearBrowseFile()` returns to listing mode without moving `currentPath`.
 
 The consequence to rely on: **`browseFileName` can never name a file outside the folder currently in `currentPath`.** `BrowseFile` therefore resolves its entry by a plain `entries.find(e => e.name === browseFileName && !e.isDirectory)` against the already-loaded listing, with no path juggling.
@@ -59,7 +59,7 @@ It is **only meaningful while `browseFileName` is non-null**. `setBrowseFile` al
 
 ## Routing in `App.tsx` — Swap, Not Hide
 
-`App.tsx` (~`:544`) picks the pane with a ternary on `browseFileName`.
+`App.tsx` picks the pane with a ternary on `browseFileName` (`browseFileName ? <BrowseFile /> : <BrowseView />`, inside the browser view's container).
 
 This deliberately does **not** use the `display:none` pattern that `App.tsx` uses for its top-level views. Mounting both panes at once would give the browsed file two live entry instances — two CodeMirror editors for the same file, plus duplicate DOM ids for heading anchors. The unmount is safe because the folder listing's scroll position is persisted per-folder in the store and restored when `BrowseView` remounts.
 
@@ -67,7 +67,7 @@ This deliberately does **not** use the `display:none` pattern that `App.tsx` use
 
 ## Entering Single-File Mode: Tree Click
 
-A plain left-click on any **file** row in `IndexTreeView` enters single-file mode — markdown or not (`handleNodeClick`, `IndexTreeView.tsx:328-331`):
+A plain left-click on any **file** row in `IndexTreeView` enters single-file mode — markdown or not (`handleNodeClick` in `IndexTreeView.tsx`):
 
 ```ts
 if (!node.isDirectory) {
@@ -80,13 +80,13 @@ Every file opens in the right pane. The same click also toggles the file's tree 
 
 There is no context menu item for this; an earlier "Browse File" menu entry was removed in favor of the click. Folders are unaffected — clicking a folder expands/collapses it and never enters single-file mode.
 
-**Bookmarks are the second entry point.** `handleBookmarkNavigate` (`IndexTreeView.tsx:554`) routes a bookmarked *file* through `setBrowseFile` as well — a bookmark names one specific document, so opening it alone is what the click meant. A bookmarked *folder* still goes to `navigateToBrowserPath` and lands in listing mode. Note that the file/folder split here is a filename heuristic (`lastName.includes('.')`), shared with `BookmarksPopupMenu`'s icon choice; a folder whose name contains a dot is treated as a file by both.
+**Bookmarks are the second entry point.** `handleBookmarkNavigate` (in `IndexTreeView.tsx`) routes a bookmarked *file* through `setBrowseFile` as well — a bookmark names one specific document, so opening it alone is what the click meant. A bookmarked *folder* still goes to `navigateToBrowserPath` and lands in listing mode. The file/folder split comes from the bookmark's recorded `isDirectory`, which `BookmarksPopupMenu` passes to the handler. A legacy bookmark saved without it is resolved with `api.isDirectory` on click, and the result is written back; only the menu's icon for such a bookmark falls back to a no-extension guess.
 
 ## Entering Single-File Mode: Expanded Editing
 
 `settings.expandedEditor` is a persisted user preference meaning "editing opens maximized". It is **implemented by view routing, not by CSS**: with it on, starting an edit on a file in the folder listing enters single-file mode with `browseFileMode: 'expanded-edit'`, and `BrowseFile` hosts the maximized editor.
 
-The rules live in `src/store/expandedEdit.ts` as pure predicates over a state snapshot, and are applied inside `setItemEditing` (`src/store/items.ts`) — one choke point, folded into the same atomic `set()` as the edit flag. That covers every way an edit starts or ends: click-to-edit, `BrowseView`'s `pendingEditFile` timer (search-results jump-to-edit), and `App.tsx`'s global Escape handler.
+The rules live in `src/store/expandedEdit.ts` as pure predicates over a state snapshot, and are applied inside `setItemEditing` (`src/store/items.ts`) — one choke point, folded into the same atomic `set()` as the edit flag. That covers every way an edit starts or ends: click-to-edit, a queued `pendingEditFile` request (consumed by `usePendingBrowseIntents` in the listing, or by `BrowseFile` when the request is for its one file, as the search results' Edit button makes it), and `App.tsx`'s global Escape handler.
 
 `enterExpandedEditPatch` routes only when **all** of these hold, and each check earns its place:
 
@@ -94,14 +94,14 @@ The rules live in `src/store/expandedEdit.ts` as pure predicates over a state sn
 |---|---|
 | `settings.expandedEditor` | the default: editing stays inline in the listing |
 | `currentView === 'browser'` | `ThreadView`, which renders entries in a scrolling block and ignores expanded editing |
-| `getParentPath(path) === currentPath` | attachments — `*_attach` contents are rendered by `AttachFolderContents` from another folder, and deliberately keep editing inline |
+| `getParentPath(path) === currentPath` | attachments — `*.attach` contents are rendered by `AttachFolderContents` from another folder, and deliberately keep editing inline |
 | `browseFileName === null` | a file already open in `'browse'` mode, whose caller owns the pane on its own terms |
 
-Exiting is the mirror image: `setItemEditing(path, false)` clears `browseFileName` when the pane is given over to a maximized edit **of that same file** (`isExpandedEditOf`). The path check matters — the global Escape handler closes the first editing item it finds, which may be a leftover from another folder, and that must not evict the file on screen. Save-and-keep-editing never touches `editing`, so it correctly stays in the maximized editor.
+Exiting is the mirror image: `setItemEditing(path, false)` clears `browseFileName` when the pane is given over to a maximized edit **of that same file** (`isExpandedEditOf`), and queues `pendingScrollToFile` so the listing it drops back into lands on that file. The path check matters — the global Escape handler closes the first editing item it finds, which may be a leftover from another folder, and that must not evict the file on screen. Save-and-keep-editing never touches `editing`, so it correctly stays in the maximized editor.
 
 The expand/collapse toggle goes through `toggleExpandedEditor(path)` (view slice), which flips the preference **and** moves the editor in one update — expanding hands the file the pane, collapsing returns to the listing with the editor still open inline. There is deliberately no bare `setExpandedEditor`: flipping the flag without moving the editor is never correct.
 
-> **Why this design.** Expanded editing used to be a class chain on `BrowseView` itself, driven by a scan of the items map for "something is editing". That map is global and long-lived, so the flag stayed true after navigating away from the file being edited: the listing fell back to showing every entry while the maximize classes stayed on, and every row became an equal-share flex item. Deriving layout from a global edit-state scan is the bug; the fix is that no view derives layout from edit state at all any more. Do not add such a scan back — `summarizeItems` in `BrowseView.tsx` carries the same warning.
+> **Why this design.** Expanded editing used to be a class chain on `BrowseView` itself, driven by a scan of the items map for "something is editing". That map is global and long-lived, so the flag stayed true after navigating away from the file being edited: the listing fell back to showing every entry while the maximize classes stayed on, and every row became an equal-share flex item. Deriving layout from a global edit-state scan is the bug; the fix is that no view derives layout from edit state at all any more. Do not add such a scan back — `summarizeSelection` in `BrowseToolbar.tsx` carries the same warning.
 
 ## Leaving Single-File Mode: The Index Tree
 
@@ -134,7 +134,7 @@ Only the badge is rendered under `{!editorMaximized && ...}`; the **breadcrumb i
 const editorMaximized = editing && (alwaysExpandedEditor || settings.expandedEditor);
 ```
 
-That expression deliberately **mirrors the entries' own `maximized`** (`(settings.expandedEditor || alwaysExpandedEditor) && edit.isEditing`, in `MarkdownEntry` and `TextEntry`) rather than assuming the two agree, so they cannot drift. Within `BrowseFile` it is always equal to `editing` — `'browse'` mode forces `alwaysExpandedEditor`, and `'expanded-edit'` mode only exists while `settings.expandedEditor` is on — but writing it out states the actual rule: it is the *maximized* editor that hides the badge, not editing as such.
+That expression deliberately **mirrors the entries' own `maximized`** (`(settings.expandedEditor || alwaysExpandedEditor) && edit.isEditing`, computed in `useEditorChrome` for both `MarkdownEntry` and `TextEntry`) rather than assuming the two agree, so they cannot drift. Within `BrowseFile` it is always equal to `editing` — `'browse'` mode forces `alwaysExpandedEditor`, and `'expanded-edit'` mode only exists while `settings.expandedEditor` is on — but writing it out states the actual rule: it is the *maximized* editor that hides the badge, not editing as such.
 
 The distinction is worth keeping straight, because there are two editors:
 
@@ -150,11 +150,11 @@ Two e2e specs cover it. `private-browse-file.spec.ts` asserts the breadcrumb vis
 ## What `BrowseFile` Renders
 
 - **Header**: `PathBreadcrumb` on the left and the right-aligned, non-interactive **"Listing Hidden"** badge — both shown while reading, both dropped while the editor is maximized. See above. Outside the scroll container.
-- **Body**: the same entry-type ternary the listing uses, minus the directory branch — `isMarkdown → isImageFile → isTextFile → GenericEntry`.
+- **Body**: the same entry-type ternary the listing uses, minus the directory branch — `isMarkdown → isImageFile → isTextFile → isPdfFile → GenericEntry`.
 - **Omitted props**: index-order move handlers (`onMoveUp`/`onMoveDown`/…) and `documentMode`. `EntryActionBar` renders items purely by callback presence, so omitting them hides those buttons — that is the whole mechanism, no flags needed.
-- `ImageEntry` gets `allImages={[entry]}`; that prop only feeds the fullscreen viewer's prev/next, and with one file on screen the file is the whole set.
+- `ImageEntry` gets `allImages={folderImages}`, every image in the already-loaded listing for `currentPath`. That prop only feeds the fullscreen viewer's prev/next, so passing the folder's images lets Left/Right walk the folder from the fullscreen view exactly as they do from the listing; passing just `[entry]` would make the arrow keys silently do nothing.
 - **Attachments**: if the file has a sibling `<name>.attach` folder, that folder row and its contents are rendered below the entry using the same `FolderEntry` + `AttachFolderContents` pair `BrowseView` uses (`data-testid="browse-file-attachments"`). They are hidden while editing. For files that fill the pane (text/PDF), the block is height-capped and scrolls independently. See `file_attachments.md` § Single-File Mode.
-- **Auto-expand**: an effect on `[entry?.path]` calls `setItemExpanded(path, true)`. A single-file view whose one entry sat collapsed would be a dead end.
+- **Auto-expand**: the file is expanded in the store, not by an effect here. `setBrowseFile` marks it expanded in the same `set()` when its item is already loaded, and otherwise `applyDirectoryListing` does it as the folder's listing lands (both via `withItemExpanded` in `src/store/items.ts`). A single-file view whose one entry sat collapsed would be a dead end, and folding the expand into the update that shows the file means it never renders collapsed first.
 - **Not found**: if the name resolves to nothing (deleted externally, load in flight), it renders a placeholder rather than throwing.
 
 Because entry components read their own state from the store by path and render their own CodeMirror, **click-to-edit, rename, delete and AI rewrite all work here with zero extra wiring.** Nothing about editing is hoisted into `BrowseView`, so nothing had to be extracted for `BrowseFile` to get it.
@@ -203,17 +203,18 @@ Things to preserve when touching this area:
 | Concern | File |
 |---|---|
 | State fields, actions (`setBrowseFile` / `clearBrowseFile` / `toggleExpandedEditor`), clear-on-navigate | `src/store/view.ts` |
+| Auto-expand of the browsed file (`withItemExpanded`, `applyDirectoryListing`) | `src/store/items.ts` |
 | Expanded-edit routing rules (`enterExpandedEditPatch`, `isExpandedEditOf`) | `src/store/expandedEdit.ts` |
 | Where those rules are applied (`setItemEditing`) | `src/store/items.ts` |
 | `AppState` declaration | `src/shared/types.ts` |
 | `initialState` | `src/store/core.ts` |
-| Pane routing ternary | `src/App.tsx` (~`:544`) |
+| Pane routing ternary | `src/App.tsx` (the `browseFileName` ternary in the browser view) |
 | Single-file pane | `src/components/views/BrowseFile.tsx` |
 | Folder listing pane | `src/components/views/BrowseView.tsx` |
-| Tree click → single-file mode | `src/components/views/IndexTreeView.tsx` (`handleNodeClick`) |
+| Tree click / bookmark → single-file mode | `src/components/views/IndexTreeView.tsx` (`handleNodeClick`, `handleBookmarkNavigate`) |
 | Heading link / in-place scroll | `src/renderer/linkRepair.ts` (`openFileSingle`) |
 | Breadcrumb (rendered by both panes) | `src/components/PathBreadcrumb.tsx` |
-| `alwaysExpandedEditor` prop | `src/components/entries/common/types.ts`, `MarkdownEntry.tsx`, `TextEntry.tsx`, `EntryEditToolbar.tsx` |
+| `alwaysExpandedEditor` prop, `maximized` | `src/components/entries/common/types.ts`, `useEditorChrome.ts`, `MarkdownEntry.tsx`, `TextEntry.tsx`, `EntryEditToolbar.tsx` |
 | e2e coverage — single-file browsing | `tests/e2e/private-browse-file.spec.ts` |
 | e2e coverage — expanded editing | `tests/e2e/private-expanded-edit.spec.ts` |
 | unit coverage — routing rules | `tests/expandedEditRouting.test.ts` |

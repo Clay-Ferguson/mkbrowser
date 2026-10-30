@@ -90,6 +90,7 @@ function App() {
   const [visitedViews, setVisitedViews] = useState<Set<AppView>>(() => new Set<AppView>(['browser']));
   const currentView = useAS(s => s.currentView);
   const currentPath = useAS(s => s.currentPath);
+  // Non-null swaps BrowseFile in for BrowseView (swap, not hide). See: (docs/technical_notes/features/single_file_browsing.md#routing-in-apptsx--swap-not-hide)
   const browseFileName = useAS(s => s.browseFileName);
   const directoryRefreshNonce = useAS(s => s.directoryRefreshNonce);
   const hasFolderGraph = useAS(s => s.folderGraph !== null);
@@ -156,6 +157,7 @@ function App() {
   }, [fontSize]);
 
   // Close an unmodified editor when ESC is pressed anywhere in the app
+  // See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;

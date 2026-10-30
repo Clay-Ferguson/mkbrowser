@@ -41,7 +41,9 @@ import { scrollItemIntoView } from '../../renderer/entryDom';
  * destination folder's entries land does not throw the request away. A request
  * naming a file that never renders simply stays pending and is superseded by
  * the next one — callers that could produce such a path guard against it (see
- * BrowseFile's `handleBrowseFolder`).
+ * BrowseFile's `handleBreadcrumbNavigate`).
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
  *
  * ## Drift after the commit
  *

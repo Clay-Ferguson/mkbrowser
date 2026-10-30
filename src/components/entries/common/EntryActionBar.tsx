@@ -71,6 +71,7 @@ export function EntryActionBar({
   // In single-file browsing mode this exact file is already the one on screen,
   // so the "View File" button would be a no-op — hide it. Computed inside the
   // selector so only this row re-renders when the browsed file changes.
+  // See: (docs/technical_notes/features/single_file_browsing.md#why-browsefilemode)
   const isViewingThisFile = useAS(s => s.browseFileName !== null && joinPath(s.currentPath, s.browseFileName) === path);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -102,6 +103,7 @@ export function EntryActionBar({
 
   // Switch to single-file browsing of this file — the same effect as clicking
   // the file's row in the index tree (see IndexTreeView's handleNodeClick).
+  // See: (docs/technical_notes/features/single_file_browsing.md#why-browsefilemode)
   const handleViewFile = () => {
     setHighlightItem(path);
     setBrowseFile(getParentPath(path), getFileName(path));

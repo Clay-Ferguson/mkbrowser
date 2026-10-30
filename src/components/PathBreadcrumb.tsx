@@ -30,6 +30,8 @@ export type PathBreadcrumbProps = {
  * shown and always clickable, even at the root itself. Every segment — including
  * that home icon — doubles as a drag-and-drop target that accepts file/folder moves.
  * A "reveal in tree" button appears at the end when the index tree panel is visible.
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
  */
 function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
   const indexTreeHidden = useAS(s => s.settings.indexTreeWidth === 'hidden');

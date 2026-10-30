@@ -91,6 +91,7 @@ const initialState: AppState = {
   entriesLoading: true,
   currentPath: '',
   currentView: 'browser', // browser | search-results | settings
+  // Starts in listing mode; setBrowseFile enters single-file mode. See: (docs/technical_notes/features/single_file_browsing.md#the-deciding-state-browsefilename)
   browseFileName: null,
   browseFileMode: 'browse',
   pendingScrollToFile: null,

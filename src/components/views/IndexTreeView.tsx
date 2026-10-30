@@ -456,6 +456,7 @@ function IndexTreeView() {
    *   directory contents on first expand.
    *
    * See: (docs/technical_notes/features/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+   * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-tree-click)
    */
   const handleNodeClick = async (node: FileNode) => {
     // Every file — markdown or not — opens in single-file browsing, alongside
@@ -809,6 +810,8 @@ function IndexTreeView() {
    * clicking it in the tree) — a bookmark names one specific document, so
    * showing it alone is what the click meant; no scroll-to-file is needed since
    * it is the only thing on screen. A bookmarked folder browses its listing.
+   *
+   * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-tree-click)
    */
   const handleBookmarkNavigate = (fullPath: string, isDirectory: boolean) => {
     if (isDirectory) {
@@ -825,6 +828,9 @@ function IndexTreeView() {
    * items exist) Paste; files get Browse/Rename/Delete. Shell scripts (`.sh`) also get
    * "Run". Both directories and files also get "Copy Path" (absolute), whose path the
    * editor's "Paste Link" turns into a relative Markdown link.
+   *
+   * "Browse" always lands in a folder listing, so it is also an exit from single-file mode.
+   * See: (docs/technical_notes/features/single_file_browsing.md#leaving-single-file-mode-the-index-tree)
    */
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();

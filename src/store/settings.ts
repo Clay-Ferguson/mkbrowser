@@ -72,6 +72,7 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
     // `expandedEditor` is deliberately NOT settable on its own: flipping it
     // has to move the editor between the folder listing and BrowseFile in the
     // same update. Use `toggleExpandedEditor(path)` in the view slice.
+    // See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
 
     /** Update the ignored paths setting. */
     setIgnoredPaths: (ignoredPaths) => patchSettings('ignoredPaths', ignoredPaths),

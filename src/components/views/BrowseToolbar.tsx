@@ -56,6 +56,8 @@ type MenuKind = 'tools' | 'edit' | 'search' | 'sort' | 'imageCols';
  * flag derived here would stay true after navigating away from the file being
  * edited. Nothing in this view is edit-driven any more — a maximized editor
  * lives only in BrowseFile — so don't add one back.
+ *
+ * See: (docs/technical_notes/features/single_file_browsing.md#invariants)
  */
 function summarizeSelection(items: Map<string, ItemData>) {
   let selectedCount = 0;

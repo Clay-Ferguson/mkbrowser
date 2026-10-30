@@ -209,6 +209,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   // Rendered Markdown keeps its natural, page-scrolled height in view mode, so unlike
   // TextEntry it only maximizes while editing (fillPaneWhenViewing stays off).
+  // See: (docs/technical_notes/features/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
   const chrome = useEditorChrome({
     path: entry.path,
     edit,
@@ -286,6 +287,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
           // already cleared browseFileName, so setItemEditing's expanded-edit
           // routing is a no-op here and can't queue a pendingScrollToFile for the
           // folder we just left (which would linger until it is next opened).
+          // See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
           if (endEdit) handleCancelEdit();
         });
       }
