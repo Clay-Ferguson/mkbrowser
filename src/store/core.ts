@@ -91,7 +91,7 @@ const initialState: AppState = {
   currentEntries: [],
   entriesLoading: true,
   currentPath: '',
-  currentView: 'browser', // browser | search-results | settings
+  currentView: 'browser', // the active tab (any AppView). See: (docs/technical_notes/application_tabs.md#tab-navigation)
   // Starts in listing mode; setBrowseFile enters single-file mode. See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
   browseFileName: null,
   browseFileMode: 'browse',
@@ -123,6 +123,7 @@ const initialState: AppState = {
   showGraphFileLinks: false,
   pendingThreadScrollToBottom: false,
   rootPath: '',
+  // Explicitly shown tabs; AppTabButtons adds the data-derived ones. See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
   visibleTabs: new Set<AppState['currentView']>(['browser']),
   indexTreeRoot: null,
   pendingIndexTreeReveal: null,

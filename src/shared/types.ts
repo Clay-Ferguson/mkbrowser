@@ -122,6 +122,8 @@ export interface ItemData {
 
 /**
  * Represents which application page (aka view or panel) is currently displayed
+ *
+ * See: (docs/technical_notes/application_tabs.md#overview)
  */
 export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread' | 'folder-graph' | 'calendar' | 'types-editor' | 'tags-editor' | 'help';
 
@@ -332,6 +334,8 @@ export interface AppState {
 
   /**
    * Current view being displayed
+   *
+   * See: (docs/technical_notes/application_tabs.md#tab-navigation)
    */
   currentView: AppView;
 
@@ -558,6 +562,8 @@ export interface AppState {
   /**
    * Set of tab IDs that should be visible in the tab bar.
    * Not persisted — resets to defaults on restart.
+   *
+   * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
    */
   visibleTabs: Set<AppView>;
 

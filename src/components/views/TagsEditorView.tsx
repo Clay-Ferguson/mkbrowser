@@ -40,6 +40,8 @@ function sortByName(cats: EditorCategory[]): EditorCategory[] {
  * which validates, serializes back to YAML, and persists via `api.saveTags`;
  * Revert reloads from disk. A category can only be deleted once empty. Since views never unmount, an unsaved draft survives tab
  * switches.
+ *
+ * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
  */
 export default function TagsEditorView() {
   const [categories, setCategories] = useState<EditorCategory[]>([]);

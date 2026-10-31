@@ -177,6 +177,7 @@ function AISettingsView() {
   // loadConfig); only the non-config usage stats need fetching here. Views
   // never unmount (App.tsx hides them with CSS), so a mount-only fetch would
   // go stale — re-fetch each time this tab becomes the active view instead.
+  // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
   const isActive = useIsActiveView('ai-settings');
   useEffect(() => {
     if (!isActive) return;

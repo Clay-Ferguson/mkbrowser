@@ -70,6 +70,7 @@ export function usePendingItemScroll(): void {
     // Other tabs stay mounted (display:none) and manage their own scrolling;
     // measuring or scrolling a hidden pane would produce nonsense. The request
     // stays pending and is picked up on the commit that shows this view.
+    // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
     if (!isActive) return;
 
     if (scrollItemIntoView(pendingScrollToFile, false, true)) {

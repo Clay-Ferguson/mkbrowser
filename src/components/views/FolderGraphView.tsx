@@ -227,6 +227,10 @@ function applySettledPositions(nodes: SimNode[], positions: Float64Array): void 
  * this component renders the graph, measures label footprints, ships the whole
  * settle to the worker, and takes ownership of the result for drag interaction.
  * See the constants in graphSim.ts for the physics tuning knobs.
+ *
+ * Unlike other views, App.tsx mounts this one as soon as a graph exists and
+ * unmounts it when the Graph tab is closed.
+ * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
  */
 function FolderGraphView() {
   const folderGraph = useAS(s => s.folderGraph);

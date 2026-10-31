@@ -38,6 +38,8 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
      * Switch to the calendar tab for `folder`'s events, in a single state
      * update: the tab is shown and selected, the source recorded, and loading
      * started. The caller then loads the events and calls setCalendarEvents.
+     *
+     * See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
      */
     showCalendarForFolder: (folder) => {
       const { visibleTabs } = get();

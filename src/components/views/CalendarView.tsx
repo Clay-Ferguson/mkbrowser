@@ -120,6 +120,7 @@ export default function CalendarView() {
   // 'resize' on activation makes the library re-measure through its own listeners.
   // The only other window 'resize' listener in the app is PopupMenu's cheap
   // repositioning, so waking it too costs nothing.
+  // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
   useEffect(() => {
     if (isActive) window.dispatchEvent(new Event('resize'));
   }, [isActive]);

@@ -9,6 +9,7 @@ import { type TagCategory, isAllTagCategory } from '../shared/tagUtil';
 // ============================================================================
 // View / navigation - current view & path, pending scroll/edit signals,
 // tabs, root path, folder analysis/graph, and other top-level UI flags.
+// See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
 // ============================================================================
 
 /**
@@ -55,7 +56,11 @@ export interface ViewSlice {
  */
 export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
   return {
-    /** Set the current view. */
+    /**
+     * Set the current view (the active tab).
+     *
+     * See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
+     */
     setCurrentView: (view) => {
       if (get().currentView === view) return;
       set({ currentView: view });
@@ -95,6 +100,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * to (default is 'browser').
      *
      * See: (docs/technical_notes/single_file_browsing.md#leaving-single-file-mode-the-index-tree)
+     * See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
      */
     navigateToBrowserPath: (path, scrollToFile, view = 'browser') => {
       const newState: Partial<AppState> = {
@@ -294,7 +300,11 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       set({ pendingThreadScrollToBottom: false });
     },
 
-    /** Set folder analysis results. */
+    /**
+     * Set folder analysis results. Non-null shows the Analysis tab; null closes it.
+     *
+     * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+     */
     setFolderAnalysis: (data) => set({ folderAnalysis: data }),
 
     /**
@@ -302,6 +312,9 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * Used both for the initial scan result and to overwrite when the user
      * re-launches the graph from the menu. Also drops the old graph's
      * file-link edges in the same update, since they belong to that graph.
+     * Non-null shows (and mounts) the Graph tab; null closes and unmounts it.
+     *
+     * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
      */
     setFolderGraph: (data) => set({ folderGraph: data, folderGraphFileLinks: null }),
 
@@ -345,6 +358,8 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     /**
      * Show a tab in the tab bar (adds it to visibleTabs).
      * Does not persist — resets on restart.
+     *
+     * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
      */
     showTab: (tab) => {
       const visibleTabs = get().visibleTabs;
@@ -354,6 +369,11 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       set({ visibleTabs: next });
     },
 
+    /**
+     * Hide a tab from the tab bar (removes it from visibleTabs).
+     *
+     * See: (docs/technical_notes/application_tabs.md#closing-tabs)
+     */
     hideTab: (tab) => {
       const visibleTabs = get().visibleTabs;
       if (!visibleTabs.has(tab)) return;
@@ -375,11 +395,14 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
  * — fetches, DOM measuring/scrolling — gate on this and list it as a dep, so
  * they also re-run when the tab is activated. Returns a boolean, so a
  * component only re-renders when its own view is shown or hidden.
+ *
+ * See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
  */
 export function useIsActiveView(view: AppView): boolean {
   return useAS(s => s.currentView === view);
 }
 
+// Switches the active tab from anywhere. See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
 export function setCurrentView(view: AppView): void {
   getState().setCurrentView(view);
 }
@@ -502,11 +525,15 @@ export function openRootFolder(folder: string): void {
 
 /**
  * Check whether a tab is currently visible in the tab bar.
+ *
+ * See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
  */
 export function isTabVisible(tab: AppView): boolean {
   return getState().visibleTabs.has(tab);
 }
 
+// Call showTab before setCurrentView for any tab that is not data-derived, or the
+// view is active with no tab button. See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
 export function showTab(tab: AppView): void {
   getState().showTab(tab);
 }

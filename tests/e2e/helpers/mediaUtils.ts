@@ -359,6 +359,8 @@ export async function openEntryMenu(actionBar: Locator): Promise<Locator> {
  *
  * @example
  * await activeView(mainWindow).getByTestId('ai-reply-button').click();
+ *
+ * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
  */
 export function activeView(mainWindow: Page): Locator {
   return mainWindow.locator('[data-active-view="true"]');

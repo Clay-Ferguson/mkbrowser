@@ -170,6 +170,8 @@ function SearchResultsView() {
    * qualify is decided by the same parser the folder scan uses. This replaces
    * whatever the calendar was previously showing, and is a snapshot — the load
    * stops the folder watcher, since the results can span many folders.
+   *
+   * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
    */
   const handleShowCalendar = () => {
     if (searchResults.length === 0) return;

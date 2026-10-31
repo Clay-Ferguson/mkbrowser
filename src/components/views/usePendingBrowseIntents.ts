@@ -30,6 +30,8 @@ import { usePendingItemScroll } from './usePendingItemScroll';
  * One hook rather than two because the restore and the pending scrolls gate
  * each other: a restore would fight a pending file/heading scroll that has not
  * landed yet.
+ *
+ * See: (docs/technical_notes/application_tabs.md#the-one-exception-to-native-scroll-browseview-per-folder-scroll)
  */
 export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement | null>) {
   const isActive = useIsActiveView('browser');
@@ -72,6 +74,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     // mounted across tab switches (visibility is toggled via CSS), so its
     // scroll position is preserved natively when switching tabs — we only
     // need to save/restore per folder when navigating between folders.
+    // See: (docs/technical_notes/application_tabs.md#the-one-exception-to-native-scroll-browseview-per-folder-scroll)
     const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
 
     // A fresh mount also has to restore, because this component really does get
@@ -151,9 +154,10 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     }
   }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, pendingExpandFile, currentPath, isActive, mainContainerRef]);
 
-  // Clear any pending debounced save on unmount (full app teardown / closing
-  // the folder). BrowseView no longer unmounts on tab switches, so there is no
-  // view-switch scroll position to flush here.
+  // Clear any pending debounced save on unmount (entering single-file mode,
+  // full app teardown, closing the folder). BrowseView does not unmount on tab
+  // switches, so there is no view-switch scroll position to flush here.
+  // See: (docs/technical_notes/application_tabs.md#the-browse-tab)
   useEffect(() => {
     // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending debounced scroll-save timeout on unmount.
     return () => {

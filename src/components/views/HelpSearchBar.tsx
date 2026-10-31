@@ -119,6 +119,7 @@ export default function HelpSearchBar({ rootRef }: HelpSearchBarProps) {
   // Left/Right arrows mirror Prev/Next anywhere in the Help tab, and Enter / Shift+Enter do so
   // inside the guide. The listener is on the document (focus can be on <body>) and attached
   // only while this tab is shown.
+  // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
   const isActive = useIsActiveView('help');
   const arrowEvent = useEffectEvent((e: globalThis.KeyboardEvent) => {
     if (matches.length === 0) return;

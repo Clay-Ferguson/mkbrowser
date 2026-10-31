@@ -41,6 +41,8 @@ export function setCalendarEventsIfCurrent(source: CalendarSource | null, events
  * re-scan would only blank the grid behind a spinner for no gain. Any other source (a search
  * snapshot, or a different folder) is replaced, matching what the Calendar button in
  * BrowseView does.
+ *
+ * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
  */
 export function openCalendarAtDate(folder: string, date: Date): void {
   setCalendarViewTime(date);

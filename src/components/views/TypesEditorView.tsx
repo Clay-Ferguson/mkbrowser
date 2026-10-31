@@ -54,6 +54,8 @@ function sortByName(types: EditorType[]): EditorType[] {
  * live in a local, id-keyed model (see typesEditorModel.ts) until Save (or a type
  * rename, which saves at once), which validates and persists via
  * `api.updateConfig({ types })`; Revert reloads from config. Since views never unmount, an unsaved draft survives tab switches.
+ *
+ * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
  */
 export default function TypesEditorView() {
   const [types, setTypes] = useState<EditorType[]>([]);

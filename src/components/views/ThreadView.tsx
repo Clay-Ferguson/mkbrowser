@@ -128,6 +128,7 @@ function ThreadView() {
     // every browser-tab folder navigation would fire the gather IPC + store
     // seeding for a thread view the user isn't looking at. Skip while hidden;
     // `isActive` is in the deps so the gather runs when this tab activates.
+    // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
     if (!isActive) return;
     const token = nextThreadToken();
     // A slow gather can resolve after the user has navigated elsewhere, or after
