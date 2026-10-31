@@ -172,6 +172,7 @@ function SearchResultsView() {
    * stops the folder watcher, since the results can span many folders.
    *
    * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+   * See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
    */
   const handleShowCalendar = () => {
     if (searchResults.length === 0) return;

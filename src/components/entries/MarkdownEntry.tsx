@@ -94,7 +94,11 @@ async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<v
 }
 
 
-/** The one property whose two pill halves do different things (edit vs. show on the calendar). */
+/**
+ * The one property whose two pill halves do different things (edit vs. show on the calendar).
+ *
+ * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ */
 const DUE_PROP = 'due';
 
 /**
@@ -129,6 +133,8 @@ function parseFrontMatterMeta(markdown: string): { tags: string[]; props: Record
  * props click while the entry is *not* in edit mode, so there is no editor buffer to route through.
  * Failures are reported through the app error dialog. Module-level so its try/catch doesn't make
  * the React Compiler bail out on MarkdownEntry.
+ *
+ * See: (docs/technical_notes/calendar_view.md#calendarview-component)
  */
 async function saveCalendarProps(path: string, newContent: string): Promise<void> {
   try {
@@ -327,6 +333,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     })();
   };
   
+  // Edit-mode toolbar; its calendar icon (`edit-calendar-info`) opens EditCalendarDialog.
+  // See: (docs/technical_notes/calendar_view.md#calendarview-component)
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
       {...chrome.toolbarProps}
@@ -445,6 +453,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const clickOnProp = (key: string): void => {
     // Calendar properties get the calendar dialog instead of the raw front-matter editor. The dialog
     // works fine outside edit mode: it only needs the file content, and its save routes to disk.
+    // See: (docs/technical_notes/calendar_view.md#calendarview-component)
     if (CALENDAR_PROPS.has(key)) {
       setShowCalendarDialog(true);
       return;
@@ -483,6 +492,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
    *
    * The jump also highlights this file, so its purple border says which entry the user left from
    * once they come back to the Browse View.
+   *
+   * See: (docs/technical_notes/calendar_view.md#calendarview-component)
    */
   const clickOnPropValue = (key: string, value: string): void => {
     if (key === DUE_PROP) {
@@ -545,6 +556,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   // A click on a date in the object's card jumps to that date on the Calendar tab, as a `due`
   // pill's value does, highlighting this file so it's marked once the user comes back.
+  // See: (docs/technical_notes/calendar_view.md#calendarview-component)
   const handleObjectDateClick = (date: Date): void => {
     setHighlightItem(entry.path);
     openCalendarAtDate(getParentPath(entry.path), date);

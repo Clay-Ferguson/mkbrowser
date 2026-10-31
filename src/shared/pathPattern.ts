@@ -98,6 +98,9 @@ export function buildExcludePredicate(
  * a watcher pre-stat check where chokidar hasn't provided `stats` yet). When unknown,
  * the extension rule is skipped and the entry is kept, so it is never pruned before it
  * can be identified as a directory.
+ *
+ * See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
+ * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
  */
 export function buildCalendarFilter(
   ignoredPaths: string[],

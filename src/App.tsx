@@ -117,6 +117,7 @@ function App() {
   // Listen for calendar file changes from the main process (chokidar) — lives here so
   // it's always active regardless of which view is currently displayed.
   // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
+  // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
   useEffect(() => {
     // Returns the useEffect cleanup: the unsubscribe fn from onCalendarFileChanged, which removes the 'calendar-file-changed' IPC listener on unmount.
     return api.onCalendarFileChanged((results: CalendarEventResult[], filePath: string) => {
@@ -124,6 +125,8 @@ function App() {
     });
   }, []);
 
+  // A deleted file clears its events; a deleted folder clears every event under it.
+  // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
   useEffect(() => {
     // Returns the useEffect cleanup: the unsubscribe fn from onCalendarFileDeleted, which removes the 'calendar-file-deleted' IPC listener on unmount.
     return api.onCalendarFileDeleted((deletedPath: string, isFolder: boolean) => {
@@ -137,6 +140,7 @@ function App() {
 
   // Surface a one-time file-watcher warning (e.g. inotify exhaustion) so the user
   // knows calendar live-updates degraded. Shown as a dismissible banner in CalendarView.
+  // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
   useEffect(() => {
     // Returns the useEffect cleanup: the unsubscribe fn that removes the 'calendar-watcher-error' IPC listener on unmount.
     return api.onCalendarWatcherError((message: string) => {

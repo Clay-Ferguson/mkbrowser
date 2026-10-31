@@ -27,7 +27,10 @@ interface PropsDisplayProps {
    *  `onPropValueClick` is absent). */
   onPropClick?: (key: string) => void;
   /** Click on the value half only. Given, it takes over that half of every pill, so the
-   *  handler must fall back to the `onPropClick` behavior for keys it doesn't special-case. */
+   *  handler must fall back to the `onPropClick` behavior for keys it doesn't special-case.
+   *  MarkdownEntry uses it to make a `due` date jump to the Calendar tab.
+   *
+   *  See: (docs/technical_notes/calendar_view.md#calendarview-component) */
   onPropValueClick?: (key: string, value: string) => void;
   /** Tooltip for the value half, when it should differ from the pill's own tooltip. */
   propValueTitle?: (key: string, value: string) => string | undefined;

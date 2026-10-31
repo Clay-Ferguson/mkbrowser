@@ -96,6 +96,9 @@ interface BrowseToolbarProps {
  * `onOpenOverlay`. A menu item runs its action before calling the menu's
  * onClose, but since the two are separate state, closing the menu never
  * closes the dialog its action just opened.
+ *
+ * The Calendar button (`calendar-button`) opens the current folder's calendar.
+ * See: (docs/technical_notes/calendar_view.md#folder-source--live)
  */
 function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: BrowseToolbarProps) {
   const rootPath = useAS(s => s.rootPath);

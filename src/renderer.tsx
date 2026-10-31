@@ -10,6 +10,7 @@ import './index.css';
 // temporarily point the calendar-items folder at the demo folder and restore it
 // afterward. This only reads/writes the live store; it is otherwise inert. Only
 // attached when running unpackaged (dev and e2e), never in the shipped app.
+// See: (docs/technical_notes/calendar_view.md#testing)
 if (getApi()?.testHooksEnabled) {
   (window as unknown as { __testStore?: unknown }).__testStore = {
     getSettings,

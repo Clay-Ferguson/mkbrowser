@@ -117,7 +117,11 @@ export interface AppSettings {
   searchDefinitions: SearchDefinition[];
   contentWidth: ContentWidth;
   bookmarks: Bookmark[];
-  /** Folder path where new calendar item files are created. */
+  /**
+   * Folder path where new calendar item files are created.
+   *
+   * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+   */
   calendarItemsFolder: string;
   /** Folder tree sidebar visibility and width. */
   indexTreeWidth: IndexTreeWidth;
@@ -240,7 +244,11 @@ export interface AppConfig {
   tagsPanelVisible?: boolean;
   /** Whether the AI Rewrite button is shown in entry editors. */
   aiRewriteMode?: boolean;
-  /** Last selected calendar view type (month/week/day/agenda). */
+  /**
+   * Last selected calendar view type (month/week/work_week/day/agenda).
+   *
+   * See: (docs/technical_notes/calendar_view.md#global-state)
+   */
   calendarViewType?: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
   /** Recently browsed folders, most recent first, max 10. */
   recentFolders?: string[];
@@ -448,6 +456,8 @@ export interface FolderAnalysisResult {
   totalFiles: number;
 }
 
+// IPC wire form of a calendar event (epoch-ms times survive structured cloning).
+// See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
 export interface CalendarEventResult {
   id: string;
   title: string;
@@ -585,6 +595,7 @@ export interface ElectronAPI {
   checkAdvancedQuerySyntax: (query: string) => Promise<string | null>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
+  // Calendar: folder crawl (starts the watcher) and search-results list. See: (docs/technical_notes/calendar_view.md#ipc-surface)
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;
   /** Calendar events for an explicit file list (search results). Stops the folder watcher. */
   loadCalendarEventsForFiles: (filePaths: string[]) => Promise<CalendarEventResult[]>;
@@ -623,6 +634,7 @@ export interface ElectronAPI {
   cancelAiStream: () => void;
 
   // Calendar file-change and delete events
+  // See: (docs/technical_notes/calendar_view.md#ipc-surface)
   onCalendarFileChanged: (callback: (results: CalendarEventResult[], filePath: string) => void) => () => void;
   onCalendarFileDeleted: (callback: (deletedPath: string, isFolder: boolean) => void) => () => void;
   onCalendarWatcherError: (callback: (message: string) => void) => () => void;

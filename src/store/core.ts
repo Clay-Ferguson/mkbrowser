@@ -130,6 +130,7 @@ const initialState: AppState = {
   pendingIndexTreeRevealExpandsFile: false,
   hasIndexFile: false,
   indexYaml: null,
+  // Calendar view state. See: (docs/technical_notes/calendar_view.md#global-state)
   calendarSource: null,
   calendarEvents: null,
   calendarLoading: false,

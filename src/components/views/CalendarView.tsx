@@ -12,13 +12,21 @@ import { getFileName, getParentPath, joinPath } from '../../renderer/pathUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
 import { BUTTON_CLASS_LINK_AMBER } from '../../renderer/styles';
 
-/** Formats a Date as MM/DD/YYYY for use in the `due:` front-matter field. */
+/**
+ * Formats a Date as MM/DD/YYYY for use in the `due:` front-matter field.
+ *
+ * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ */
 function formatDueDate(d: Date): string {
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
 }
 
-/** Formats a Date as H:MM AM/PM for use in the `start:` front-matter field. */
+/**
+ * Formats a Date as H:MM AM/PM for use in the `start:` front-matter field.
+ *
+ * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ */
 function formatStartTime(d: Date): string {
   const h24 = d.getHours();
   const h12 = h24 % 12 || 12;
@@ -52,6 +60,8 @@ interface PendingSlot {
  * from. A folder-sourced calendar names the scanned folder and navigates to it;
  * a search-sourced one names the search and how many of its results turned out
  * to be calendar files, and navigates back to the result list.
+ *
+ * See: (docs/technical_notes/calendar_view.md#calendarview-component)
  */
 function CalendarSourceHeader({ source, eventCount }: { source: CalendarSource; eventCount: number }) {
   const bannerClass = 'w-full px-4 py-2 text-slate-300 text-sm truncate cursor-pointer';
@@ -95,8 +105,16 @@ function CalendarSourceHeader({ source, eventCount }: { source: CalendarSource; 
  * the header banner. Clicking a calendar slot opens a
  * dialog to create a new Markdown file pre-filled with `due:`, `start:`, and
  * `duration:` fields derived from the selection. Clicking an event navigates the
- * browser to the corresponding file. The selected view type and current date are
- * persisted to config so they survive app restarts.
+ * browser to the corresponding file. The selected view type is persisted to
+ * config so it survives app restarts; the navigated-to date lives only in the
+ * store and resets to today on restart.
+ *
+ * The inline `<style>` block (a template literal — no backticks inside it) themes the
+ * library dark and defines `mk-event-highlighted` (applied via `eventPropGetter`) and
+ * `mk-day-target` (applied via `dayPropGetter`).
+ *
+ * See: (docs/technical_notes/calendar_view.md#overview)
+ * See: (docs/technical_notes/calendar_view.md#calendarview-component)
  */
 export default function CalendarView() {
   const events = useAS(s => s.calendarEvents);
@@ -121,10 +139,13 @@ export default function CalendarView() {
   // The only other window 'resize' listener in the app is PopupMenu's cheap
   // repositioning, so waking it too costs nothing.
   // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
+  // See: (docs/technical_notes/calendar_view.md#calendarview-component)
   useEffect(() => {
     if (isActive) window.dispatchEvent(new Event('resize'));
   }, [isActive]);
 
+  // The view type goes to the store and to config (the one calendar field persisted to disk).
+  // See: (docs/technical_notes/calendar_view.md#global-state)
   const handleViewChange = (v: View) => {
     const vt = v as CalendarViewType;
     setCalendarViewType(vt);
@@ -135,6 +156,8 @@ export default function CalendarView() {
    * Handles a drag-select or click on an empty calendar slot. Builds the initial
    * front-matter block (`due:`, and optionally `start:` + `duration:` for timed
    * slots) and opens the new-file dialog so the user can name the event file.
+   *
+   * See: (docs/technical_notes/calendar_view.md#calendarview-component)
    */
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
     const { start, end } = slotInfo;
@@ -159,6 +182,8 @@ export default function CalendarView() {
    * Creates the calendar Markdown file with the pending front-matter content in
    * the configured calendar items folder, then navigates the browser to it and
    * opens it for editing.
+   *
+   * See: (docs/technical_notes/calendar_view.md#calendarview-component)
    */
   const handleCreateCalendarFile = (fileName: string) => {
     if (!pendingSlot) return;
@@ -193,6 +218,7 @@ export default function CalendarView() {
     })();
   };
 
+  // Jumps to the event's file in BrowseView, highlighted. See: (docs/technical_notes/calendar_view.md#calendarview-component)
   const handleSelectEvent = (event: CalendarEvent) => {
     if (!event.filePath) return;
     const folderPath = getParentPath(event.filePath);

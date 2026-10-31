@@ -8,6 +8,8 @@ import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSum
  *
  * This test walks through the Calendar View feature of MkBrowser, capturing
  * screenshots and narration at each step for GIF/MP4 generation.
+ *
+ * See: (docs/technical_notes/calendar_view.md#testing)
  */
 test.describe('Calendar View Demo', () => {
   // Ensure the calendar folder exists before the app launches, since the demo

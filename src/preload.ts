@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchFolder: (folderPath: string, definition: SearchDefinition) => ipcRenderer.invoke('search-folder', folderPath, definition),
   checkAdvancedQuerySyntax: (query: string) => ipcRenderer.invoke('check-advanced-query-syntax', query),
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
+  // Calendar loaders: folder crawl (arms the watcher) and search-results list. See: (docs/technical_notes/calendar_view.md#ipc-surface)
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),
   loadCalendarEventsForFiles: (filePaths: string[]) => ipcRenderer.invoke('load-calendar-events-for-files', filePaths),
   scanFolderTree: (folderPath: string, markdownOnly?: boolean) => ipcRenderer.invoke('scan-folder-tree', folderPath, markdownOnly),
@@ -113,6 +114,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cancelAiStream: () => ipcRenderer.send('ai-stream-cancel'),
 
   // Calendar file-change events (chokidar → renderer)
+  // See: (docs/technical_notes/calendar_view.md#ipc-surface)
   onCalendarFileChanged: (callback: (results: CalendarEventResult[], filePath: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, results: CalendarEventResult[], filePath: string) => callback(results, filePath);
     ipcRenderer.on('calendar-file-changed', listener);

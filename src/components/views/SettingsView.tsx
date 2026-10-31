@@ -192,6 +192,7 @@ function SettingsView() {
     saveSettings();
   };
 
+  // The folder CalendarView creates new calendar files in. See: (docs/technical_notes/calendar_view.md#global-state)
   const handleCalendarItemsFolderChange = (calendarItemsFolder: string) => {
     setCalendarItemsFolder(calendarItemsFolder);
     saveSettings();

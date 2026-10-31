@@ -769,6 +769,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
           // The id embeds the file path (`filePath` or `filePath::i`), so rebuild
           // it from the moved path — leaving the old path in `id` risks duplicate
           // ids if a new file lands on the old path before the watcher resyncs.
+          // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
           const id = moved + e.id.slice(e.filePath!.length);
           return { ...e, id, filePath: moved };
         });

@@ -36,6 +36,10 @@ const asEndType = (value: string): EndType =>
  * weekly by-day selection, and an end condition of never/until-date/after-N) —
  * and on Save writes the values back, returning the updated `content` string via
  * onSave. The body itself is untouched; only the scheduling properties change.
+ *
+ * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (docs/technical_notes/calendar_view.md#calendarview-component)
  */
 function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogProps) {
   const existingDue = getDueProperty(content);

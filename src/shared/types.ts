@@ -247,6 +247,8 @@ export type HighlightedSearchResult = { path: string };
 
 /**
  * The selectable calendar views (month/week/work-week/day/agenda).
+ *
+ * See: (docs/technical_notes/calendar_view.md#global-state)
  */
 export type CalendarViewType = 'month' | 'week' | 'work_week' | 'day' | 'agenda';
 
@@ -588,22 +590,30 @@ export interface AppState {
    * Where the currently loaded calendarEvents came from (null = never loaded).
    * Tracked independently of the current browse path and the live search results
    * so the calendar stays stable while the user navigates elsewhere.
+   *
+   * See: (docs/technical_notes/calendar_view.md#global-state)
    */
   calendarSource: CalendarSource | null;
 
   /**
    * Calendar events loaded from the file system (null = not yet loaded).
+   *
+   * See: (docs/technical_notes/calendar_view.md#global-state)
    */
   calendarEvents: CalendarEvent[] | null;
 
   /**
    * True while calendar events are being loaded asynchronously.
+   *
+   * See: (docs/technical_notes/calendar_view.md#global-state)
    */
   calendarLoading: boolean;
 
   /**
-   * The currently selected calendar view (month/week/day/agenda).
+   * The currently selected calendar view (month/week/work_week/day/agenda).
    * Persisted to AppConfig so it survives app restarts.
+   *
+   * See: (docs/technical_notes/calendar_view.md#global-state)
    */
   calendarViewType: CalendarViewType;
 
@@ -611,10 +621,16 @@ export interface AppState {
    * The date currently displayed in the calendar (the navigated-to date).
    * Not persisted to config — resets to today on app restart, but survives
    * tab switches within a session.
+   *
+   * See: (docs/technical_notes/calendar_view.md#global-state)
    */
   calendarViewTime: Date;
 
-  /** The day the calendar was opened to show (a clicked date), drawn highlighted; null for none. */
+  /**
+   * The day the calendar was opened to show (a clicked date), drawn highlighted; null for none.
+   *
+   * See: (docs/technical_notes/calendar_view.md#global-state)
+   */
   calendarTargetDate: Date | null;
 
   /**
@@ -622,6 +638,8 @@ export interface AppState {
    * exhaustion) — null when there is nothing to show. Displayed as a dismissible
    * banner in the calendar so the user knows live updates degraded. Not
    * persisted.
+   *
+   * See: (docs/technical_notes/calendar_view.md#global-state)
    */
   calendarWatcherWarning: string | null;
 
@@ -700,6 +718,8 @@ export interface AiConfigState {
  * live via the chokidar watcher, while a `search` calendar is a one-shot snapshot
  * of the calendar files among a set of search results — it spans arbitrarily many
  * folders, so there is nothing coherent to watch and no live updates are applied.
+ *
+ * See: (docs/technical_notes/calendar_view.md#event-sources)
  */
 export type CalendarSource =
   | { kind: 'folder'; folder: string }
@@ -716,7 +736,10 @@ export type CalendarSource =
     };
 
 /**
- * A single event displayed on the calendar view.
+ * A single event displayed on the calendar view (the renderer-side, `Date`-based
+ * form of CalendarEventResult).
+ *
+ * See: (docs/technical_notes/calendar_view.md#global-state)
  */
 export interface CalendarEvent {
   id: string;

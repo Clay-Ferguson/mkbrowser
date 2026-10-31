@@ -43,7 +43,11 @@ const PLAIN_VALUE_CLASS = `${VALUE_CLASS} text-slate-300`;
 const LABEL_CLASS = 'whitespace-nowrap text-slate-400';
 const TITLE_CLASS = 'min-w-0 break-words text-lg font-semibold';
 
-/** Opens the Calendar view on the date a date value names. */
+/**
+ * Opens the Calendar view on the date a date value names.
+ *
+ * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ */
 type DateClickHandler = (date: Date) => void;
 
 /**

@@ -753,6 +753,8 @@ function setupIpcHandlers(): void {
   });
 
   // Scan folder for markdown files with a 'due' front matter property, then start watching it
+  // See: (docs/technical_notes/calendar_view.md#ipc-surface)
+  // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
   ipcMain.handle('load-calendar-events', async (_event, folderPath: string): Promise<CalendarEventResult[]> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
@@ -787,6 +789,7 @@ function setupIpcHandlers(): void {
   });
 
   // Load calendar events for an explicit list of files (the search-results calendar).
+  // See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
   ipcMain.handle('load-calendar-events-for-files', async (_event, filePaths: string[]): Promise<CalendarEventResult[]> => {
     try {
       // Snapshot semantics: a search-sourced calendar spans arbitrarily many folders,

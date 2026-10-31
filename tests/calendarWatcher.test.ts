@@ -6,6 +6,8 @@
  * watcher events by hand, and (c) control exactly when a file's calendar
  * entries finish loading. This makes the concurrency races deterministic
  * instead of timing-dependent.
+ *
+ * See: (docs/technical_notes/calendar_view.md#testing)
  */
 import type { Stats } from 'node:fs';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

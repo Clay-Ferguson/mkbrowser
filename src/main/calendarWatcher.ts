@@ -6,6 +6,9 @@ import { loadCalendarEntryForFile } from './calendarLoader';
 import { buildCalendarFilter } from '../shared/pathPattern';
 import { logger } from '../shared/logUtil';
 
+// Calendar live updates: a chokidar watcher on the folder-sourced calendar's folder.
+// See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+
 export type CalendarFileChangedCallback = (results: CalendarEventResult[], filePath: string) => void;
 export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolean) => void;
 export type CalendarWatcherErrorCallback = (message: string) => void;
@@ -15,6 +18,7 @@ export type CalendarWatcherErrorCallback = (message: string) => void;
 // the single mainWindow (see the 'load-calendar-events' IPC handler in main.ts).
 // If multi-vault or split-view watching is ever needed, promote this state into a
 // CalendarWatcher class so each view can own an independent instance.
+// See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
 let currentWatcher: ReturnType<typeof chokidar.watch> | null = null;
 let currentFolder: string | null = null;
 // The ignore patterns the active watcher was built with. Compared on each
@@ -25,8 +29,8 @@ let currentIgnoredPaths: string[] = [];
 
 // Serialization chain for start/stop operations. Both startCalendarWatcher and
 // stopCalendarWatcher are async and mutate the module state above across `await`
-// points, and their callers (the 'load-calendar-events' IPC handler, app
-// shutdown) can overlap — e.g. two rapid folder switches run two IPC handlers
+// points, and their callers (the 'load-calendar-events' and
+// 'load-calendar-events-for-files' IPC handlers, app shutdown) can overlap — e.g. two rapid folder switches run two IPC handlers
 // concurrently. Without serialization, a second start() call could observe
 // `currentWatcher === null` while the first was still awaiting the old
 // watcher's close(), and both would then create a watcher; whichever assigned
@@ -35,6 +39,7 @@ let currentIgnoredPaths: string[] = [];
 // exactly the bug this chain prevents: every public start/stop runs strictly
 // after the previous one has fully completed, so the check-then-act sequences
 // inside them are atomic with respect to each other.
+// See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
 let operationChain: Promise<void> = Promise.resolve();
 
 /**
@@ -59,6 +64,8 @@ function sameIgnoredPaths(a: string[], b: string[]): boolean {
  * watch descriptors and live updates silently stop for part (or all) of the tree.
  * That gets a specific, actionable message; anything else falls back to the raw
  * error text.
+ *
+ * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
  */
 function describeWatcherError(err: unknown): string {
   const code = (err as { code?: unknown } | null)?.code;
@@ -89,6 +96,8 @@ function describeWatcherError(err: unknown): string {
  * matches a user ignore pattern would load events on the initial crawl and then
  * silently never live-update, because chokidar would ignore the entire tree at
  * its root. Filtering of everything *inside* the root is unaffected.
+ *
+ * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
  */
 function buildIgnoredFn(folderPath: string, ignoredPaths: string[]): (filePath: string, stats?: Stats) => boolean {
   const exclude = buildCalendarFilter(ignoredPaths);
@@ -119,6 +128,8 @@ function buildIgnoredFn(folderPath: string, ignoredPaths: string[]): (filePath: 
  * - `ignoredPaths` accepts the same wildcard patterns used by folder browsing.
  * - Overlapping calls are safe: every start/stop runs through {@link serialized},
  *   so a second call issued while a restart is mid-flight simply queues behind it.
+ *
+ * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
  */
 export function startCalendarWatcher(
   folderPath: string,
@@ -221,6 +232,10 @@ async function doStartCalendarWatcher(
  * Stop and close the active calendar watcher. A no-op when no watcher is
  * active. Serialized with {@link startCalendarWatcher}, so a stop issued while
  * a start is mid-flight waits for it and then closes the watcher it created.
+ * Called on app quit and by the search-results loader, which wants no live updates.
+ *
+ * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+ * See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
  */
 export function stopCalendarWatcher(): Promise<void> {
   return serialized(doStopCalendarWatcher);

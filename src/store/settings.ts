@@ -81,7 +81,11 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
     setContentWidth: (contentWidth) => patchSettings('contentWidth', contentWidth),
 
 
-    /** Update the calendar items folder setting (where new calendar files are created). */
+    /**
+     * Update the calendar items folder setting (where new calendar files are created).
+     *
+     * See: (docs/technical_notes/calendar_view.md#global-state)
+     */
     setCalendarItemsFolder: (calendarItemsFolder) =>
       patchSettings('calendarItemsFolder', calendarItemsFolder),
 

@@ -1,6 +1,9 @@
 /**
  * Opening the Calendar tab from elsewhere in the UI: the value half of a `due`
- * property pill (see PropsDisplay/MarkdownEntry), and BrowseView's Calendar button.
+ * property pill (see PropsDisplay/MarkdownEntry), a date value on a typed object's
+ * card (GenericObject), and BrowseView's Calendar button.
+ *
+ * See: (docs/technical_notes/calendar_view.md#event-sources)
  */
 
 import { api } from './api';
@@ -27,6 +30,8 @@ import type { CalendarEvent, CalendarSource } from '../shared/types';
  * Calendar button on a different folder, a `due` pill, a search's calendar): without this the
  * slower, older scan lands last and fills the grid with events from a source the header no
  * longer names. The newer load clears the loading flag when it lands.
+ *
+ * See: (docs/technical_notes/calendar_view.md#stale-scan-guard)
  */
 export function setCalendarEventsIfCurrent(source: CalendarSource | null, events: CalendarEvent[]): void {
   if (useAS.getState().calendarSource === source) setCalendarEvents(events);
@@ -43,6 +48,7 @@ export function setCalendarEventsIfCurrent(source: CalendarSource | null, events
  * BrowseView does.
  *
  * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+ * See: (docs/technical_notes/calendar_view.md#calendarview-component)
  */
 export function openCalendarAtDate(folder: string, date: Date): void {
   setCalendarViewTime(date);
@@ -71,6 +77,8 @@ export function openCalendarAtDate(folder: string, date: Date): void {
  * the Calendar button in BrowseView. Unlike {@link openCalendarAtDate} this
  * always re-scans: it is the explicit "show me this folder's calendar" action.
  * Fire-and-forget: a failed scan is reported and leaves an empty calendar.
+ *
+ * See: (docs/technical_notes/calendar_view.md#folder-source--live)
  */
 export function showFolderCalendar(folder: string): void {
   showCalendarForFolder(folder);
