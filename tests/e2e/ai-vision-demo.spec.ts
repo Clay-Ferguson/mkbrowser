@@ -9,6 +9,8 @@ import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSum
  * Walks through an AI vision query on an image of Mont Saint-Michel,
  * using a scripted (mocked) AI answer so the demo is deterministic.
  * Captures screenshots and narration at every step for GIF/MP4 assembly.
+ *
+ * See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
  */
 test.describe('AI Vision Demo', () => {
   test('demonstrate an AI vision query on an image', async ({ mainWindow }) => {

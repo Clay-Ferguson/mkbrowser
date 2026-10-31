@@ -95,6 +95,7 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
   };
 
   // Determine whether the thread tab should be visible based on loaded entries
+  // See: (docs/technical_notes/ai_chat.md#when-the-tab-appears)
   const isInAiThread = useAS(s => isAiThreadByEntries(s.currentEntries)) || currentView === 'thread';
 
   const visibleIds = new Set<AppView>([

@@ -13,6 +13,8 @@ import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSum
  *
  * NOTE: This is a work-in-progress demo. Narrations are written assuming more
  * of the demo follows — they should not sound like an ending.
+ *
+ * See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
  */
 test.describe('AI Chat Persona Demo', () => {
   test('define an AI persona and start a chat with it', async ({ mainWindow }) => {

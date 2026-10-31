@@ -70,6 +70,8 @@ interface MarkdownEntryProps extends BaseEntryProps, AttachMenuProps {
  * Creates the reply HUMAN.md for the next conversation turn and navigates to it.
  * Module-level (not in the component) so its try/catch/finally doesn't make the
  * React Compiler bail out on MarkdownEntry.
+ *
+ * See: (docs/technical_notes/ai_chat.md#replying-to-the-ai)
  */
 async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<void> {
   try {
@@ -155,6 +157,7 @@ async function saveCalendarProps(path: string, newContent: string): Promise<void
  * In document mode, timestamp-based file names are hidden from the header row.
  *
  * See: (docs/technical_notes/file_attachments.md#paperclip-button-srccomponentsentriesmarkdownentrytsx)
+ * See: (docs/technical_notes/ai_chat.md#code-map)
  */
 function MarkdownEntry(props: MarkdownEntryProps) {
   const { entry, view, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, isAttachment = false, alwaysExpandedEditor = false } = props;
@@ -258,6 +261,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     saveSettings();
   };
 
+  // AI Chat turn files get the Ask AI / Reply buttons, only while AI is enabled. See: (docs/technical_notes/ai_chat.md#overview)
   const isHumanFile = aiEnabled && entry.name === HUMAN_FILENAME;
   const isAiFile = aiEnabled && entry.name === AI_FILENAME;
 
@@ -266,6 +270,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   //
   // Promise .finally() instead of try/finally: the React Compiler bails out on
   // any try statement with a finalizer, which would de-optimize this component.
+  // See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
   const handleAskAi = async (promptContent: string | undefined, endEdit: boolean) => {
     const textToSend = promptContent || content;
     if (!textToSend) return;
@@ -308,6 +313,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // folder listing, unmounting this component mid-request and taking the
   // streaming dialog and the deferred navigation down with it: the answer landed
   // on disk but the user saw neither.
+  // See: (docs/technical_notes/ai_chat.md#asking-the-ai)
   const onAskAI = () => {
     void (async () => {
       const saved = await handleSaveKeepEditing();

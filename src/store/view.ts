@@ -281,10 +281,14 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     /** Show (or, with null, dismiss) the id-link mismatch warning. */
     setLinkIdMismatch: (mismatch) => set({ linkIdMismatch: mismatch }),
 
-    /** Request ThreadView to scroll to bottom after its next render. */
+    /**
+     * Request ThreadView to scroll to bottom once its thread has loaded.
+     *
+     * See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
+     */
     setPendingThreadScrollToBottom: () => set({ pendingThreadScrollToBottom: true }),
 
-    /** Clear the pending thread scroll-to-bottom flag (call after the scroll timer is created). */
+    /** Clear the pending thread scroll-to-bottom flag (call once the scroll has run). */
     clearPendingThreadScrollToBottom: () => {
       if (!get().pendingThreadScrollToBottom) return;
       set({ pendingThreadScrollToBottom: false });

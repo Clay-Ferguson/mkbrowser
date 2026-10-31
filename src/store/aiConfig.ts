@@ -15,6 +15,7 @@ export { defaultAiConfig };
 // ThreadView. Mirroring the full AI config into the store lets those consumers
 // subscribe and update live. `loadConfig` seeds this at startup; `saveAiConfig`
 // (config.ts) keeps it in sync on every persist.
+// ThreadView's persona dropdown: See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
 
 /**
  * Actions owned by this slice. Composed into the single store's state type in

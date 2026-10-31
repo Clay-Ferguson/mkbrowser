@@ -945,7 +945,8 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Ask AI: submit a prompt and write the response to A/AI.md (or AI1.md, etc.)
+  // Ask AI: submit a prompt and write the response to A/AI.md (or A1/AI.md, etc.)
+  // See: (docs/technical_notes/ai_chat.md#asking-the-ai)
   ipcMain.handle('ask-ai', async (
     _event,
     prompt: string,
@@ -1106,6 +1107,8 @@ function setupIpcHandlers(): void {
   });
 
   // Reply to AI: create an H subfolder with an empty HUMAN.md for the user to write in
+  // (or, for "New AI Chat", HUMAN.md directly in the folder).
+  // See: (docs/technical_notes/ai_chat.md#replying-to-the-ai)
   ipcMain.handle('reply-to-ai', async (_event, parentFolderPath: string, createSubFolder: boolean) => {
     try {
       return await handleReplyToAI(parentFolderPath, createSubFolder);
@@ -1116,6 +1119,7 @@ function setupIpcHandlers(): void {
   });
 
   // Gather AI conversation thread entries for the ThreadView.
+  // See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
   ipcMain.handle('gather-thread-entries', async (_event, folderPath: string) => {
     return gatherThreadEntries(folderPath);
   });

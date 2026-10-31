@@ -20,6 +20,8 @@ interface StreamingDialogProps {
  * a "Stop" button (and ✕/Esc) that aborts the backend stream via onCancel before
  * closing; once finished those just close via onClose. See appendText below for
  * why output is written to the DOM directly instead of through React state.
+ *
+ * See: (docs/technical_notes/ai_chat.md#asking-the-ai)
  */
 function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
   const outputRef = useRef<HTMLPreElement>(null);

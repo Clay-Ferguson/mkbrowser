@@ -217,13 +217,20 @@ export interface AppConfig {
   curSubFolder?: string;
   settings?: AppSettings;
   lastExportFolder?: string;
+  // "Enable AI": gates every AI Chat button and menu item. See: (docs/technical_notes/ai_chat.md#overview)
   aiEnabled?: boolean;
   aiModels?: AIModelConfig[];
   aiModel?: string;
   llamacppBaseUrl?: string;
+  // Routes Ask AI through the deep agent instead of a plain LLM call. See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
   agenticMode?: boolean;
   agenticAllowedFolders?: string;
-  /** The name of the currently selected rewrite prompt. */
+  /**
+   * The name of the currently selected rewrite prompt. This is also the persona
+   * the AI Chat tab's "Chat with Persona" box selects.
+   *
+   * See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
+   */
   aiRewritePrompt?: string;
   /** Named rewrite prompts available to the user. */
   aiRewritePrompts?: AIRewritePromptDef[];
@@ -253,7 +260,11 @@ export interface FileEntry {
   /** File size in bytes (from the same stat as modifiedTime); undefined when stat failed */
   size?: number;
   content?: string;
-  /** Preview text from HUMAN.md or AI.md for AI conversation folders */
+  /**
+   * Preview text from HUMAN.md or AI.md for AI conversation folders
+   *
+   * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+   */
   aiHint?: string;
   /**
    * Position from .INDEX.yaml; undefined means not listed (appears after indexed entries)
@@ -591,16 +602,18 @@ export interface ElectronAPI {
   /** Checks an HTML export output folder against the source, before the user is asked to overwrite it. */
   checkHtmlExportTarget: (sourceFolder: string, outputFolder: string) => Promise<HtmlExportTargetCheck>;
   runShellScript: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+  // AI Chat: Ask AI and Reply. See: (docs/technical_notes/ai_chat.md#code-map)
   askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   replyToAi: (parentFolderPath: string, createSubFolder: boolean) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
   getAiUsage: () => Promise<AIUsageWithCosts>;
   resetAiUsage: () => Promise<void>;
   queueScriptedAnswer: (answer: string) => Promise<void>;
+  // Builds the AI Chat tab's thread. See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
   gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }>; childFolders: Array<{ role: 'human' | 'ai'; name: string; path: string; aiHint?: string }> }>;
   rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
 
-  // AI streaming events
+  // AI streaming events (drive the streaming dialog). See: (docs/technical_notes/ai_chat.md#asking-the-ai)
   onAiStreamStart: (callback: () => void) => () => void;
   onAiStreamChunk: (callback: (text: string) => void) => () => void;
   onAiStreamThinking: (callback: (text: string) => void) => () => void;

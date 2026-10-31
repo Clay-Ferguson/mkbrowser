@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('check-html-export-target', sourceFolder, outputFolder),
   runShellScript: (filePath: string) =>
     ipcRenderer.invoke('run-shell-script', filePath),
+  // AI Chat: Ask AI and Reply. See: (docs/technical_notes/ai_chat.md#code-map)
   askAi: (prompt: string, parentFolderPath: string) =>
     ipcRenderer.invoke('ask-ai', prompt, parentFolderPath),
   replyToAi: (parentFolderPath: string, createSubFolder: boolean) =>
@@ -73,11 +74,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAiUsage: () => ipcRenderer.invoke('get-ai-usage'),
   resetAiUsage: () => ipcRenderer.invoke('reset-ai-usage'),
   queueScriptedAnswer: (answer: string) => ipcRenderer.invoke('queue-scripted-answer', answer),
+  // Builds the AI Chat tab's thread. See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
   gatherThreadEntries: (folderPath: string) => ipcRenderer.invoke('gather-thread-entries', folderPath),
   rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => ipcRenderer.invoke('rewrite-content', content, filePath, hasIndexFile),
   rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => ipcRenderer.invoke('rewrite-content-selection', content, selectionFrom, selectionTo, filePath, hasIndexFile),
 
-  // AI streaming events
+  // AI streaming events (drive the streaming dialog). See: (docs/technical_notes/ai_chat.md#asking-the-ai)
   onAiStreamStart: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on('ai-stream-start', listener);

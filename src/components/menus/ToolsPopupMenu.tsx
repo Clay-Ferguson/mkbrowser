@@ -18,6 +18,8 @@ interface ToolsPopupMenuProps {
  * AI chat (when AI is enabled), folder analysis, then (each group below a
  * divider) the folder graph of all files or of Markdown files only, and the
  * export options.
+ *
+ * See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
  */
 export default function ToolsPopupMenu({
   anchorRef,

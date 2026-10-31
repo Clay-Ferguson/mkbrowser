@@ -8,13 +8,25 @@
  * the main process or the renderer.
  */
 
-/** Filename holding a human conversation turn. */
+/**
+ * Filename holding a human conversation turn.
+ *
+ * See: (docs/technical_notes/ai_chat.md#overview)
+ */
 export const HUMAN_FILENAME = 'HUMAN.md';
 
-/** Filename holding an AI conversation turn. */
+/**
+ * Filename holding an AI conversation turn.
+ *
+ * See: (docs/technical_notes/ai_chat.md#overview)
+ */
 export const AI_FILENAME = 'AI.md';
 
-/** Filename holding AI "thinking" content, written alongside {@link AI_FILENAME}. */
+/**
+ * Filename holding AI "thinking" content, written alongside {@link AI_FILENAME}.
+ *
+ * See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
+ */
 export const THINK_FILENAME = 'THINK.md';
 
 /**

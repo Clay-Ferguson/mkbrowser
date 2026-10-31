@@ -3,6 +3,8 @@
  *
  * This module is intentionally free of Electron and LangChain imports so that
  * it can be unit-tested in a plain Node environment.
+ *
+ * See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -106,6 +108,8 @@ export function wildcardToRegex(pattern: string): RegExp {
  * @param includeImages Whether to attach matched image files (default `true`).
  * @returns             A {@link PreprocessResult} with the processed prompt
  *                      text and any image attachments.
+ *
+ * See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
  */
 export async function preprocessPrompt(
   rawText: string,

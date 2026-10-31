@@ -5,6 +5,8 @@
  *
  * Main-process only — imports 'node:fs'.  Keep renderer-safe pattern matching
  * in ./aiPatterns instead.
+ *
+ * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
  */
 
 import path from 'node:path';
@@ -22,6 +24,8 @@ export const AI_HINT_MAX_LENGTH = 120;
  *
  * @param folderPath Absolute path to the conversation folder.
  * @param folderName The folder's name (used to decide HUMAN.md vs AI.md).
+ *
+ * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
  */
 export async function readAiHint(
   folderPath: string,

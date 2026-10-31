@@ -101,6 +101,8 @@ export interface ItemData {
   /**
    * Preview text from HUMAN.md or AI.md for AI conversation folders.
    * Only populated when aiEnabled is true in AppConfig.
+   *
+   * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
    */
   aiHint?: string;
 
@@ -539,8 +541,11 @@ export interface AppState {
   pendingIndexTreeRevealExpandsFile: boolean;
 
   /**
-   * When true, ThreadView should scroll to the bottom after a short delay.
-   * Set by actions like "Reply" that append new content to the thread.
+   * When true, ThreadView should scroll to the bottom once the thread has
+   * loaded. Set by actions like "Ask AI" and "Reply" that append new content
+   * to the thread.
+   *
+   * See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
    */
   pendingThreadScrollToBottom: boolean;
 
@@ -722,6 +727,8 @@ export interface CalendarEvent {
  * A single entry in an AI conversation thread.
  * Designed for extensibility — future versions may include
  * image attachments or other artifacts alongside the markdown content.
+ *
+ * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
  */
 export interface ThreadEntry {
   /** Role of this conversation turn */
@@ -739,9 +746,11 @@ export interface ThreadEntry {
 }
 
 /**
- * A conversation branch folder ("A*" / "H*") directly underneath the folder
- * being viewed in the ThreadView.  Their presence means the user is viewing
- * the conversation in the middle, and they can be clicked to drill deeper.
+ * A conversation branch folder ("A*" / "H*") where the ThreadView's gathered
+ * thread stops: a fork (several branch folders) or a branch folder with no
+ * turn file. They are listed as clickable choices for which branch to follow.
+ *
+ * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
  */
 export interface ThreadChildFolder {
   /** Role implied by the folder name's first character (H=human, A=ai) */

@@ -50,6 +50,8 @@ export function buildHumanMessage(result: PreprocessResult): HumanMessage {
  * Personas are stored as `aiRewritePrompts` (an array of {name, prompt}) with
  * the active one named by `aiRewritePrompt`. Returns the persona's prompt text,
  * or undefined when none is selected (so callers can fall back as appropriate).
+ *
+ * See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
  */
 export function resolveActivePersona(): string | undefined {
   const config = getConfig();

@@ -108,6 +108,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     }
 
     // Load AI conversation hint for H*/A* folders when aiEnabled
+    // See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
     if (isDirectory && aiEnabled) {
       fileEntry.aiHint = await readAiHint(fullPath, entry.name);
     }

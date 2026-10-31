@@ -137,6 +137,7 @@ function AISettingsView() {
   } = useAS(s => s.aiConfig);
   // The active persona is always read from the store (ThreadView can change it
   // too); PersonaEditor keeps only the textarea draft, keyed on this name.
+  // See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
   const personaName = aiRewritePrompt || DEFAULT_PERSONA_NAME;
 
   // Text fields keep a local draft for keystroke responsiveness, persisted on

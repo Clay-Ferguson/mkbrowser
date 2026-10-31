@@ -40,6 +40,8 @@ export interface AiStreamingDialog {
  *
  * Extracted from the near-identical Ask-AI and AI-Rewrite blocks that each
  * hand-rolled this subscription + deferred-navigation dance.
+ *
+ * See: (docs/technical_notes/ai_chat.md#asking-the-ai)
  */
 export function useAiStreamingDialog({ onError }: UseAiStreamingDialogOptions): AiStreamingDialog {
   const [showStreamingDialog, setShowStreamingDialog] = useState(false);

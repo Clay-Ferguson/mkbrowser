@@ -1,6 +1,9 @@
 /**
  * AI utility functions for MkBrowser.
  * This module runs in the main process only — never import from the renderer.
+ *
+ * The Ask AI, Reply, and AI Chat thread-gathering logic lives here.
+ * See: (docs/technical_notes/ai_chat.md#code-map)
  */
 
 import path from 'node:path';
@@ -56,6 +59,8 @@ export function friendlyAIError(error: unknown): string {
  * @param parentDir  Directory to scan for existing numbered subfolders.
  * @param baseName   Base folder name, e.g. "A".
  * @returns          Full absolute path for the first available folder.
+ *
+ * See: (docs/technical_notes/ai_chat.md#folder-layout-of-a-conversation)
  */
 export async function findNextNumberedFolder(parentDir: string, baseName: string): Promise<string> {
   // Try bare baseName first (e.g. "A"), then "A1", "A2", ...
@@ -123,6 +128,8 @@ export async function findNextNumberedFile(dir: string, baseName: string): Promi
  *                            current HUMAN.md (the one the user clicked
  *                            "Ask AI" on). This folder itself is NOT included
  *                            in the history — its content is the new prompt.
+ *
+ * See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
  */
 export async function gatherConversationHistory(
   currentHumanFolder: string
@@ -189,11 +196,16 @@ export type AskAIResult =
  * by the caller via `streamCallbacks` and `signal`.
  *
  * @param prompt            Raw prompt text from the user
- * @param parentFolderPath  Folder containing the H/ folder with HUMAN.md
+ * @param parentFolderPath  Folder containing the HUMAN.md (its own H folder, or
+ *                          the chat's root folder for the first turn). The
+ *                          response goes in a new A/ (A1/, …) folder inside it.
  * @param streamCallbacks   If non-null, use streaming; null = non-streaming invoke
  * @param signal            Optional AbortSignal for cancellation
  * @param onStreamDone      Called when streaming finishes successfully
  * @param onStreamError     Called when streaming throws (before re-throw)
+ *
+ * See: (docs/technical_notes/ai_chat.md#asking-the-ai)
+ * See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
  */
 export async function handleAskAI(
   prompt: string,
@@ -557,7 +569,11 @@ export async function handleRewriteContentSection(
 /**
  * Create a reply-to-AI folder with an empty HUMAN.md.
  * If createSubFolder is true, finds the next numbered H/ folder;
- * otherwise creates HUMAN.md directly in parentFolderPath.
+ * otherwise creates HUMAN.md directly in parentFolderPath (how "New AI Chat"
+ * starts a conversation).
+ *
+ * See: (docs/technical_notes/ai_chat.md#replying-to-the-ai)
+ * See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
  */
 export async function handleReplyToAI(
   parentFolderPath: string,
@@ -592,7 +608,11 @@ export async function handleReplyToAI(
   }
 }
 
-/** A single entry in an AI conversation thread. */
+/**
+ * A single entry in an AI conversation thread.
+ *
+ * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+ */
 export interface ThreadEntry {
   role: 'human' | 'ai';
   folderPath: string;
@@ -603,10 +623,12 @@ export interface ThreadEntry {
 }
 
 /**
- * A conversation branch folder directly underneath the folder being viewed.
- * These are the "A*" (AI) / "H*" (Human) folders that continue the thread
- * past the turn currently displayed.  When present, the user is viewing the
- * conversation somewhere in the middle rather than at its tail.
+ * A conversation branch folder ("A*" (AI) / "H*" (Human)) where the gathered
+ * thread stops: directly underneath its last turn, at a fork (several branch
+ * folders) or at a single branch folder that holds no turn file. The ThreadView
+ * lists these as clickable choices for which branch to follow.
+ *
+ * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
  */
 export interface ThreadChildFolder {
   /** Role implied by the folder name's first character (H=human, A=ai) */
@@ -619,12 +641,18 @@ export interface ThreadChildFolder {
   aiHint?: string;
 }
 
-/** Matches conversation branch folder names: H, A, H1, A2, etc. */
+/**
+ * Matches conversation branch folder names: H, A, H1, A2, etc.
+ *
+ * See: (docs/technical_notes/ai_chat.md#folder-layout-of-a-conversation)
+ */
 const THREAD_CHILD_FOLDER_RE = /^[AH]\d*$/;
 
 /**
  * List the conversation branch folders ("A*" / "H*") directly underneath
  * folderPath, sorted naturally by name.
+ *
+ * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
  */
 async function gatherThreadChildFolders(folderPath: string): Promise<ThreadChildFolder[]> {
   const childFolders: ThreadChildFolder[] = [];
@@ -650,9 +678,13 @@ async function gatherThreadChildFolders(folderPath: string): Promise<ThreadChild
 
 /**
  * Walk up the H/A folder hierarchy from folderPath, collecting
- * HUMAN.md / AI.md entries in chronological (top-down) order.  Also returns
- * any conversation branch folders ("A*" / "H*") directly underneath
- * folderPath so the caller can let the user drill deeper into the thread.
+ * HUMAN.md / AI.md entries in chronological (top-down) order, then drill down
+ * from folderPath through single branch folders to append the turns that
+ * follow it.  Also returns the conversation branch folders ("A*" / "H*")
+ * where the drill-down stopped (a fork, or a branch folder with no turn file)
+ * so the caller can let the user choose which branch to follow.
+ *
+ * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
  */
 export async function gatherThreadEntries(
   folderPath: string,

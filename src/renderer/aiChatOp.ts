@@ -1,3 +1,4 @@
+// AI Chat: the Tools menu's "New AI Chat" operation. See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
 import { api } from './api';
 import { runOp } from './runOp';
 import { refreshDirectory } from './directoryLoader';
@@ -10,6 +11,8 @@ import { navigateToBrowserPath, setAppError, setPendingEditFile, useAS } from '.
  * the thread view and opens the new file for editing. Refuses when the folder
  * already holds a conversation. Fire-and-forget: failures reach the app-wide
  * error dialog.
+ *
+ * See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
  */
 export function startAiChat(folderPath: string): void {
   if (hasHumanMd(useAS.getState().currentEntries)) {
