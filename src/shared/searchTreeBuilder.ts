@@ -5,6 +5,9 @@ import { FolderGraphState, FolderGraphNode, FolderGraphLink, SearchResultItem } 
  * a flat list of search results. Files become leaf nodes; their ancestor
  * directories up to a common root become directory nodes. No filesystem
  * access — operates purely on the path strings already in the results.
+ *
+ * See: (docs/technical_notes/folder_graph.md#tree-builder)
+ * See: (docs/technical_notes/folder_graph.md#why-this-is-client-side-not-ipc)
  */
 export function buildFolderGraphFromSearchResults(
   results: SearchResultItem[]
@@ -57,6 +60,7 @@ export function buildFolderGraphFromSearchResults(
   };
 }
 
+// `\` if any result path uses only backslashes, otherwise `/`. See: (docs/technical_notes/folder_graph.md#tree-builder)
 function detectSeparator(results: SearchResultItem[]): string {
   for (const r of results) {
     if (r.path.includes('\\') && !r.path.includes('/')) return '\\';
@@ -64,6 +68,8 @@ function detectSeparator(results: SearchResultItem[]): string {
   return '/';
 }
 
+// Splits a path into segments, keeping a leading `/` as the first POSIX segment.
+// See: (docs/technical_notes/folder_graph.md#tree-builder)
 function splitPath(p: string, sep: string): string[] {
   const segments = p.split(sep);
   if (sep === '/' && p.startsWith('/')) {
@@ -85,6 +91,8 @@ function longestCommonPrefix(lists: string[][]): string[] {
   if (lists.length === 0) return [];
   // For files, the common ancestor must be a directory — so cap the prefix
   // at parentSegments.length - 1 of each path (exclude the file basename).
+  // See: (docs/technical_notes/folder_graph.md#tree-builder)
+  // See: (docs/technical_notes/folder_graph.md#edge-cases)
   const max = Math.min(...lists.map(l => Math.max(0, l.length - 1)));
   const prefix: string[] = [];
   const first = lists[0];

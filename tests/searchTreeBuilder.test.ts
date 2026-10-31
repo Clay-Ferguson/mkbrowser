@@ -1,6 +1,8 @@
 /**
  * Tests for buildFolderGraphFromSearchResults (src/shared/searchTreeBuilder.ts):
  * turning a flat list of search results into the folder-graph shape.
+ *
+ * See: (docs/technical_notes/folder_graph.md#tree-builder)
  */
 import { describe, it, expect } from 'vitest';
 import { buildFolderGraphFromSearchResults } from '../src/shared/searchTreeBuilder';

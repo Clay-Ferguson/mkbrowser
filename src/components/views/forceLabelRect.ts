@@ -1,3 +1,5 @@
+// Folder Graph label-collision force (the 'collide' force in graphSim.ts).
+// See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
 import { quadtree, type QuadtreeLeaf } from 'd3-quadtree';
 import type { SimulationNodeDatum } from 'd3-force';
 
@@ -13,6 +15,8 @@ import type { SimulationNodeDatum } from 'd3-force';
  * The box is intentionally asymmetric — it extends mostly rightward because the
  * label text is drawn to the right of the circle — and it already includes the
  * circle radius, so resolving box overlaps also keeps circles from overlapping.
+ *
+ * See: (docs/technical_notes/folder_graph.md#initialization)
  */
 export interface RectCollideNode extends SimulationNodeDatum {
   bx0?: number;
@@ -71,6 +75,8 @@ export interface ForceLabelRect<N extends RectCollideNode> {
  * which other forces can keep replenishing; k passes shrink the residual to
  * (1-s)^k, so raise this for more rigidity when strong repulsion forces are
  * squeezing nodes together, at a linear cost per extra pass.
+ *
+ * See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
  */
 /**
  * Subtree-max label half-extents cached on every quadtree cell (internal node

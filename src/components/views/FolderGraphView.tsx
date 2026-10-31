@@ -1,3 +1,5 @@
+// Folder Graph view (the Graph tab): the D3 force-directed graph of a folder tree.
+// See: (docs/technical_notes/folder_graph.md)
 import { useEffect, useRef, useState } from 'react';
 import type { Simulation, ForceCenter } from 'd3-force';
 import { select, type Selection } from 'd3-selection';
@@ -31,6 +33,7 @@ import { logger } from '../../shared/logUtil';
 import { CHECKBOX_FIELD_CLASS } from '../../renderer/styles';
 
 // Node colors by type, tuned for a dark slate-900 background.
+// See: (docs/technical_notes/folder_graph.md#visual-encoding)
 const COLOR_ROOT = '#ef4444';     // bright red
 const COLOR_FOLDER = '#fb923c';   // orange
 const COLOR_MARKDOWN = '#60a5fa'; // blue
@@ -42,20 +45,33 @@ const COLOR_FILE_LINK = '#FF69B4'; // hot pink — file-to-file links (a file li
 
 // File-link opacity: at rest, while some other node is hovered, and while one of
 // the link's own ends is hovered.
+// See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
 const FILE_LINK_OPACITY = 0.6;
 const FILE_LINK_OPACITY_DIMMED = 0.15;
 const FILE_LINK_OPACITY_EMPHASIZED = 1;
 
-/** How far a file link's arc bows out, as a fraction of the distance it spans. */
+/**
+ * How far a file link's arc bows out, as a fraction of the distance it spans.
+ *
+ * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+ */
 const FILE_LINK_BEND = 0.15;
 
-/** A drawn file-to-file link, with its ends resolved to the graph's nodes. */
+/**
+ * A drawn file-to-file link, with its ends resolved to the graph's nodes.
+ *
+ * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+ */
 interface FileLinkDatum {
   source: SimNode;
   target: SimNode;
 }
 
-/** Returns the fill color for a graph node based on its type and highlight state. */
+/**
+ * Returns the fill color for a graph node based on its type and highlight state.
+ *
+ * See: (docs/technical_notes/folder_graph.md#visual-encoding)
+ */
 function colorForNode(d: SimNode, highlighted: boolean): string {
   if (highlighted) return COLOR_HIGHLIGHT;
   if (d.depth === 0) return COLOR_ROOT;
@@ -68,6 +84,8 @@ function colorForNode(d: SimNode, highlighted: boolean): string {
 /**
  * Returns a node's path relative to the graph's root folder (e.g. 'sub/notes'),
  * for the hover tooltip. The root node itself shows just its name.
+ *
+ * See: (docs/technical_notes/folder_graph.md#initialization)
  */
 function graphRelativePath(d: SimNode, rootPath: string): string {
   if (d.id === rootPath) return d.name;
@@ -75,6 +93,7 @@ function graphRelativePath(d: SimNode, rootPath: string): string {
   return d.id.startsWith(prefix) ? d.id.slice(prefix.length) : d.id;
 }
 
+// Hover content-preview length cap. See: (docs/technical_notes/folder_graph.md#hover)
 const PREVIEW_MAX_CHARS = 500;
 // U+2500 (box drawings light horizontal) renders as a continuous, gapless rule,
 // so a run of them reads like an underline beneath the file name.
@@ -84,6 +103,8 @@ const PREVIEW_DIVIDER_CHAR = '─';
  * Builds the hover-tooltip preview for a file: its name on the first line, an
  * underline matching the name's length, then the first five non-blank lines of
  * the body (front matter stripped), capped at PREVIEW_MAX_CHARS.
+ *
+ * See: (docs/technical_notes/folder_graph.md#hover)
  */
 async function getFilePreview(filePath: string, name: string): Promise<string> {
   const readResult = await api.readFile(filePath);
@@ -114,6 +135,8 @@ async function getFilePreview(filePath: string, name: string): Promise<string> {
  * On any read/stat error the default path tooltip is left in place. Module-level
  * (not compiled by the React Compiler): the conditionals inside try/catch would
  * make the compiler bail out on the whole component.
+ *
+ * See: (docs/technical_notes/folder_graph.md#hover)
  */
 async function loadPreviewIntoTooltip(d: SimNode, setTitle: (text: string) => void): Promise<void> {
   try {
@@ -142,6 +165,8 @@ async function loadPreviewIntoTooltip(d: SimNode, setTitle: (text: string) => vo
  * This is the only part of the force model that needs a document, which is why
  * it runs here and ships its four numbers to the layout worker rather than the
  * worker needing any DOM of its own.
+ *
+ * See: (docs/technical_notes/folder_graph.md#initialization)
  */
 function measureLabelFootprint(this: SVGTextElement, d: SimNode): void {
   const r = nodeRadius(d);
@@ -174,6 +199,8 @@ function measureLabelFootprint(this: SVGTextElement, d: SimNode): void {
  * links. The end is pulled back to the target circle's edge so the arrowhead
  * (marker-end) lands on the circle instead of under it. Empty until both ends
  * have positions.
+ *
+ * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
  */
 function fileLinkPath(d: FileLinkDatum): string {
   const { source: s, target: t } = d;
@@ -199,6 +226,8 @@ function fileLinkPath(d: FileLinkDatum): string {
  * node objects the SVG selections are bound to. Module-level (not compiled by
  * the React Compiler): the running offset counter is a mutation the compiler
  * would bail on inside the component.
+ *
+ * See: (docs/technical_notes/folder_graph.md#layout-worker)
  */
 function applySettledPositions(nodes: SimNode[], positions: Float64Array): void {
   let offset = 0;
@@ -216,7 +245,8 @@ function applySettledPositions(nodes: SimNode[], positions: Float64Array): void 
  * and folders; links represent parent-child containment. Supports drag-to-reposition,
  * scroll-to-zoom, click-to-navigate, and hover highlighting (green for a folder's
  * direct children, red for the hovered node's ancestor path to root). File nodes
- * show a lazily-loaded content preview in the native SVG tooltip.
+ * show a lazily-loaded content preview in the native SVG tooltip (Markdown and
+ * .txt files only).
  *
  * The header's "Links" toggle adds an overlay of hot-pink arrowed arcs from
  * each Markdown file to the nodes it links to. They come from a separate scan
@@ -231,6 +261,9 @@ function applySettledPositions(nodes: SimNode[], positions: Float64Array): void 
  * Unlike other views, App.tsx mounts this one as soon as a graph exists and
  * unmounts it when the Graph tab is closed.
  * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+ *
+ * See: (docs/technical_notes/folder_graph.md#component-internals-foldergraphviewtsx)
+ * See: (docs/technical_notes/folder_graph.md#persistence-model)
  */
 function FolderGraphView() {
   const folderGraph = useAS(s => s.folderGraph);
@@ -241,13 +274,16 @@ function FolderGraphView() {
   // Written by the graph effect, called by the highlight effect below: repaints
   // the existing selections instead of rebuilding the graph. Null whenever no
   // graph is built.
+  // See: (docs/technical_notes/folder_graph.md#click-vs-drag)
   const applyHighlightRef = useRef<(() => void) | null>(null);
   // Same pattern: written by the graph effect, called by the ResizeObserver so
   // a container resize re-frames the existing graph rather than rebuilding it.
+  // See: (docs/technical_notes/folder_graph.md#resize)
   const resizeGraphRef = useRef<(() => void) | null>(null);
   // Same pattern: written by the graph effect, called by the file-links effect
   // below to draw (or, with null, remove) the file-to-file link overlay on the
   // existing graph, without rebuilding it or re-running the layout.
+  // See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
   const drawFileLinksRef = useRef<((links: FolderGraphLink[] | null) => void) | null>(null);
   const showGraphFileLinks = useAS(s => s.showGraphFileLinks);
   const folderGraphFileLinks = useAS(s => s.folderGraphFileLinks);
@@ -258,9 +294,12 @@ function FolderGraphView() {
   // True while the layout worker is computing the layout: the SVG is hidden
   // (visibility, not display — label measurement needs layout) and a centered
   // wait spinner shows in its place.
+  // See: (docs/technical_notes/folder_graph.md#layout-worker)
   const [settling, setSettling] = useState(false);
 
   // Wait for container to be measured before building the simulation.
+  // See: (docs/technical_notes/folder_graph.md#initialization)
+  // See: (docs/technical_notes/folder_graph.md#resize)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -275,6 +314,10 @@ function FolderGraphView() {
     return () => ro.disconnect();
   }, []);
 
+  // Build effect: renders the graph and starts the layout worker. Keyed on
+  // folderGraph identity, so launching a new graph tears down and rebuilds.
+  // See: (docs/technical_notes/folder_graph.md#initialization)
+  // See: (docs/technical_notes/folder_graph.md#re-launching)
   useEffect(() => {
     const svg = svgRef.current;
     const container = containerRef.current;
@@ -291,6 +334,7 @@ function FolderGraphView() {
     }
 
     // d3-force mutates its inputs — copy so the store data stays clean.
+    // See: (docs/technical_notes/folder_graph.md#initialization)
     const simNodes: SimNode[] = rawNodes.map(n => ({
       id: n.id,
       name: n.name,
@@ -308,6 +352,7 @@ function FolderGraphView() {
     // For the "hover a folder to see what it contains" behavior: map each folder
     // id to the set of its direct children (file or folder ids), so hovering can
     // paint those children — and the links reaching them — green.
+    // See: (docs/technical_notes/folder_graph.md#hover)
     const childIdsByFolder = new Map<string, Set<string>>();
     // And map each child id to its parent id, so a hovered node's path up to the
     // root can be traced by walking parent links.
@@ -339,6 +384,7 @@ function FolderGraphView() {
     // File-to-file links get their own layer, between the containment links and
     // the nodes (so node circles stay on top). Empty until drawFileLinks fills
     // it; these links are drawn only — they take no part in the force layout.
+    // See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
     root.append('defs')
       .append('marker')
       .attr('id', 'file-link-arrow')
@@ -387,6 +433,7 @@ function FolderGraphView() {
     // single rectangular footprint (the SVG is laid out by now — this effect
     // only runs once `ready`). Must happen before the worker request below,
     // which ships these measurements as plain numbers.
+    // See: (docs/technical_notes/folder_graph.md#initialization)
     if (USE_LABEL_PHYSICS) {
       nodeSel.select<SVGTextElement>('text').each(measureLabelFootprint);
     }
@@ -403,11 +450,12 @@ function FolderGraphView() {
 
     // Click → navigate. d3-drag's clickDistance(4) suppresses the click event
     // when the gesture was actually a drag, so we don't need a manual guard.
+    // See: (docs/technical_notes/folder_graph.md#click-vs-drag)
     nodeSel.on('click', (_event, d) => {
       setHighlightItem(d.id);
-      // Update the purple border immediately so it's visible on return,
-      // since navigation below may unmount this view before the
-      // highlight-watching effect would otherwise run.
+      // Repaint the purple highlight right away rather than waiting for the
+      // highlight-watching effect, so it's already in place when the user
+      // returns. Navigating away only hides this view; it stays mounted.
       highlightRef.current = d.id;
       applyHighlight();
       if (d.isDirectory) {
@@ -425,6 +473,7 @@ function FolderGraphView() {
     // preview (name + first body lines). We mutate the live <title> DOM node
     // directly so it updates without rebuilding the graph (see
     // loadPreviewIntoTooltip for the mtime-keyed caching).
+    // See: (docs/technical_notes/folder_graph.md#hover)
     nodeSel.on('mouseenter', (event: MouseEvent, d) => {
       if (d.isDirectory) return; // only files have content to preview
       const ext = d.name.slice(d.name.lastIndexOf('.')).toLowerCase();
@@ -440,6 +489,7 @@ function FolderGraphView() {
     //    so the user can confirm at a glance what that folder contains.
     //  • Red: the chain of links from the hovered node (file or folder) up through
     //    each ancestor folder to the root, tracing its full path.
+    // See: (docs/technical_notes/folder_graph.md#hover)
     const idOf = (end: string | SimNode): string => typeof end === 'string' ? end : end.id;
     const linkKey = (parent: string, child: string): string => `${parent} ${child}`;
     const applyHoverHighlight = (hovered: SimNode | null): void => {
@@ -506,6 +556,8 @@ function FolderGraphView() {
      * Draws the file-to-file link overlay from `links` (null removes it). Ends
      * are resolved to this graph's node objects, so the arcs follow the same
      * positions the nodes do — tick() keeps them in place through drags.
+     *
+     * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
      */
     const nodeById = new Map(simNodes.map(n => [n.id, n]));
     const drawFileLinks = (links: FolderGraphLink[] | null): void => {
@@ -532,9 +584,11 @@ function FolderGraphView() {
     // later resize then preserves their transform instead of re-fitting over it.
     // d3 populates sourceEvent only for user gestures — programmatic transforms
     // (the initial fit, the resize re-fit) leave it null and don't trip this.
+    // See: (docs/technical_notes/folder_graph.md#resize)
     let userAdjustedView = false;
 
     // d3-zoom on the root SVG. Transform applied to the inner zoomLayer <g>.
+    // See: (docs/technical_notes/folder_graph.md#initialization)
     const zoomBehavior = d3zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
       .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
@@ -550,6 +604,9 @@ function FolderGraphView() {
      * or `false` for an instant snap. The container box is read live rather than
      * captured at build time, so a fit that lands after a resize uses the box
      * the user is actually looking at.
+     *
+     * See: (docs/technical_notes/folder_graph.md#layout-worker)
+     * See: (docs/technical_notes/folder_graph.md#resize)
      */
     const zoomToFit = (animate: boolean): void => {
       let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
@@ -584,11 +641,14 @@ function FolderGraphView() {
     // hands back a settled layout. It exists purely so drags feel live: it is
     // seeded with the worker's result and left cold at alpha 0 until a drag
     // wakes it. Null (with nothing draggable) for the whole settle.
+    // See: (docs/technical_notes/folder_graph.md#layout-worker)
     let sim: Simulation<SimNode, SimLink> | null = null;
     let centerForce: ForceCenter<SimNode> | null = null;
     let isSettling = true;
     setSettling(true);
 
+    // One module worker per graph build computes the initial layout off the UI thread.
+    // See: (docs/technical_notes/folder_graph.md#layout-worker)
     const worker = new Worker(new URL('./graphSimWorker.ts', import.meta.url), { type: 'module' });
 
     worker.addEventListener('message', (event: MessageEvent<SettleResponse>) => {
@@ -598,6 +658,7 @@ function FolderGraphView() {
       // continue the physics the worker computed. The container box is read
       // live rather than reusing the request's, so a resize mid-settle leaves
       // the center force pointing at the viewport the user actually has.
+      // See: (docs/technical_notes/folder_graph.md#layout-worker)
       const built = buildSimulation(simNodes, simLinks, container.clientWidth, container.clientHeight);
       sim = built.sim;
       centerForce = built.centerForce;
@@ -616,6 +677,7 @@ function FolderGraphView() {
       // the cursor exactly), release on drop so the system equilibrates and the
       // user feels the physics respond. Attached only now — there is no live
       // simulation to drag against until the settle lands.
+      // See: (docs/technical_notes/folder_graph.md#drag-physics-responsive)
       const dragBehavior = d3drag<SVGGElement, SimNode>()
         .clickDistance(4)
         .on('start', (event: D3DragEvent<SVGGElement, SimNode, SimNode>, d) => {
@@ -642,12 +704,15 @@ function FolderGraphView() {
     // otherwise leave the spinner up forever. Reveal the graph — unsettled and
     // visibly wrong — rather than hiding the breakage behind a main-thread
     // fallback that would make the worker silently optional.
+    // See: (docs/technical_notes/folder_graph.md#layout-worker)
     worker.addEventListener('error', (event: ErrorEvent) => {
       logger.error('[FolderGraphView] layout worker failed:', event.message);
       isSettling = false;
       setSettling(false);
     });
 
+    // The settle request: picked node fields, fresh links, and the container size.
+    // See: (docs/technical_notes/folder_graph.md#layout-worker)
     const request: SettleRequest = {
       // Explicitly picked rather than posting simNodes, so the hover-preview
       // cache these accumulate never gets cloned across the boundary.
@@ -685,6 +750,8 @@ function FolderGraphView() {
      * Mid-settle there is no simulation here to retarget; the center the worker
      * was given stands, and the settle's own zoomToFit reads the container box
      * live, so the finished layout still lands framed correctly.
+     *
+     * See: (docs/technical_notes/folder_graph.md#resize)
      */
     const handleContainerResize = (): void => {
       centerForce?.x(container.clientWidth / 2).y(container.clientHeight / 2);
@@ -696,6 +763,7 @@ function FolderGraphView() {
     // worker (whose result would land on dead selections), stops the D3 force
     // simulation, detaches its tick and zoom listeners, and drops the
     // repaint/re-frame closures on unmount / before re-run.
+    // See: (docs/technical_notes/folder_graph.md#cleanup)
     return () => {
       worker.terminate();
       // Stop an in-flight zoomToFit(true) transition, which would otherwise keep writing
@@ -710,6 +778,9 @@ function FolderGraphView() {
     };
   }, [folderGraph, ready]);
 
+  // Repaints the click highlight when highlightItem changes elsewhere in the app,
+  // without rebuilding the graph.
+  // See: (docs/technical_notes/folder_graph.md#click-vs-drag)
   useEffect(() => {
     applyHighlightRef.current?.();
   }, [highlightItem]);
@@ -719,6 +790,7 @@ function FolderGraphView() {
   // once (the result is cached in the store until a new graph replaces it), and
   // turning it off just removes the drawn links. Declared after the graph effect
   // so a rebuilt graph has set drawFileLinksRef before this runs.
+  // See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
   useEffect(() => {
     if (!folderGraph || !ready) return;
     if (showGraphFileLinks && folderGraphFileLinks === null && !folderGraph.foldersOnly) {
@@ -736,6 +808,8 @@ function FolderGraphView() {
     );
   }
 
+  // Folder/file split for the header's node count.
+  // See: (docs/technical_notes/folder_graph.md#header)
   const folderCount = folderGraph.nodes.filter(n => n.isDirectory).length;
   const fileCount = folderGraph.nodes.length - folderCount;
 

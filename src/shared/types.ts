@@ -157,6 +157,8 @@ export interface FolderAnalysisState {
 
 /**
  * A node in the folder graph (a file or folder).
+ *
+ * See: (docs/technical_notes/folder_graph.md#store-and-types)
  */
 export interface FolderGraphNode {
   /** Stable id (full path) */
@@ -170,7 +172,11 @@ export interface FolderGraphNode {
 }
 
 /**
- * A parent->child edge in the folder graph.
+ * A parent->child edge in the folder graph. The same shape also carries the
+ * Links overlay's file-to-file edges (`folderGraphFileLinks`), where `source`
+ * is the linking Markdown file and `target` the node it links to.
+ *
+ * See: (docs/technical_notes/folder_graph.md#store-and-types)
  */
 export interface FolderGraphLink {
   /** Parent node id */
@@ -184,8 +190,11 @@ export interface FolderGraphLink {
  *
  * Layout state (zoom transform, drag positions, simulation alpha) is NOT
  * stored here. The FolderGraphView is kept mounted across tab switches via
- * a CSS visibility toggle in App.tsx, so the SVG and d3-zoom's internal
+ * a CSS `display` toggle in App.tsx, so the SVG and d3-zoom's internal
  * state persist in the live DOM without needing to be serialized.
+ *
+ * See: (docs/technical_notes/folder_graph.md#store-and-types)
+ * See: (docs/technical_notes/folder_graph.md#persistence-model)
  */
 export interface FolderGraphState {
   /** The folder that was scanned to produce this graph */
@@ -194,7 +203,12 @@ export interface FolderGraphState {
   nodes: FolderGraphNode[];
   /** Parent->child edges */
   links: FolderGraphLink[];
-  /** True if the scan hit the node-count cap and was truncated */
+  /**
+   * True if the scan hit the node-count cap and was truncated. In practice
+   * always false: the scanner falls back to folders-only or throws instead.
+   *
+   * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+   */
   truncated: boolean;
   /** True if the full scan exceeded the node cap and we fell back to folders-only. */
   foldersOnly: boolean;
@@ -510,9 +524,13 @@ export interface AppState {
   folderAnalysis: FolderAnalysisState | null;
 
   /**
-   * Folder graph data (null until a graph scan is run).
-   * Includes frozen node positions once the simulation has cooled, so
-   * leaving and returning to the view restores the same layout.
+   * Folder graph data (null until a graph is launched, and again once the Graph
+   * tab is closed). Holds no layout: node positions and the zoom live in the
+   * still-mounted view's DOM and simulation, so leaving and returning to the
+   * view keeps the same layout.
+   *
+   * See: (docs/technical_notes/folder_graph.md#store-and-types)
+   * See: (docs/technical_notes/folder_graph.md#persistence-model)
    */
   folderGraph: FolderGraphState | null;
 
@@ -521,10 +539,16 @@ export interface AppState {
    * the current `folderGraph`. Null until the link scan has run for this graph;
    * reset to null whenever `folderGraph` is replaced. Kept apart from
    * `folderGraph` so loading them never re-runs the graph layout.
+   *
+   * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
    */
   folderGraphFileLinks: FolderGraphLink[] | null;
 
-  /** Whether the Folder Graph view draws file-to-file links (session only, off by default). */
+  /**
+   * Whether the Folder Graph view draws file-to-file links (session only, off by default).
+   *
+   * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+   */
   showGraphFileLinks: boolean;
 
   /**

@@ -55,6 +55,8 @@ const allTabs: TabConfig[] = [
 function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
   const currentView = useAS(s => s.currentView);
   const hasFolderAnalysis = useAS(s => s.folderAnalysis !== null);
+  // A non-null graph shows the Graph tab; its × clears it via setFolderGraph(null).
+  // See: (docs/technical_notes/folder_graph.md#renderer)
   const hasFolderGraph = useAS(s => s.folderGraph !== null);
   // Non-null from the moment any search runs until the tab is closed, so the
   // Search tab also shows a search that found nothing.

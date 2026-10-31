@@ -1,3 +1,5 @@
+// Folder Graph cross-group repulsion force (the 'crossRepel' force).
+// See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
 import { describe, it, expect } from 'vitest';
 import { forceCrossGroupRepel, type CrossGroupNode } from '../src/components/views/forceCrossGroupRepel';
 

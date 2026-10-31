@@ -71,6 +71,8 @@ export function buildIgnoredPatterns(paths: string[]): RegExp[] {
  * paths, chokidar's paths and the patterns users write have none — so without
  * this a full-path pattern like `/notes/archive` would never exclude the
  * folder in an fdir crawl (yet would in the calendar watcher).
+ *
+ * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
  */
 export function buildExcludePredicate(
   ignoredPaths: string[],

@@ -98,6 +98,7 @@ function App() {
   const directoryRefreshNonce = useAS(s => s.directoryRefreshNonce);
   // FolderGraphView mounts on this instead of visitedViews, so closing the Graph tab
   // unmounts it. See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+  // See: (docs/technical_notes/folder_graph.md#persistence-model)
   const hasFolderGraph = useAS(s => s.folderGraph !== null);
   const fontSize = useAS(s => s.settings.fontSize);
   // 'hidden' leaves IndexTreeView out of the Browse tab. See: (docs/technical_notes/application_tabs.md#the-browse-tab)
@@ -364,6 +365,7 @@ function App() {
   // The single shared header (AppTabButtons) and the app-level dialogs (error,
   // appMessage, LinkIdMismatchDialog) live outside the per-view wrappers.
   // See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+  // See: (docs/technical_notes/folder_graph.md#persistence-model)
   const viewStyle = (view: AppView): CSSProperties => ({
     display: currentView === view ? 'flex' : 'none',
   });

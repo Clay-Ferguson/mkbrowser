@@ -23,6 +23,8 @@ import { logger } from '../shared/logUtil';
  * seconds on a large tree, and the user can start another one (on a different
  * folder) meanwhile; only the latest may publish, or the slower, older scan
  * lands last and replaces the newer results.
+ *
+ * See: (docs/technical_notes/folder_graph.md#end-to-end-flow-folder-scan)
  */
 let latestAnalysisId = 0;
 let latestGraphId = 0;
@@ -45,6 +47,8 @@ export function showFolderAnalysis(folderPath: string): void {
 /**
  * Scans the tree under `folderPath` and shows it in the Folder Graph view.
  * With `markdownOnly`, only `.md` files (and the folders leading to them) are graphed.
+ *
+ * See: (docs/technical_notes/folder_graph.md#end-to-end-flow-folder-scan)
  */
 export function showFolderGraph(folderPath: string, markdownOnly = false): void {
   const id = ++latestGraphId;
@@ -66,6 +70,8 @@ export function showFolderGraph(folderPath: string, markdownOnly = false): void 
  * Scans `graph`'s Markdown files for links to other graph nodes and stores the
  * edges for the Folder Graph view's file-link overlay. Dropped if the graph was
  * replaced (a new scan) while this one ran, since the edges belong to `graph`.
+ *
+ * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
  */
 export function loadFolderGraphFileLinks(graph: FolderGraphState): void {
   runOp(async () => {

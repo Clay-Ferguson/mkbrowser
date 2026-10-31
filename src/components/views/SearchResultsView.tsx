@@ -219,6 +219,8 @@ function SearchResultsView() {
       });
   };
 
+  // Graph button: builds the folder graph from the results, client-side.
+  // See: (docs/technical_notes/folder_graph.md#search-based-graph-alternate-data-source)
   const handleShowGraph = () => {
     if (searchResults.length === 0) return;
     setFolderGraph(buildFolderGraphFromSearchResults(searchResults));

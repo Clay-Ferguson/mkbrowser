@@ -315,13 +315,23 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * Non-null shows (and mounts) the Graph tab; null closes and unmounts it.
      *
      * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+     * See: (docs/technical_notes/folder_graph.md#store-and-types)
+     * See: (docs/technical_notes/folder_graph.md#re-launching)
      */
     setFolderGraph: (data) => set({ folderGraph: data, folderGraphFileLinks: null }),
 
-    /** Set the file-to-file link edges for the current folder graph (null = not scanned). */
+    /**
+     * Set the file-to-file link edges for the current folder graph (null = not scanned).
+     *
+     * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+     */
     setFolderGraphFileLinks: (links) => set({ folderGraphFileLinks: links }),
 
-    /** Show or hide the folder graph's file-to-file links. */
+    /**
+     * Show or hide the folder graph's file-to-file links.
+     *
+     * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+     */
     setShowGraphFileLinks: (show) => set({ showGraphFileLinks: show }),
 
     /** Set the root folder path. */

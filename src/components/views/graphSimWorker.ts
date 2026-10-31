@@ -21,6 +21,8 @@ import {
  * One request, one response: the worker is created per graph build and
  * terminated by the view's effect cleanup, so there is no session state to
  * track here.
+ *
+ * See: (docs/technical_notes/folder_graph.md#layout-worker)
  */
 
 /**
@@ -49,6 +51,7 @@ ctx.addEventListener('message', (event: MessageEvent<SettleRequest>) => {
   // buildSimulation returns a stopped simulation, so this loop *is* the settle:
   // the same tick count d3's timer would have run, with no frame budget to
   // yield to and no DOM to update.
+  // See: (docs/technical_notes/folder_graph.md#layout-worker)
   const totalTicks = settleTickCount(sim);
   for (let i = 0; i < totalTicks; i++) sim.tick();
 

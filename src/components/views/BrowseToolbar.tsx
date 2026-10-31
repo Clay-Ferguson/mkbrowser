@@ -99,6 +99,10 @@ interface BrowseToolbarProps {
  *
  * The Calendar button (`calendar-button`) opens the current folder's calendar.
  * See: (docs/technical_notes/calendar_view.md#folder-source--live)
+ *
+ * The Tools menu's Graph All / Graph Markdown items call showFolderGraph on the
+ * current folder.
+ * See: (docs/technical_notes/folder_graph.md#end-to-end-flow-folder-scan)
  */
 function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: BrowseToolbarProps) {
   const rootPath = useAS(s => s.rootPath);

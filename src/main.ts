@@ -806,6 +806,7 @@ function setupIpcHandlers(): void {
   });
 
   // Recursively scan folder structure for the FolderGraphView (D3 graph).
+  // See: (docs/technical_notes/folder_graph.md#main-process)
   ipcMain.handle('scan-folder-tree', async (_event, folderPath: string, markdownOnly = false): Promise<FolderGraphResult> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
@@ -821,6 +822,7 @@ function setupIpcHandlers(): void {
 
   // Read the folder graph's Markdown files for their file-to-file links (the
   // graph view's "Links" toggle). Runs separately from the tree scan.
+  // See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
   ipcMain.handle('scan-folder-graph-links', async (_event, folderPath: string, nodeIds: string[]): Promise<FolderGraphLinkData[]> => {
     try {
       return await scanFolderGraphLinks(folderPath, nodeIds);

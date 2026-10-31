@@ -470,6 +470,8 @@ export interface CalendarEventResult {
   snippet: string;
 }
 
+// Result of the 'scan-folder-tree' IPC call (mirrors FolderGraphResult in src/main/folderGraph.ts).
+// See: (docs/technical_notes/folder_graph.md#ipc-surface)
 export interface FolderGraphScanResult {
   folderPath: string;
   nodes: Array<{ id: string; name: string; isDirectory: boolean; depth: number }>;
@@ -599,9 +601,17 @@ export interface ElectronAPI {
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;
   /** Calendar events for an explicit file list (search results). Stops the folder watcher. */
   loadCalendarEventsForFiles: (filePaths: string[]) => Promise<CalendarEventResult[]>;
-  /** Scans `folderPath` for the folder graph; `markdownOnly` limits files to `.md` and prunes folders without any. */
+  /**
+   * Scans `folderPath` for the folder graph; `markdownOnly` limits files to `.md` and prunes folders without any.
+   *
+   * See: (docs/technical_notes/folder_graph.md#ipc-surface)
+   */
   scanFolderTree: (folderPath: string, markdownOnly?: boolean) => Promise<FolderGraphScanResult>;
-  /** Reads the graph's Markdown files and returns their links to other graph nodes (source -> target). */
+  /**
+   * Reads the graph's Markdown files and returns their links to other graph nodes (source -> target).
+   *
+   * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+   */
   scanFolderGraphLinks: (folderPath: string, nodeIds: string[]) => Promise<Array<{ source: string; target: string }>>;
   loadTags: () => Promise<TagCategory[]>;
   saveTags: (yamlContent: string) => Promise<void>;

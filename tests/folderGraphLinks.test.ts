@@ -1,3 +1,5 @@
+// Folder Graph Links overlay: scanFolderGraphLinks's file-to-file link scan.
+// See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

@@ -6,6 +6,8 @@ interface ToolsPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   onFolderAnalysis: () => void;
+  // Graph All (`menu-folder-graph`) and Graph Markdown (`menu-markdown-graph`).
+  // See: (docs/technical_notes/folder_graph.md#renderer)
   onFolderGraph: () => void;
   onMarkdownGraph: () => void;
   onExport: () => void;
@@ -20,6 +22,7 @@ interface ToolsPopupMenuProps {
  * export options.
  *
  * See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
+ * See: (docs/technical_notes/folder_graph.md#overview)
  */
 export default function ToolsPopupMenu({
   anchorRef,

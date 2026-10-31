@@ -118,6 +118,7 @@ const initialState: AppState = {
   linkIdMismatch: null,
   highlightedSearchResult: null,
   folderAnalysis: null,
+  // Folder Graph: no graph, no file-link edges, Links toggle off. See: (docs/technical_notes/folder_graph.md#store-and-types)
   folderGraph: null,
   folderGraphFileLinks: null,
   showGraphFileLinks: false,

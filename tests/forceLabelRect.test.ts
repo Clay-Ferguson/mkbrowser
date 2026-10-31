@@ -1,3 +1,5 @@
+// Folder Graph label-collision force (the 'collide' force).
+// See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
 import { describe, it, expect } from 'vitest';
 import { rectPenetration, forceLabelRect, type RectCollideNode } from '../src/components/views/forceLabelRect';
 

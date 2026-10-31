@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Calendar loaders: folder crawl (arms the watcher) and search-results list. See: (docs/technical_notes/calendar_view.md#ipc-surface)
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),
   loadCalendarEventsForFiles: (filePaths: string[]) => ipcRenderer.invoke('load-calendar-events-for-files', filePaths),
+  // Folder Graph: tree scan and the Links overlay's file-to-file scan. See: (docs/technical_notes/folder_graph.md#ipc-surface)
   scanFolderTree: (folderPath: string, markdownOnly?: boolean) => ipcRenderer.invoke('scan-folder-tree', folderPath, markdownOnly),
   scanFolderGraphLinks: (folderPath: string, nodeIds: string[]) => ipcRenderer.invoke('scan-folder-graph-links', folderPath, nodeIds),
   loadTags: () => ipcRenderer.invoke('load-tags'),

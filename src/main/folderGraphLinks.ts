@@ -7,6 +7,8 @@
  * contents, and this pass runs only when the user turns on the graph's
  * "Links" toggle, so the default graph costs nothing extra. The renderer
  * hands back the graph's node ids, so no directory walk is repeated here.
+ *
+ * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -16,12 +18,18 @@ import { decodeMarkdownUrl, extractLinkDestinations, splitHeadingFragment } from
 import { logger } from '../shared/logUtil';
 import type { FolderGraphLinkData } from './folderGraph';
 
-/** Max number of Markdown files read concurrently. Mirrors SEARCH_FILE_CONCURRENCY in search.ts. */
+/**
+ * Max number of Markdown files read concurrently. Mirrors SEARCH_FILE_CONCURRENCY in search.ts.
+ *
+ * See: (docs/technical_notes/folder_graph.md#adjusting-limits-and-physics)
+ */
 const LINK_SCAN_CONCURRENCY = 32;
 
 /**
  * Files larger than this (bytes) are skipped rather than read whole into the
  * main process. Notes are tiny; anything this big is not a note worth linking.
+ *
+ * See: (docs/technical_notes/folder_graph.md#adjusting-limits-and-physics)
  */
 const MAX_LINK_SCAN_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -35,6 +43,8 @@ const MAX_LINK_SCAN_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
  * Link resolution mirrors a click in the app (relative to the linking file,
  * percent-decoded, `.md#heading` fragment ignored), with one extension: a
  * wikilink with no extension that doesn't resolve also tries `<target>.md`.
+ *
+ * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
  */
 export async function scanFolderGraphLinks(folderPath: string, nodeIds: string[]): Promise<FolderGraphLinkData[]> {
   const nodeSet = new Set(nodeIds);
