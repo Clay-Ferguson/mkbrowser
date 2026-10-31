@@ -73,7 +73,7 @@ function isEntryRendered(path: string): boolean {
   return getVisibleElementById(buildEntryHeaderId(path)) !== null;
 }
 
-// Root component: the tab bar (AppTabButtons) above one wrapper per visited view. See: (docs/technical_notes/application_tabs.md#overview)
+// Root component: the tab bar (AppTabButtons) above one wrapper per visited view. See: (application_tabs.md#overview)
 function App() {
   const rootPath = useAS(s => s.rootPath);
   const loading = useAS(s => s.entriesLoading);
@@ -88,27 +88,27 @@ function App() {
   // Views are mounted on first visit and then kept in the DOM (visibility
   // toggled via CSS), so each view's scroll position is preserved natively.
   // This set tracks which views have been activated at least once.
-  // See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+  // See: (application_tabs.md#mounting-and-scroll-position-important)
   const [visitedViews, setVisitedViews] = useState<Set<AppView>>(() => new Set<AppView>(['browser']));
   const currentView = useAS(s => s.currentView);
   const currentPath = useAS(s => s.currentPath);
-  // Non-null swaps BrowseFile in for BrowseView (swap, not hide). See: (docs/technical_notes/single_file_browsing.md#routing-in-apptsx--swap-not-hide)
-  // See: (docs/technical_notes/application_tabs.md#the-browse-tab)
+  // Non-null swaps BrowseFile in for BrowseView (swap, not hide). See: (single_file_browsing.md#routing-in-apptsx--swap-not-hide)
+  // See: (application_tabs.md#the-browse-tab)
   const browseFileName = useAS(s => s.browseFileName);
   const directoryRefreshNonce = useAS(s => s.directoryRefreshNonce);
   // FolderGraphView mounts on this instead of visitedViews, so closing the Graph tab
-  // unmounts it. See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
-  // See: (docs/technical_notes/folder_graph.md#persistence-model)
+  // unmounts it. See: (application_tabs.md#mounting-and-scroll-position-important)
+  // See: (folder_graph.md#persistence-model)
   const hasFolderGraph = useAS(s => s.folderGraph !== null);
   const fontSize = useAS(s => s.settings.fontSize);
-  // 'hidden' leaves IndexTreeView out of the Browse tab. See: (docs/technical_notes/application_tabs.md#the-browse-tab)
+  // 'hidden' leaves IndexTreeView out of the Browse tab. See: (application_tabs.md#the-browse-tab)
   const indexTreeWidth = useAS(s => s.settings.indexTreeWidth);
   const tagsRevision = useAS(s => s.tagsRevision);
 
   // Mark the active view as visited so it stays mounted from now on. Adjusting
   // state during render (rather than in an effect) avoids a cascading re-render
   // and keeps the newly visited view mounted in the same render pass.
-  // See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+  // See: (application_tabs.md#mounting-and-scroll-position-important)
   if (!visitedViews.has(currentView)) {
     const next = new Set(visitedViews);
     next.add(currentView);
@@ -117,8 +117,8 @@ function App() {
 
   // Listen for calendar file changes from the main process (chokidar) — lives here so
   // it's always active regardless of which view is currently displayed.
-  // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
-  // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+  // See: (application_tabs.md#hidden-views-are-live)
+  // See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
   useEffect(() => {
     // Returns the useEffect cleanup: the unsubscribe fn from onCalendarFileChanged, which removes the 'calendar-file-changed' IPC listener on unmount.
     return api.onCalendarFileChanged((results: CalendarEventResult[], filePath: string) => {
@@ -127,7 +127,7 @@ function App() {
   }, []);
 
   // A deleted file clears its events; a deleted folder clears every event under it.
-  // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+  // See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
   useEffect(() => {
     // Returns the useEffect cleanup: the unsubscribe fn from onCalendarFileDeleted, which removes the 'calendar-file-deleted' IPC listener on unmount.
     return api.onCalendarFileDeleted((deletedPath: string, isFolder: boolean) => {
@@ -141,7 +141,7 @@ function App() {
 
   // Surface a one-time file-watcher warning (e.g. inotify exhaustion) so the user
   // knows calendar live-updates degraded. Shown as a dismissible banner in CalendarView.
-  // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+  // See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
   useEffect(() => {
     // Returns the useEffect cleanup: the unsubscribe fn that removes the 'calendar-watcher-error' IPC listener on unmount.
     return api.onCalendarWatcherError((message: string) => {
@@ -170,7 +170,7 @@ function App() {
   }, [fontSize]);
 
   // Close an unmodified editor when ESC is pressed anywhere in the app
-  // See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+  // See: (single_file_browsing.md#entering-single-file-mode-expanded-editing)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
@@ -364,8 +364,8 @@ function App() {
   // state) across tab switches without any scroll-position save/restore logic.
   // The single shared header (AppTabButtons) and the app-level dialogs (error,
   // appMessage, LinkIdMismatchDialog) live outside the per-view wrappers.
-  // See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
-  // See: (docs/technical_notes/folder_graph.md#persistence-model)
+  // See: (application_tabs.md#mounting-and-scroll-position-important)
+  // See: (folder_graph.md#persistence-model)
   const viewStyle = (view: AppView): CSSProperties => ({
     display: currentView === view ? 'flex' : 'none',
   });
@@ -376,7 +376,7 @@ function App() {
   // `data-active-view` marker on whichever tab is currently shown, so tests can
   // scope lookups to a specific (or the active) tab instead of guessing with
   // .last()/visibility filters. See the `activeView` test helper.
-  // See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+  // See: (application_tabs.md#mounting-and-scroll-position-important)
   const viewProps = (view: AppView) => ({
     className: 'flex-1 flex flex-col min-h-0 bg-slate-900',
     style: viewStyle(view),

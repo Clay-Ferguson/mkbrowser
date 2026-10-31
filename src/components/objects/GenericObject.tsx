@@ -54,7 +54,7 @@ const TITLE_CLASS = 'min-w-0 break-words text-lg font-semibold';
 /**
  * Opens the Calendar view on the date a date value names.
  *
- * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (calendar_view.md#calendarview-component)
  */
 type DateClickHandler = (date: Date) => void;
 

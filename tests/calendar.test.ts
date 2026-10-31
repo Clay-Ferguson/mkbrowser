@@ -1,4 +1,4 @@
-// Calendar loader and calendarUtil tests. See: (docs/technical_notes/calendar_view.md#testing)
+// Calendar loader and calendarUtil tests. See: (calendar_view.md#testing)
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';

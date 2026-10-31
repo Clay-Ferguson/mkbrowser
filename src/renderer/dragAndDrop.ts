@@ -140,7 +140,7 @@ export async function moveEntryIntoFolder(payload: DragPayload, destFolder: stri
  * an item already attached to the file has that folder as its parent, and a folder can
  * never be dropped onto a file it contains.
  *
- * See: (docs/technical_notes/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
+ * See: (file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
  * See: (USER_GUIDE.md#drag-and-drop)
  */
 export function canDropAsAttachment(payload: DragPayload, filePath: string): boolean {
@@ -158,7 +158,7 @@ export function canDropAsAttachment(payload: DragPayload, filePath: string): boo
  * exactly when every path segment between the two is itself an attachment folder — an
  * ordinary subfolder's contents are not rendered.
  *
- * See: (docs/technical_notes/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
+ * See: (file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
  */
 export function affectsBrowseListing(folder: string, currentPath: string): boolean {
   if (isSamePath(folder, currentPath)) return true;
@@ -179,7 +179,7 @@ export function affectsBrowseListing(folder: string, currentPath: string): boole
  * @param destFolder - Absolute path of the folder to move it into.
  * @returns True if the item was moved (failures are already reported via setAppError).
  *
- * See: (docs/technical_notes/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
+ * See: (file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
  * See: (USER_GUIDE.md#drag-and-drop)
  */
 export async function completeEntryDrop(
@@ -219,7 +219,7 @@ export async function completeEntryDrop(
  * @param filePath - Absolute path of the file that will own the attachment.
  * @returns True if the item was moved (failures are already reported via setAppError).
  *
- * See: (docs/technical_notes/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
+ * See: (file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
  * See: (USER_GUIDE.md#adding-attachments)
  */
 export async function dropAsAttachment(

@@ -7,7 +7,7 @@ interface ToolsPopupMenuProps {
   onClose: () => void;
   onFolderAnalysis: () => void;
   // Graph All (`menu-folder-graph`) and Graph Markdown (`menu-markdown-graph`).
-  // See: (docs/technical_notes/folder_graph.md#renderer)
+  // See: (folder_graph.md#renderer)
   onFolderGraph: () => void;
   onMarkdownGraph: () => void;
   onExport: () => void;
@@ -21,8 +21,8 @@ interface ToolsPopupMenuProps {
  * divider) the folder graph of all files or of Markdown files only, and the
  * export options.
  *
- * See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
- * See: (docs/technical_notes/folder_graph.md#overview)
+ * See: (ai_chat.md#starting-a-conversation)
+ * See: (folder_graph.md#overview)
  * See: (USER_GUIDE.md#folder-analysis)
  * See: (USER_GUIDE.md#launching-the-graph)
  * See: (USER_GUIDE.md#exporting)

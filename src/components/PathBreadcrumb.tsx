@@ -31,7 +31,7 @@ export type PathBreadcrumbProps = {
  * that home icon — doubles as a drag-and-drop target that accepts file/folder moves.
  * A "reveal in tree" button appears at the end when the index tree panel is visible.
  *
- * See: (docs/technical_notes/single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
+ * See: (single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
  * See: (USER_GUIDE.md#drag-and-drop)
  */
 function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {

@@ -56,7 +56,7 @@ function sortByName(types: EditorType[]): EditorType[] {
  * rename, which saves at once), which validates and persists via
  * `api.updateConfig({ types })`; Revert reloads from config. Since views never unmount, an unsaved draft survives tab switches.
  *
- * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+ * See: (application_tabs.md#mounting-and-scroll-position-important)
  * See: (USER_GUIDE.md#defining-your-own-types-types-editor)
  */
 export default function TypesEditorView() {

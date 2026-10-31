@@ -41,7 +41,7 @@ function sortByName(cats: EditorCategory[]): EditorCategory[] {
  * Revert reloads from disk. A category can only be deleted once empty. Since views never unmount, an unsaved draft survives tab
  * switches.
  *
- * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+ * See: (application_tabs.md#mounting-and-scroll-position-important)
  * See: (USER_GUIDE.md#managing-your-hashtag-library-tags-editor)
  */
 export default function TagsEditorView() {

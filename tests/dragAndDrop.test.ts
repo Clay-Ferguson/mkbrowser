@@ -3,7 +3,7 @@
  * These decide whether a drag may be dropped at all; the move itself (completeEntryDrop /
  * dropAsAttachment) needs the IPC bridge and is exercised manually / in the packaged app.
  *
- * See: (docs/technical_notes/features/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
+ * See: (features/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
  */
 import { describe, it, expect, vi } from 'vitest';
 import {
@@ -280,7 +280,7 @@ describe('refreshExpandedNodes — structural sharing', () => {
 
 // ---------------------------------------------------------------------------
 // Attachment folders — shown as the first child of their owning file
-// See: (docs/technical_notes/features/file_attachments.md#building-the-children--srcrenderertreenodests)
+// See: (features/file_attachments.md#building-the-children--srcrenderertreenodests)
 // ---------------------------------------------------------------------------
 
 /** A file node that owns an attach folder. */

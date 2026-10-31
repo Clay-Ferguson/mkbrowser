@@ -97,7 +97,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     // own ancestors makes this recursion fan out (bounded only by the kernel's
     // symlink-resolution limit, ~40 levels deep) and hang the main process.
     // Attach folders the app creates are always real directories.
-    // See: (docs/technical_notes/file_attachments.md#backend-file-system-scanning-srcmainfileutilts)
+    // See: (file_attachments.md#backend-file-system-scanning-srcmainfileutilts)
     if (isDirectory && !entry.isSymbolicLink() && entry.name.endsWith(ATTACH_SUFFIX)) {
       try {
         fileEntry.attachments = await readDirectory(fullPath, aiEnabled);
@@ -108,7 +108,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     }
 
     // Load AI conversation hint for H*/A* folders when aiEnabled
-    // See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+    // See: (ai_chat.md#how-the-thread-is-gathered)
     if (isDirectory && aiEnabled) {
       fileEntry.aiHint = await readAiHint(fullPath, entry.name);
     }
@@ -123,7 +123,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
   // Sort once, choosing the comparator based on whether an .INDEX is present.
   // An index defines an explicit order (with name as the tiebreaker); otherwise
   // we fall back to directories-first, then natural name order within each group.
-  // See: (docs/technical_notes/document_mode.md#the-indexyaml-file)
+  // See: (document_mode.md#the-indexyaml-file)
   const indexYaml = await readIndexYaml(dirPath);
   const indexFiles = indexYaml?.files;
   if (indexFiles) {
@@ -146,7 +146,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
   }
 
   // Mark files that have a sibling .attach folder so the GUI can skip the paperclip button
-  // See: (docs/technical_notes/file_attachments.md#backend-file-system-scanning-srcmainfileutilts)
+  // See: (file_attachments.md#backend-file-system-scanning-srcmainfileutilts)
   const attachNames = new Set(fileEntries.filter(e => e.isDirectory && e.name.endsWith(ATTACH_SUFFIX)).map(e => e.name));
   for (const entry of fileEntries) {
     if (!entry.isDirectory && attachNames.has(`${entry.name}${ATTACH_SUFFIX}`)) {

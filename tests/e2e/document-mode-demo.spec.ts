@@ -1,4 +1,4 @@
-// Document Mode demo walkthrough. See: (docs/technical_notes/features/document_mode.md)
+// Document Mode demo walkthrough. See: (features/document_mode.md)
 
 import * as fs from 'fs';
 import * as path from 'path';

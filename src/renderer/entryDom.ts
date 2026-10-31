@@ -44,7 +44,7 @@ export const buildEntryHeaderId = (filePath: string) => `entry-${encodeURICompon
  * same entry header ids and heading slugs — as the browser listing, earlier in
  * DOM order. getElementById would hand back the hidden copy.
  *
- * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+ * See: (application_tabs.md#mounting-and-scroll-position-important)
  */
 export const getVisibleElementById = (id: string): HTMLElement | null => {
   for (const el of Array.from(document.querySelectorAll<HTMLElement>(`[id="${CSS.escape(id)}"]`))) {

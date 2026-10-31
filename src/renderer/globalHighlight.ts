@@ -86,7 +86,7 @@ export function setGlobalHighlightText(text: string | null) {
  * observer re-runs the highlight pass whenever that attribute moves, so scoping to the active
  * view is safe. Falls back to document.body before any view wrapper exists (initial load / error screen).
  *
- * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+ * See: (application_tabs.md#mounting-and-scroll-position-important)
  */
 function highlightRoot(): HTMLElement {
   return document.querySelector<HTMLElement>('[data-active-view]') ?? document.body;

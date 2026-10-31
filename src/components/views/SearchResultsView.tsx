@@ -97,7 +97,7 @@ function SearchResultsView() {
       // A file opens on its own (single-file mode, as from the index tree), so
       // stepping through results shows just the one clicked each time — no
       // scroll-to-file needed since it is the only thing on screen.
-      // See: (docs/technical_notes/single_file_browsing.md#why-browsefilemode)
+      // See: (single_file_browsing.md#why-browsefilemode)
       setBrowseFile(folderPath, getFileName(resultPath));
     }
   };
@@ -177,8 +177,8 @@ function SearchResultsView() {
    * whatever the calendar was previously showing, and is a snapshot — the load
    * stops the folder watcher, since the results can span many folders.
    *
-   * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
-   * See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
+   * See: (application_tabs.md#which-tabs-are-shown)
+   * See: (calendar_view.md#search-source--snapshot)
    * See: (USER_GUIDE.md#search-results)
    * See: (USER_GUIDE.md#find-upcoming-calendar-items)
    */
@@ -230,7 +230,7 @@ function SearchResultsView() {
   };
 
   // Graph button: builds the folder graph from the results, client-side.
-  // See: (docs/technical_notes/folder_graph.md#search-based-graph-alternate-data-source)
+  // See: (folder_graph.md#search-based-graph-alternate-data-source)
   // See: (USER_GUIDE.md#search-based-graph)
   const handleShowGraph = () => {
     if (searchResults.length === 0) return;

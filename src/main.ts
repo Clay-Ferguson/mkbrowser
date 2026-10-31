@@ -164,7 +164,7 @@ const corruptIndexAlerted = new Set<string>();
  * without checking results, so main is the one place this can be made loud.
  * Passes the result through unchanged for the IPC reply.
  *
- * See: (docs/technical_notes/document_mode.md#atomic-serialized-index-updates)
+ * See: (document_mode.md#atomic-serialized-index-updates)
  */
 function alertIfCorruptIndex(dirPath: string, result: IndexMutationResult): IndexMutationResult {
   if (result.corruptIndex) {
@@ -226,7 +226,7 @@ function setupIpcHandlers(): void {
   // lazily on the first call (see thesaurusUtil), so users who never open the editor
   // never pay for it. A missing or corrupt file resolves to no synonyms rather than
   // rejecting — the pane simply stays empty instead of surfacing an error mid-edit.
-  // See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
+  // See: (thesaurus_view.md#the-ipc-surface)
   // See: (USER_GUIDE.md#thesaurus)
   ipcMain.handle('lookup-thesaurus', async (_event, word: string): Promise<ThesaurusLookup> => {
     return lookupThesaurus(word, {
@@ -416,7 +416,7 @@ function setupIpcHandlers(): void {
         // before it landed (MAIN_ISSUES.md issue 1). Only the writeFile (and the
         // stat capturing its resulting mtime, which must not observe a later
         // write) is inside the lock.
-        // See: (docs/technical_notes/document_mode.md#saving-never-adds-an-id)
+        // See: (document_mode.md#saving-never-adds-an-id)
         const contentToWrite = finalContent;
         savedStats = await withIndexLock(path.dirname(filePath), async () => {
           await writeFileAtomic(filePath, contentToWrite);
@@ -545,7 +545,7 @@ function setupIpcHandlers(): void {
       // Update the file's entry in .INDEX.yaml if present
       await renameInIndexYaml(dirPath, oldName, newName);
       // Rename the associated attach folder if it exists, and update its index entry
-      // See: (docs/technical_notes/file_attachments.md#rename-synchronization-srcmaints)
+      // See: (file_attachments.md#rename-synchronization-srcmaints)
       // See: (USER_GUIDE.md#renaming-1)
       const oldAttachName = `${oldName}${ATTACH_SUFFIX}`;
       const newAttachName = `${newName}${ATTACH_SUFFIX}`;
@@ -628,7 +628,7 @@ function setupIpcHandlers(): void {
 
 
   // Insert one or more new entries into .INDEX.yaml at the specified position
-  // See: (docs/technical_notes/document_mode.md#insert-bars)
+  // See: (document_mode.md#insert-bars)
   // See: (USER_GUIDE.md#inserting-new-files-and-folders)
   ipcMain.handle('insert-into-index-yaml', async (_event, dirPath: string, newNames: string | string[], insertAfterName: string | null): Promise<{ success: boolean; error?: string }> => {
     return alertIfCorruptIndex(dirPath, await insertIntoIndexYaml(dirPath, newNames, insertAfterName));
@@ -647,7 +647,7 @@ function setupIpcHandlers(): void {
   });
 
   // Reconcile .INDEX.yaml with the filesystem (renames, additions, deletions; never adds a front-matter id)
-  // See: (docs/technical_notes/document_mode.md#when-reconciliation-runs)
+  // See: (document_mode.md#when-reconciliation-runs)
   ipcMain.handle('reconcile-indexed-files', async (_event, dirPath: string, createIfMissing = false): Promise<{ success: boolean; error?: string }> => {
     return alertIfCorruptIndex(dirPath, await reconcileIndexedFiles(dirPath, createIfMissing));
   });
@@ -670,7 +670,7 @@ function setupIpcHandlers(): void {
   });
 
   // Get a .md file's front-matter id, adding one if missing ("Paste Link")
-  // See: (docs/technical_notes/document_mode.md#stable-identity-via-front-matter-ids)
+  // See: (document_mode.md#stable-identity-via-front-matter-ids)
   // See: (USER_GUIDE.md#inserting-links-to-other-files)
   ipcMain.handle('ensure-front-matter-id', async (_event, filePath: string): Promise<FrontMatterIdResult> => {
     try {
@@ -770,8 +770,8 @@ function setupIpcHandlers(): void {
   });
 
   // Scan folder for markdown files with a 'due' front matter property, then start watching it
-  // See: (docs/technical_notes/calendar_view.md#ipc-surface)
-  // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+  // See: (calendar_view.md#ipc-surface)
+  // See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
   // See: (USER_GUIDE.md#opening-the-calendar)
   ipcMain.handle('load-calendar-events', async (_event, folderPath: string): Promise<CalendarEventResult[]> => {
     try {
@@ -807,7 +807,7 @@ function setupIpcHandlers(): void {
   });
 
   // Load calendar events for an explicit list of files (the search-results calendar).
-  // See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
+  // See: (calendar_view.md#search-source--snapshot)
   // See: (USER_GUIDE.md#search-results)
   ipcMain.handle('load-calendar-events-for-files', async (_event, filePaths: string[]): Promise<CalendarEventResult[]> => {
     try {
@@ -825,7 +825,7 @@ function setupIpcHandlers(): void {
   });
 
   // Recursively scan folder structure for the FolderGraphView (D3 graph).
-  // See: (docs/technical_notes/folder_graph.md#main-process)
+  // See: (folder_graph.md#main-process)
   // See: (USER_GUIDE.md#launching-the-graph)
   ipcMain.handle('scan-folder-tree', async (_event, folderPath: string, markdownOnly = false): Promise<FolderGraphResult> => {
     try {
@@ -842,7 +842,7 @@ function setupIpcHandlers(): void {
 
   // Read the folder graph's Markdown files for their file-to-file links (the
   // graph view's "Links" toggle). Runs separately from the tree scan.
-  // See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+  // See: (folder_graph.md#file-to-file-links-overlay)
   // See: (USER_GUIDE.md#reading-the-graph)
   ipcMain.handle('scan-folder-graph-links', async (_event, folderPath: string, nodeIds: string[]): Promise<FolderGraphLinkData[]> => {
     try {
@@ -980,7 +980,7 @@ function setupIpcHandlers(): void {
   });
 
   // Ask AI: submit a prompt and write the response to A/AI.md (or A1/AI.md, etc.)
-  // See: (docs/technical_notes/ai_chat.md#asking-the-ai)
+  // See: (ai_chat.md#asking-the-ai)
   // See: (USER_GUIDE.md#ai-chat)
   ipcMain.handle('ask-ai', async (
     _event,
@@ -1147,7 +1147,7 @@ function setupIpcHandlers(): void {
 
   // Reply to AI: create an H subfolder with an empty HUMAN.md for the user to write in
   // (or, for "New AI Chat", HUMAN.md directly in the folder).
-  // See: (docs/technical_notes/ai_chat.md#replying-to-the-ai)
+  // See: (ai_chat.md#replying-to-the-ai)
   // See: (USER_GUIDE.md#replying-in-a-thread)
   ipcMain.handle('reply-to-ai', async (_event, parentFolderPath: string, createSubFolder: boolean) => {
     try {
@@ -1159,7 +1159,7 @@ function setupIpcHandlers(): void {
   });
 
   // Gather AI conversation thread entries for the ThreadView.
-  // See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+  // See: (ai_chat.md#how-the-thread-is-gathered)
   // See: (USER_GUIDE.md#chat-thread-view)
   ipcMain.handle('gather-thread-entries', async (_event, folderPath: string) => {
     return gatherThreadEntries(folderPath);

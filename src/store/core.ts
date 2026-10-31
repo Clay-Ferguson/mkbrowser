@@ -61,7 +61,7 @@ export const defaultSettings: AppSettings = {
   expandedEditor: false,
   imageSize: DEFAULT_IMAGE_SIZE,
   // Off by default — see the note on the same field in `configSchema.ts`.
-  // See: (docs/technical_notes/thesaurus_view.md#the-onoff-switch-enablethesaurus)
+  // See: (thesaurus_view.md#the-onoff-switch-enablethesaurus)
   enableThesaurus: false,
   wordWrap: true,
 };
@@ -93,8 +93,8 @@ const initialState: AppState = {
   currentEntries: [],
   entriesLoading: true,
   currentPath: '',
-  currentView: 'browser', // the active tab (any AppView). See: (docs/technical_notes/application_tabs.md#tab-navigation)
-  // Starts in listing mode; setBrowseFile enters single-file mode. See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
+  currentView: 'browser', // the active tab (any AppView). See: (application_tabs.md#tab-navigation)
+  // Starts in listing mode; setBrowseFile enters single-file mode. See: (single_file_browsing.md#the-deciding-state-browsefilename)
   browseFileName: null,
   browseFileMode: 'browse',
   pendingScrollToFile: null,
@@ -120,20 +120,20 @@ const initialState: AppState = {
   linkIdMismatch: null,
   highlightedSearchResult: null,
   folderAnalysis: null,
-  // Folder Graph: no graph, no file-link edges, Links toggle off. See: (docs/technical_notes/folder_graph.md#store-and-types)
+  // Folder Graph: no graph, no file-link edges, Links toggle off. See: (folder_graph.md#store-and-types)
   folderGraph: null,
   folderGraphFileLinks: null,
   showGraphFileLinks: false,
   pendingThreadScrollToBottom: false,
   rootPath: '',
-  // Explicitly shown tabs; AppTabButtons adds the data-derived ones. See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+  // Explicitly shown tabs; AppTabButtons adds the data-derived ones. See: (application_tabs.md#which-tabs-are-shown)
   visibleTabs: new Set<AppState['currentView']>(['browser']),
   indexTreeRoot: null,
   pendingIndexTreeReveal: null,
   pendingIndexTreeRevealExpandsFile: false,
   hasIndexFile: false,
   indexYaml: null,
-  // Calendar view state. See: (docs/technical_notes/calendar_view.md#global-state)
+  // Calendar view state. See: (calendar_view.md#global-state)
   calendarSource: null,
   calendarEvents: null,
   calendarLoading: false,

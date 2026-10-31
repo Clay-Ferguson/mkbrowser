@@ -12,8 +12,8 @@
  * back: it falls back to a folders-only scan or throws, so a successful scan
  * always has `truncated: false`.
  *
- * See: (docs/technical_notes/folder_graph.md#main-process)
- * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+ * See: (folder_graph.md#main-process)
+ * See: (folder_graph.md#scan-algorithm)
  * See: (USER_GUIDE.md#folder-graph)
  */
 import path from 'node:path';
@@ -24,7 +24,7 @@ import { isMarkdownFile } from '../shared/fileTypes';
 /**
  * Hard cap on recursion depth from the root folder (root = 0).
  *
- * See: (docs/technical_notes/folder_graph.md#adjusting-limits-and-physics)
+ * See: (folder_graph.md#adjusting-limits-and-physics)
  * See: (USER_GUIDE.md#scan-limits)
  */
 export const MAX_DEPTH = 10;
@@ -32,13 +32,13 @@ export const MAX_DEPTH = 10;
 /**
  * Hard cap on the number of nodes (files + folders, including root).
  *
- * See: (docs/technical_notes/folder_graph.md#adjusting-limits-and-physics)
+ * See: (folder_graph.md#adjusting-limits-and-physics)
  * See: (USER_GUIDE.md#scan-limits)
  */
 export const MAX_NODES = 2000;
 
 // Payload shapes returned over the 'scan-folder-tree' IPC channel.
-// See: (docs/technical_notes/folder_graph.md#ipc-surface)
+// See: (folder_graph.md#ipc-surface)
 export interface FolderGraphNodeData {
   /** Stable id (full absolute path) */
   id: string;
@@ -68,14 +68,14 @@ export interface FolderGraphResult {
    * True if the scan hit MAX_NODES and was cut short. Only an internal pass
    * sets it; `scanFolderTree` never returns a truncated result.
    *
-   * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+   * See: (folder_graph.md#scan-algorithm)
    */
   truncated: boolean;
   /**
    * True if the full (files + folders) scan exceeded MAX_NODES and we fell
    * back to a folders-only scan. Lets the renderer flag the partial view.
    *
-   * See: (docs/technical_notes/folder_graph.md#header)
+   * See: (folder_graph.md#header)
    */
   foldersOnly: boolean;
 }
@@ -96,7 +96,7 @@ export interface FolderGraphResult {
  * kept), so the graph shows just the Markdown content and the folders that
  * lead to it.
  *
- * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+ * See: (folder_graph.md#scan-algorithm)
  * See: (USER_GUIDE.md#scan-limits)
  */
 export async function scanFolderTree(
@@ -126,7 +126,7 @@ export async function scanFolderTree(
  * Sorting (folders before files, alphabetical) is applied at each level so
  * the truncation point, when reached, is deterministic.
  *
- * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+ * See: (folder_graph.md#scan-algorithm)
  */
 async function scanFolderTreeInternal(
   folderPath: string,
@@ -221,7 +221,7 @@ async function scanFolderTreeInternal(
 /**
  * Marks `dirPath` and each ancestor up to `rootPath` as containing Markdown.
  *
- * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+ * See: (folder_graph.md#scan-algorithm)
  */
 function markMarkdownAncestors(dirPath: string, rootPath: string, hasMarkdown: Set<string>): void {
   let dir = dirPath;

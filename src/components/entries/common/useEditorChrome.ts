@@ -8,7 +8,7 @@ interface UseEditorChromeOptions {
   /**
    * The entry owns the whole pane (BrowseFile 'browse' mode): the editor is always expanded.
    *
-   * See: (docs/technical_notes/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
+   * See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
    */
   alwaysExpandedEditor: boolean;
   /**
@@ -17,7 +17,7 @@ interface UseEditorChromeOptions {
    * Markdown keeps its natural, page-scrolled height until it is edited. Must agree with
    * BrowseFile's `fillsPane`.
    *
-   * See: (docs/technical_notes/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
+   * See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
    */
   fillPaneWhenViewing?: boolean;
   /** Ends the edit session without saving (the entry may wrap edit.handleCancel with extra cleanup). */
@@ -40,7 +40,7 @@ export function useEditorChrome({ path, edit, alwaysExpandedEditor, fillPaneWhen
   // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
   // content area, and editor all become nested flex columns (BrowseFile flexes the outer chain —
   // it is the only view that ever hosts a maximized editor).
-  // See: (docs/technical_notes/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
+  // See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
   const editorExpanded = expandedEditor || alwaysExpandedEditor;
   const maximized = (editorExpanded && edit.isEditing) || (fillPaneWhenViewing && alwaysExpandedEditor);
 
@@ -59,7 +59,7 @@ export function useEditorChrome({ path, edit, alwaysExpandedEditor, fillPaneWhen
   // Flips the preference AND moves the editor to match: expanding hands this
   // file the whole pane via BrowseFile, collapsing drops back to the folder
   // listing with the editor still open inline.
-  // See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+  // See: (single_file_browsing.md#entering-single-file-mode-expanded-editing)
   // See: (USER_GUIDE.md#expand-editor)
   const handleToggleExpandedEditor = () => {
     toggleExpandedEditor(path);

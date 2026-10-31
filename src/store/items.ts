@@ -136,7 +136,7 @@ export function withSelectionsCleared(items: Map<string, ItemData>): Map<string,
  * re-parsing, and lands in the same `set()` so the editor mounts with the front
  * matter already shown. It stays on until the user turns it off.
  *
- * See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+ * See: (single_file_browsing.md#entering-single-file-mode-expanded-editing)
  */
 function editingPatch(
   state: AppState,
@@ -169,7 +169,7 @@ function editingPatch(
   // can land off screen. `path` is known to live in `currentPath` —
   // isExpandedEditOf checks exactly that — so BrowseView is guaranteed to
   // find the element and consume the request.
-  // See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+  // See: (single_file_browsing.md#entering-single-file-mode-expanded-editing)
   const showProps = editing && !state.settings.showPropsInEditor && isMarkdownFile(existing.name)
     && hasObjectType(existing.props ?? {}, state.typeDefs);
 
@@ -194,7 +194,7 @@ function editingPatch(
  * the file (setBrowseFile, applyDirectoryListing) means the view never renders
  * it collapsed first.
  *
- * See: (docs/technical_notes/single_file_browsing.md#what-browsefile-renders)
+ * See: (single_file_browsing.md#what-browsefile-renders)
  */
 export function withItemExpanded(items: Map<string, ItemData>, path: string): Map<string, ItemData> | null {
   const existing = items.get(path);
@@ -215,7 +215,7 @@ function stripTrailingSep(path: string): string {
  * the listing here, in the same set() that installs it, so no render ever pairs a
  * listing with the previous folder's flag.
  *
- * See: (docs/technical_notes/document_mode.md#overview)
+ * See: (document_mode.md#overview)
  */
 function listingHasIndex(entries: FileEntry[]): boolean {
   return entries.some((e) => e.indexOrder !== undefined);
@@ -393,7 +393,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * but never considered for pruning, which only ever looks at direct children of
      * `dirPath`.
      *
-     * See: (docs/technical_notes/file_attachments.md#global-store-interaction-srcstoreitemsts)
+     * See: (file_attachments.md#global-store-interaction-srcstoreitemsts)
      */
     syncDirectoryItems: (dirPath, items) => {
       const newItems = syncListingItems(get().items, dirPath, items);
@@ -409,7 +409,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * expanded in that same update: when setBrowseFile moved to a different
      * folder, this is the first update in which its item exists.
      *
-     * See: (docs/technical_notes/file_attachments.md#global-store-interaction-srcstoreitemsts)
+     * See: (file_attachments.md#global-store-interaction-srcstoreitemsts)
      */
     applyDirectoryListing: (dirPath, entries) => {
       const state = get();
@@ -418,7 +418,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
         ...(file.attachments ?? []).map(toIncomingItem),
       ]);
       let newItems = syncListingItems(state.items, dirPath, incoming);
-      // Single-file mode shows its one file expanded. See: (docs/technical_notes/single_file_browsing.md#what-browsefile-renders)
+      // Single-file mode shows its one file expanded. See: (single_file_browsing.md#what-browsefile-renders)
       if (state.browseFileName !== null && isSamePath(dirPath, state.currentPath)) {
         const items = newItems ?? state.items;
         newItems = withItemExpanded(items, joinPath(dirPath, state.browseFileName)) ?? newItems;
@@ -774,7 +774,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
           // The id embeds the file path (`filePath` or `filePath::i`), so rebuild
           // it from the moved path — leaving the old path in `id` risks duplicate
           // ids if a new file lands on the old path before the watcher resyncs.
-          // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+          // See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
           const id = moved + e.id.slice(e.filePath!.length);
           return { ...e, id, filePath: moved };
         });
@@ -794,7 +794,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       }
       // `browseFileName` is relative to `currentPath`, so it only changes when
       // the single file being viewed is itself the renamed item.
-      // See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
+      // See: (single_file_browsing.md#the-deciding-state-browsefilename)
       if (state.browseFileName !== null && joinPath(state.currentPath, state.browseFileName) === oldPath) {
         patch.browseFileName = newName;
       }
@@ -880,7 +880,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * @returns true when starting the edit turned on Show Properties (see
      *   editingPatch); the caller must then persist it with saveSettings().
      *
-     * See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+     * See: (single_file_browsing.md#entering-single-file-mode-expanded-editing)
      */
     setItemEditing: (path, editing, goToLine) => {
       const patch = editingPatch(get(), path, editing, goToLine);

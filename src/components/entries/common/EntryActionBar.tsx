@@ -49,7 +49,7 @@ interface EntryActionBarProps {
  * (open with OS app, view file, bookmark, make folder, copy path, and the three "Attach:" items) as
  * text items, so the hover bar doesn't grow unbounded.
  *
- * See: (docs/technical_notes/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
+ * See: (file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  * See: (USER_GUIDE.md#delete)
  * See: (USER_GUIDE.md#editing-mode)
  */
@@ -73,7 +73,7 @@ export function EntryActionBar({
   // In single-file browsing mode this exact file is already the one on screen,
   // so the "View File" button would be a no-op — hide it. Computed inside the
   // selector so only this row re-renders when the browsed file changes.
-  // See: (docs/technical_notes/single_file_browsing.md#why-browsefilemode)
+  // See: (single_file_browsing.md#why-browsefilemode)
   const isViewingThisFile = useAS(s => s.browseFileName !== null && joinPath(s.currentPath, s.browseFileName) === path);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -106,7 +106,7 @@ export function EntryActionBar({
 
   // Switch to single-file browsing of this file — the same effect as clicking
   // the file's row in the index tree (see IndexTreeView's handleNodeClick).
-  // See: (docs/technical_notes/single_file_browsing.md#why-browsefilemode)
+  // See: (single_file_browsing.md#why-browsefilemode)
   const handleViewFile = () => {
     setHighlightItem(path);
     setBrowseFile(getParentPath(path), getFileName(path));
@@ -240,7 +240,7 @@ export function EntryActionBar({
  * A plain module-level function rather than a hook: the React Compiler doesn't
  * compile these, and the entry components call it during render.
  *
- * See: (docs/technical_notes/file_attachments.md#one-set-of-handlers-every-file-type)
+ * See: (file_attachments.md#one-set-of-handlers-every-file-type)
  */
 export function bindAttachMenu(
   path: string,

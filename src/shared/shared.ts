@@ -142,7 +142,7 @@ export interface AppSettings {
   /**
    * Folder path where new calendar item files are created.
    *
-   * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+   * See: (calendar_view.md#calendarview-component)
    * See: (USER_GUIDE.md#calendar-items-folder)
    */
   calendarItemsFolder: string;
@@ -159,7 +159,7 @@ export interface AppSettings {
    * it enters single-file mode (`browseFileMode: 'expanded-edit'`), so BrowseFile
    * hosts the editor with the whole pane.
    *
-   * See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+   * See: (single_file_browsing.md#entering-single-file-mode-expanded-editing)
    * See: (USER_GUIDE.md#expand-editor)
    */
   expandedEditor: boolean;
@@ -175,7 +175,7 @@ export interface AppSettings {
    * of it runs either: the editor's idle plugin never arms its timer, so no work
    * happens while the user types.
    *
-   * See: (docs/technical_notes/thesaurus_view.md#the-onoff-switch-enablethesaurus)
+   * See: (thesaurus_view.md#the-onoff-switch-enablethesaurus)
    * See: (USER_GUIDE.md#thesaurus)
    */
   enableThesaurus: boolean;
@@ -263,7 +263,7 @@ export interface AppConfig {
   curSubFolder?: string;
   settings?: AppSettings;
   lastExportFolder?: string;
-  // "Enable AI": gates every AI Chat button and menu item. See: (docs/technical_notes/ai_chat.md#overview)
+  // "Enable AI": gates every AI Chat button and menu item. See: (ai_chat.md#overview)
   // See: (USER_GUIDE.md#enable-ai-features)
   aiEnabled?: boolean;
   // The AI Model dropdown's entries and the selected entry's name. See: (USER_GUIDE.md#ai-model)
@@ -271,7 +271,7 @@ export interface AppConfig {
   aiModel?: string;
   // Base URL of the local OpenAI-compatible server (LLAMACPP provider). See: (USER_GUIDE.md#llamacpp-base-url)
   llamacppBaseUrl?: string;
-  // Routes Ask AI through the deep agent instead of a plain LLM call. See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
+  // Routes Ask AI through the deep agent instead of a plain LLM call. See: (ai_chat.md#what-gets-sent-to-the-model)
   // See: (USER_GUIDE.md#agentic-mode)
   agenticMode?: boolean;
   // Newline-separated folders the agent's file tools may touch. See: (USER_GUIDE.md#allowed-folders)
@@ -280,7 +280,7 @@ export interface AppConfig {
    * The name of the currently selected rewrite prompt. This is also the persona
    * the AI Chat tab's "Chat with Persona" box selects.
    *
-   * See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
+   * See: (ai_chat.md#what-the-view-shows)
    * See: (USER_GUIDE.md#selecting-the-active-prompt)
    */
   aiRewritePrompt?: string;
@@ -311,7 +311,7 @@ export interface AppConfig {
   /**
    * Last selected calendar view type (month/week/work_week/day/agenda).
    *
-   * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (calendar_view.md#global-state)
    * See: (USER_GUIDE.md#navigating-the-calendar)
    */
   calendarViewType?: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
@@ -344,28 +344,28 @@ export interface FileEntry {
   /**
    * Preview text from HUMAN.md or AI.md for AI conversation folders
    *
-   * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+   * See: (ai_chat.md#how-the-thread-is-gathered)
    * See: (USER_GUIDE.md#ai-conversation-hint-text)
    */
   aiHint?: string;
   /**
    * Position from .INDEX.yaml; undefined means not listed (appears after indexed entries)
    *
-   * See: (docs/technical_notes/document_mode.md#the-indexyaml-file)
+   * See: (document_mode.md#the-indexyaml-file)
    * See: (USER_GUIDE.md#document-mode)
    */
   indexOrder?: number;
   /**
    * Contents of an associated .attach folder, pre-loaded by readDirectory
    *
-   * See: (docs/technical_notes/file_attachments.md#fileentry-interface-srcsharedsharedts)
+   * See: (file_attachments.md#fileentry-interface-srcsharedsharedts)
    * See: (USER_GUIDE.md#file-attachments)
    */
   attachments?: FileEntry[];
   /**
    * True when a sibling .attach folder exists for this file
    *
-   * See: (docs/technical_notes/file_attachments.md#fileentry-interface-srcsharedsharedts)
+   * See: (file_attachments.md#fileentry-interface-srcsharedsharedts)
    */
   hasAttachFolder?: boolean;
 }
@@ -548,7 +548,7 @@ export interface FolderAnalysisResult {
 }
 
 // IPC wire form of a calendar event (epoch-ms times survive structured cloning).
-// See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
+// See: (calendar_view.md#file-scanning--srcmaincalendarloaderts)
 // See: (USER_GUIDE.md#creating-calendar-entries)
 export interface CalendarEventResult {
   id: string;
@@ -563,7 +563,7 @@ export interface CalendarEventResult {
 }
 
 // Result of the 'scan-folder-tree' IPC call (mirrors FolderGraphResult in src/main/folderGraph.ts).
-// See: (docs/technical_notes/folder_graph.md#ipc-surface)
+// See: (folder_graph.md#ipc-surface)
 // See: (USER_GUIDE.md#scan-limits)
 export interface FolderGraphScanResult {
   folderPath: string;
@@ -598,7 +598,7 @@ export interface AIUsageWithCosts {
  * from — the word as typed when it had its own entry, the root when it did not, and null
  * when nothing was found at all.
  *
- * See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
+ * See: (thesaurus_view.md#the-ipc-surface)
  * See: (USER_GUIDE.md#thesaurus)
  */
 export interface ThesaurusLookup {
@@ -611,7 +611,7 @@ export interface ThesaurusLookup {
    * Moby publishes none — so this puts the drop-in-ready single words where the user is
    * looking. See `singleWordsFirst`.
    *
-   * See: (docs/technical_notes/thesaurus_view.md#ordering-single-words-first)
+   * See: (thesaurus_view.md#ordering-single-words-first)
    */
   synonyms: string[];
 }
@@ -627,7 +627,7 @@ export interface ElectronAPI {
   testHooksEnabled: boolean;
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
-  // Synonyms for the editor's thesaurus strip. See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
+  // Synonyms for the editor's thesaurus strip. See: (thesaurus_view.md#the-ipc-surface)
   // See: (USER_GUIDE.md#thesaurus)
   lookupThesaurus: (word: string) => Promise<ThesaurusLookup>;
   /** Title of the HTML page at an http(s) URL (read from at most its first 256 KB), or '' when there is none. Never rejects. */
@@ -680,7 +680,7 @@ export interface ElectronAPI {
    * Link" (after the user consents) so a link to a Markdown file carries an id for
    * auto-repair.
    *
-   * See: (docs/technical_notes/document_mode.md#stable-identity-via-front-matter-ids)
+   * See: (document_mode.md#stable-identity-via-front-matter-ids)
    * See: (USER_GUIDE.md#inserting-links-to-other-files)
    */
   ensureFrontMatterId: (filePath: string) => Promise<FrontMatterIdResult>;
@@ -688,7 +688,7 @@ export interface ElectronAPI {
   getFileMtime: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   createFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
-  // Also renames the file's sibling `.attach` folder, if any. See: (docs/technical_notes/file_attachments.md#rename-synchronization-srcmaints)
+  // Also renames the file's sibling `.attach` folder, if any. See: (file_attachments.md#rename-synchronization-srcmaints)
   // See: (USER_GUIDE.md#renaming-1)
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   // Moves the file or folder to the OS trash. See: (USER_GUIDE.md#delete)
@@ -712,7 +712,7 @@ export interface ElectronAPI {
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   // Tools → Folder Analysis. See: (USER_GUIDE.md#folder-analysis)
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
-  // Calendar: folder crawl (starts the watcher) and search-results list. See: (docs/technical_notes/calendar_view.md#ipc-surface)
+  // Calendar: folder crawl (starts the watcher) and search-results list. See: (calendar_view.md#ipc-surface)
   // See: (USER_GUIDE.md#opening-the-calendar)
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;
   /**
@@ -724,14 +724,14 @@ export interface ElectronAPI {
   /**
    * Scans `folderPath` for the folder graph; `markdownOnly` limits files to `.md` and prunes folders without any.
    *
-   * See: (docs/technical_notes/folder_graph.md#ipc-surface)
+   * See: (folder_graph.md#ipc-surface)
    * See: (USER_GUIDE.md#launching-the-graph)
    */
   scanFolderTree: (folderPath: string, markdownOnly?: boolean) => Promise<FolderGraphScanResult>;
   /**
    * Reads the graph's Markdown files and returns their links to other graph nodes (source -> target).
    *
-   * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+   * See: (folder_graph.md#file-to-file-links-overlay)
    * See: (USER_GUIDE.md#reading-the-graph)
    */
   scanFolderGraphLinks: (folderPath: string, nodeIds: string[]) => Promise<Array<{ source: string; target: string }>>;
@@ -749,7 +749,7 @@ export interface ElectronAPI {
   checkHtmlExportTarget: (sourceFolder: string, outputFolder: string) => Promise<HtmlExportTargetCheck>;
   // Runs a .sh file (the tree's Run menu item). See: (USER_GUIDE.md#running-shell-scripts)
   runShellScript: (filePath: string) => Promise<{ success: boolean; error?: string }>;
-  // AI Chat: Ask AI and Reply. See: (docs/technical_notes/ai_chat.md#code-map)
+  // AI Chat: Ask AI and Reply. See: (ai_chat.md#code-map)
   // See: (USER_GUIDE.md#ai-chat)
   askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   replyToAi: (parentFolderPath: string, createSubFolder: boolean) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
@@ -757,14 +757,14 @@ export interface ElectronAPI {
   getAiUsage: () => Promise<AIUsageWithCosts>;
   resetAiUsage: () => Promise<void>;
   queueScriptedAnswer: (answer: string) => Promise<void>;
-  // Builds the AI Chat tab's thread. See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+  // Builds the AI Chat tab's thread. See: (ai_chat.md#how-the-thread-is-gathered)
   gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }>; childFolders: Array<{ role: 'human' | 'ai'; name: string; path: string; aiHint?: string }> }>;
   // AI Rewrite of the whole file. See: (USER_GUIDE.md#how-to-use-rewrite)
   rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   // AI Rewrite Selection. See: (USER_GUIDE.md#rewriting-a-selection)
   rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
 
-  // AI streaming events (drive the streaming dialog). See: (docs/technical_notes/ai_chat.md#asking-the-ai)
+  // AI streaming events (drive the streaming dialog). See: (ai_chat.md#asking-the-ai)
   onAiStreamStart: (callback: () => void) => () => void;
   onAiStreamChunk: (callback: (text: string) => void) => () => void;
   onAiStreamThinking: (callback: (text: string) => void) => () => void;
@@ -774,13 +774,13 @@ export interface ElectronAPI {
   cancelAiStream: () => void;
 
   // Calendar file-change and delete events
-  // See: (docs/technical_notes/calendar_view.md#ipc-surface)
+  // See: (calendar_view.md#ipc-surface)
   // See: (USER_GUIDE.md#opening-the-calendar)
   onCalendarFileChanged: (callback: (results: CalendarEventResult[], filePath: string) => void) => () => void;
   onCalendarFileDeleted: (callback: (deletedPath: string, isFolder: boolean) => void) => () => void;
   onCalendarWatcherError: (callback: (message: string) => void) => () => void;
 
-  // Document Mode (.INDEX.yaml) operations. See: (docs/technical_notes/document_mode.md#code-locations)
+  // Document Mode (.INDEX.yaml) operations. See: (document_mode.md#code-locations)
   // See: (USER_GUIDE.md#document-mode)
   insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;

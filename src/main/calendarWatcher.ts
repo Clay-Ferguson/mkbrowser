@@ -7,7 +7,7 @@ import { buildCalendarFilter } from '../shared/pathPattern';
 import { logger } from '../shared/logUtil';
 
 // Calendar live updates: a chokidar watcher on the folder-sourced calendar's folder.
-// See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+// See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
 // See: (USER_GUIDE.md#opening-the-calendar)
 
 export type CalendarFileChangedCallback = (results: CalendarEventResult[], filePath: string) => void;
@@ -19,7 +19,7 @@ export type CalendarWatcherErrorCallback = (message: string) => void;
 // the single mainWindow (see the 'load-calendar-events' IPC handler in main.ts).
 // If multi-vault or split-view watching is ever needed, promote this state into a
 // CalendarWatcher class so each view can own an independent instance.
-// See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+// See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
 let currentWatcher: ReturnType<typeof chokidar.watch> | null = null;
 let currentFolder: string | null = null;
 // The ignore patterns the active watcher was built with. Compared on each
@@ -40,7 +40,7 @@ let currentIgnoredPaths: string[] = [];
 // exactly the bug this chain prevents: every public start/stop runs strictly
 // after the previous one has fully completed, so the check-then-act sequences
 // inside them are atomic with respect to each other.
-// See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+// See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
 let operationChain: Promise<void> = Promise.resolve();
 
 /**
@@ -66,7 +66,7 @@ function sameIgnoredPaths(a: string[], b: string[]): boolean {
  * That gets a specific, actionable message; anything else falls back to the raw
  * error text.
  *
- * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+ * See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
  */
 function describeWatcherError(err: unknown): string {
   const code = (err as { code?: unknown } | null)?.code;
@@ -98,7 +98,7 @@ function describeWatcherError(err: unknown): string {
  * silently never live-update, because chokidar would ignore the entire tree at
  * its root. Filtering of everything *inside* the root is unaffected.
  *
- * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+ * See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
  */
 function buildIgnoredFn(folderPath: string, ignoredPaths: string[]): (filePath: string, stats?: Stats) => boolean {
   const exclude = buildCalendarFilter(ignoredPaths);
@@ -130,7 +130,7 @@ function buildIgnoredFn(folderPath: string, ignoredPaths: string[]): (filePath: 
  * - Overlapping calls are safe: every start/stop runs through {@link serialized},
  *   so a second call issued while a restart is mid-flight simply queues behind it.
  *
- * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+ * See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
  * See: (USER_GUIDE.md#opening-the-calendar)
  */
 export function startCalendarWatcher(
@@ -236,8 +236,8 @@ async function doStartCalendarWatcher(
  * a start is mid-flight waits for it and then closes the watcher it created.
  * Called on app quit and by the search-results loader, which wants no live updates.
  *
- * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
- * See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
+ * See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+ * See: (calendar_view.md#search-source--snapshot)
  */
 export function stopCalendarWatcher(): Promise<void> {
   return serialized(doStopCalendarWatcher);

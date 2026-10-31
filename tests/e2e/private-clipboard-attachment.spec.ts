@@ -17,7 +17,7 @@ import {
 /**
  * Private E2E Test: Attach: Clipboard
  *
- * See: (docs/technical_notes/features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
+ * See: (features/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  *
  * Exercises the "Attach: Clipboard" feature on a markdown entry:
  *   1. Seeds a subfolder with a single markdown file that has no attachments.

@@ -29,7 +29,7 @@ function reportCreateFailure(detail: unknown): void {
 /**
  * Formats a Date as MM/DD/YYYY for use in the `due:` front-matter field.
  *
- * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (calendar_view.md#calendar-entry-format)
  * See: (USER_GUIDE.md#creating-calendar-entries)
  */
 function formatDueDate(d: Date): string {
@@ -40,7 +40,7 @@ function formatDueDate(d: Date): string {
 /**
  * Formats a Date as H:MM AM/PM for use in the `start:` front-matter field.
  *
- * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (calendar_view.md#calendar-entry-format)
  * See: (USER_GUIDE.md#adding-a-start-time-and-duration)
  */
 function formatStartTime(d: Date): string {
@@ -77,7 +77,7 @@ interface PendingSlot {
  * a search-sourced one names the search and how many of its results turned out
  * to be calendar files, and navigates back to the result list.
  *
- * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (calendar_view.md#calendarview-component)
  * See: (USER_GUIDE.md#search-results)
  */
 function CalendarSourceHeader({ source, eventCount }: { source: CalendarSource; eventCount: number }) {
@@ -130,8 +130,8 @@ function CalendarSourceHeader({ source, eventCount }: { source: CalendarSource; 
  * library dark and defines `mk-event-highlighted` (applied via `eventPropGetter`) and
  * `mk-day-target` (applied via `dayPropGetter`).
  *
- * See: (docs/technical_notes/calendar_view.md#overview)
- * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (calendar_view.md#overview)
+ * See: (calendar_view.md#calendarview-component)
  * See: (USER_GUIDE.md#calendar)
  */
 export default function CalendarView() {
@@ -156,14 +156,14 @@ export default function CalendarView() {
   // 'resize' on activation makes the library re-measure through its own listeners.
   // The only other window 'resize' listener in the app is PopupMenu's cheap
   // repositioning, so waking it too costs nothing.
-  // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
-  // See: (docs/technical_notes/calendar_view.md#calendarview-component)
+  // See: (application_tabs.md#hidden-views-are-live)
+  // See: (calendar_view.md#calendarview-component)
   useEffect(() => {
     if (isActive) window.dispatchEvent(new Event('resize'));
   }, [isActive]);
 
   // The view type goes to the store and to config (the one calendar field persisted to disk).
-  // See: (docs/technical_notes/calendar_view.md#global-state)
+  // See: (calendar_view.md#global-state)
   // See: (USER_GUIDE.md#navigating-the-calendar)
   const handleViewChange = (v: View) => {
     const vt = v as CalendarViewType;
@@ -178,7 +178,7 @@ export default function CalendarView() {
    * With no Calendar Items Folder set, it reports that instead of asking for a
    * name the file could never be created under.
    *
-   * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+   * See: (calendar_view.md#calendarview-component)
    * See: (USER_GUIDE.md#creating-calendar-entries)
    */
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
@@ -209,7 +209,7 @@ export default function CalendarView() {
    * the configured calendar items folder, then navigates the browser to it and
    * opens it for editing.
    *
-   * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+   * See: (calendar_view.md#calendarview-component)
    * See: (USER_GUIDE.md#calendar-items-folder)
    */
   const handleCreateCalendarFile = (fileName: string) => {
@@ -246,7 +246,7 @@ export default function CalendarView() {
     })();
   };
 
-  // Jumps to the event's file in BrowseView, highlighted. See: (docs/technical_notes/calendar_view.md#calendarview-component)
+  // Jumps to the event's file in BrowseView, highlighted. See: (calendar_view.md#calendarview-component)
   // See: (USER_GUIDE.md#jumping-to-a-file)
   const handleSelectEvent = (event: CalendarEvent) => {
     if (!event.filePath) return;

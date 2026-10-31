@@ -1,7 +1,7 @@
 /**
  * Utilities for turning a markdown file into a calendar item via front matter injection.
  *
- * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (calendar_view.md#calendar-entry-format)
  * See: (USER_GUIDE.md#creating-calendar-entries)
  */
 
@@ -13,7 +13,7 @@ import type { CalendarEvent } from '../shared/types';
 /**
  * The front-matter properties that make a file a calendar item (EditCalendarDialog owns them).
  *
- * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (calendar_view.md#calendarview-component)
  * See: (USER_GUIDE.md#adding-a-start-time-and-duration)
  */
 export const CALENDAR_PROPS: ReadonlySet<string> = new Set(['due', 'start', 'duration', 'rrule']);
@@ -25,7 +25,7 @@ export const CALENDAR_PROPS: ReadonlySet<string> = new Set(['due', 'start', 'dur
  * search-results scan, and the watcher's incremental updates — goes through here
  * so the conversion is defined once.
  *
- * See: (docs/technical_notes/calendar_view.md#global-state)
+ * See: (calendar_view.md#global-state)
  */
 export function toCalendarEvents(results: CalendarEventResult[]): CalendarEvent[] {
   return results.map(r => ({ ...r, start: new Date(r.start), end: new Date(r.end) }));
@@ -191,7 +191,7 @@ function buildLocalDate(year: number, month: number, day: number): Date | null {
  * and many other tools emit for a bare `due: 2025-03-05` — interpreted as a local
  * calendar date, not UTC. Without ISO support such an event would be dropped silently.
  *
- * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (calendar_view.md#calendar-entry-format)
  * See: (USER_GUIDE.md#creating-calendar-entries)
  */
 export function parseDueStr(dueStr: string): Date | null {
@@ -222,7 +222,7 @@ export function parseDueStr(dueStr: string): Date | null {
  * YAML date spec uses — are read so the result lands on the day the user wrote,
  * without a timezone-offset shift.
  *
- * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (calendar_view.md#calendar-entry-format)
  */
 export function coerceDueDate(due: unknown): Date | null {
   if (due instanceof Date) {
@@ -271,7 +271,7 @@ function scalarFieldToString(value: unknown): string | undefined {
 /**
  * Parses the `rrule:` block from front matter and returns its fields, or null if absent.
  *
- * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (calendar_view.md#recurring-events)
  * See: (USER_GUIDE.md#recurring-events)
  */
 export function getRRuleProperty(content: string): RRuleProps | null {
@@ -336,7 +336,7 @@ function buildRRuleObject(rrule: RRuleProps): Record<string, unknown> {
  * every subsequent front-matter parse throw. Unparseable existing YAML is left untouched
  * rather than risking further corruption.
  *
- * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (calendar_view.md#recurring-events)
  * See: (USER_GUIDE.md#recurring-events)
  */
 export function setRRuleProperty(content: string, rrule: RRuleProps | null): string {
@@ -376,7 +376,7 @@ export function setRRuleProperty(content: string, rrule: RRuleProps | null): str
  * or if the existing front matter is malformed or non-mapping YAML that cannot be
  * merged into without corrupting it (see the validation notes in the body).
  *
- * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (calendar_view.md#calendar-entry-format)
  */
 export function injectCalendarFrontMatter(content: string, repeating: boolean): string {
   const parsed = splitFrontMatter(content);

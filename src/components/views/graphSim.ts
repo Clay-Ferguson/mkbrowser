@@ -19,8 +19,8 @@ import { forceCrossGroupRepel } from './forceCrossGroupRepel';
  * rendering, label measurement, drag/zoom behavior); this module owns the
  * physics and the shapes of the messages the two threads exchange.
  *
- * See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
- * See: (docs/technical_notes/folder_graph.md#adjusting-limits-and-physics)
+ * See: (folder_graph.md#force-model-graphsimts)
+ * See: (folder_graph.md#adjusting-limits-and-physics)
  */
 
 export interface SimNode extends SimulationNodeDatum {
@@ -32,7 +32,7 @@ export interface SimNode extends SimulationNodeDatum {
   /**
    * Cached hover preview text (file name + divider + first lines of body).
    *
-   * See: (docs/technical_notes/folder_graph.md#hover)
+   * See: (folder_graph.md#hover)
    */
   previewText?: string;
   /**
@@ -44,7 +44,7 @@ export interface SimNode extends SimulationNodeDatum {
    * Label footprint box edges as offsets from the node center, populated when
    * USE_LABEL_PHYSICS is on and consumed by forceLabelRect. See RectCollideNode.
    *
-   * See: (docs/technical_notes/folder_graph.md#initialization)
+   * See: (folder_graph.md#initialization)
    */
   bx0?: number;
   by0?: number;
@@ -55,7 +55,7 @@ export interface SimNode extends SimulationNodeDatum {
    * path for folders. Same key = exempt from cross-group repulsion, so a file
    * and its own parent folder never repel. See CrossGroupNode.
    *
-   * See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+   * See: (folder_graph.md#force-model-graphsimts)
    */
   crossRepelGroup?: string;
 }
@@ -65,7 +65,7 @@ export interface SimLink extends SimulationLinkDatum<SimNode> {
   target: string | SimNode;
 }
 
-// Radius (px) of a file node; folders grow from here. See: (docs/technical_notes/folder_graph.md#visual-encoding)
+// Radius (px) of a file node; folders grow from here. See: (folder_graph.md#visual-encoding)
 export const NODE_RADIUS_BASE = 5;
 
 // Physics model for keeping nodes from colliding.
@@ -74,7 +74,7 @@ export const NODE_RADIUS_BASE = 5;
 //           and whole nodes spread apart). See forceLabelRect.ts.
 //   false → original circle-only collision (labels can overlap when circles are
 //           close). Flip this one constant to revert to the previous physics.
-// See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+// See: (folder_graph.md#force-model-graphsimts)
 export const USE_LABEL_PHYSICS: boolean = true;
 // Breathing room (px) added around each label box before collisions are resolved.
 export const LABEL_BOX_PADDING = 2;
@@ -87,7 +87,7 @@ const LABEL_COLLIDE_ITERATIONS = 3;
 
 // Baseline repulsion between all nodes, and the range past which it's ignored
 // (see the 'charge' force). Named so the cross-folder repulsion can match them.
-// See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+// See: (folder_graph.md#force-model-graphsimts)
 const CHARGE_STRENGTH = -220;
 const CHARGE_DISTANCE_MAX = 180;
 
@@ -96,7 +96,7 @@ const CHARGE_DISTANCE_MAX = 180;
 // repulsion of a same-folder pair, keeping the two folders' file clusters from
 // intermingling and obscuring their connector lines. See forceCrossGroupRepel.ts.
 // Flip to false to remove the effect (folders then rely on the baseline charge).
-// See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+// See: (folder_graph.md#force-model-graphsimts)
 const USE_CROSS_FOLDER_REPULSION: boolean = true;
 // Magnitude of the *extra* cross-folder repulsion. Equal to |CHARGE_STRENGTH|
 // makes the total exactly double for cross-folder file pairs.
@@ -108,7 +108,7 @@ const CROSS_FOLDER_EXTRA_STRENGTH = 440; // try 220, 330, or 440
 // link stays the only attraction/spacing between them. Stronger than the
 // file-vs-file extra above because folder hubs anchor whole clumps and need
 // more clearance.
-// See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+// See: (folder_graph.md#force-model-graphsimts)
 const USE_FILE_FOLDER_REPULSION: boolean = true;
 const FILE_FOLDER_REPEL_STRENGTH = 500;
 
@@ -119,7 +119,7 @@ const FILE_FOLDER_REPEL_STRENGTH = 500;
 // it (files have zero strength here, keeping their charge local), but every
 // node feels it, which is what carries whole clumps away from each other.
 // Strength scales with direct child count so bigger clusters claim more room.
-// See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+// See: (folder_graph.md#force-model-graphsimts)
 const USE_FOLDER_HUB_REPULSION: boolean = true;
 const FOLDER_HUB_STRENGTH_BASE = -200;
 const FOLDER_HUB_STRENGTH_PER_CHILD = -40;
@@ -131,19 +131,19 @@ const FOLDER_HUB_DISTANCE_MAX = 1500;
 // Link rest lengths. Folder→file links stay short so files hug their parent
 // (tight clumps); folder→subfolder links are longer so hubs — and therefore
 // the clumps around them — get structural spacing from each other.
-// See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+// See: (folder_graph.md#force-model-graphsimts)
 const LINK_DISTANCE_FILE = 60;
 const LINK_DISTANCE_FOLDER = 130;
 
 // Radius step (px) between successive tree depths in the seeded initial layout.
 // Matches the folder link rest length so the seed starts near link equilibrium.
-// See: (docs/technical_notes/folder_graph.md#layout-worker)
+// See: (folder_graph.md#layout-worker)
 const SEED_RADIAL_STEP = LINK_DISTANCE_FOLDER;
 
 /**
  * Returns the circle radius for a node — folders scale up with their child count.
  *
- * See: (docs/technical_notes/folder_graph.md#visual-encoding)
+ * See: (folder_graph.md#visual-encoding)
  */
 export function nodeRadius(d: SimNode): number {
   if (!d.isDirectory) return NODE_RADIUS_BASE;
@@ -159,7 +159,7 @@ export function nodeRadius(d: SimNode): number {
  *   folder vs folder                  → 0 (hub repulsion spaces those)
  * Symmetric in its arguments, as forceCrossGroupRepel requires.
  *
- * See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+ * See: (folder_graph.md#force-model-graphsimts)
  */
 function crossGroupPairStrength(a: SimNode, b: SimNode): number {
   if (a.isDirectory !== b.isDirectory) {
@@ -186,7 +186,7 @@ function crossGroupPairStrength(a: SimNode, b: SimNode): number {
  * endpoints here — forceLink resolves them to node objects only once the
  * simulation is built.
  *
- * See: (docs/technical_notes/folder_graph.md#layout-worker)
+ * See: (folder_graph.md#layout-worker)
  */
 export function seedRadialPositions(nodes: SimNode[], links: SimLink[], cx: number, cy: number): void {
   const root = nodes.find(n => n.depth === 0);
@@ -253,7 +253,7 @@ export interface BuiltSimulation {
   /**
    * Held out so a container resize can retarget the layout's center.
    *
-   * See: (docs/technical_notes/folder_graph.md#resize)
+   * See: (folder_graph.md#resize)
    */
   centerForce: ForceCenter<SimNode>;
 }
@@ -265,7 +265,7 @@ export interface BuiltSimulation {
  * it idle until a drag restarts it. Note this mutates `links`, replacing their
  * string endpoints with node references (forceLink resolves ids on init).
  *
- * See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+ * See: (folder_graph.md#force-model-graphsimts)
  */
 export function buildSimulation(
   nodes: SimNode[],
@@ -329,7 +329,7 @@ export function buildSimulation(
  * The exact number of ticks d3's internal timer would run to take alpha from
  * its initial value down to alphaMin — i.e. a full settle.
  *
- * See: (docs/technical_notes/folder_graph.md#layout-worker)
+ * See: (folder_graph.md#layout-worker)
  */
 export function settleTickCount(sim: Simulation<SimNode, SimLink>): number {
   return Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay()));
@@ -338,7 +338,7 @@ export function settleTickCount(sim: Simulation<SimNode, SimLink>): number {
 /**
  * Floats posted back per node in a SettleResponse: x, y, vx, vy.
  *
- * See: (docs/technical_notes/folder_graph.md#layout-worker)
+ * See: (folder_graph.md#layout-worker)
  */
 export const FLOATS_PER_NODE = 4;
 
@@ -347,14 +347,14 @@ export const FLOATS_PER_NODE = 4;
  * than SimNode: the hover-preview cache is main-thread-only state, and sending
  * it would copy every previewed file's text across the boundary for nothing.
  *
- * See: (docs/technical_notes/folder_graph.md#layout-worker)
+ * See: (folder_graph.md#layout-worker)
  */
 export type SettleNode = Omit<SimNode, 'previewText' | 'previewTimestamp'>;
 
 /**
  * Main thread → worker: lay out this graph.
  *
- * See: (docs/technical_notes/folder_graph.md#layout-worker)
+ * See: (folder_graph.md#layout-worker)
  */
 export interface SettleRequest {
   nodes: SettleNode[];
@@ -367,7 +367,7 @@ export interface SettleRequest {
 /**
  * Worker → main thread: the settled layout.
  *
- * See: (docs/technical_notes/folder_graph.md#layout-worker)
+ * See: (folder_graph.md#layout-worker)
  */
 export interface SettleResponse {
   /**

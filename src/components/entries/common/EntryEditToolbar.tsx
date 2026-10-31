@@ -10,7 +10,7 @@ interface EntryEditToolbarProps {
    * entirely — for callers whose editor is always expanded and where the
    * toggle would therefore be a no-op (see `alwaysExpandedEditor`).
    *
-   * See: (docs/technical_notes/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
+   * See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
    */
   onToggleExpandedEditor?: () => void;
 

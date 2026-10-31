@@ -7,7 +7,7 @@
  * entries finish loading. This makes the concurrency races deterministic
  * instead of timing-dependent.
  *
- * See: (docs/technical_notes/calendar_view.md#testing)
+ * See: (calendar_view.md#testing)
  */
 import type { Stats } from 'node:fs';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

@@ -15,7 +15,7 @@ import { setBrowseFile, setCurrentPath, setCurrentView, toggleExpandedEditor } f
  * file being edited and wrecked the destination folder's listing. The
  * cross-folder cases below are the regression guards for that.
  *
- * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+ * See: (features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
  */
 
 const FOLDER = '/notes';

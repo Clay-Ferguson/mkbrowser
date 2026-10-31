@@ -1,4 +1,4 @@
-// The AI Chat tab. See: (docs/technical_notes/ai_chat.md#the-ai-chat-tab-threadview)
+// The AI Chat tab. See: (ai_chat.md#the-ai-chat-tab-threadview)
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { clsx } from 'clsx';
 import { FolderIcon } from '@heroicons/react/24/solid';
@@ -51,7 +51,7 @@ function nextThreadToken() {
  * doesn't make the React Compiler bail out on ThreadView. Returns null when
  * the gather fails (already logged here).
  *
- * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+ * See: (ai_chat.md#how-the-thread-is-gathered)
  */
 async function gatherThread(path: string) {
   try {
@@ -69,7 +69,7 @@ async function gatherThread(path: string) {
  * start of the conversation and down through unforked turns), and renders each
  * HUMAN.md or AI.md turn in chronological order (oldest at top).
  *
- * See: (docs/technical_notes/ai_chat.md#the-ai-chat-tab-threadview)
+ * See: (ai_chat.md#the-ai-chat-tab-threadview)
  * See: (USER_GUIDE.md#chat-thread-view)
  * See: (USER_GUIDE.md#replying-in-a-thread)
  */
@@ -94,7 +94,7 @@ function ThreadView() {
   // without a remount. The displayed name is read straight from the store (no
   // local draft), so the header can never claim a persona that isn't the active
   // one — personas are created in AISettingsView, never typed in here.
-  // See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
+  // See: (ai_chat.md#what-the-view-shows)
   const aiRewritePrompt = useAS(s => s.aiConfig.aiRewritePrompt);
   const aiRewritePrompts = useAS(s => s.aiConfig.aiRewritePrompts);
   const personaName = aiRewritePrompt || DEFAULT_PERSONA_NAME;
@@ -104,7 +104,7 @@ function ThreadView() {
    * persona via `saveAiConfig` so the editor's AI Rewrite button (which reads the
    * same store mirror) picks it up immediately.
    *
-   * See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
+   * See: (ai_chat.md#what-the-view-shows)
    * See: (USER_GUIDE.md#selecting-the-active-prompt)
    */
   const handlePersonaSelect = (name: string) => {
@@ -124,14 +124,14 @@ function ThreadView() {
    * so MarkdownEntry's content loader can warm its cache, and updates the
    * `isThread` / `childFolders` state that drives the UI branches.
    *
-   * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+   * See: (ai_chat.md#how-the-thread-is-gathered)
    */
   useEffect(() => {
     // Views never unmount (App.tsx hides them with CSS), so without this guard
     // every browser-tab folder navigation would fire the gather IPC + store
     // seeding for a thread view the user isn't looking at. Skip while hidden;
     // `isActive` is in the deps so the gather runs when this tab activates.
-    // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
+    // See: (application_tabs.md#hidden-views-are-live)
     if (!isActive) return;
     const token = nextThreadToken();
     // A slow gather can resolve after the user has navigated elsewhere, or after
@@ -201,7 +201,7 @@ function ThreadView() {
   // appears at the top first. The entries' bodies load after this commit, so
   // pinScrollToBottom keeps following the bottom as they fill in rather than
   // hoping a fixed delay was long enough.
-  // See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
+  // See: (ai_chat.md#where-the-response-goes)
   useLayoutEffect(() => {
     // Hidden, the pane has no layout to scroll; the flag waits for activation.
     if (!loaded || !isActive || !pendingScrollToBottom) return;
@@ -215,7 +215,7 @@ function ThreadView() {
   // `loaded`, so the item is there to open. The editor (CodeMirror) takes up
   // significant vertical space once it mounts, on a later commit — the
   // bottom pin follows it down as it does.
-  // See: (docs/technical_notes/ai_chat.md#replying-to-the-ai)
+  // See: (ai_chat.md#replying-to-the-ai)
   useEffect(() => {
     if (!loaded || !isActive || !pendingEditFile || pendingEditView !== 'thread') return;
     setItemExpanded(pendingEditFile, true);
@@ -227,7 +227,7 @@ function ThreadView() {
   }, [loaded, isActive, pendingEditFile, pendingEditView]);
 
   // Navigate breadcrumb — switches to browser view at the given path
-  // See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
+  // See: (ai_chat.md#what-the-view-shows)
   const handleBreadcrumbNavigate = (path: string) => {
     navigateToBrowserPath(path);
   };
@@ -237,7 +237,7 @@ function ThreadView() {
    * set to 'thread', so the user drills deeper into the conversation tree
    * without switching to the browser tab.
    *
-   * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+   * See: (ai_chat.md#how-the-thread-is-gathered)
    * See: (USER_GUIDE.md#replying-in-a-thread)
    */
   const handleChildFolderClick = (folderPath: string) => {

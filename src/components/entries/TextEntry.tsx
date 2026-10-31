@@ -25,7 +25,7 @@ import { getTextFileLanguage } from '../../shared/fileTypes';
 import { ENTRY_CONTENT_AREA, ENTRY_BODY_BORDER, ENTRY_CONTENT_BG_APP, ENTRY_LOADING } from '../../renderer/styles';
 
 
-// AttachMenuProps: the three "Attach:" menu items every file entry offers. See: (docs/technical_notes/file_attachments.md#one-set-of-handlers-every-file-type)
+// AttachMenuProps: the three "Attach:" menu items every file entry offers. See: (file_attachments.md#one-set-of-handlers-every-file-type)
 type TextEntryProps = BaseEntryProps & AttachMenuProps;
 
 /**
@@ -59,7 +59,7 @@ function TextEntry(props: TextEntryProps) {
     // `alwaysExpandedEditor` callers (BrowseFile) hand this entry the whole pane, so it fills
     // the available height in *view* mode too — not just while editing. In the folder listing
     // the entry is one row among many, so there maximizing stays tied to editing.
-    // See: (docs/technical_notes/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
+    // See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
     fillPaneWhenViewing: true,
     onCancel: edit.handleCancel,
   });

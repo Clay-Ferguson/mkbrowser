@@ -9,7 +9,7 @@
  *
  * Documents are built as bare EditorStates, which need no DOM.
  *
- * See: (docs/technical_notes/features/thesaurus_view.md#testing)
+ * See: (features/thesaurus_view.md#testing)
  */
 import { describe, it, expect } from 'vitest';
 import { EditorState } from '@codemirror/state';

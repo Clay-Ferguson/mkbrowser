@@ -5,7 +5,7 @@
  * NOTE: This file must NOT import Node.js modules (e.g. 'node:fs') because
  * it is also bundled into the renderer (browser) process.
  *
- * See: (docs/technical_notes/ai_chat.md#folder-layout-of-a-conversation)
+ * See: (ai_chat.md#folder-layout-of-a-conversation)
  * See: (USER_GUIDE.md#11-minimal-path-depth-ha-convention)
  */
 import type { FileEntry } from '../../global';
@@ -14,14 +14,14 @@ import { HUMAN_FILENAME, AI_FILENAME } from '../specialFiles';
 /**
  * Matches AI conversation folders: "A", "A1", "A2", etc. (case-sensitive)
  *
- * See: (docs/technical_notes/ai_chat.md#folder-layout-of-a-conversation)
+ * See: (ai_chat.md#folder-layout-of-a-conversation)
  */
 export const AI_FOLDER_REGEX = /^A\d*$/;
 
 /**
  * Matches Human conversation folders: "H", "H1", "H2", etc. (case-sensitive)
  *
- * See: (docs/technical_notes/ai_chat.md#folder-layout-of-a-conversation)
+ * See: (ai_chat.md#folder-layout-of-a-conversation)
  */
 export const HUMAN_FOLDER_REGEX = /^H\d*$/;
 
@@ -29,7 +29,7 @@ export const HUMAN_FOLDER_REGEX = /^H\d*$/;
  * Returns true when the loaded entries contain a HUMAN.md or AI.md file.
  * Decides whether the AI Chat tab is shown.
  *
- * See: (docs/technical_notes/ai_chat.md#when-the-tab-appears)
+ * See: (ai_chat.md#when-the-tab-appears)
  * See: (USER_GUIDE.md#chat-thread-view)
  */
 export function isAiThreadByEntries(entries: FileEntry[]): boolean {
@@ -39,7 +39,7 @@ export function isAiThreadByEntries(entries: FileEntry[]): boolean {
 /**
  * Returns true when the loaded entries contain a HUMAN.md file.
  *
- * See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
+ * See: (ai_chat.md#starting-a-conversation)
  */
 export function hasHumanMd(entries: FileEntry[]): boolean {
   return entries.some(e => e.name === HUMAN_FILENAME);

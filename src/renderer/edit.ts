@@ -277,8 +277,8 @@ export async function pasteCutItems(
  * @param sourceIndexNames - Entry names of the source folder's index, in document
  *   order (empty when the source is not a document).
  *
- * See: (docs/technical_notes/document_mode.md#insert-bars)
- * See: (docs/technical_notes/file_attachments.md#document-mode-ordering-srcmainindexutilts)
+ * See: (document_mode.md#insert-bars)
+ * See: (file_attachments.md#document-mode-ordering-srcmainindexutilts)
  */
 export function orderPastedNames(names: readonly string[], sourceIndexNames: readonly string[]): string[] {
   const pos = new Map(sourceIndexNames.map((name, i) => [name, i]));

@@ -38,9 +38,9 @@ const asEndType = (value: string): EndType =>
  * and on Save writes the values back, returning the updated `content` string via
  * onSave. The body itself is untouched; only the scheduling properties change.
  *
- * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
- * See: (docs/technical_notes/calendar_view.md#recurring-events)
- * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (calendar_view.md#calendar-entry-format)
+ * See: (calendar_view.md#recurring-events)
+ * See: (calendar_view.md#calendarview-component)
  * See: (USER_GUIDE.md#jumping-to-a-date-from-a-file)
  * See: (USER_GUIDE.md#adding-a-start-time-and-duration)
  * See: (USER_GUIDE.md#recurring-events)

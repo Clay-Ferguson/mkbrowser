@@ -3,7 +3,7 @@
  * These tests exercise the prompt parsing and file inclusion logic without
  * requiring any AI API key or network access.
  *
- * See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
+ * See: (ai_chat.md#what-gets-sent-to-the-model)
  */
 import fs from 'node:fs';
 import path from 'node:path';

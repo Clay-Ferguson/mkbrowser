@@ -106,7 +106,7 @@ export interface ItemData {
    * Preview text from HUMAN.md or AI.md for AI conversation folders.
    * Only populated when aiEnabled is true in AppConfig.
    *
-   * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+   * See: (ai_chat.md#how-the-thread-is-gathered)
    * See: (USER_GUIDE.md#ai-conversation-hint-text)
    */
   aiHint?: string;
@@ -128,7 +128,7 @@ export interface ItemData {
 /**
  * Represents which application page (aka view or panel) is currently displayed
  *
- * See: (docs/technical_notes/application_tabs.md#overview)
+ * See: (application_tabs.md#overview)
  */
 export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread' | 'folder-graph' | 'calendar' | 'types-editor' | 'tags-editor' | 'help';
 
@@ -136,7 +136,7 @@ export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analys
  * Why the browser view is showing a single file instead of the folder listing.
  * See `AppState.browseFileMode` for what each value changes.
  *
- * See: (docs/technical_notes/single_file_browsing.md#why-browsefilemode)
+ * See: (single_file_browsing.md#why-browsefilemode)
  */
 export type BrowseFileMode = 'browse' | 'expanded-edit';
 
@@ -165,7 +165,7 @@ export interface FolderAnalysisState {
 /**
  * A node in the folder graph (a file or folder).
  *
- * See: (docs/technical_notes/folder_graph.md#store-and-types)
+ * See: (folder_graph.md#store-and-types)
  */
 export interface FolderGraphNode {
   /** Stable id (full path) */
@@ -183,7 +183,7 @@ export interface FolderGraphNode {
  * Links overlay's file-to-file edges (`folderGraphFileLinks`), where `source`
  * is the linking Markdown file and `target` the node it links to.
  *
- * See: (docs/technical_notes/folder_graph.md#store-and-types)
+ * See: (folder_graph.md#store-and-types)
  */
 export interface FolderGraphLink {
   /** Parent node id */
@@ -200,8 +200,8 @@ export interface FolderGraphLink {
  * a CSS `display` toggle in App.tsx, so the SVG and d3-zoom's internal
  * state persist in the live DOM without needing to be serialized.
  *
- * See: (docs/technical_notes/folder_graph.md#store-and-types)
- * See: (docs/technical_notes/folder_graph.md#persistence-model)
+ * See: (folder_graph.md#store-and-types)
+ * See: (folder_graph.md#persistence-model)
  * See: (USER_GUIDE.md#tab-persistence)
  */
 export interface FolderGraphState {
@@ -215,7 +215,7 @@ export interface FolderGraphState {
    * True if the scan hit the node-count cap and was truncated. In practice
    * always false: the scanner falls back to folders-only or throws instead.
    *
-   * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+   * See: (folder_graph.md#scan-algorithm)
    * See: (USER_GUIDE.md#scan-limits)
    */
   truncated: boolean;
@@ -275,7 +275,7 @@ export type HighlightedSearchResult = { path: string };
 /**
  * The selectable calendar views (month/week/work-week/day/agenda).
  *
- * See: (docs/technical_notes/calendar_view.md#global-state)
+ * See: (calendar_view.md#global-state)
  */
 export type CalendarViewType = 'month' | 'week' | 'work_week' | 'day' | 'agenda';
 
@@ -285,7 +285,7 @@ export type CalendarViewType = 'month' | 'week' | 'work_week' | 'day' | 'agenda'
  * A directory's children are its listing; a file's only possible child is its
  * attachment folder (see makeFileChildren in treeNodes.ts).
  *
- * See: (docs/technical_notes/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+ * See: (file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
  */
 export interface FileNode {
   path: string;
@@ -299,14 +299,14 @@ export interface FileNode {
   /**
    * File nodes only: a sibling `<name>.attach` folder exists (from FileEntry.hasAttachFolder).
    *
-   * See: (docs/technical_notes/file_attachments.md#where-the-data-comes-from--no-extra-io)
+   * See: (file_attachments.md#where-the-data-comes-from--no-extra-io)
    */
   hasAttachFolder?: boolean;
   /**
    * An attachment folder shown as its owning file's child (labelled `*.attach`). An
    * orphaned `.attach` folder is an ordinary folder node and shows its real name.
    *
-   * See: (docs/technical_notes/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+   * See: (file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
    */
   isOwnedAttach?: boolean;
 }
@@ -366,7 +366,7 @@ export interface AppState {
   /**
    * Current view being displayed
    *
-   * See: (docs/technical_notes/application_tabs.md#tab-navigation)
+   * See: (application_tabs.md#tab-navigation)
    */
   currentView: AppView;
 
@@ -377,7 +377,7 @@ export interface AppState {
    * together by `setBrowseFile`, and any change to `currentPath` clears this,
    * so it can never name a file outside the folder being browsed.
    *
-   * See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
+   * See: (single_file_browsing.md#the-deciding-state-browsefilename)
    */
   browseFileName: string | null;
 
@@ -397,7 +397,7 @@ export interface AppState {
    * writes it, so a value left behind by a previous single-file session can
    * never be read stale.
    *
-   * See: (docs/technical_notes/single_file_browsing.md#why-browsefilemode)
+   * See: (single_file_browsing.md#why-browsefilemode)
    */
   browseFileMode: BrowseFileMode;
 
@@ -548,8 +548,8 @@ export interface AppState {
    * still-mounted view's DOM and simulation, so leaving and returning to the
    * view keeps the same layout.
    *
-   * See: (docs/technical_notes/folder_graph.md#store-and-types)
-   * See: (docs/technical_notes/folder_graph.md#persistence-model)
+   * See: (folder_graph.md#store-and-types)
+   * See: (folder_graph.md#persistence-model)
    * See: (USER_GUIDE.md#tab-persistence)
    */
   folderGraph: FolderGraphState | null;
@@ -560,14 +560,14 @@ export interface AppState {
    * reset to null whenever `folderGraph` is replaced. Kept apart from
    * `folderGraph` so loading them never re-runs the graph layout.
    *
-   * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+   * See: (folder_graph.md#file-to-file-links-overlay)
    */
   folderGraphFileLinks: FolderGraphLink[] | null;
 
   /**
    * Whether the Folder Graph view draws file-to-file links (session only, off by default).
    *
-   * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+   * See: (folder_graph.md#file-to-file-links-overlay)
    * See: (USER_GUIDE.md#reading-the-graph)
    */
   showGraphFileLinks: boolean;
@@ -596,7 +596,7 @@ export interface AppState {
    * loaded. Set by actions like "Ask AI" and "Reply" that append new content
    * to the thread.
    *
-   * See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
+   * See: (ai_chat.md#where-the-response-goes)
    */
   pendingThreadScrollToBottom: boolean;
 
@@ -610,7 +610,7 @@ export interface AppState {
    * Set of tab IDs that should be visible in the tab bar.
    * Not persisted — resets to defaults on restart.
    *
-   * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+   * See: (application_tabs.md#which-tabs-are-shown)
    * See: (USER_GUIDE.md#tab-bar)
    */
   visibleTabs: Set<AppView>;
@@ -620,7 +620,7 @@ export interface AppState {
    * Controls sort behavior and related UI across the app. Derived from
    * `currentEntries` (set in the same update), never written on its own.
    *
-   * See: (docs/technical_notes/document_mode.md#overview)
+   * See: (document_mode.md#overview)
    * See: (USER_GUIDE.md#document-mode)
    */
   hasIndexFile: boolean;
@@ -629,7 +629,7 @@ export interface AppState {
    * Parsed contents of .INDEX.yaml for the current directory.
    * Null when no index file exists or has not yet been loaded.
    *
-   * See: (docs/technical_notes/document_mode.md#the-indexyaml-file)
+   * See: (document_mode.md#the-indexyaml-file)
    */
   indexYaml: { version?: number; files?: { name: string; id?: string }[]; options?: Record<string, unknown> } | null;
 
@@ -638,7 +638,7 @@ export interface AppState {
    * Tracked independently of the current browse path and the live search results
    * so the calendar stays stable while the user navigates elsewhere.
    *
-   * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (calendar_view.md#global-state)
    * See: (USER_GUIDE.md#opening-the-calendar)
    */
   calendarSource: CalendarSource | null;
@@ -646,14 +646,14 @@ export interface AppState {
   /**
    * Calendar events loaded from the file system (null = not yet loaded).
    *
-   * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (calendar_view.md#global-state)
    */
   calendarEvents: CalendarEvent[] | null;
 
   /**
    * True while calendar events are being loaded asynchronously.
    *
-   * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (calendar_view.md#global-state)
    */
   calendarLoading: boolean;
 
@@ -661,7 +661,7 @@ export interface AppState {
    * The currently selected calendar view (month/week/work_week/day/agenda).
    * Persisted to AppConfig so it survives app restarts.
    *
-   * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (calendar_view.md#global-state)
    * See: (USER_GUIDE.md#navigating-the-calendar)
    */
   calendarViewType: CalendarViewType;
@@ -671,7 +671,7 @@ export interface AppState {
    * Not persisted to config — resets to today on app restart, but survives
    * tab switches within a session.
    *
-   * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (calendar_view.md#global-state)
    * See: (USER_GUIDE.md#navigating-the-calendar)
    */
   calendarViewTime: Date;
@@ -679,7 +679,7 @@ export interface AppState {
   /**
    * The day the calendar was opened to show (a clicked date), drawn highlighted; null for none.
    *
-   * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (calendar_view.md#global-state)
    * See: (USER_GUIDE.md#jumping-to-a-date-from-a-file)
    */
   calendarTargetDate: Date | null;
@@ -690,7 +690,7 @@ export interface AppState {
    * banner in the calendar so the user knows live updates degraded. Not
    * persisted.
    *
-   * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (calendar_view.md#global-state)
    */
   calendarWatcherWarning: string | null;
 
@@ -712,7 +712,7 @@ export interface AppState {
    *
    * Holds only the word — the synonym lookup is the pane's own concern. Not persisted.
    *
-   * See: (docs/technical_notes/thesaurus_view.md#the-store-slice-and-why-it-exists)
+   * See: (thesaurus_view.md#the-store-slice-and-why-it-exists)
    * See: (USER_GUIDE.md#thesaurus)
    */
   thesaurusWord: string | null;
@@ -773,7 +773,7 @@ export interface AiConfigState {
  * of the calendar files among a set of search results — it spans arbitrarily many
  * folders, so there is nothing coherent to watch and no live updates are applied.
  *
- * See: (docs/technical_notes/calendar_view.md#event-sources)
+ * See: (calendar_view.md#event-sources)
  * See: (USER_GUIDE.md#search-results)
  */
 export type CalendarSource =
@@ -794,7 +794,7 @@ export type CalendarSource =
  * A single event displayed on the calendar view (the renderer-side, `Date`-based
  * form of CalendarEventResult).
  *
- * See: (docs/technical_notes/calendar_view.md#global-state)
+ * See: (calendar_view.md#global-state)
  * See: (USER_GUIDE.md#calendar)
  */
 export interface CalendarEvent {
@@ -813,7 +813,7 @@ export interface CalendarEvent {
  * Designed for extensibility — future versions may include
  * image attachments or other artifacts alongside the markdown content.
  *
- * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+ * See: (ai_chat.md#how-the-thread-is-gathered)
  * See: (USER_GUIDE.md#chat-thread-view)
  */
 export interface ThreadEntry {
@@ -836,7 +836,7 @@ export interface ThreadEntry {
  * thread stops: a fork (several branch folders) or a branch folder with no
  * turn file. They are listed as clickable choices for which branch to follow.
  *
- * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+ * See: (ai_chat.md#how-the-thread-is-gathered)
  * See: (USER_GUIDE.md#replying-in-a-thread)
  */
 export interface ThreadChildFolder {

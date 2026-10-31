@@ -5,7 +5,7 @@ import type { StoreSet, StoreGet } from './core';
 
 // ============================================================================
 // Calendar - events, loading state, view configuration
-// See: (docs/technical_notes/calendar_view.md#global-state)
+// See: (calendar_view.md#global-state)
 // ============================================================================
 
 /**
@@ -39,7 +39,7 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
     /**
      * Record where the currently loaded calendar events came from.
      *
-     * See: (docs/technical_notes/calendar_view.md#event-sources)
+     * See: (calendar_view.md#event-sources)
      */
     setCalendarSource: (source) => set({ calendarSource: source }),
 
@@ -48,8 +48,8 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
      * update: the tab is shown and selected, the source recorded, and loading
      * started. The caller then loads the events and calls setCalendarEvents.
      *
-     * See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
-     * See: (docs/technical_notes/calendar_view.md#folder-source--live)
+     * See: (application_tabs.md#switching-views-from-code)
+     * See: (calendar_view.md#folder-source--live)
      */
     showCalendarForFolder: (folder) => {
       const { visibleTabs } = get();
@@ -65,14 +65,14 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
     /**
      * Remove all calendar events whose `filePath` equals or lives under `deletedPath`.
      *
-     * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+     * See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
      */
     deleteCalendarEventsUnderPath: (deletedPath) => {
       const { calendarEvents, calendarSource } = get();
       // Watcher-driven — only a folder-sourced calendar is live. A search-sourced
       // one is a snapshot of a specific result set (the watcher is stopped when it
       // loads), so a late in-flight event must not be allowed to edit it.
-      // See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
+      // See: (calendar_view.md#search-source--snapshot)
       if (!calendarEvents || calendarSource?.kind !== 'folder') return;
       const normalizedDir = ensureTrailingSep(deletedPath);
       const remaining = calendarEvents.filter(
@@ -86,7 +86,7 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
     /**
      * Replace the events for a single file (upsert by filePath). Driven by the watcher.
      *
-     * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+     * See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
      */
     updateCalendarEvent: (filePath, updated) => {
       const { calendarEvents, calendarSource } = get();
@@ -99,7 +99,7 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
     /**
      * Replace all calendar events and mark loading as complete.
      *
-     * See: (docs/technical_notes/calendar_view.md#global-state)
+     * See: (calendar_view.md#global-state)
      */
     setCalendarEvents: (events) => set({ calendarEvents: events, calendarLoading: false }),
 
@@ -112,7 +112,7 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
     /**
      * Set the active calendar view type (month/week/work_week/day/agenda).
      *
-     * See: (docs/technical_notes/calendar_view.md#global-state)
+     * See: (calendar_view.md#global-state)
      */
     setCalendarViewType: (viewType) => {
       if (get().calendarViewType === viewType) return;
@@ -125,14 +125,14 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
     /**
      * Set (or clear, with null) the day drawn highlighted in the calendar.
      *
-     * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+     * See: (calendar_view.md#calendarview-component)
      */
     setCalendarTargetDate: (date) => set({ calendarTargetDate: date }),
 
     /**
      * Set (or clear, with null) the one-time file-watcher warning banner.
      *
-     * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+     * See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
      */
     setCalendarWatcherWarning: (message) => set({ calendarWatcherWarning: message }),
   };

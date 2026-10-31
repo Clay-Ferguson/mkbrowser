@@ -6,7 +6,7 @@
  * {@link runOp}), so a component only wires a button to it: failures reach the
  * app-wide error dialog, and the listing is reloaded on success.
  *
- * See: (docs/technical_notes/document_mode.md)
+ * See: (document_mode.md)
  * See: (USER_GUIDE.md#document-mode)
  */
 
@@ -20,7 +20,7 @@ import { setAppError } from '../store';
  * one, so files added or removed outside the app are placed in (or dropped
  * from) the order. Also the completion step of a rename or delete.
  *
- * See: (docs/technical_notes/document_mode.md#when-reconciliation-runs)
+ * See: (document_mode.md#when-reconciliation-runs)
  */
 export function reconcileAndRefresh(folderPath: string | null, hasIndexFile: boolean): void {
   runOp(async () => {
@@ -34,7 +34,7 @@ export function reconcileAndRefresh(folderPath: string | null, hasIndexFile: boo
 /**
  * Turns on Document Mode for `folderPath` by creating its index from the current listing.
  *
- * See: (docs/technical_notes/document_mode.md#enabling-custom-ordering)
+ * See: (document_mode.md#enabling-custom-ordering)
  * See: (USER_GUIDE.md#enabling-document-mode)
  */
 export function enableCustomOrdering(folderPath: string): void {

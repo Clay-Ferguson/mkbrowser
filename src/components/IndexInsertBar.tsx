@@ -16,7 +16,7 @@ interface IndexInsertBarProps {
  * the buttons are positioned absolutely into the gutter column reserved by the
  * entry list's padding.
  *
- * See: (docs/technical_notes/document_mode.md#insert-bars)
+ * See: (document_mode.md#insert-bars)
  * See: (USER_GUIDE.md#inserting-new-files-and-folders)
  */
 function IndexInsertBar({ onInsertFile, onInsertFolder, onPaste }: IndexInsertBarProps) {

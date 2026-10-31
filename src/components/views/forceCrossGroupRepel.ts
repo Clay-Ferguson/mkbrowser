@@ -1,5 +1,5 @@
 // Folder Graph cross-group repulsion force (the 'crossRepel' force in graphSim.ts).
-// See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+// See: (folder_graph.md#force-model-graphsimts)
 import { quadtree, type QuadtreeLeaf } from 'd3-quadtree';
 import type { SimulationNodeDatum } from 'd3-force';
 
@@ -46,7 +46,7 @@ export interface ForceCrossGroupRepel<N extends CrossGroupNode> {
  * cluster drift. A quadtree prunes the search to that range, so the cost is
  * local rather than O(n²).
  *
- * See: (docs/technical_notes/folder_graph.md#force-model-graphsimts)
+ * See: (folder_graph.md#force-model-graphsimts)
  */
 export function forceCrossGroupRepel<N extends CrossGroupNode>(): ForceCrossGroupRepel<N> {
   let nodes: N[] = [];

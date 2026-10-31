@@ -41,7 +41,7 @@ import {
  * screenshots/narration per the shared conventions, but its purpose is
  * automated verification.
  *
- * See: (docs/technical_notes/features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+ * See: (features/single_file_browsing.md#entering-single-file-mode-expanded-editing)
  */
 test.describe('Private: Expanded Editing', () => {
   test('expanded editing runs through BrowseFile, and the listing is never restyled', async ({ mainWindow, testDataPath }) => {

@@ -9,7 +9,7 @@ import { type TagCategory, isAllTagCategory } from '../shared/tagUtil';
 // ============================================================================
 // View / navigation - current view & path, pending scroll/edit signals,
 // tabs, root path, folder analysis/graph, and other top-level UI flags.
-// See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
+// See: (application_tabs.md#switching-views-from-code)
 // ============================================================================
 
 /**
@@ -66,7 +66,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     /**
      * Set the current view (the active tab).
      *
-     * See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
+     * See: (application_tabs.md#switching-views-from-code)
      */
     setCurrentView: (view) => {
       if (get().currentView === view) return;
@@ -77,7 +77,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * also clears item selections and exits single-file browsing, atomically
      * with the path change.
      *
-     * See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
+     * See: (single_file_browsing.md#the-deciding-state-browsefilename)
      */
     setCurrentPath: (path) => {
       if (get().currentPath === path) {
@@ -106,8 +106,8 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * Optionally accepts a 'view' parameter to specify which view to navigate
      * to (default is 'browser').
      *
-     * See: (docs/technical_notes/single_file_browsing.md#leaving-single-file-mode-the-index-tree)
-     * See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
+     * See: (single_file_browsing.md#leaving-single-file-mode-the-index-tree)
+     * See: (application_tabs.md#switching-views-from-code)
      */
     navigateToBrowserPath: (path, scrollToFile, view = 'browser') => {
       const newState: Partial<AppState> = {
@@ -150,8 +150,8 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * (same folder, or one visited before); otherwise applyDirectoryListing
      * expands it as the new folder's listing lands.
      *
-     * See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
-     * See: (docs/technical_notes/single_file_browsing.md#why-browsefilemode)
+     * See: (single_file_browsing.md#the-deciding-state-browsefilename)
+     * See: (single_file_browsing.md#why-browsefilemode)
      */
     setBrowseFile: (folderPath, fileName, mode = 'browse') => {
       const newState: Partial<AppState> = {
@@ -176,7 +176,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     /**
      * Exit single-file browsing and return to the folder listing.
      *
-     * See: (docs/technical_notes/single_file_browsing.md#the-deciding-state-browsefilename)
+     * See: (single_file_browsing.md#the-deciding-state-browsefilename)
      */
     clearBrowseFile: () => {
       if (get().browseFileName === null) return;
@@ -195,7 +195,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      *
      * Callers still invoke `saveSettings()` (renderer/config) afterwards to persist the flag.
      *
-     * See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+     * See: (single_file_browsing.md#entering-single-file-mode-expanded-editing)
      */
     toggleExpandedEditor: (path) => {
       const state = get();
@@ -297,7 +297,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     /**
      * Request ThreadView to scroll to bottom once its thread has loaded.
      *
-     * See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
+     * See: (ai_chat.md#where-the-response-goes)
      */
     setPendingThreadScrollToBottom: () => set({ pendingThreadScrollToBottom: true }),
 
@@ -310,7 +310,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     /**
      * Set folder analysis results. Non-null shows the Analysis tab; null closes it.
      *
-     * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+     * See: (application_tabs.md#which-tabs-are-shown)
      */
     setFolderAnalysis: (data) => set({ folderAnalysis: data }),
 
@@ -321,23 +321,23 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * file-link edges in the same update, since they belong to that graph.
      * Non-null shows (and mounts) the Graph tab; null closes and unmounts it.
      *
-     * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
-     * See: (docs/technical_notes/folder_graph.md#store-and-types)
-     * See: (docs/technical_notes/folder_graph.md#re-launching)
+     * See: (application_tabs.md#which-tabs-are-shown)
+     * See: (folder_graph.md#store-and-types)
+     * See: (folder_graph.md#re-launching)
      */
     setFolderGraph: (data) => set({ folderGraph: data, folderGraphFileLinks: null }),
 
     /**
      * Set the file-to-file link edges for the current folder graph (null = not scanned).
      *
-     * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+     * See: (folder_graph.md#file-to-file-links-overlay)
      */
     setFolderGraphFileLinks: (links) => set({ folderGraphFileLinks: links }),
 
     /**
      * Show or hide the folder graph's file-to-file links.
      *
-     * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+     * See: (folder_graph.md#file-to-file-links-overlay)
      */
     setShowGraphFileLinks: (show) => set({ showGraphFileLinks: show }),
 
@@ -353,7 +353,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * root paired with a path inside the old one), the view switches to the
      * browser, single-file browsing is exited, and selections are cleared.
      *
-     * See: (docs/technical_notes/single_file_browsing.md#invariants)
+     * See: (single_file_browsing.md#invariants)
      */
     openRootFolder: (folder) => {
       const state = get();
@@ -376,7 +376,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * Show a tab in the tab bar (adds it to visibleTabs).
      * Does not persist — resets on restart.
      *
-     * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+     * See: (application_tabs.md#which-tabs-are-shown)
      */
     showTab: (tab) => {
       const visibleTabs = get().visibleTabs;
@@ -389,7 +389,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     /**
      * Hide a tab from the tab bar (removes it from visibleTabs).
      *
-     * See: (docs/technical_notes/application_tabs.md#closing-tabs)
+     * See: (application_tabs.md#closing-tabs)
      */
     hideTab: (tab) => {
       const visibleTabs = get().visibleTabs;
@@ -413,13 +413,13 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
  * they also re-run when the tab is activated. Returns a boolean, so a
  * component only re-renders when its own view is shown or hidden.
  *
- * See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
+ * See: (application_tabs.md#hidden-views-are-live)
  */
 export function useIsActiveView(view: AppView): boolean {
   return useAS(s => s.currentView === view);
 }
 
-// Switches the active tab from anywhere. See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
+// Switches the active tab from anywhere. See: (application_tabs.md#switching-views-from-code)
 export function setCurrentView(view: AppView): void {
   getState().setCurrentView(view);
 }
@@ -543,14 +543,14 @@ export function openRootFolder(folder: string): void {
 /**
  * Check whether a tab is currently visible in the tab bar.
  *
- * See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
+ * See: (application_tabs.md#switching-views-from-code)
  */
 export function isTabVisible(tab: AppView): boolean {
   return getState().visibleTabs.has(tab);
 }
 
 // Call showTab before setCurrentView for any tab that is not data-derived, or the
-// view is active with no tab button. See: (docs/technical_notes/application_tabs.md#switching-views-from-code)
+// view is active with no tab button. See: (application_tabs.md#switching-views-from-code)
 export function showTab(tab: AppView): void {
   getState().showTab(tab);
 }

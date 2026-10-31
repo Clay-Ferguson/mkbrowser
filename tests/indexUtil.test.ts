@@ -1,4 +1,4 @@
-// Tests for Document Mode's .INDEX.yaml engine (src/main/indexUtil.ts). See: (docs/technical_notes/features/document_mode.md)
+// Tests for Document Mode's .INDEX.yaml engine (src/main/indexUtil.ts). See: (features/document_mode.md)
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -711,7 +711,7 @@ describe('moveToEdgeInIndexYaml', () => {
 // The invariant — every "<file>.attach" entry sits immediately after <file> —
 // is enforced inside the single write of each index mutator (moves, insert, and
 // reconcile) rather than by a separate pass, so it is tested through them.
-// See: (docs/technical_notes/features/file_attachments.md#document-mode-ordering-srcmainindexutilts)
+// See: (features/file_attachments.md#document-mode-ordering-srcmainindexutilts)
 // ---------------------------------------------------------------------------
 
 describe('attach-folder ordering is repaired by move operations', () => {

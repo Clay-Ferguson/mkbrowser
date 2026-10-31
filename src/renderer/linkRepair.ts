@@ -43,7 +43,7 @@ const ANY_LINK_RE = /\]\(\s*(<[^<>\n]*>|(?:[^\s<()]|\([^\s()]*\))(?:[^\s()]|\([^
  * BrowseFile consumes once the file renders. browseFileName has to be checked as
  * well as the slug, because two documents can yield the same slug.
  *
- * See: (docs/technical_notes/single_file_browsing.md#heading-links-in-single-file-mode)
+ * See: (single_file_browsing.md#heading-links-in-single-file-mode)
  */
 export function openFileSingle(path: string, headingSlug?: string): void {
   setHighlightItem(path);

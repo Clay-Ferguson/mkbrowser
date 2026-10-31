@@ -10,7 +10,7 @@
  * `0002_`, …) so that a plain directory listing (a file manager, Google Drive)
  * shows them in that order too. Pages, index pages and breadcrumbs still show the
  * original names; only the file and folder names on disk change.
- * See: (docs/technical_notes/document_mode.md)
+ * See: (document_mode.md)
  *
  * Two passes: a walk of the source builds the manifest (every exported file and
  * folder, plus front-matter ids for link repair), then the output is written. Link

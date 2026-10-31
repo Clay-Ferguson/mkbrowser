@@ -1,4 +1,4 @@
-// AI Chat: the Tools menu's "New AI Chat" operation. See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
+// AI Chat: the Tools menu's "New AI Chat" operation. See: (ai_chat.md#starting-a-conversation)
 import { api } from './api';
 import { runOp } from './runOp';
 import { refreshDirectory } from './directoryLoader';
@@ -12,7 +12,7 @@ import { navigateToBrowserPath, setAppError, setPendingEditFile, useAS } from '.
  * already holds a conversation. Fire-and-forget: failures reach the app-wide
  * error dialog.
  *
- * See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
+ * See: (ai_chat.md#starting-a-conversation)
  * See: (USER_GUIDE.md#ai-chat)
  */
 export function startAiChat(folderPath: string): void {

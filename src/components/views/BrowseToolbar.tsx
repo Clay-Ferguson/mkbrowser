@@ -57,7 +57,7 @@ type MenuKind = 'tools' | 'edit' | 'search' | 'sort' | 'imageCols';
  * edited. Nothing in this view is edit-driven any more — a maximized editor
  * lives only in BrowseFile — so don't add one back.
  *
- * See: (docs/technical_notes/single_file_browsing.md#invariants)
+ * See: (single_file_browsing.md#invariants)
  */
 function summarizeSelection(items: Map<string, ItemData>) {
   let selectedCount = 0;
@@ -98,17 +98,17 @@ interface BrowseToolbarProps {
  * closes the dialog its action just opened.
  *
  * The Calendar button (`calendar-button`) opens the current folder's calendar.
- * See: (docs/technical_notes/calendar_view.md#folder-source--live)
+ * See: (calendar_view.md#folder-source--live)
  *
  * The Tools menu's Graph All / Graph Markdown items call showFolderGraph on the
  * current folder.
- * See: (docs/technical_notes/folder_graph.md#end-to-end-flow-folder-scan)
+ * See: (folder_graph.md#end-to-end-flow-folder-scan)
  * See: (USER_GUIDE.md#edit-menu-features)
  */
 function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: BrowseToolbarProps) {
   const rootPath = useAS(s => s.rootPath);
   const currentPath = useAS(s => s.currentPath);
-  // Document Mode hides the sort menu and the header create buttons. See: (docs/technical_notes/document_mode.md#enabling-custom-ordering)
+  // Document Mode hides the sort menu and the header create buttons. See: (document_mode.md#enabling-custom-ordering)
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const sortOrder = useAS(s => s.settings.sortOrder);
   const imageCols = useAS(s => s.settings.imageCols);

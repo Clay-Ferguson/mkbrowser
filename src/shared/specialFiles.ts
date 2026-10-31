@@ -11,7 +11,7 @@
 /**
  * Filename holding a human conversation turn.
  *
- * See: (docs/technical_notes/ai_chat.md#overview)
+ * See: (ai_chat.md#overview)
  * See: (USER_GUIDE.md#ai-chat)
  */
 export const HUMAN_FILENAME = 'HUMAN.md';
@@ -19,7 +19,7 @@ export const HUMAN_FILENAME = 'HUMAN.md';
 /**
  * Filename holding an AI conversation turn.
  *
- * See: (docs/technical_notes/ai_chat.md#overview)
+ * See: (ai_chat.md#overview)
  * See: (USER_GUIDE.md#ai-chat)
  */
 export const AI_FILENAME = 'AI.md';
@@ -27,7 +27,7 @@ export const AI_FILENAME = 'AI.md';
 /**
  * Filename holding AI "thinking" content, written alongside {@link AI_FILENAME}.
  *
- * See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
+ * See: (ai_chat.md#where-the-response-goes)
  * See: (USER_GUIDE.md#ai-chat)
  */
 export const THINK_FILENAME = 'THINK.md';
@@ -35,7 +35,7 @@ export const THINK_FILENAME = 'THINK.md';
 /**
  * Suffix marking a hidden attachment folder (e.g. `foo.md.attach`).
  *
- * See: (docs/technical_notes/file_attachments.md#naming-convention)
+ * See: (file_attachments.md#naming-convention)
  * See: (USER_GUIDE.md#how-attachments-work)
  */
 export const ATTACH_SUFFIX = '.attach';
@@ -43,7 +43,7 @@ export const ATTACH_SUFFIX = '.attach';
 /**
  * Hidden file that marks a folder as a Document Mode "document" and stores entry ordering.
  *
- * See: (docs/technical_notes/document_mode.md#the-indexyaml-file)
+ * See: (document_mode.md#the-indexyaml-file)
  * See: (USER_GUIDE.md#enabling-document-mode)
  */
 export const INDEX_FILENAME = '.INDEX.yaml';

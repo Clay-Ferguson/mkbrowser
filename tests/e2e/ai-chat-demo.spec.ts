@@ -10,7 +10,7 @@ import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSum
  * using scripted (mocked) AI answers so the demo is deterministic.
  * Captures screenshots and narration at every step for GIF/MP4 assembly.
  *
- * See: (docs/technical_notes/ai_chat.md)
+ * See: (ai_chat.md)
  */
 test.describe('AI Chat Demo', () => {
   test('demonstrate a two-turn AI chat about Tokyo', async ({ mainWindow }) => {

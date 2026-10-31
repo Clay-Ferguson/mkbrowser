@@ -62,7 +62,7 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     if (config.settings) {
       setSettings({ ...defaultSettings, ...config.settings });
     }
-    // The only calendar state persisted to disk. See: (docs/technical_notes/calendar_view.md#global-state)
+    // The only calendar state persisted to disk. See: (calendar_view.md#global-state)
     if (config.calendarViewType) {
       setCalendarViewType(config.calendarViewType);
     }

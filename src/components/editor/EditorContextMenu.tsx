@@ -27,12 +27,12 @@ interface EditorContextMenuProps {
   onInsertObject: (type: string) => void;
   /** The user-defined object types (Types Editor), as listed after "Insert Object" is clicked. */
   objectTypes: readonly ObjectTypeOption[];
-  // Flips `settings.enableThesaurus`. See: (docs/technical_notes/thesaurus_view.md#the-onoff-switch-enablethesaurus)
+  // Flips `settings.enableThesaurus`. See: (thesaurus_view.md#the-onoff-switch-enablethesaurus)
   onToggleThesaurus: () => void;
   /**
    * Whether the thesaurus item is shown — only where the synonym strip can actually appear.
    *
-   * See: (docs/technical_notes/thesaurus_view.md#where-the-item-appears)
+   * See: (thesaurus_view.md#where-the-item-appears)
    */
   canToggleThesaurus: boolean;
   /** Current state of `settings.enableThesaurus`, which is what the item's wording flips on. */

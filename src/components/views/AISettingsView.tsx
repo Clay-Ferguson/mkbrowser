@@ -142,7 +142,7 @@ function AISettingsView() {
   } = useAS(s => s.aiConfig);
   // The active persona is always read from the store (ThreadView can change it
   // too); PersonaEditor keeps only the textarea draft, keyed on this name.
-  // See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
+  // See: (ai_chat.md#what-the-view-shows)
   const personaName = aiRewritePrompt || DEFAULT_PERSONA_NAME;
 
   // Text fields keep a local draft for keystroke responsiveness, persisted on
@@ -182,7 +182,7 @@ function AISettingsView() {
   // loadConfig); only the non-config usage stats need fetching here. Views
   // never unmount (App.tsx hides them with CSS), so a mount-only fetch would
   // go stale — re-fetch each time this tab becomes the active view instead.
-  // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
+  // See: (application_tabs.md#hidden-views-are-live)
   const isActive = useIsActiveView('ai-settings');
   useEffect(() => {
     if (!isActive) return;

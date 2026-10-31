@@ -19,8 +19,8 @@ import type { ThesaurusLookup } from '../shared/shared';
  *
  * MAIN PROCESS ONLY — uses `node:fs`.
  *
- * See: (docs/technical_notes/thesaurus_view.md#main-process-thesaurusutilts)
- * See: (docs/technical_notes/thesaurus_view.md#the-file-format)
+ * See: (thesaurus_view.md#main-process-thesaurusutilts)
+ * See: (thesaurus_view.md#the-file-format)
  */
 
 // The parsed index, built at most once per session. ~30k entries holding 2.5M synonyms,
@@ -48,7 +48,7 @@ const ALIAS_PREFIX = '=';
  * Longer suffixes come first so the specific forms get their chance before a shorter rule
  * reduces them to something wrong.
  *
- * See: (docs/technical_notes/thesaurus_view.md#why-the-rules-were-kept)
+ * See: (thesaurus_view.md#why-the-rules-were-kept)
  */
 const DETACHMENT_RULES: readonly (readonly [string, string])[] = [
   ['iest', 'y'], ['ies', 'y'], ['ied', 'y'], ['ier', 'y'],
@@ -73,7 +73,7 @@ const MIN_ROOT_LENGTH = 3;
  * Resolves the shipped data file. Mirrors the dictionary's dev-vs-packaged branch in
  * `main.ts` — `extraResource` puts `resources/thesaurus` directly under `resourcesPath`.
  *
- * See: (docs/technical_notes/thesaurus_view.md#packaging-the-data)
+ * See: (thesaurus_view.md#packaging-the-data)
  */
 function thesaurusFilePath(resourcesPath: string, appPath: string, isPackaged: boolean): string {
   return isPackaged
@@ -106,7 +106,7 @@ export function parseThesaurus(text: string): Map<string, string> {
  * real synonym entry, and checking the target exists means a malformed file degrades to
  * "no synonyms" rather than to a wrong answer or a loop.
  *
- * See: (docs/technical_notes/thesaurus_view.md#invariants-the-generator-guarantees)
+ * See: (thesaurus_view.md#invariants-the-generator-guarantees)
  */
 function resolveKey(key: string, index: Map<string, string>): string | null {
   const value = index.get(key);
@@ -130,8 +130,8 @@ function resolveKey(key: string, index: Map<string, string>): string | null {
  * morphology, the rules are a heuristic. That ordering is what makes "does" resolve to "do"
  * rather than to "doe", which the `-es`/`-e` rule would otherwise reach first.
  *
- * See: (docs/technical_notes/thesaurus_view.md#finding-the-root-word)
- * See: (docs/technical_notes/thesaurus_view.md#why-the-alias-table-wins-over-the-rules)
+ * See: (thesaurus_view.md#finding-the-root-word)
+ * See: (thesaurus_view.md#why-the-alias-table-wins-over-the-rules)
  * See: (USER_GUIDE.md#thesaurus)
  */
 export function findRoot(word: string, index: Map<string, string>): string | null {
@@ -163,7 +163,7 @@ export function findRoot(word: string, index: Map<string, string>): string | nul
  * matters — it preserves Moby's alphabetical order *within* each group for free, where a
  * comparator would be relying on the sort being stable to do the same.
  *
- * See: (docs/technical_notes/thesaurus_view.md#ordering-single-words-first)
+ * See: (thesaurus_view.md#ordering-single-words-first)
  * See: (USER_GUIDE.md#thesaurus)
  */
 export function singleWordsFirst(synonyms: string[]): string[] {
@@ -216,7 +216,7 @@ function loadThesaurus(filePath: string): Promise<Map<string, string>> {
  * than in the pane keeps it a property of the data every caller gets, and costs one pass
  * over an array that was just built anyway.
  *
- * See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
+ * See: (thesaurus_view.md#the-ipc-surface)
  * See: (USER_GUIDE.md#thesaurus)
  */
 export async function lookupThesaurus(

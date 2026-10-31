@@ -13,7 +13,7 @@
 // without re-rendering" explicit and avoids the tearing risk of mutating the
 // store snapshot without notifying listeners.
 //
-// See: (docs/technical_notes/application_tabs.md#the-one-exception-to-native-scroll-browseview-per-folder-scroll)
+// See: (application_tabs.md#the-one-exception-to-native-scroll-browseview-per-folder-scroll)
 // ============================================================================
 
 /** Browser view scroll positions, keyed by path */

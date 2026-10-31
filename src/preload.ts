@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFile: (title: string) => ipcRenderer.invoke('select-file', title),  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
     ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
-  // Synonyms for the editor's thesaurus strip. See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
+  // Synonyms for the editor's thesaurus strip. See: (thesaurus_view.md#the-ipc-surface)
   // See: (USER_GUIDE.md#thesaurus)
   lookupThesaurus: (word: string) => ipcRenderer.invoke('lookup-thesaurus', word),
   fetchUrlTitle: (url: string) => ipcRenderer.invoke('fetch-url-title', url),
@@ -40,7 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getFileMtime: (filePath: string) => ipcRenderer.invoke('get-file-mtime', filePath),
   writeFileBinary: (filePath: string, base64Data: string) => ipcRenderer.invoke('write-file-binary', filePath, base64Data),
   createFile: (filePath: string, content: string) => ipcRenderer.invoke('create-file', filePath, content),
-  // Main also renames the file's sibling `.attach` folder. See: (docs/technical_notes/file_attachments.md#rename-synchronization-srcmaints)
+  // Main also renames the file's sibling `.attach` folder. See: (file_attachments.md#rename-synchronization-srcmaints)
   // See: (USER_GUIDE.md#renaming-1)
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   // Moves to the OS trash. See: (USER_GUIDE.md#delete)
@@ -55,11 +55,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkAdvancedQuerySyntax: (query: string) => ipcRenderer.invoke('check-advanced-query-syntax', query),
   // Tools → Folder Analysis. See: (USER_GUIDE.md#folder-analysis)
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
-  // Calendar loaders: folder crawl (arms the watcher) and search-results list. See: (docs/technical_notes/calendar_view.md#ipc-surface)
+  // Calendar loaders: folder crawl (arms the watcher) and search-results list. See: (calendar_view.md#ipc-surface)
   // See: (USER_GUIDE.md#opening-the-calendar)
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),
   loadCalendarEventsForFiles: (filePaths: string[]) => ipcRenderer.invoke('load-calendar-events-for-files', filePaths),
-  // Folder Graph: tree scan and the Links overlay's file-to-file scan. See: (docs/technical_notes/folder_graph.md#ipc-surface)
+  // Folder Graph: tree scan and the Links overlay's file-to-file scan. See: (folder_graph.md#ipc-surface)
   // See: (USER_GUIDE.md#folder-graph)
   scanFolderTree: (folderPath: string, markdownOnly?: boolean) => ipcRenderer.invoke('scan-folder-tree', folderPath, markdownOnly),
   scanFolderGraphLinks: (folderPath: string, nodeIds: string[]) => ipcRenderer.invoke('scan-folder-graph-links', folderPath, nodeIds),
@@ -80,7 +80,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Runs a .sh file (the tree's Run menu item). See: (USER_GUIDE.md#running-shell-scripts)
   runShellScript: (filePath: string) =>
     ipcRenderer.invoke('run-shell-script', filePath),
-  // AI Chat: Ask AI and Reply. See: (docs/technical_notes/ai_chat.md#code-map)
+  // AI Chat: Ask AI and Reply. See: (ai_chat.md#code-map)
   // See: (USER_GUIDE.md#ai-chat)
   askAi: (prompt: string, parentFolderPath: string) =>
     ipcRenderer.invoke('ask-ai', prompt, parentFolderPath),
@@ -90,13 +90,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAiUsage: () => ipcRenderer.invoke('get-ai-usage'),
   resetAiUsage: () => ipcRenderer.invoke('reset-ai-usage'),
   queueScriptedAnswer: (answer: string) => ipcRenderer.invoke('queue-scripted-answer', answer),
-  // Builds the AI Chat tab's thread. See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+  // Builds the AI Chat tab's thread. See: (ai_chat.md#how-the-thread-is-gathered)
   gatherThreadEntries: (folderPath: string) => ipcRenderer.invoke('gather-thread-entries', folderPath),
   // AI Rewrite of a whole file or a selection. See: (USER_GUIDE.md#ai-rewrite)
   rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => ipcRenderer.invoke('rewrite-content', content, filePath, hasIndexFile),
   rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => ipcRenderer.invoke('rewrite-content-selection', content, selectionFrom, selectionTo, filePath, hasIndexFile),
 
-  // AI streaming events (drive the streaming dialog). See: (docs/technical_notes/ai_chat.md#asking-the-ai)
+  // AI streaming events (drive the streaming dialog). See: (ai_chat.md#asking-the-ai)
   onAiStreamStart: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on('ai-stream-start', listener);
@@ -130,7 +130,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cancelAiStream: () => ipcRenderer.send('ai-stream-cancel'),
 
   // Calendar file-change events (chokidar → renderer)
-  // See: (docs/technical_notes/calendar_view.md#ipc-surface)
+  // See: (calendar_view.md#ipc-surface)
   // See: (USER_GUIDE.md#opening-the-calendar)
   onCalendarFileChanged: (callback: (results: CalendarEventResult[], filePath: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, results: CalendarEventResult[], filePath: string) => callback(results, filePath);
@@ -153,7 +153,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => { ipcRenderer.removeListener('calendar-watcher-error', listener); };
   },
 
-  // Document Mode (.INDEX.yaml) operations. See: (docs/technical_notes/document_mode.md#code-locations)
+  // Document Mode (.INDEX.yaml) operations. See: (document_mode.md#code-locations)
   // See: (USER_GUIDE.md#document-mode)
   insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) =>
     ipcRenderer.invoke('insert-into-index-yaml', dirPath, newNames, insertAfterName),

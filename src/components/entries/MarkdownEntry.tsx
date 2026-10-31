@@ -60,7 +60,7 @@ import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE
 interface MarkdownEntryProps extends BaseEntryProps, AttachMenuProps {
   entry: FileEntry;
   view: AppView;
-  // The paperclip button: pastes the cut items into this file's attach folder. See: (docs/technical_notes/file_attachments.md#paperclip-button-srccomponentsentriesmarkdownentrytsx)
+  // The paperclip button: pastes the cut items into this file's attach folder. See: (file_attachments.md#paperclip-button-srccomponentsentriesmarkdownentrytsx)
   onPasteAsAttachment?: (filePath: string) => void;
   isAttachment?: boolean;
 }
@@ -71,7 +71,7 @@ interface MarkdownEntryProps extends BaseEntryProps, AttachMenuProps {
  * Module-level (not in the component) so its try/catch/finally doesn't make the
  * React Compiler bail out on MarkdownEntry.
  *
- * See: (docs/technical_notes/ai_chat.md#replying-to-the-ai)
+ * See: (ai_chat.md#replying-to-the-ai)
  */
 async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<void> {
   try {
@@ -97,7 +97,7 @@ async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<v
 /**
  * The one property whose two pill halves do different things (edit vs. show on the calendar).
  *
- * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (calendar_view.md#calendarview-component)
  * See: (USER_GUIDE.md#jumping-to-a-date-from-a-file)
  */
 const DUE_PROP = 'due';
@@ -135,7 +135,7 @@ function parseFrontMatterMeta(markdown: string): { tags: string[]; props: Record
  * Failures are reported through the app error dialog. Module-level so its try/catch doesn't make
  * the React Compiler bail out on MarkdownEntry.
  *
- * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (calendar_view.md#calendarview-component)
  */
 async function saveCalendarProps(path: string, newContent: string): Promise<void> {
   try {
@@ -163,8 +163,8 @@ async function saveCalendarProps(path: string, newContent: string): Promise<void
  *   a brand-new Markdown attachment to edit on the spot
  * In document mode, timestamp-based file names are hidden from the header row.
  *
- * See: (docs/technical_notes/file_attachments.md#paperclip-button-srccomponentsentriesmarkdownentrytsx)
- * See: (docs/technical_notes/ai_chat.md#code-map)
+ * See: (file_attachments.md#paperclip-button-srccomponentsentriesmarkdownentrytsx)
+ * See: (ai_chat.md#code-map)
  * See: (USER_GUIDE.md#viewing-content)
  * See: (USER_GUIDE.md#editing-files)
  */
@@ -221,7 +221,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   // Rendered Markdown keeps its natural, page-scrolled height in view mode, so unlike
   // TextEntry it only maximizes while editing (fillPaneWhenViewing stays off).
-  // See: (docs/technical_notes/single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
+  // See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
   const chrome = useEditorChrome({
     path: entry.path,
     edit,
@@ -272,7 +272,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     saveSettings();
   };
 
-  // AI Chat turn files get the Ask AI / Reply buttons, only while AI is enabled. See: (docs/technical_notes/ai_chat.md#overview)
+  // AI Chat turn files get the Ask AI / Reply buttons, only while AI is enabled. See: (ai_chat.md#overview)
   const isHumanFile = aiEnabled && entry.name === HUMAN_FILENAME;
   const isAiFile = aiEnabled && entry.name === AI_FILENAME;
 
@@ -281,7 +281,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   //
   // Promise .finally() instead of try/finally: the React Compiler bails out on
   // any try statement with a finalizer, which would de-optimize this component.
-  // See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
+  // See: (ai_chat.md#where-the-response-goes)
   // See: (USER_GUIDE.md#ai-chat)
   const handleAskAi = async (promptContent: string | undefined, endEdit: boolean) => {
     const textToSend = promptContent || content;
@@ -304,7 +304,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
           // already cleared browseFileName, so setItemEditing's expanded-edit
           // routing is a no-op here and can't queue a pendingScrollToFile for the
           // folder we just left (which would linger until it is next opened).
-          // See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+          // See: (single_file_browsing.md#entering-single-file-mode-expanded-editing)
           if (endEdit) handleCancelEdit();
         });
       }
@@ -326,7 +326,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // folder listing, unmounting this component mid-request and taking the
   // streaming dialog and the deferred navigation down with it: the answer landed
   // on disk but the user saw neither.
-  // See: (docs/technical_notes/ai_chat.md#asking-the-ai)
+  // See: (ai_chat.md#asking-the-ai)
   const onAskAI = () => {
     void (async () => {
       const saved = await handleSaveKeepEditing();
@@ -341,7 +341,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   };
   
   // Edit-mode toolbar; its calendar icon (`edit-calendar-info`) opens EditCalendarDialog.
-  // See: (docs/technical_notes/calendar_view.md#calendarview-component)
+  // See: (calendar_view.md#calendarview-component)
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
       {...chrome.toolbarProps}
@@ -460,7 +460,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const clickOnProp = (key: string): void => {
     // Calendar properties get the calendar dialog instead of the raw front-matter editor. The dialog
     // works fine outside edit mode: it only needs the file content, and its save routes to disk.
-    // See: (docs/technical_notes/calendar_view.md#calendarview-component)
+    // See: (calendar_view.md#calendarview-component)
     if (CALENDAR_PROPS.has(key)) {
       setShowCalendarDialog(true);
       return;
@@ -500,7 +500,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
    * The jump also highlights this file, so its purple border says which entry the user left from
    * once they come back to the Browse View.
    *
-   * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+   * See: (calendar_view.md#calendarview-component)
    */
   const clickOnPropValue = (key: string, value: string): void => {
     if (key === DUE_PROP) {
@@ -564,7 +564,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   // A click on a date in the object's card jumps to that date on the Calendar tab, as a `due`
   // pill's value does, highlighting this file so it's marked once the user comes back.
-  // See: (docs/technical_notes/calendar_view.md#calendarview-component)
+  // See: (calendar_view.md#calendarview-component)
   // See: (USER_GUIDE.md#property-types)
   const handleObjectDateClick = (date: Date): void => {
     setHighlightItem(entry.path);

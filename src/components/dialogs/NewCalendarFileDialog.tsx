@@ -13,7 +13,7 @@ interface NewCalendarFileDialogProps {
  * `initialFileName` (the caller supplies the calendar-appropriate default) and
  * confirms with a non-empty, trimmed name. Opened by CalendarView on an empty-slot click.
  *
- * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (calendar_view.md#calendarview-component)
  * See: (USER_GUIDE.md#creating-calendar-entries)
  */
 function NewCalendarFileDialog({ initialFileName, onCreate, onCancel }: NewCalendarFileDialogProps) {

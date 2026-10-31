@@ -51,8 +51,8 @@ interface BrowseEntryListProps {
  * Document Mode. With `imageCols > 1` (outside Document Mode) the list is a CSS
  * grid in which images sit side by side and every other entry is full-width.
  *
- * See: (docs/technical_notes/document_mode.md#insert-bars)
- * See: (docs/technical_notes/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
+ * See: (document_mode.md#insert-bars)
+ * See: (file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
  */
 function BrowseEntryList({
   onNavigate, onRename, onDelete, onPasteIntoFolder,

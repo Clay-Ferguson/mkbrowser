@@ -42,8 +42,8 @@ import {
  * screenshots/narration per the shared conventions, but its purpose is
  * automated verification.
  *
- * See: (docs/technical_notes/features/single_file_browsing.md)
- * See: (docs/technical_notes/features/single_file_browsing.md#badge-hidden-while-the-editor-is-maximized)
+ * See: (features/single_file_browsing.md)
+ * See: (features/single_file_browsing.md#badge-hidden-while-the-editor-is-maximized)
  */
 test.describe('Private: Browse File', () => {
   test('browse a single file, edit it there, and return to the folder listing', async ({ mainWindow, testDataPath }) => {

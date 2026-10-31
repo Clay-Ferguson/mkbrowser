@@ -72,7 +72,7 @@ export function buildIgnoredPatterns(paths: string[]): RegExp[] {
  * this a full-path pattern like `/notes/archive` would never exclude the
  * folder in an fdir crawl (yet would in the calendar watcher).
  *
- * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+ * See: (folder_graph.md#scan-algorithm)
  */
 export function buildExcludePredicate(
   ignoredPaths: string[],
@@ -101,8 +101,8 @@ export function buildExcludePredicate(
  * the extension rule is skipped and the entry is kept, so it is never pruned before it
  * can be identified as a directory.
  *
- * See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
- * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+ * See: (calendar_view.md#file-scanning--srcmaincalendarloaderts)
+ * See: (calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
  */
 export function buildCalendarFilter(
   ignoredPaths: string[],

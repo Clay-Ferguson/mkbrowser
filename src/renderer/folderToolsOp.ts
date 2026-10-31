@@ -24,7 +24,7 @@ import { logger } from '../shared/logUtil';
  * folder) meanwhile; only the latest may publish, or the slower, older scan
  * lands last and replaces the newer results.
  *
- * See: (docs/technical_notes/folder_graph.md#end-to-end-flow-folder-scan)
+ * See: (folder_graph.md#end-to-end-flow-folder-scan)
  */
 let latestAnalysisId = 0;
 let latestGraphId = 0;
@@ -52,7 +52,7 @@ export function showFolderAnalysis(folderPath: string): void {
  * Scans the tree under `folderPath` and shows it in the Folder Graph view.
  * With `markdownOnly`, only `.md` files (and the folders leading to them) are graphed.
  *
- * See: (docs/technical_notes/folder_graph.md#end-to-end-flow-folder-scan)
+ * See: (folder_graph.md#end-to-end-flow-folder-scan)
  * See: (USER_GUIDE.md#launching-the-graph)
  */
 export function showFolderGraph(folderPath: string, markdownOnly = false): void {
@@ -76,7 +76,7 @@ export function showFolderGraph(folderPath: string, markdownOnly = false): void 
  * edges for the Folder Graph view's file-link overlay. Dropped if the graph was
  * replaced (a new scan) while this one ran, since the edges belong to `graph`.
  *
- * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+ * See: (folder_graph.md#file-to-file-links-overlay)
  * See: (USER_GUIDE.md#reading-the-graph)
  */
 export function loadFolderGraphFileLinks(graph: FolderGraphState): void {

@@ -1,4 +1,4 @@
-// The app's tab bar. See: (docs/technical_notes/application_tabs.md#tab-navigation)
+// The app's tab bar. See: (application_tabs.md#tab-navigation)
 import { useRef, useState } from 'react';
 import { ArrowLeftIcon, ArrowRightIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { showTab, hideTab, setCurrentView, useAS, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, clearSearchResults, goBack, goForward, canGoBack, canGoForward, type AppView } from '../store';
@@ -23,7 +23,7 @@ interface AppTabButtonsProps {
 }
 
 // Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings, AI Settings, Types, Tags, Calendar, Help
-// See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+// See: (application_tabs.md#which-tabs-are-shown)
 // See: (USER_GUIDE.md#tab-bar)
 const allTabs: TabConfig[] = [
   { id: 'browser', label: 'Browse', hasCloseButton: false },
@@ -50,8 +50,8 @@ const allTabs: TabConfig[] = [
  * keeps it visible. The AI Chat tab has no close button: it follows the folder
  * being browsed.
  *
- * See: (docs/technical_notes/application_tabs.md#tab-navigation)
- * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+ * See: (application_tabs.md#tab-navigation)
+ * See: (application_tabs.md#which-tabs-are-shown)
  * See: (USER_GUIDE.md#tab-bar)
  * See: (USER_GUIDE.md#recent-folders)
  * See: (USER_GUIDE.md#up-level)
@@ -60,11 +60,11 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
   const currentView = useAS(s => s.currentView);
   const hasFolderAnalysis = useAS(s => s.folderAnalysis !== null);
   // A non-null graph shows the Graph tab; its × clears it via setFolderGraph(null).
-  // See: (docs/technical_notes/folder_graph.md#renderer)
+  // See: (folder_graph.md#renderer)
   const hasFolderGraph = useAS(s => s.folderGraph !== null);
   // Non-null from the moment any search runs until the tab is closed, so the
   // Search tab also shows a search that found nothing.
-  // See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+  // See: (application_tabs.md#which-tabs-are-shown)
   const hasSearched = useAS(s => s.lastSearchDefinition !== null);
   const currentPath = useAS(s => s.currentPath);
   const rootPath = useAS(s => s.rootPath);
@@ -76,7 +76,7 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
   const [showSystemMenu, setShowSystemMenu] = useState(false);
 
   // Navigate to the parent directory and highlight the folder we came from.
-  // See: (docs/technical_notes/application_tabs.md#tab-navigation)
+  // See: (application_tabs.md#tab-navigation)
   const navigateUp = () => {
     if (!currentPath || currentPath === rootPath) return;
     const parent = getParentPath(currentPath);
@@ -91,14 +91,14 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
   const visibleTabs = useAS(s => s.visibleTabs);
 
   // Returns a click handler that clears a tab's data and falls back to Browse if that tab was active.
-  // See: (docs/technical_notes/application_tabs.md#closing-tabs)
+  // See: (application_tabs.md#closing-tabs)
   const makeCloseHandler = (tabId: AppView, close: () => void) => () => {
     close();
     if (currentView === tabId) setCurrentView('browser');
   };
 
   // The × handler per tab. The 'thread' entry is never used, since AI Chat has
-  // hasCloseButton: false. See: (docs/technical_notes/application_tabs.md#closing-tabs)
+  // hasCloseButton: false. See: (application_tabs.md#closing-tabs)
   const closeHandlers: Partial<Record<AppView, () => void>> = {
     'thread': makeCloseHandler('thread', () => hideTab('thread')),
     'search-results': makeCloseHandler('search-results', () => clearSearchResults()),
@@ -113,11 +113,11 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
   };
 
   // Determine whether the thread tab should be visible based on loaded entries
-  // See: (docs/technical_notes/ai_chat.md#when-the-tab-appears)
-  // See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+  // See: (ai_chat.md#when-the-tab-appears)
+  // See: (application_tabs.md#which-tabs-are-shown)
   const isInAiThread = useAS(s => isAiThreadByEntries(s.currentEntries)) || currentView === 'thread';
 
-  // Explicitly shown tabs plus the data-derived ones. See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+  // Explicitly shown tabs plus the data-derived ones. See: (application_tabs.md#which-tabs-are-shown)
   const visibleIds = new Set<AppView>([
     ...visibleTabs,
     ...(hasSearched ? ['search-results' as AppView] : []),

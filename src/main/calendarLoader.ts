@@ -11,11 +11,11 @@ import { splitFrontMatter } from '../shared/frontMatterUtil';
 
 // Calendar file scanning: turns Markdown files with a `due:` front-matter property into
 // calendar events, for the folder crawl, the search-results list, and the watcher.
-// See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
+// See: (calendar_view.md#file-scanning--srcmaincalendarloaderts)
 // See: (USER_GUIDE.md#calendar)
 
 // The IPC wire form of a calendar event (epoch-ms times survive structured cloning).
-// See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
+// See: (calendar_view.md#file-scanning--srcmaincalendarloaderts)
 export interface CalendarEventResult {
   id: string;
   title: string;
@@ -35,7 +35,7 @@ export interface CalendarEventResult {
  * 12-hour form (`"1:30 PM"`) and the 24-hour form (`"13:30"`). Returns null on
  * anything unrecognized so the caller can warn and fall back to an all-day event.
  *
- * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (calendar_view.md#calendar-entry-format)
  * See: (USER_GUIDE.md#adding-a-start-time-and-duration)
  */
 function parseStartTime(timeStr: string): { hours: number; minutes: number } | null {
@@ -75,7 +75,7 @@ function parseStartTime(timeStr: string): { hours: number; minutes: number } | n
  * 'number'` and would make `end` NaN) and non-positive numbers (which would place
  * `end` at or before `start`). Returns null so the caller can warn and default to 1.
  *
- * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (calendar_view.md#calendar-entry-format)
  * See: (USER_GUIDE.md#adding-a-start-time-and-duration)
  */
 function coerceDuration(value: unknown): number | null {
@@ -104,7 +104,7 @@ const FREQ_MAP: Record<string, number> = {
  * in the past and silently vanish from today's calendar. Occurrences outside
  * the window simply aren't shown.
  *
- * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (calendar_view.md#recurring-events)
  */
 const MAX_PAST_YEARS = 5;
 const MAX_FUTURE_YEARS = 2;
@@ -119,14 +119,14 @@ const MAX_FUTURE_YEARS = 2;
  * partway through the window and occurrences near "today" vanish — the exact
  * bug the windowing exists to prevent.
  *
- * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (calendar_view.md#recurring-events)
  */
 const MAX_OCCURRENCES = 5000;
 
 /**
  * Cap simultaneous file reads to avoid EMFILE on large vaults.
  *
- * See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
+ * See: (calendar_view.md#file-scanning--srcmaincalendarloaderts)
  */
 const CALENDAR_READ_CONCURRENCY = 50;
 
@@ -149,7 +149,7 @@ interface RRuleYaml {
  * try/catch swallows, silently dropping the whole event. Normalize defensively
  * here so every field has a known type before it reaches the rule engine.
  *
- * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (calendar_view.md#recurring-events)
  * See: (USER_GUIDE.md#recurring-events)
  */
 function normalizeRRule(raw: Record<string, unknown>): RRuleYaml {
@@ -179,7 +179,7 @@ function normalizeRRule(raw: Record<string, unknown>): RRuleYaml {
  *
  * Returns `[]` when `rruleYaml.freq` is absent or unrecognized.
  *
- * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (calendar_view.md#recurring-events)
  * See: (USER_GUIDE.md#recurring-events)
  */
 function expandRRule(
@@ -272,7 +272,7 @@ function expandRRule(
  * front-matter block). Returns up to 5 non-empty lines joined with newlines,
  * capped at 400 characters (with a trailing `...` when truncated).
  *
- * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (calendar_view.md#calendarview-component)
  */
 function extractSnippet(body: string): string {
   const lines = body.split(/\r?\n/).filter(l => l.trim().length > 0).slice(0, 5);
@@ -286,8 +286,8 @@ function extractSnippet(body: string): string {
  * The single authority on "is this a calendar file": the folder crawl, the search-results
  * loader, and the watcher all route through here.
  *
- * See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
- * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (calendar_view.md#file-scanning--srcmaincalendarloaderts)
+ * See: (calendar_view.md#calendar-entry-format)
  * See: (USER_GUIDE.md#creating-calendar-entries)
  */
 export async function loadCalendarEntryForFile(filePath: string): Promise<CalendarEventResult[]> {
@@ -380,7 +380,7 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
  * user-configured ignore patterns are excluded; file reads are bounded to
  * CALENDAR_READ_CONCURRENCY concurrent operations to avoid EMFILE on large vaults.
  *
- * See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
+ * See: (calendar_view.md#file-scanning--srcmaincalendarloaderts)
  * See: (USER_GUIDE.md#what-gets-scanned-1)
  */
 export async function loadCalendarEvents(
@@ -414,8 +414,8 @@ export async function loadCalendarEvents(
  * "is this a calendar file" has exactly one definition. Files that are missing,
  * unreadable, or carry no `due:` simply contribute no events.
  *
- * See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
- * See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
+ * See: (calendar_view.md#file-scanning--srcmaincalendarloaderts)
+ * See: (calendar_view.md#search-source--snapshot)
  * See: (USER_GUIDE.md#search-results)
  */
 export async function loadCalendarEventsForFiles(filePaths: string[]): Promise<CalendarEventResult[]> {

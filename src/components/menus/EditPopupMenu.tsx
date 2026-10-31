@@ -53,7 +53,7 @@ interface EditPopupMenuProps {
   /**
    * When provided, an "Enable Document Mode" item is appended after a divider.
    *
-   * See: (docs/technical_notes/document_mode.md#enabling-custom-ordering)
+   * See: (document_mode.md#enabling-custom-ordering)
    */
   onEnableCustomOrdering?: () => void;
 }

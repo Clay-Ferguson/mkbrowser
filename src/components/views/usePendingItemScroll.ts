@@ -43,7 +43,7 @@ import { scrollItemIntoView } from '../../renderer/entryDom';
  * the next one — callers that could produce such a path guard against it (see
  * BrowseFile's `handleBreadcrumbNavigate`).
  *
- * See: (docs/technical_notes/single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
+ * See: (single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
  *
  * ## Drift after the commit
  *
@@ -70,7 +70,7 @@ export function usePendingItemScroll(): void {
     // Other tabs stay mounted (display:none) and manage their own scrolling;
     // measuring or scrolling a hidden pane would produce nonsense. The request
     // stays pending and is picked up on the commit that shows this view.
-    // See: (docs/technical_notes/application_tabs.md#hidden-views-are-live)
+    // See: (application_tabs.md#hidden-views-are-live)
     if (!isActive) return;
 
     if (scrollItemIntoView(pendingScrollToFile, false, true)) {

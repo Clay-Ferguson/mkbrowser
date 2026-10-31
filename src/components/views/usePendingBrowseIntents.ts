@@ -31,7 +31,7 @@ import { usePendingItemScroll } from './usePendingItemScroll';
  * each other: a restore would fight a pending file/heading scroll that has not
  * landed yet.
  *
- * See: (docs/technical_notes/application_tabs.md#the-one-exception-to-native-scroll-browseview-per-folder-scroll)
+ * See: (application_tabs.md#the-one-exception-to-native-scroll-browseview-per-folder-scroll)
  */
 export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement | null>) {
   const isActive = useIsActiveView('browser');
@@ -74,7 +74,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     // mounted across tab switches (visibility is toggled via CSS), so its
     // scroll position is preserved natively when switching tabs — we only
     // need to save/restore per folder when navigating between folders.
-    // See: (docs/technical_notes/application_tabs.md#the-one-exception-to-native-scroll-browseview-per-folder-scroll)
+    // See: (application_tabs.md#the-one-exception-to-native-scroll-browseview-per-folder-scroll)
     const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
 
     // A fresh mount also has to restore, because this component really does get
@@ -83,7 +83,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     // position was last written by the debounced scroll save, so it comes back
     // accurate to within 150ms. At app startup nothing is saved yet and the
     // restore is a harmless scrollTo(0).
-    // See: (docs/technical_notes/single_file_browsing.md#routing-in-apptsx--swap-not-hide)
+    // See: (single_file_browsing.md#routing-in-apptsx--swap-not-hide)
     const isFirstMount = previousPathRef.current === null;
 
     // Save scroll position for the previous folder before switching
@@ -132,7 +132,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     // attachment lives in a .attach folder below currentPath yet is rendered as
     // a row here. Store-only: expanding and editing are state changes the
     // entry renders from, so nothing here waits on the DOM.
-    // See: (docs/technical_notes/file_attachments.md#the-pending-edit-request-has-to-survive-an-attachment-path)
+    // See: (file_attachments.md#the-pending-edit-request-has-to-survive-an-attachment-path)
     if (pendingEditFile && pendingEditView === 'browser') {
       if (useAS.getState().items.has(pendingEditFile)) {
         setItemExpanded(pendingEditFile, true);
@@ -157,7 +157,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
   // Clear any pending debounced save on unmount (entering single-file mode,
   // full app teardown, closing the folder). BrowseView does not unmount on tab
   // switches, so there is no view-switch scroll position to flush here.
-  // See: (docs/technical_notes/application_tabs.md#the-browse-tab)
+  // See: (application_tabs.md#the-browse-tab)
   useEffect(() => {
     // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending debounced scroll-save timeout on unmount.
     return () => {
