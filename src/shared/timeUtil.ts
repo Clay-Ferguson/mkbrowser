@@ -110,6 +110,8 @@ function timestampFromMatch(match: RegExpMatchArray): number {
  *
  * @param content - The text content to search for timestamps
  * @returns Timestamp in milliseconds since epoch, or NO_TIMESTAMP if not found
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
  */
 export function extractTimestamp(content: string): number {
   // Find the first date in the content using the shared pattern (see dateRegex.ts).
@@ -125,6 +127,8 @@ export function extractTimestamp(content: string): number {
  * @param timestamp - The timestamp in milliseconds since epoch (NO_TIMESTAMP/NaN is treated as invalid)
  * @param lookbackDays - Optional number of days to look back from now
  * @returns True if the timestamp is in the past (and within lookbackDays, if provided), false otherwise
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
  */
 export function past(timestamp: number, lookbackDays?: number): boolean {
   // NaN means "no date found" (see NO_TIMESTAMP)
@@ -148,6 +152,8 @@ export function past(timestamp: number, lookbackDays?: number): boolean {
  * @param timestamp - The timestamp in milliseconds since epoch (NO_TIMESTAMP/NaN is treated as invalid)
  * @param lookaheadDays - Optional number of days to look ahead from now
  * @returns True if the timestamp is in the future (and within lookaheadDays, if provided), false otherwise
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
  */
 export function future(timestamp: number, lookaheadDays?: number): boolean {
   // NaN means "no date found" (see NO_TIMESTAMP)
@@ -170,6 +176,8 @@ export function future(timestamp: number, lookaheadDays?: number): boolean {
  * 
  * @param timestamp - The timestamp in milliseconds since epoch (NO_TIMESTAMP/NaN is treated as invalid)
  * @returns True if the timestamp's date matches today's date, false otherwise
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
  */
 export function today(timestamp: number): boolean {
   // NaN means "no date found" (see NO_TIMESTAMP)
@@ -196,6 +204,8 @@ export function today(timestamp: number): boolean {
  * the advanced-search `ts()` helper. All values are interpreted
  * as local time. Returns milliseconds since epoch, or NO_TIMESTAMP (NaN) if
  * the string cannot be parsed or names an impossible calendar date.
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
  */
 export function parseDateString(value: string): number {
   const match = value.match(DATE_REGEX_ANCHORED);
@@ -268,6 +278,8 @@ export function formatDaysDisplay(days: number): string {
 /**
  * Appends the relative time delta to a date (or date-time) string, e.g. "10/8/2016 — 10y 2d ago".
  * A value that contains no recognizable date is returned unchanged.
+ *
+ * See: (USER_GUIDE.md#property-types)
  */
 export function formatDateWithDelta(value: string): string {
   const timestamp = extractTimestamp(value);

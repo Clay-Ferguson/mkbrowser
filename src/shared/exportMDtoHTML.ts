@@ -237,6 +237,8 @@ async function renderChunk(md: string): Promise<string> {
  * - Front-matter YAML blocks are silently stripped.
  * - The returned string includes `<!DOCTYPE html>` and an embedded stylesheet;
  *   no external resources are referenced.
+ *
+ * See: (USER_GUIDE.md#automatic-markdown-to-html-export-front-matter-autogen)
  */
 export async function convertMDtoHTML(content: string): Promise<string> {
   const chunks = splitOnColumnBreaks(content).map(c => c.text);

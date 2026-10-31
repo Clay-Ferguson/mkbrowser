@@ -4,6 +4,7 @@
  * card (GenericObject), and BrowseView's Calendar button.
  *
  * See: (docs/technical_notes/calendar_view.md#event-sources)
+ * See: (USER_GUIDE.md#jumping-to-a-date-from-a-file)
  */
 
 import { api } from './api';
@@ -49,6 +50,7 @@ export function setCalendarEventsIfCurrent(source: CalendarSource | null, events
  *
  * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
  * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (USER_GUIDE.md#jumping-to-a-date-from-a-file)
  */
 export function openCalendarAtDate(folder: string, date: Date): void {
   setCalendarViewTime(date);
@@ -79,6 +81,7 @@ export function openCalendarAtDate(folder: string, date: Date): void {
  * Fire-and-forget: a failed scan is reported and leaves an empty calendar.
  *
  * See: (docs/technical_notes/calendar_view.md#folder-source--live)
+ * See: (USER_GUIDE.md#opening-the-calendar)
  */
 export function showFolderCalendar(folder: string): void {
   showCalendarForFolder(folder);

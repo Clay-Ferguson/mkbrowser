@@ -17,6 +17,8 @@
  *    never matched in this mode.
  *  - searchNames only — "File Names": names only, but including folder names.
  * With neither flag set there is nothing to search, so the search returns no results.
+ *
+ * See: (USER_GUIDE.md#searching)
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -79,7 +81,11 @@ function getYaml(cache: YamlCache, content: string, filePath?: string): Record<s
   return parsed;
 }
 
-/** Image extensions supported by ExifReader for EXIF metadata search */
+/**
+ * Image extensions supported by ExifReader for EXIF metadata search
+ *
+ * See: (USER_GUIDE.md#using-search)
+ */
 const EXIF_IMAGE_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.webp',
   '.bmp', '.ico', '.tiff', '.tif', '.avif',
@@ -124,7 +130,11 @@ interface MatchResult {
   error?: string;
 }
 
-/** Convert a wildcard pattern to a global, case-insensitive regex (each * matches up to 25 chars). */
+/**
+ * Convert a wildcard pattern to a global, case-insensitive regex (each * matches up to 25 chars).
+ *
+ * See: (USER_GUIDE.md#using-search)
+ */
 function wildcardToRegex(pattern: string): RegExp {
   const escaped = escapeRegexExceptWildcard(pattern);
   const regexPattern = escaped.replace(/\*/g, '.{0,25}');
@@ -163,6 +173,8 @@ function createGetProp(cache: YamlCache, content: string, filePath?: string): (n
 /**
  * Create a predicate function that tests content against the query.
  * Exported for unit testing individual match predicates.
+ *
+ * See: (USER_GUIDE.md#using-search)
  */
 export function createMatchPredicate(
   queryStr: string,
@@ -257,6 +269,8 @@ export function createMatchPredicate(
  * Case-insensitive. Content wildcards (and the name half of a contents+names
  * search) stay unanchored substring matches; see
  * createMatchPredicate.
+ *
+ * See: (USER_GUIDE.md#using-search)
  */
 export function createFileNameGlobPredicate(pattern: string): (name: string) => MatchResult {
   const regex = wildcardToAnchoredRegex(pattern);
@@ -268,6 +282,8 @@ export function createFileNameGlobPredicate(pattern: string): (name: string) => 
 /**
  * Extract all EXIF metadata text from an image file.
  * Returns a string with one line per tag: "GroupName > TagName: Description"
+ *
+ * See: (USER_GUIDE.md#using-search)
  */
 async function extractExifText(filePath: string): Promise<string> {
   try {
@@ -299,12 +315,19 @@ async function extractExifText(filePath: string): Promise<string> {
   }
 }
 
-/** Maximum number of files to keep when mostRecent filter is enabled */
+/**
+ * Maximum number of files to keep when mostRecent filter is enabled
+ *
+ * See: (USER_GUIDE.md#using-search)
+ */
 export const MOST_RECENT_LIMIT = 500;
 
 /** Hard ceiling on results returned from any single search, regardless of mode/query.
  * Bounds the payload sent to the renderer and the size of the rendered list. The
- * mostRecent path is additionally capped earlier at MOST_RECENT_LIMIT (500). */
+ * mostRecent path is additionally capped earlier at MOST_RECENT_LIMIT (500).
+ *
+ * See: (USER_GUIDE.md#search-results)
+ */
 export const SEARCH_RESULT_LIMIT = 500;
 
 /** Modified/created timestamps (ms) plus byte size captured from a single stat()
@@ -432,6 +455,8 @@ export type SearchFolderOptions = Partial<Omit<SearchDefinition, 'name' | 'searc
  *   with the signal's reason. Partial results are never returned.
  * @returns The results in the requested order, capped at SEARCH_RESULT_LIMIT,
  *   plus the total number of matches before the cap
+ *
+ * See: (USER_GUIDE.md#using-search)
  */
 export async function searchFolderWithTotal(
   folderPath: string,

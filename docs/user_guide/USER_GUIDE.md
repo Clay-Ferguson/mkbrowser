@@ -162,8 +162,8 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Files to Ignore](#files-to-ignore)
   * [Calendar Items Folder](#calendar-items-folder)
 * [Image Viewer and EXIF Metadata](#image-viewer-and-exif-metadata)
-  * * [Editing EXIF Data](#editing-exif-data)
-    * [ExifTool Requirement](#exiftool-requirement)
+  * [Editing EXIF Data](#editing-exif-data)
+  * [ExifTool Requirement](#exiftool-requirement)
 * [Automatic Markdown-to-HTML Export (Front Matter Autogen)](#automatic-markdown-to-html-export-front-matter-autogen)
   * [How It Works](#how-it-works)
   * [Use Case: Browser Landing Page](#use-case-browser-landing-page)
@@ -181,9 +181,9 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
 
 # Tab Bar
 
-MkBrowser uses a tab bar at the top of the window to switch between views: **Browse**, **Chat**, **Search**, **Analysis**, **Graph**, **Settings**, **AI Settings**, **Types**, and **Calendar**. The Browse tab is always present. The others appear only when they are active (e.g. Search appears after you run a search; Chat appears when you navigate into an AI conversation folder).
+MkBrowser uses a tab bar at the top of the window to switch between views: **Browse**, **AI Chat**, **Search**, **Analysis**, **Graph**, **Settings**, **AI Settings**, **Types**, **Tags**, **Calendar**, and **Help**. The Browse tab is always present. The others appear only when they are active (e.g. Search appears after you run a search; AI Chat appears when you navigate into an AI conversation folder).
 
-Each tab that was opened has an **×** button next to its label. Clicking it closes the tab and returns you to the Browse view. Closing a tab also discards its associated state (e.g. closing Search clears the results; closing Analysis clears the analysis data).
+Every tab except Browse and AI Chat has an **×** button next to its label. Clicking it closes the tab and returns you to the Browse view. Closing a tab also discards its associated state (e.g. closing Search clears the results; closing Analysis clears the analysis data). The AI Chat tab has no **×**: it follows the folder you are browsing, and goes away when you leave the conversation.
 
 # Browsing and Editing
 
@@ -228,7 +228,7 @@ When MkBrowser detects this directive, it executes the script without opening a 
 When a Markdown file is expanded, you can edit its content:
 1. Click the **Edit** button (pencil icon) in the top-right corner of the file card.
 2. The view switches to a code editor where you can make changes.
-3. Press `Save` button or use `Ctrl+S` / `Cmd+S` to save your changes.
+3. Press the `Save` button or use `Ctrl+S` to save your changes.
 4. Click the **Close** button (X icon) to return to the rendered view.
 
 ### Inserting Links to Other Files
@@ -334,7 +334,7 @@ MkBrowser can automatically generate and maintain a **Table of Contents** for an
 <\!-- TOC -->
 ```
 
-That's it. Whenever you save the file, MkBrowser will replace that placeholder with a fully generated table of contents, using every heading in the document (up to three levels deep). The result looks like this:
+That's it. Whenever you save the file, MkBrowser will replace that placeholder with a fully generated table of contents, using every heading in the document, at every level (`#` through `######`). The result looks like this:
 
 ```
 <\!-- TOC -->
@@ -352,7 +352,7 @@ On your next save, MkBrowser will regenerate the TOC in place, keeping it in syn
 
 **While editing**, the full TOC block is hidden — the editor shows only the original `<\!-- TOC -->` placeholder so it stays out of your way. The complete TOC is restored as soon as you save.
 
-If your file has no `<\!-- TOC -->` comment, nothing happens. If it has headings but none at the configured depth, or no headings at all, the file is saved unchanged.
+If your file has no `<\!-- TOC -->` comment, or has no headings at all, the file is saved unchanged.
 
 ## Tag Picker
 
@@ -394,8 +394,8 @@ Edits are not saved until you click **Save**. While there are unsaved edits, the
 
 ## Renaming
 You can rename any file or folder:
-- **Button**: Click the **Rename** button (pencil icon on the folder row) next to the item.
-- **Double-click**: Double-click the file or folder name text.
+- **Right-click**: Right-click the file or folder's row in the Browse view to edit its name in place. (This doesn't work on a file while its editor is open.)
+- **Index Tree**: Right-click the item in the Index Tree panel and choose **Rename**.
 - Enter the new name and press `Enter` to confirm, or `Esc` to cancel.
 
 ## File Operations (Cut, Copy, Paste, Delete)
@@ -486,13 +486,13 @@ Selects all files and folders in the current directory, making it easy to perfor
 Clears all current selections in the file list, so no items remain selected.
 
 ## Split
-See [Split and Join](#split-and-join) for full details. Splits a single text or Markdown file into multiple files at each double blank line (two consecutive empty lines). The new files are named with numeric suffixes to preserve order.
+See [Split and Join](#split-and-join) for full details. Splits a single text or Markdown file into multiple files wherever a delimiter you choose occurs (by default, at every blank line). The new files are named with numeric suffixes to preserve order.
 
 ## Join
-See [Split and Join](#split-and-join) for full details. Combines two or more selected text or Markdown files into a single file, inserting double blank lines between each file's content. The result is saved to the alphabetically first file, and the others are deleted after joining.
+See [Split and Join](#split-and-join) for full details. Combines two or more selected text or Markdown files into a single file, with blank lines (or a delimiter you choose) between each file's content. The result is saved to the alphabetically first file, and the others are deleted after joining.
 
 ## Replace in Files
-See [Replace in Files](#replace-in-files) for details. Opens a dialog to search and replace text across all `.md` and `.txt` files in the current folder and subfolders.
+See [Replace in Files](#replace-in-files-1) for details. Opens a dialog to search and replace text across all `.md` and `.txt` files in the current folder and subfolders.
 
 ## Cut and Paste
 
@@ -526,19 +526,21 @@ MkBrowser provides **Split** and **Join** operations to help you break apart lar
 
 ### Split
 
-The **Split** feature divides a single file into multiple smaller files using a double blank line as the delimiter.
+The **Split** feature divides a single file into multiple smaller files wherever a delimiter occurs.
 
 **How to use Split:**
 
 1. Click the checkbox next to the text or Markdown file you want to split (select exactly one file).
-2. Go to **Edit → Split** in the menu bar.
-3. The file will be divided at each occurrence of a **double blank line** (two consecutive empty lines).
+2. Open the **Edit** menu and choose **Split**.
+3. The **Split Options** dialog asks for the **Split Delimiter**: the text to split the file at. Type `\n` for a newline; every other character is matched exactly. The default, `\n\n`, splits at every blank line, so each paragraph becomes its own file. `\n---\n` splits wherever `---` is on a line by itself.
+4. Click **Split**.
 
 **What happens:**
 
-- The original file is renamed with a `-00` suffix (e.g., `my-notes.md` becomes `my-notes-00.md`).
-- Each subsequent section becomes a new file with incrementing numbers: `my-notes-01.md`, `my-notes-02.md`, etc.
-- The numbered suffixes ensure files sort alphabetically in the correct order.
+- Each section becomes a new file with an incrementing number: `my-notes-00.md`, `my-notes-01.md`, `my-notes-02.md`, etc. The numbered suffixes ensure files sort alphabetically in the correct order.
+- The original file is deleted once every part has been written.
+- If the file has front matter, it stays at the top of the first part (`-00`), so the file's id and other properties travel with it.
+- If something goes wrong partway through, the parts written so far are removed and the original is left as it was.
 
 **Example:**
 
@@ -549,18 +551,20 @@ If you have a file `chapter.md` with this content:
 
 This is the first section.
 
+---
 
 # Part Two
 
 This is the second section.
 
+---
 
 # Part Three
 
 This is the third section.
 ```
 
-After splitting, you'll have three files:
+Splitting it with the delimiter `\n---\n` gives you three files:
 - `chapter-00.md` containing "# Part One..."
 - `chapter-01.md` containing "# Part Two..."
 - `chapter-02.md` containing "# Part Three..."
@@ -568,22 +572,26 @@ After splitting, you'll have three files:
 **Requirements:**
 - Exactly one file must be selected.
 - The file must be a `.txt` or `.md` file.
-- The file must contain at least one double blank line (the delimiter).
+- The file must contain the delimiter at least once.
+- No file with one of the new numbered names may already exist.
 
 ### Join
 
-The **Join** feature combines multiple files into a single file, inserting a double blank line between each file's content.
+The **Join** feature combines multiple files into a single file.
 
 **How to use Join:**
 
 1. Click the checkboxes next to two or more text or Markdown files you want to combine.
-2. Go to **Edit → Join** in the menu bar.
-3. The files will be merged into a single file.
+2. Open the **Edit** menu and choose **Join**.
+3. The **Join Options** dialog offers two options:
+    - **Join Delimiter**: text placed between each pair of files, with a blank line on each side, so `---` becomes a horizontal rule. Type `\n` for a newline. Leave it empty to separate the files with just blank lines.
+    - **Include Filenames**: puts each file's name, in bold, on its own line above that file's content.
+4. Click **Join**.
 
 **What happens:**
 
 - Files are sorted alphabetically by filename before joining.
-- The content of all files is concatenated with a **double blank line** (`\n\n\n`) separator between each file's content.
+- The content of all files is concatenated, separated by your delimiter, or by two blank lines (`\n\n\n`) when you leave it empty.
 - The combined content is written to the alphabetically first file.
 - The other files are deleted (only after verifying the write succeeded).
 
@@ -661,8 +669,8 @@ This is useful any time a folder represents something with a meaningful order: a
 ## Enabling Document Mode
 
 1. Navigate into the folder you want to treat as a document.
-2. Open the **Sort** menu (the sort button in the toolbar).
-3. Click **Enable Docment Mode** at the bottom of the menu.
+2. Open the **Edit** menu (the Edit button in the toolbar).
+3. Click **Enable Document Mode** at the bottom of the menu.
 
 MkBrowser will immediately switch the folder into Document Mode. A hidden file named `.INDEX.yaml` is created in that folder — this file records and maintains the display order of all the entries. You don't need to edit this file directly; MkBrowser manages it for you automatically. Once Document Mode is enabled you will no longer see the "Sort" menu because files are treated like paragraphs in a document and are in a fixed order defined by you. If you want to to back to making the folder behave like a normal folder (not a Document) then you must manually delete the `.INDEX.yaml` file from your file system, which you can safely do, and the only thing you will lose is the ordering of the files, which you no longer want.
 
@@ -952,10 +960,12 @@ The Folder Graph gives you an interactive, visual map of the folder you're curre
 ## Launching the Graph
 
 1. Navigate to the folder you want to visualize.
-2. Go to **Tools → Folder Graph** in the menu bar.
-3. The application scans the folder recursively and opens a new **Folder Graph** tab showing the result.
+2. Open the **Tools** menu and choose one of:
+    - **Graph All**: every file and subfolder.
+    - **Graph Markdown**: only Markdown (`.md`) files, plus the folders that lead to them. Folders with no Markdown file anywhere beneath them are left out.
+3. The application scans the folder recursively and opens a new **Graph** tab showing the result.
 
-The graph reflects a snapshot of the folder at scan time. To refresh it (or to view a different folder), navigate to the folder you want and run **Tools → Folder Graph** again — the existing graph is replaced.
+The graph reflects a snapshot of the folder at scan time. To refresh it (or to view a different folder), navigate to the folder you want and choose **Graph All** or **Graph Markdown** again — the existing graph is replaced.
 
 ## Reading the Graph
 
@@ -981,17 +991,17 @@ The graph initially auto-fits itself into the viewport once the layout settles, 
 
 ## Tab Persistence
 
-After you generate a graph, the **Folder Graph** tab stays available in the tab bar. You can switch between Browse, Search, and other tabs freely — when you return to the Folder Graph tab, your zoom level, pan position, and any nodes you dragged are exactly as you left them. The tab persists for the rest of the session, until you re-run **Tools → Folder Graph** (which replaces the current graph) or close the application.
+After you generate a graph, the **Folder Graph** tab stays available in the tab bar. You can switch between Browse, Search, and other tabs freely — when you return to the Folder Graph tab, your zoom level, pan position, and any nodes you dragged are exactly as you left them. The tab persists for the rest of the session, until you graph again from the **Tools** menu (which replaces the current graph), close the tab, or close the application.
 
 ## Scan Limits
 
 To keep the graph readable and responsive, the scan is bounded:
 
-- It descends at most a fixed number of levels below the starting folder.
-- It stops once a maximum number of nodes have been collected, preferring items closer to the root.
+- It descends at most 10 levels below the starting folder.
+- A graph can hold at most 2,000 nodes.
 - Hidden files and any paths matching your **Ignored Paths** setting are excluded, just as in Folder Analysis.
 
-If the limit was hit, an amber **"truncated — node cap reached"** indicator appears in the header of the graph view, letting you know that some deeper or later items were omitted. To see a smaller area in full detail, navigate into a subfolder and run the graph from there.
+MkBrowser never shows a partial graph. If the files and folders together would exceed the node limit, it graphs the folders only and shows a yellow **"Folders Only, too many files"** badge in the graph's header (the **Links** checkbox is unavailable then, since there are no files to link). If even the folders alone exceed the limit, no graph is drawn and an error explains why. To see a smaller area in full detail, navigate into a subfolder and run the graph from there.
 
 ## Search-based Graph
 
@@ -1758,8 +1768,8 @@ The same context is applied whether you are rewriting an entire file or just a s
 #### Enabling Full Document Context
 
 1. Open **Settings → AI Settings**.
-2. Scroll to the **Prompts** section.
-3. Check the **Full Document Context** checkbox.
+2. Scroll to the **AI Rewrite Options** section. (The option appears only while **Enable AI Rewrite** is checked.)
+3. Check **Rewrite using Full Doc Context (Document-Type Folders Only)**.
 
 The setting is saved automatically. It remains active across sessions until you uncheck it.
 
@@ -1779,31 +1789,31 @@ You can create multiple named **AI Personas** in the AI Settings View. Personas 
 
 An example of a "Persona" would be something you could name "Hemmingway" which would contain this text: "You write very elaborately in the style of Ernest Hemmingway, adding your own flair and significantly lengthening the text, by adding your own creative (even if fictitious) ideas."
 
-Prompts are managed in **Settings → AI Settings** under the **Personas** section.
+Personas are managed in **Settings → AI Settings** under the **AI Personas** section. The built-in **[Default Agent]** persona is always available; it can be selected, but not edited or deleted.
 
 ### Creating a new prompt
 
-1. Open **Settings → AI Settings** and scroll to the **Prompts** section.
-2. Type a new name (e.g. `Academic`, `Casual`, `Concise`) into the name field at the top of the section.
+1. Open **Settings → AI Settings** and scroll to the **AI Personas** section.
+2. Click **New** and type a name (e.g. `Academic`, `Casual`, `Concise`). Names must be unique. The new persona is created empty and becomes the selected one.
 3. Type your instructions into the textarea below.
 4. Click **Save**.
 
 ### Selecting the active prompt
 
-Click the dropdown arrow on the name field, or start typing a name, to see your saved prompts. Select one from the list — its text will load into the textarea and it becomes the active prompt used by the **Rewrite** button.
+Open the persona dropdown to see your saved personas, and select one — its text loads into the textarea and it becomes the active persona used by the **Rewrite** button and by AI Chat. You can also pick the persona from the header of the AI Chat tab.
 
 ### Editing an existing prompt
 
-1. Select the prompt you want to change from the name field.
+1. Select the persona you want to change from the dropdown.
 2. Edit the text in the textarea.
 3. Click **Save** to update it.
 
 ### Deleting a prompt
 
-1. Select the prompt you want to remove.
+1. Select the persona you want to remove.
 2. Click **Delete** and confirm.
 
-**Tip:** Create a prompt for each writing context you work in — for example, a formal academic tone, plain language for a general audience, or a structured bullet-point format. Switch between them from the name dropdown without leaving your document.
+**Tip:** Create a persona for each writing context you work in — for example, a formal academic tone, plain language for a general audience, or a structured bullet-point format. Switch between them from the dropdown without leaving your document.
 
 # Settings
 
@@ -1823,7 +1833,7 @@ Changes to all appearance settings take effect immediately and are saved automat
 
 ## Files to Ignore
 
-Enter folder or file names (one per line) that should be excluded from search results, Replace in Files, Folder Analysis, and Folder Graph scans. For example:
+Enter folder or file names (one per line) that should be excluded from search results, Replace in Files, Folder Analysis, Folder Graph scans, the Calendar scan, link auto-repair, and Export to Folder (HTML). For example:
 
 ```
 node_modules
@@ -1835,7 +1845,7 @@ Entries are matched by name anywhere in the tree — you do not need to specify 
 
 ## Calendar Items Folder
 
-Enter the absolute path to the folder where new calendar item files should be created when you use the **New Event** button in the Calendar view. If left empty, new calendar files are created in the folder currently open in the Browse view.
+Enter the absolute path to the folder where new calendar item files are created when you click or drag across an empty slot in the Calendar view (see [Creating Calendar Entries](#creating-calendar-entries)). This setting is required for that: while it is empty, clicking a slot shows a message asking you to set it, and no file is created.
 
 # Image Viewer and EXIF Metadata
 
@@ -1847,11 +1857,11 @@ Clicking any image file in the Browse view expands it and shows an inline previe
 - **File Details** — basic file properties.
 - Additional groups (ICC Color Profile, JFIF, PNG, WebP, GIF, Photoshop) appear when present.
 
-### Editing EXIF Data
+## Editing EXIF Data
 
 The EXIF dialog is not read-only. Click the **Edit** button in the dialog to switch into edit mode, where every metadata value becomes an editable text field. After making changes, click **Save** to write the updated metadata back to the image file on disk. Click **Cancel** to discard changes.
 
-### ExifTool Requirement
+## ExifTool Requirement
 
 Saving EXIF edits requires the [ExifTool](https://exiftool.org/) command-line utility to be installed on your machine — MkBrowser runs the `exiftool` command to write metadata to image files. (Simply *viewing* metadata in the EXIF dialog does not require it.) On Debian/Ubuntu Linux, install it with:
 
@@ -1922,6 +1932,8 @@ Calendar entries are defined using [Front Matter YAML](https://jekyllrb.com/docs
 due: 05/28/2026
 ---
 ```
+
+You can also create an entry from the calendar itself: click an empty day, or drag across a range of time in the Week or Day view. MkBrowser asks for a file name, creates the file in your [Calendar Items Folder](#calendar-items-folder) with `due` (plus `start` and `duration` for a timed range) already filled in, and opens it for editing.
 
 The `due` date is normally written as `MM/DD/YYYY`. Two other formats are also accepted: `M/D/YY`, where a two-digit year is read as 20YY (so `5/28/26` is May 28, 2026), and `YYYY-MM-DD` (e.g. `2026-05-28`), which many other tools write. Leading zeros are optional in all of them. A `due` value that isn't a real date in one of these formats (such as `13/45/2026` or `May 28`) is ignored, and the file won't appear on the calendar. The file's name (without the folder path) is used as the label for the calendar entry.
 

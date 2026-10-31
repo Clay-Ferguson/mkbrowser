@@ -13,6 +13,7 @@ import { navigateToBrowserPath, setAppError, setPendingEditFile, useAS } from '.
  * error dialog.
  *
  * See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
+ * See: (USER_GUIDE.md#ai-chat)
  */
 export function startAiChat(folderPath: string): void {
   if (hasHumanMd(useAS.getState().currentEntries)) {

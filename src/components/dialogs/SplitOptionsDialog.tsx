@@ -13,6 +13,8 @@ interface SplitOptionsDialogProps {
  * Shown before the Edit menu's "Split" runs, to gather its options. Currently the
  * only option is "Split Delimiter": the text the file is cut apart at, where `\n`
  * stands for a newline and every other character is taken verbatim.
+ *
+ * See: (USER_GUIDE.md#split-1)
  */
 function SplitOptionsDialog({ onSplit, onCancel }: SplitOptionsDialogProps) {
   const [delimiter, setDelimiter] = useState(DEFAULT_SPLIT_DELIMITER);

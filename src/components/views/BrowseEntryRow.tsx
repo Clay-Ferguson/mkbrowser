@@ -86,6 +86,7 @@ function BrowseEntryRow({
   // re-renders only the attach-folder row beneath it, not the whole listing.
   const parentExpanded = useAS(s => ownerPath === null || (s.items.get(ownerPath)?.isExpanded ?? false));
 
+  // Document Mode Move Up/Down (and Ctrl+click to the top/bottom). See: (USER_GUIDE.md#editing-mode)
   const moveUp = hasIndexFile && !isFirst ? () => onMoveEntry(entry.name, 'up') : undefined;
   const moveDown = hasIndexFile && !isLast ? () => onMoveEntry(entry.name, 'down') : undefined;
   const moveToTop = hasIndexFile && !isFirst ? () => onMoveEntryToEdge(entry.name, 'top') : undefined;

@@ -23,6 +23,7 @@ interface FontSizeOption {
   label: string;
 }
 
+// Settings → Appearance: Font Size. See: (USER_GUIDE.md#appearance)
 const fontSizeOptions: FontSizeOption[] = [
   { value: 'small', label: 'Small' },
   { value: 'medium', label: 'Medium' },
@@ -35,6 +36,7 @@ interface ContentWidthOption {
   label: string;
 }
 
+// Settings → Appearance: Content Width. See: (USER_GUIDE.md#appearance)
 const contentWidthOptions: ContentWidthOption[] = [
   { value: 'narrow', label: 'Narrow' },
   { value: 'medium', label: 'Medium' },
@@ -47,6 +49,7 @@ interface IndexTreeWidthOption {
   label: string;
 }
 
+// Settings → Appearance: Folder Tree width (or Hidden). See: (USER_GUIDE.md#appearance)
 const indexTreeWidthOptions: IndexTreeWidthOption[] = [
   { value: 'narrow', label: 'Narrow' },
   { value: 'medium', label: 'Medium' },
@@ -147,6 +150,8 @@ function DraftTextField({ value, onCommit, multiline = false, placeholder, rows,
  * files to ignore in searches, and calendar items folder path. Selects and checkboxes write to the store
  * immediately and call `saveSettings` to persist to disk; free-text fields
  * (`DraftTextField`) commit only on blur/Enter.
+ *
+ * See: (USER_GUIDE.md#settings)
  */
 function SettingsView() {
   const settings = useAS(s => s.settings);
@@ -159,17 +164,20 @@ function SettingsView() {
     saveSettings();
   };
 
+  // Folders on Top checkbox. See: (USER_GUIDE.md#appearance)
   const handleFoldersOnTopChange = (foldersOnTop: boolean) => {
     setFoldersOnTop(foldersOnTop);
     // Trigger save to persist the setting
     saveSettings();
   };
 
+  // Show Table of Contents checkbox. See: (USER_GUIDE.md#appearance)
   const handleShowTocChange = (showToc: boolean) => {
     setShowToc(showToc);
     saveSettings();
   };
 
+  // Settings → Files to Ignore. See: (USER_GUIDE.md#files-to-ignore)
   const handleIgnoredPathsChange = (ignoredPaths: string) => {
     setIgnoredPaths(ignoredPaths);
     // Trigger save to persist the setting
@@ -193,6 +201,7 @@ function SettingsView() {
   };
 
   // The folder CalendarView creates new calendar files in. See: (docs/technical_notes/calendar_view.md#global-state)
+  // See: (USER_GUIDE.md#calendar-items-folder)
   const handleCalendarItemsFolderChange = (calendarItemsFolder: string) => {
     setCalendarItemsFolder(calendarItemsFolder);
     saveSettings();

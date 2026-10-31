@@ -32,6 +32,9 @@ interface IndexTreeContextMenuProps {
  * by the caller (optional items are omitted when the callback is absent). The
  * three create items are fenced off in their own divider section, since they add
  * to the folder's *contents* rather than acting on the clicked node itself.
+ *
+ * See: (USER_GUIDE.md#running-shell-scripts)
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewFolder, onRename, onDelete, onCut, onPaste, onCopyPath }: IndexTreeContextMenuProps) {
   return (

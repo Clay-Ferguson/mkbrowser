@@ -17,11 +17,13 @@ import { type TagCategory, isAllTagCategory } from '../shared/tagUtil';
  * `core.ts`.
  */
 export interface ViewSlice {
+  // Switching tabs; showTab/hideTab below show and close them. See: (USER_GUIDE.md#tab-bar)
   setCurrentView: (view: AppView) => void;
   setCurrentPath: (path: string) => void;
   navigateToBrowserPath: (path: string, scrollToFile?: string, view?: AppView) => void;
   setBrowseFile: (folderPath: string, fileName: string, mode?: BrowseFileMode) => void;
   clearBrowseFile: () => void;
+  // Expand editor button. See: (USER_GUIDE.md#expand-editor)
   toggleExpandedEditor: (path: string) => void;
   clearPendingScrollToFile: () => void;
   setPendingScrollToFile: (fileName: string) => void;
@@ -36,15 +38,20 @@ export interface ViewSlice {
   setTagCategories: (categories: TagCategory[]) => void;
   setAppError: (message: string | null) => void;
   setAppMessage: (message: AppMessage | null) => void;
+  // The "different file than the one linked" warning. See: (USER_GUIDE.md#inserting-links-to-other-files)
   setLinkIdMismatch: (mismatch: LinkIdMismatch | null) => void;
   setPendingThreadScrollToBottom: () => void;
   clearPendingThreadScrollToBottom: () => void;
+  // The Analysis and Graph tabs' data (null closes the tab). See: (USER_GUIDE.md#the-analysis-tab)
+  // See: (USER_GUIDE.md#tab-persistence)
   setFolderAnalysis: (data: FolderAnalysisState | null) => void;
   setFolderGraph: (data: FolderGraphState | null) => void;
   setFolderGraphFileLinks: (links: FolderGraphLink[] | null) => void;
+  // The graph header's Links checkbox. See: (USER_GUIDE.md#reading-the-graph)
   setShowGraphFileLinks: (show: boolean) => void;
   setRootPath: (path: string) => void;
   openRootFolder: (folder: string) => void;
+  // Shows a tab, or closes it (×), discarding its state. See: (USER_GUIDE.md#tab-bar)
   showTab: (tab: AppView) => void;
   hideTab: (tab: AppView) => void;
 }

@@ -6,6 +6,7 @@
  * it is also bundled into the renderer (browser) process.
  *
  * See: (docs/technical_notes/ai_chat.md#folder-layout-of-a-conversation)
+ * See: (USER_GUIDE.md#11-minimal-path-depth-ha-convention)
  */
 import type { FileEntry } from '../../global';
 import { HUMAN_FILENAME, AI_FILENAME } from '../specialFiles';
@@ -29,6 +30,7 @@ export const HUMAN_FOLDER_REGEX = /^H\d*$/;
  * Decides whether the AI Chat tab is shown.
  *
  * See: (docs/technical_notes/ai_chat.md#when-the-tab-appears)
+ * See: (USER_GUIDE.md#chat-thread-view)
  */
 export function isAiThreadByEntries(entries: FileEntry[]): boolean {
   return entries.some(e => e.name === HUMAN_FILENAME || e.name === AI_FILENAME);

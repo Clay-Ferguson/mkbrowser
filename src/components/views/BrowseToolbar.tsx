@@ -103,6 +103,7 @@ interface BrowseToolbarProps {
  * The Tools menu's Graph All / Graph Markdown items call showFolderGraph on the
  * current folder.
  * See: (docs/technical_notes/folder_graph.md#end-to-end-flow-folder-scan)
+ * See: (USER_GUIDE.md#edit-menu-features)
  */
 function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: BrowseToolbarProps) {
   const rootPath = useAS(s => s.rootPath);
@@ -120,6 +121,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
     useAS(useShallow(s => summarizeSelection(s.items)));
   const hasSelectedItems = selectedCount > 0;
 
+  // Expand All shows while any entry is collapsed; Collapse All while any is expanded. See: (USER_GUIDE.md#expand-all--collapse-all)
   const showExpandAll = expansionCounts.totalCount > 0 && expansionCounts.expandedCount < expansionCounts.totalCount;
   const showCollapseAll = expansionCounts.totalCount > 0 && expansionCounts.collapsedCount < expansionCounts.totalCount;
 
@@ -146,6 +148,8 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
    * Marks selected items as cut. If any selected file has a sibling attachment
    * folder that was not also selected, prompts the user to confirm cutting the
    * file without its attachments before proceeding.
+   *
+   * See: (USER_GUIDE.md#cut-and-paste)
    */
   const handleCutClick = () => {
     const { items, currentEntries } = useAS.getState();
@@ -163,12 +167,14 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
   };
 
   // BrowseView runs the split once the user confirms its options.
+  // See: (USER_GUIDE.md#split-1)
   const handleSplitFile = () => {
     if (!currentPath) return;
     onOpenOverlay({ kind: 'splitOptions' });
   };
 
   // BrowseView runs the join once the user confirms its options.
+  // See: (USER_GUIDE.md#join-1)
   const handleJoinFiles = () => {
     if (!currentPath) return;
     onOpenOverlay({ kind: 'joinOptions', count: getSelectedItems(useAS.getState().items).length });
@@ -210,6 +216,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
     onOpenOverlay({ kind: 'search', definition });
   };
 
+  // Edit → Select All: selects every entry in the current folder. See: (USER_GUIDE.md#select-all)
   const handleSelectAll = () => {
     const currentFolderPaths = useAS.getState().currentEntries.map((entry) => entry.path);
     selectItemsByPaths(currentFolderPaths);

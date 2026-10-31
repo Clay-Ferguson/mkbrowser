@@ -85,6 +85,8 @@ function countLabel(searchedQuery: string | null, matchCount: number, index: num
  * The guide is static once loaded, so the live Ranges stay valid until the next search.
  * In the input, Enter searches and Escape clears. A search that finds matches moves focus to the
  * guide, where Enter / Shift+Enter and the Left/Right arrows step forward/back through them.
+ *
+ * See: (USER_GUIDE.md#searching-the-help-tab)
  */
 export default function HelpSearchBar({ rootRef }: HelpSearchBarProps) {
   const [query, setQuery] = useState('');

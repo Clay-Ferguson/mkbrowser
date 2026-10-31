@@ -34,6 +34,7 @@ import { CHECKBOX_FIELD_CLASS } from '../../renderer/styles';
 
 // Node colors by type, tuned for a dark slate-900 background.
 // See: (docs/technical_notes/folder_graph.md#visual-encoding)
+// See: (USER_GUIDE.md#reading-the-graph)
 const COLOR_ROOT = '#ef4444';     // bright red
 const COLOR_FOLDER = '#fb923c';   // orange
 const COLOR_MARKDOWN = '#60a5fa'; // blue
@@ -105,6 +106,7 @@ const PREVIEW_DIVIDER_CHAR = '─';
  * the body (front matter stripped), capped at PREVIEW_MAX_CHARS.
  *
  * See: (docs/technical_notes/folder_graph.md#hover)
+ * See: (USER_GUIDE.md#reading-the-graph)
  */
 async function getFilePreview(filePath: string, name: string): Promise<string> {
   const readResult = await api.readFile(filePath);
@@ -264,6 +266,9 @@ function applySettledPositions(nodes: SimNode[], positions: Float64Array): void 
  *
  * See: (docs/technical_notes/folder_graph.md#component-internals-foldergraphviewtsx)
  * See: (docs/technical_notes/folder_graph.md#persistence-model)
+ * See: (USER_GUIDE.md#folder-graph)
+ * See: (USER_GUIDE.md#interacting-with-the-graph)
+ * See: (USER_GUIDE.md#tab-persistence)
  */
 function FolderGraphView() {
   const folderGraph = useAS(s => s.folderGraph);
@@ -607,6 +612,7 @@ function FolderGraphView() {
      *
      * See: (docs/technical_notes/folder_graph.md#layout-worker)
      * See: (docs/technical_notes/folder_graph.md#resize)
+     * See: (USER_GUIDE.md#interacting-with-the-graph)
      */
     const zoomToFit = (animate: boolean): void => {
       let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;

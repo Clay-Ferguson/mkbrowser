@@ -5,6 +5,8 @@
  * moved (keeping its `--ID` and extension) the link can be repaired by finding the file
  * carrying that id (linkRepair.ts, findById.ts). Markdown files carry their id in front
  * matter instead, so their names are never read for one.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 import { customAlphabet } from 'nanoid';
 import { isMarkdownFile } from './fileTypes';
@@ -69,6 +71,8 @@ export function fileIdSuffixOf(path: string): FileIdSuffix | null {
  * it from repairing themselves: `oldName` carries an id and `newName` drops or changes
  * it, or changes the extension (compared ignoring case, since `.PDF` → `.pdf` is the
  * same type).
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function idSuffixLost(oldName: string, newName: string): boolean {
   const before = fileIdSuffixOf(oldName);

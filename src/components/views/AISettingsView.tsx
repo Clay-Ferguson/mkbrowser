@@ -16,6 +16,7 @@ import CheckboxField from '../dialogs/common/CheckboxField';
 import NameInputDialog from '../dialogs/common/NameInputDialog';
 import { BUTTON_CLASS_BLUE, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_SAVE, BUTTON_CLASS_DLG_RED, BUTTON_CLASS_GREEN, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_RED, BUTTON_CLASS_RED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
 
+// The built-in persona: selectable, but not editable. See: (USER_GUIDE.md#ai-personas)
 const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
 /** Model names are matched case-insensitively and ignoring surrounding whitespace. */
@@ -42,6 +43,8 @@ interface PersonaEditorProps {
  * active persona comes from the store, and the parent renders this with
  * `key={personaName}` so the draft resets whenever the active persona changes
  * anywhere (here, or ThreadView's persona picker).
+ *
+ * See: (USER_GUIDE.md#ai-personas)
  */
 function PersonaEditor({ personaName, aiRewritePrompts, onSelect, onNew, onSave, onDelete }: PersonaEditorProps) {
   const [draft, setDraft] = useState<string>(() => personaPrompt(personaName, aiRewritePrompts));
@@ -118,6 +121,8 @@ function PersonaEditor({ personaName, aiRewritePrompts, onSelect, onNew, onSave,
  * AI config lives on AppConfig (not AppSettings), so it is mirrored into the
  * store via `saveAiConfig` to keep the editor, ThreadView, and this form in sync
  * without a full config reload.
+ *
+ * See: (USER_GUIDE.md#ai-settings)
  */
 function AISettingsView() {
   // AI config (lives top-level on AppConfig, not AppSettings) is mirrored into
@@ -200,14 +205,17 @@ function AISettingsView() {
     runOp(() => saveAiConfig(updates), 'Failed to save AI settings: ');
   };
 
+  // Enable AI Features checkbox. See: (USER_GUIDE.md#enable-ai-features)
   const handleAiEnabledChange = (enabled: boolean) => {
     saveAiConfigField({ aiEnabled: enabled });
   };
 
+  // AI Model dropdown. See: (USER_GUIDE.md#ai-model)
   const handleAiModelChange = (modelName: string) => {
     saveAiConfigField({ aiModel: modelName });
   };
 
+  // llama.cpp Base URL, saved when the field loses focus. See: (USER_GUIDE.md#llamacpp-base-url)
   const handleLlamacppBaseUrlBlur = () => {
     saveAiConfigField({ llamacppBaseUrl });
   };
@@ -219,6 +227,7 @@ function AISettingsView() {
   const selectedModel = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
   const selectedModelIsReadonly = Boolean(selectedModel?.readonly);
 
+  // Create / Edit / Delete buttons beside the AI Model dropdown. See: (USER_GUIDE.md#create--edit--delete-models)
   const handleCreateModel = () => {
     setEditingModel(undefined);
     setShowEditDialog(true);
@@ -247,6 +256,8 @@ function AISettingsView() {
    * Validates a model save from EditAIModelDialog and either applies it immediately
    * or routes through a confirmation dialog when the chosen name already exists.
    * Built-in (readonly) models can never be overwritten — an alert is shown instead.
+   *
+   * See: (USER_GUIDE.md#create--edit--delete-models)
    */
   const handleDialogSave = (model: AIModelConfig) => {
     // Check for name collision (only matters if it's a different entry than what we're editing)
@@ -294,6 +305,7 @@ function AISettingsView() {
     setShowEditDialog(true);
   };
 
+  // Deletes the selected model entry. See: (USER_GUIDE.md#create--edit--delete-models)
   const handleDeleteModel = () => {
     const current = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
     if (current?.readonly) {
@@ -312,6 +324,8 @@ function AISettingsView() {
    * Creates an empty persona from the New Persona dialog and selects it, leaving
    * the user in front of an empty editor ready to type the prompt and Save.
    * Names are matched exactly, the same way the Save and Delete buttons match.
+   *
+   * See: (USER_GUIDE.md#creating-a-new-prompt)
    */
   const handleCreatePersona = (name: string) => {
     if (!name) {
@@ -329,7 +343,11 @@ function AISettingsView() {
     });
   };
 
-  /** Writes the editor buffer back to the given persona. */
+  /**
+   * Writes the editor buffer back to the given persona.
+   *
+   * See: (USER_GUIDE.md#editing-an-existing-prompt)
+   */
   const handleSavePersona = (name: string, prompt: string) => {
     const updated = aiRewritePrompts.filter((p) => p.name !== name);
     updated.push({ name, prompt });
@@ -338,6 +356,7 @@ function AISettingsView() {
 
   // Wired directly to the reset-confirmation dialog's `onConfirm` (a `() => void`
   // prop); runOp reports a failed IPC reset through the app error dialog.
+  // See: (USER_GUIDE.md#ai-usage-statistics)
   const handleResetUsage = () => {
     runOp(async () => {
       await api.resetAiUsage();

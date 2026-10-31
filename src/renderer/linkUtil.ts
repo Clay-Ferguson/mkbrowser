@@ -151,6 +151,8 @@ function hasBalancedParens(s: string): boolean {
  *    line breaks (illegal inside `<...>`), `\` (starts a backslash escape), `%`
  *    (would be decoded by `decodeMarkdownUrl`), a character-reference-like `&…;`
  *    (decoded by the parser), or a leading `#` (read as an in-page anchor).
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function formatLinkDestination(relPath: string): string {
   // eslint-disable-next-line no-control-regex
@@ -198,6 +200,8 @@ function escapeLinkLabel(label: string): string {
  * with an optional heading `fragment`, labelled with `rawLabel` — Markdown label text, used
  * verbatim, so any escapes it carries are kept — or, by default, the file name minus `.md`. A non-empty `id` (the target's front-matter id) rides in the link title, so a
  * broken link can be auto-repaired (linkRepair.ts).
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function formatMarkdownFileLink(
   fromFilePath: string,
@@ -219,6 +223,8 @@ export function formatMarkdownFileLink(
  * anything else — a folder included — as `[name](../dest)`. `fragment` and `rawLabel` are as
  * for `formatMarkdownFileLink`; a non-Markdown label defaults to the full file or folder name,
  * minus any id it carries (`report--3D6B20DDF.pdf` is labelled `report.pdf`).
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function formatFileLink(
   fromFilePath: string,
@@ -239,6 +245,8 @@ export function formatFileLink(
  * The link copied by right-clicking a rendered heading: `[Heading Text]( docs/file.md#slug )`,
  * where `relPath` is the file's path relative to the browsing root (so the link is only
  * meaningful to "Paste Link", which re-targets it relative to the file it is pasted into).
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function formatHeadingLink(headingText: string, relPath: string, slug: string): string {
   return `[${escapeLinkLabel(headingText)}](${appendLinkFragment(formatLinkDestination(relPath), slug)})`;
@@ -256,6 +264,8 @@ const WHOLE_LINK_RE = /^\[((?:[^\]\\]|\\.)*)\]\(\s*(<[^<>\n]*>|[^\s<]\S*?)(?:\s+
  * is then null). Each path is tried as an absolute path (when it is one) and relative to the
  * browsing root `rootPath`. Null for text that can't be either: empty, multi-line, or
  * implausibly long. Pure, for testability.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function clipboardLinkCandidates(
   text: string,

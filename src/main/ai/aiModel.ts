@@ -144,10 +144,13 @@ export function enforceDefaultAIModels<T extends AIModelConfigLike>(args: {
 // NOTE: Local inference is served by a llama.cpp `llama-server` the user runs
 // themselves. MkBrowser never starts, stops, or otherwise manages that process —
 // it only talks to whatever is listening at the configured base URL.
+// See: (USER_GUIDE.md#llamacpp-base-url)
 
 /**
  * Resolve the active AI provider and model name from the config.
  * Falls back to Anthropic Claude Haiku if nothing is configured.
+ *
+ * See: (USER_GUIDE.md#ai-model)
  */
 
 export function getActiveModelConfig(): { provider: AIProvider; model: string; llamacppBaseUrl: string; } {
@@ -177,6 +180,8 @@ export function getActiveModelConfig(): { provider: AIProvider; model: string; l
  * all four invocation paths (invokeAI/streamAI/invokeDeepAgent/streamDeepAgent)
  * build their model here, this one line is the entire wiring for the on-disk
  * prompt/response log. See aiFileLog.ts.
+ *
+ * See: (USER_GUIDE.md#ai-model)
  */
 export function createChatModel() {
   const { provider, model, llamacppBaseUrl } = getActiveModelConfig();
@@ -203,6 +208,8 @@ export function createChatModel() {
  * Log whether a cloud provider's API-key env var is set. A missing key
  * typically surfaces later as a hang or auth error, so flagging it up front
  * makes that failure mode easier to diagnose.
+ *
+ * See: (USER_GUIDE.md#api-keys-for-cloud-providers)
  */
 function warnIfApiKeyMissing(envVar: string): void {
   const key = process.env[envVar];

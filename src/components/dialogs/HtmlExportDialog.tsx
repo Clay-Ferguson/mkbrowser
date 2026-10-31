@@ -32,6 +32,8 @@ interface HtmlExportDialogProps {
  * folder must lie below one named `exports`; that rule is also checked live as the
  * path is typed, disabling Export until it holds.
  * Returns the choice through onExport.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
  */
 function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName, onExport, onCancel }: HtmlExportDialogProps) {
   const [outputFolder, setOutputFolder] = useState(defaultOutputFolder);

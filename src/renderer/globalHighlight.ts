@@ -49,6 +49,8 @@ function onMutations(records: MutationRecord[]) {
  * loads file content, or opens/closes an editor) or the active view changes. This observer
  * is the only mechanism that re-applies the highlight; no caller needs to trigger a pass.
  * Passing null (or an empty string) clears the CSS Custom Highlight and disconnects the observer.
+ *
+ * See: (USER_GUIDE.md#search-highlight)
  */
 export function setGlobalHighlightText(text: string | null) {
   _highlightText = text;

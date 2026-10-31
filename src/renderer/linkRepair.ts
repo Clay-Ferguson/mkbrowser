@@ -6,6 +6,8 @@
  * link is clicked and its destination no longer exists (the target, or the file containing
  * the link, was renamed or moved), the target is found by its id, opened, and the link's
  * destination is silently rewritten.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 import { api } from './api';
 import { appendLinkFragment, decodeMarkdownUrl, formatLinkDestination, getRelativePath, resolveLinkPath, splitHeadingFragment } from './linkUtil';
@@ -161,6 +163,8 @@ export function readLinkTargetId(path: string): Promise<string> {
  *
  * A non-Markdown file's id is in its name (see shared/fileIdSuffix.ts), so its link never
  * carries a title: `id` is always '' and only `needsConsent` matters. Never rejects.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function resolveLinkTargetId(path: string): Promise<{ id: string; needsConsent: boolean }> {
   if (!isMarkdownFile(path)) {
@@ -176,6 +180,8 @@ export function resolveLinkTargetId(path: string): Promise<{ id: string; needsCo
  * written (an injected front-matter block is visible to anyone reading the file).
  * A file open in the editor is only read, never rewritten (that would fight the edit
  * buffer). Resolves to '' when there is no id; never rejects.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function addLinkTargetId(path: string): Promise<string> {
   if (getItem(path)?.editing) return readLinkTargetId(path);
@@ -217,6 +223,8 @@ function findById(id: string, likelyDir: string): Promise<string | null> {
  * and the user is warned — the file at the link's path may have been replaced by an
  * unrelated one (e.g. the original was renamed and a new file took its name). An
  * unreadable file is not reported. Never rejects.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 function checkOpenedFileId(openedPath: string, id: string): Promise<void> {
   return readFrontMatterId(openedPath).then((openedId) => {
@@ -235,6 +243,8 @@ function checkOpenedFileId(openedPath: string, id: string): Promise<void> {
  * `sourcePath` is repaired in the background. When nothing is found, `targetPath` is
  * opened anyway so the usual not-found handling applies. `headingSlug` (from a
  * `file.md#slug` link) scrolls to that heading in whichever file is opened.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function openIdLink(sourcePath: string, targetPath: string, id: string, headingSlug?: string): void {
   void api.pathExists(targetPath)
@@ -265,6 +275,8 @@ export function openIdLink(sourcePath: string, targetPath: string, id: string, h
  * `sourcePath` is repaired in the background. When nothing is found, `targetPath` is
  * opened anyway so the usual not-found handling applies. A file whose extension was
  * changed is deliberately never matched.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function openIdSuffixLink(sourcePath: string, targetPath: string, headingSlug?: string): void {
   const suffix = fileIdSuffixOf(targetPath);

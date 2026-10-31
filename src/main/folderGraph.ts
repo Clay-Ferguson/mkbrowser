@@ -14,6 +14,7 @@
  *
  * See: (docs/technical_notes/folder_graph.md#main-process)
  * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+ * See: (USER_GUIDE.md#folder-graph)
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -24,6 +25,7 @@ import { isMarkdownFile } from '../shared/fileTypes';
  * Hard cap on recursion depth from the root folder (root = 0).
  *
  * See: (docs/technical_notes/folder_graph.md#adjusting-limits-and-physics)
+ * See: (USER_GUIDE.md#scan-limits)
  */
 export const MAX_DEPTH = 10;
 
@@ -31,6 +33,7 @@ export const MAX_DEPTH = 10;
  * Hard cap on the number of nodes (files + folders, including root).
  *
  * See: (docs/technical_notes/folder_graph.md#adjusting-limits-and-physics)
+ * See: (USER_GUIDE.md#scan-limits)
  */
 export const MAX_NODES = 2000;
 
@@ -94,6 +97,7 @@ export interface FolderGraphResult {
  * lead to it.
  *
  * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+ * See: (USER_GUIDE.md#scan-limits)
  */
 export async function scanFolderTree(
   folderPath: string,

@@ -4,6 +4,8 @@
  * (findMarkdownById); any other file carries it in its name, `report--3D6B20DDF.pdf`,
  * and a link to it is a plain one (findFileByIdSuffix). Either way, a link whose
  * destination no longer exists is re-targeted at whichever file now carries the id.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -98,6 +100,8 @@ async function listMarkdownChildren(dir: string): Promise<string[]> {
  * (the folder the broken link points into — the file was probably just renamed),
  * then crawls all of `rootDir` (it was probably moved), skipping hidden folders and
  * the user's ignored paths. The first match wins. Resolves to null when not found.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export async function findMarkdownById(
   id: string,
@@ -141,6 +145,8 @@ function nameHasIdSuffix(name: string, id: string, ext: string): boolean {
  * `rootDir` (it was probably moved), skipping hidden folders and the user's ignored
  * paths. Only names are compared; no file is read. The first match wins. Resolves to
  * null when not found.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export async function findFileByIdSuffix(
   id: string,

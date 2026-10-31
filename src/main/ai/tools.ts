@@ -1,8 +1,11 @@
 /**
  * LangChain tools for the AI agent.
- * Provides read-only file system access scoped to the user's home directory.
+ * Provides file system tools (read, list, write, create, delete) for Agentic Mode,
+ * scoped to the Allowed Folders set in AI Settings (`agenticAllowedFolders`).
  *
  * This module runs in the main process only — never import from the renderer.
+ *
+ * See: (USER_GUIDE.md#agentic-mode)
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -32,6 +35,8 @@ const MAX_READ_BYTES = 50 * 1024; // 50 KB
 /**
  * Parse the agenticAllowedFolders config string into an array of absolute paths.
  * Splits on newlines, trims whitespace, and filters out blank lines.
+ *
+ * See: (USER_GUIDE.md#allowed-folders)
  */
 function getAllowedFolders(): string[] {
   const raw = getConfig().agenticAllowedFolders ?? '';
@@ -49,6 +54,8 @@ function getAllowedFolders(): string[] {
  * If the path contains a `*` wildcard (allowed only in the final path
  * component), the concrete directory prefix is validated recursively and the
  * result is the validated directory joined with the wildcard filename portion.
+ *
+ * See: (USER_GUIDE.md#allowed-folders)
  */
 export async function validatePath(rawPath: string): Promise<string> {
   // --- Wildcard handling (recursive) ---

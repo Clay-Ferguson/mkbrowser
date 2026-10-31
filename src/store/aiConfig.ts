@@ -20,6 +20,8 @@ export { defaultAiConfig };
 /**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
+ *
+ * See: (USER_GUIDE.md#ai-settings)
  */
 export interface AiConfigSlice {
   setAiConfig: (updates: Partial<AiConfigState>) => void;

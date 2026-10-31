@@ -2,13 +2,13 @@
 
 MkBrowser is an Electron desktop app that combines a file explorer with inline Markdown rendering, image rendering, and text file editing. It shows a single folder level at a time and renders `.md` files directly within the list rather than using a separate preview pane. 
 
-This README is aimed at developers; a separate [User Guide](docs/user_guide/USER_GUIDE.md) covers end-user usage. 
+This README is aimed at developers; a separate [User Guide](USER_GUIDE.md) covers end-user usage. 
 
 **[Demo Videos](https://clay-ferguson.github.io/videos/)**
 
 ## Features
 
-A comprehensive list of what MkBrowser can do. See the [User Guide](docs/user_guide/USER_GUIDE.md) for full details on any item.
+A comprehensive list of what MkBrowser can do. See the [User Guide](USER_GUIDE.md) for full details on any item.
 
 ### Browsing & Viewing
 

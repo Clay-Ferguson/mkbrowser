@@ -7,7 +7,11 @@ import { buildEmailUrl, buildMapUrl, buildPhoneUrl, buildWebUrl } from '../../sh
 import { BUTTON_CLASS_LINK_BLUE } from '../../renderer/styles';
 import { extractTimestamp, formatDateWithDelta } from '../../shared/timeUtil';
 
-/** Row icon per property type; plain text rows have none. */
+/**
+ * Row icon per property type; plain text rows have none.
+ *
+ * See: (USER_GUIDE.md#property-types)
+ */
 const TYPE_ICONS: Partial<Record<PropertyType, ComponentType<SVGProps<SVGSVGElement>>>> = {
   email: EnvelopeIcon,
   address: MapPinIcon,
@@ -25,7 +29,11 @@ const LINK_ACTIONS: Partial<Record<PropertyType, string>> = {
 /** Hover text for the click action of a date value. */
 const CALENDAR_ACTION = 'show in Calendar view';
 
-/** The URL a value of this property type opens when clicked, or undefined for plain text. */
+/**
+ * The URL a value of this property type opens when clicked, or undefined for plain text.
+ *
+ * See: (USER_GUIDE.md#property-types)
+ */
 function hrefFor(propertyType: PropertyType, value: string): string | undefined {
   switch (propertyType) {
     case 'email': return buildEmailUrl(value);
@@ -93,6 +101,8 @@ function LinkValue({ className, title, onClick, children }: {
  * `tel:` link, both handed to the system's handler for them. A parseable date value is followed
  * by its time delta ("… — 3 days ago") and, given `onDateClick`, is a link that opens the
  * Calendar view on that date. Everything else is plain text.
+ *
+ * See: (USER_GUIDE.md#how-objects-are-displayed)
  */
 function PropertyRow({ row, onDateClick }: { row: ObjectRow; onDateClick?: DateClickHandler }) {
   const Icon = TYPE_ICONS[row.propertyType];
@@ -138,6 +148,8 @@ function PropertyRow({ row, onDateClick }: { row: ObjectRow; onDateClick?: DateC
  *
  * `onDateClick` makes every parseable date value — title or row — a link to the Calendar view.
  * Without it (e.g. a static render) dates are plain text.
+ *
+ * See: (USER_GUIDE.md#how-objects-are-displayed)
  */
 export default function GenericObject({ type, data, onDateClick }: {
   type: string;

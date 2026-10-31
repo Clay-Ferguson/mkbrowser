@@ -49,6 +49,9 @@ function reportRewriteError(err: unknown, onError: (message: string) => void): v
  * MarkdownEntry. On success it enters review mode for the file; markdown passes
  * a streaming `runner` so review entry is deferred until the streaming dialog
  * closes, while text runs inline and enters review immediately.
+ *
+ * See: (USER_GUIDE.md#ai-rewrite)
+ * See: (USER_GUIDE.md#rewriting-a-selection)
  */
 export function useAiRewrite({
   path,

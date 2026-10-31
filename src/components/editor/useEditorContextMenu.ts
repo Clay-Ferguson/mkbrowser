@@ -14,7 +14,11 @@ import { clipboardLinkCandidates, formatFileLink } from '../../renderer/linkUtil
 import { resolveLinkTargetId } from '../../renderer/linkRepair';
 import { getFileName } from '../../renderer/pathUtil';
 
-/** An existing file or folder named by the clipboard text, offered by "Paste Link". */
+/**
+ * An existing file or folder named by the clipboard text, offered by "Paste Link".
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
+ */
 export interface PasteLinkTarget {
   /** Absolute path of the file or folder. */
   targetPath: string;
@@ -51,6 +55,8 @@ export interface ContextMenuState {
  * path (as copied by the index tree's "Copy Path"), either one relative to the browsing root
  * or absolute, with an optional heading slug. Resolves to null otherwise, including when the
  * clipboard can't be read; never rejects.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 async function findClipboardLinkTarget(rootPath: string): Promise<PasteLinkTarget | null> {
   let text: string;
@@ -123,6 +129,8 @@ interface UseEditorContextMenuProps {
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
  * `canSave`, `canToggleThesaurus`, `thesaurusEnabled`, `wordWrap`).
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = true, onSave, thesaurusCapable = false, revealFrontMatter, interceptPaste, makeLink }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
@@ -302,6 +310,7 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   // is part of its name (`report--3D6B20DDF.pdf`). When the file has no id the user is first
   // asked whether to add one (pendingIdLink → AddLinkIdDialog), unless it can't be given one
   // (see resolveLinkTargetId). A folder just gets a plain link.
+  // See: (USER_GUIDE.md#inserting-links-to-other-files)
   const handlePasteMarkdownLink = () => {
     const target = contextMenu.pasteLink;
     closeContextMenu();
@@ -319,6 +328,7 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
 
   // The ID dialog's choice: the id to put in the link title ('' for none) and where the
   // target now is (a non-Markdown file is renamed to carry its id).
+  // See: (USER_GUIDE.md#inserting-links-to-other-files)
   const handleIdLinkChosen = (id: string, targetPath: string) => {
     if (pendingIdLink) insertPasteLink({ ...pendingIdLink, targetPath }, id);
   };
@@ -400,6 +410,7 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
 
   // "Insert Object" — swaps the open menu's items for the list of object types. The menu stays
   // where it is; only its content changes.
+  // See: (USER_GUIDE.md#inserting-an-object-into-a-document)
   const handleOpenInsertObject = () => {
     setContextMenu(prev => ({ ...prev, submenu: 'insertObject' }));
   };
@@ -413,6 +424,7 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   // The front matter is shown first, in this editor (revealFrontMatter) and in the setting, so
   // the user sees what was added; with it still hidden, the cursor guard would also clamp the
   // cursor out of the new lines. The cursor ends up on the first property, ready for its value.
+  // See: (USER_GUIDE.md#inserting-an-object-into-a-document)
   const handleInsertObject = (type: string) => {
     const view = viewRef.current;
     closeContextMenu();
@@ -448,6 +460,7 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   // `focusChanged`, so it is what re-arms the countdown when the feature is switched on
   // mid-edit. Synonyms appear a couple of seconds later with no further gesture.
   // See: (docs/technical_notes/thesaurus_view.md#the-onoff-switch-enablethesaurus)
+  // See: (USER_GUIDE.md#thesaurus)
   const handleToggleThesaurus = () => {
     const view = viewRef.current;
     setEnableThesaurus(!thesaurusEnabled);

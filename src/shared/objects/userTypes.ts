@@ -18,7 +18,11 @@ export interface ObjectTypeOption {
   label: string;
 }
 
-/** Every defined type, sorted by the label the menu shows. */
+/**
+ * Every defined type, sorted by the label the menu shows.
+ *
+ * See: (USER_GUIDE.md#inserting-an-object-into-a-document)
+ */
 export function objectTypeOptions(defs: TypeDefinitions): ObjectTypeOption[] {
   return Object.entries(defs)
     .map(([type, def]) => ({ type, label: def.description || type }))
@@ -65,6 +69,8 @@ const OPEN_FENCE = '---\n';
  * `{a: 1}`) is refused rather than corrupted. The cursor lands at the end of the type's first
  * property line that has no value yet (or of its first property, when all are filled in), ready
  * for its value.
+ *
+ * See: (USER_GUIDE.md#inserting-an-object-into-a-document)
  */
 export function planObjectInsertion(content: string, defs: TypeDefinitions, type: string, today = formatDate()): ObjectInsertion {
   // hasOwn: the name comes from a menu built off this same map, but `toString` must still
@@ -157,6 +163,8 @@ export function planObjectInsertion(content: string, defs: TypeDefinitions, type
  * keeps exactly the form the user wrote. Any lines before the first key stay at the top. The
  * YAML is parsed only to find the object; a block whose parsed keys don't match the keys
  * located in its text (flow style, unusual keys) is left alone rather than risked.
+ *
+ * See: (USER_GUIDE.md#objects-and-custom-types)
  */
 export function orderObjectFrontMatter(content: string, defs: TypeDefinitions): string {
   const split = splitFrontMatter(content);

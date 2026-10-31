@@ -20,6 +20,7 @@ import { CustomAnchorWithPath } from '../CustomAnchor';
 import CustomCode from '../CustomCode';
 import CustomPre from '../CustomPre';
 
+// GFM, front matter, math, and TOC lists. See: (USER_GUIDE.md#markdown-support)
 const REMARK_PLUGINS: PluggableList = [remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }], remarkTocList];
 // rehypeDates runs before rehypeKatex so math is still a `code` element it skips.
 const REHYPE_PLUGINS: PluggableList = [rehypeDates, rehypeKatex, rehypeSlug, rehypeCallouts];
@@ -53,6 +54,8 @@ const ARTICLE_CLASS = `${PROSE_CLASS} max-w-none`;
 // (centered in the gap by the matching padding) and the row is pulled up and left by a gap plus
 // the border, so the borders of the first row and of each row's first column fall outside the
 // scroll container, which clips them (overflow above or left of it is unreachable).
+// See: (USER_GUIDE.md#column-layout-)
+// See: (USER_GUIDE.md#column-layout-)
 const COLUMNS_SCROLL_CLASS = 'overflow-x-auto';
 const COLUMNS_CLASS = 'flex flex-wrap gap-6 -mt-[calc(1.5rem+1px)] -ml-[calc(1.5rem+1px)]';
 const COLUMN_CLASS = clsx(
@@ -74,6 +77,9 @@ interface MarkdownViewProps {
  * Renders markdown content through the shared remark/rehype pipeline. Supports
  * multi-column documents (split on `|||`); single- and multi-column paths share
  * the same plugin and component configuration so it lives in one place.
+ *
+ * See: (USER_GUIDE.md#markdown-support)
+ * See: (USER_GUIDE.md#column-layout-)
  */
 function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownViewProps) {
   const rawContent = showToc ? (content || '') : removeTOC(content || '');

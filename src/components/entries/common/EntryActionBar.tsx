@@ -50,6 +50,8 @@ interface EntryActionBarProps {
  * text items, so the hover bar doesn't grow unbounded.
  *
  * See: (docs/technical_notes/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
+ * See: (USER_GUIDE.md#delete)
+ * See: (USER_GUIDE.md#editing-mode)
  */
 export function EntryActionBar({
   path,
@@ -78,6 +80,7 @@ export function EntryActionBar({
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   // Removing a bookmark is immediate; adding one opens a dialog so the user can give it a name.
+  // See: (USER_GUIDE.md#adding-a-bookmark)
   const handleBookmarkClick = () => {
     if (isBookmarked) {
       toggleBookmark(path);

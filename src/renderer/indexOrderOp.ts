@@ -7,6 +7,7 @@
  * app-wide error dialog, and the listing is reloaded on success.
  *
  * See: (docs/technical_notes/document_mode.md)
+ * See: (USER_GUIDE.md#document-mode)
  */
 
 import { api } from './api';
@@ -34,6 +35,7 @@ export function reconcileAndRefresh(folderPath: string | null, hasIndexFile: boo
  * Turns on Document Mode for `folderPath` by creating its index from the current listing.
  *
  * See: (docs/technical_notes/document_mode.md#enabling-custom-ordering)
+ * See: (USER_GUIDE.md#enabling-document-mode)
  */
 export function enableCustomOrdering(folderPath: string): void {
   runOp(async () => {
@@ -46,7 +48,11 @@ export function enableCustomOrdering(folderPath: string): void {
   }, 'Failed to enable custom ordering: ');
 }
 
-/** Moves the entry named `name` one place up or down in `folderPath`'s index. */
+/**
+ * Moves the entry named `name` one place up or down in `folderPath`'s index.
+ *
+ * See: (USER_GUIDE.md#editing-mode)
+ */
 export function moveInIndex(folderPath: string, name: string, direction: 'up' | 'down'): void {
   runOp(async () => {
     await api.moveInIndexYaml(folderPath, name, direction);
@@ -54,7 +60,11 @@ export function moveInIndex(folderPath: string, name: string, direction: 'up' | 
   }, 'Failed to move item: ');
 }
 
-/** Moves the entry named `name` to the top or bottom of `folderPath`'s index. */
+/**
+ * Moves the entry named `name` to the top or bottom of `folderPath`'s index.
+ *
+ * See: (USER_GUIDE.md#editing-mode)
+ */
 export function moveToEdgeInIndex(folderPath: string, name: string, edge: 'top' | 'bottom'): void {
   runOp(async () => {
     await api.moveToEdgeInIndexYaml(folderPath, name, edge);

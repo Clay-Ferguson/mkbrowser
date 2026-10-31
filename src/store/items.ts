@@ -321,12 +321,17 @@ export interface ItemsSlice {
   toggleItemExpanded: (path: string) => void;
   setItemExpanded: (path: string, isExpanded: boolean) => void;
   setItemSelected: (path: string, isSelected: boolean) => void;
+  // Edit → Unselect All / Select All. See: (USER_GUIDE.md#unselect-all)
+  // See: (USER_GUIDE.md#select-all)
   clearAllSelections: () => void;
   selectItemsByPaths: (paths: string[]) => void;
+  // Expand All / Collapse All toolbar buttons. See: (USER_GUIDE.md#expand-all--collapse-all)
   expandAllItems: () => void;
   collapseAllItems: () => void;
+  // Cut marks items for moving; Undo Cut (clearAllCutItems) cancels it. See: (USER_GUIDE.md#cut-and-paste)
   cutSelectedItems: () => void;
   cutSingleItem: (item: IncomingItem) => void;
+  // Undo Cut toolbar button. See: (USER_GUIDE.md#undo-cut)
   clearAllCutItems: () => void;
   renameItem: (oldPath: string, newPath: string, newName: string) => boolean;
   deleteItems: (paths: string[]) => void;
@@ -1239,6 +1244,8 @@ function computeExpansionCounts(items: Map<string, ItemData>, directoryPath: str
  * The selector returns a freshly-computed object, so it is wrapped in
  * `useShallow`: the result is compared key-by-key against the previous one,
  * and the component only re-renders when a count actually changes.
+ *
+ * See: (USER_GUIDE.md#expand-all--collapse-all)
  */
 export function useExpansionCounts(): ExpansionCounts {
   return useAS(useShallow(s => computeExpansionCounts(s.items, s.currentPath)));

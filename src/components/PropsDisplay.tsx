@@ -49,6 +49,9 @@ interface PropsDisplayProps {
  *      a property pill but with the tag half in blue; "all" and undefined tags show the tag alone.
  *
  * Returns null when there is nothing to display.
+ *
+ * See: (USER_GUIDE.md#jumping-to-a-date-from-a-file)
+ * See: (USER_GUIDE.md#how-objects-are-displayed)
  */
 export default function PropsDisplay({ tags, props, onTagClick, onPropClick, onPropValueClick, propValueTitle }: PropsDisplayProps) {
   const propEntries = props

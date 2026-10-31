@@ -13,7 +13,11 @@ export type ImageCols = 1 | 2 | 3 | 4;
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 /** Folder tree sidebar visibility and width options. */
 export type IndexTreeWidth = 'hidden' | 'narrow' | 'medium' | 'wide';
-/** How the query is matched: plain text, `*` wildcards, or a JavaScript expression. */
+/**
+ * How the query is matched: plain text, `*` wildcards, or a JavaScript expression.
+ *
+ * See: (USER_GUIDE.md#using-search)
+ */
 export type SearchMatchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
 export type SearchSortDirection = 'asc' | 'desc';
@@ -64,7 +68,11 @@ export interface ImageDimensions {
   height: number;
 }
 
-/** A saved search definition (persisted in `AppSettings.searchDefinitions`). */
+/**
+ * A saved search definition (persisted in `AppSettings.searchDefinitions`).
+ *
+ * See: (USER_GUIDE.md#saving-search-definitions)
+ */
 export interface SearchDefinition {
   name: string;
   searchText: string;
@@ -79,10 +87,15 @@ export interface SearchDefinition {
   sortDirection: SearchSortDirection;
   /** Whether to include image EXIF metadata in a content search. */
   searchImageExif?: boolean;
-  /** Whether to limit the search to the 500 most recently modified files. */
+  /**
+   * Whether to limit the search to the 500 most recently modified files.
+   *
+   * See: (USER_GUIDE.md#find-recent-edits)
+   */
   mostRecent?: boolean;
 }
 
+// A bookmark in the Index Tree's Bookmarks menu. See: (USER_GUIDE.md#bookmarks)
 export interface Bookmark {
   path: string;
   name: string;
@@ -100,8 +113,11 @@ export interface Bookmark {
  * use this exact type (types.ts re-exports it), so a field added here cannot be
  * silently dropped by code that rebuilds a settings object against an older,
  * narrower shape.
+ *
+ * See: (USER_GUIDE.md#settings)
  */
 export interface AppSettings {
+  // Settings → Appearance: fontSize, foldersOnTop, showToc, contentWidth, indexTreeWidth. See: (USER_GUIDE.md#appearance)
   fontSize: FontSize;
   sortOrder: SortOrder;
   /**
@@ -112,7 +128,13 @@ export interface AppSettings {
   imageCols: ImageCols;
   foldersOnTop: boolean;
   showToc: boolean;
-  /** Newline-separated list of folder/file names to ignore in search. */
+  /**
+   * Newline-separated list of folder/file names to skip (Settings → Files to Ignore):
+   * honored by search, Replace in Files, Folder Analysis, the Folder Graph, the
+   * calendar scan, link auto-repair, and the HTML folder export — not only search.
+   *
+   * See: (USER_GUIDE.md#files-to-ignore)
+   */
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
   contentWidth: ContentWidth;
@@ -121,11 +143,16 @@ export interface AppSettings {
    * Folder path where new calendar item files are created.
    *
    * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+   * See: (USER_GUIDE.md#calendar-items-folder)
    */
   calendarItemsFolder: string;
   /** Folder tree sidebar visibility and width. */
   indexTreeWidth: IndexTreeWidth;
-  /** Whether to show front matter (Properties) in the editor. */
+  /**
+   * Whether to show front matter (Properties) in the editor.
+   *
+   * See: (USER_GUIDE.md#objects-and-custom-types)
+   */
   showPropsInEditor: boolean;
   /**
    * When true, starting an edit in the folder listing opens the editor maximized:
@@ -133,6 +160,7 @@ export interface AppSettings {
    * hosts the editor with the whole pane.
    *
    * See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+   * See: (USER_GUIDE.md#expand-editor)
    */
   expandedEditor: boolean;
   /**
@@ -148,6 +176,7 @@ export interface AppSettings {
    * happens while the user types.
    *
    * See: (docs/technical_notes/thesaurus_view.md#the-onoff-switch-enablethesaurus)
+   * See: (USER_GUIDE.md#thesaurus)
    */
   enableThesaurus: boolean;
   /**
@@ -162,10 +191,14 @@ export interface AppSettings {
 export const TEST_HOOKS_ARG = '--mkb-test-hooks';
 
 /** Supported AI providers. Single source of truth for both the {@link AIProvider}
- *  union type and any UI that lists providers (e.g. the model editor dropdown). */
+ *  union type and any UI that lists providers (e.g. the model editor dropdown).
+ *
+ * See: (USER_GUIDE.md#ai-model)
+ */
 export const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
 export type AIProvider = typeof AI_PROVIDERS[number];
 
+// A named entry in the AI Model dropdown. See: (USER_GUIDE.md#ai-model)
 export interface AIModelConfig {
   name: string;
   provider: AIProvider;
@@ -180,6 +213,7 @@ export interface AIModelConfig {
   readonly: boolean;
 }
 
+// A named AI Persona (Settings → AI Settings → Personas). See: (USER_GUIDE.md#ai-personas)
 export interface AIRewritePromptDef {
   name: string;
   prompt: string;
@@ -189,6 +223,8 @@ export interface AIRewritePromptDef {
  * The fundamental kind of value a property holds. Every property value is stored
  * as a string; the type only selects how it is presented and interacted with
  * (e.g. a clickable link for `url`, a mailto for `email`).
+ *
+ * See: (USER_GUIDE.md#property-types)
  */
 export const PROPERTY_TYPES = ['text', 'address', 'email', 'url', 'phone', 'date'] as const;
 export type PropertyType = typeof PROPERTY_TYPES[number];
@@ -198,6 +234,8 @@ export const DEFAULT_PROPERTY_TYPE: PropertyType = 'text';
  * One property of a user-defined object type. Keyed by property name in
  * `TypeDefinition.properties`; its attributes sit beneath the name so more
  * (e.g. a future domain/range) can be added. Unknown keys are preserved.
+ *
+ * See: (USER_GUIDE.md#adding-and-arranging-properties)
  */
 export interface PropertyDefinition {
   description: string;
@@ -205,7 +243,11 @@ export interface PropertyDefinition {
   [extra: string]: unknown;
 }
 
-/** A user-defined object type, keyed by type name in `AppConfig.types`. Unknown keys are preserved. */
+/**
+ * A user-defined object type, keyed by type name in `AppConfig.types`. Unknown keys are preserved.
+ *
+ * See: (USER_GUIDE.md#defining-your-own-types-types-editor)
+ */
 export interface TypeDefinition {
   description?: string;
   /** Property definitions in display order (YAML key order). */
@@ -222,37 +264,68 @@ export interface AppConfig {
   settings?: AppSettings;
   lastExportFolder?: string;
   // "Enable AI": gates every AI Chat button and menu item. See: (docs/technical_notes/ai_chat.md#overview)
+  // See: (USER_GUIDE.md#enable-ai-features)
   aiEnabled?: boolean;
+  // The AI Model dropdown's entries and the selected entry's name. See: (USER_GUIDE.md#ai-model)
   aiModels?: AIModelConfig[];
   aiModel?: string;
+  // Base URL of the local OpenAI-compatible server (LLAMACPP provider). See: (USER_GUIDE.md#llamacpp-base-url)
   llamacppBaseUrl?: string;
   // Routes Ask AI through the deep agent instead of a plain LLM call. See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
+  // See: (USER_GUIDE.md#agentic-mode)
   agenticMode?: boolean;
+  // Newline-separated folders the agent's file tools may touch. See: (USER_GUIDE.md#allowed-folders)
   agenticAllowedFolders?: string;
   /**
    * The name of the currently selected rewrite prompt. This is also the persona
    * the AI Chat tab's "Chat with Persona" box selects.
    *
    * See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
+   * See: (USER_GUIDE.md#selecting-the-active-prompt)
    */
   aiRewritePrompt?: string;
-  /** Named rewrite prompts available to the user. */
+  /**
+   * Named rewrite prompts available to the user.
+   *
+   * See: (USER_GUIDE.md#ai-personas)
+   */
   aiRewritePrompts?: AIRewritePromptDef[];
-  /** Whether to include the full document as context when rewriting. */
+  /**
+   * Whether to include the full document as context when rewriting.
+   *
+   * See: (USER_GUIDE.md#full-document-context)
+   */
   fullDocContext?: boolean;
-  /** Whether the Tags picker panel is expanded. Defaults to false (collapsed). */
+  /**
+   * Whether the Tags picker panel is expanded. Defaults to false (collapsed).
+   *
+   * See: (USER_GUIDE.md#tag-picker)
+   */
   tagsPanelVisible?: boolean;
-  /** Whether the AI Rewrite button is shown in entry editors. */
+  /**
+   * Whether the AI Rewrite button is shown in entry editors.
+   *
+   * See: (USER_GUIDE.md#enabling-ai-rewrite)
+   */
   aiRewriteMode?: boolean;
   /**
    * Last selected calendar view type (month/week/work_week/day/agenda).
    *
    * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (USER_GUIDE.md#navigating-the-calendar)
    */
   calendarViewType?: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
-  /** Recently browsed folders, most recent first, max 10. */
+  /**
+   * Recently browsed folders, most recent first, max 10.
+   *
+   * See: (USER_GUIDE.md#recent-folders)
+   */
   recentFolders?: string[];
-  /** User-defined object types, managed in the Types Editor tab. */
+  /**
+   * User-defined object types, managed in the Types Editor tab.
+   *
+   * See: (USER_GUIDE.md#objects-and-custom-types)
+   */
   types?: TypeDefinitions;
 }
 
@@ -272,18 +345,21 @@ export interface FileEntry {
    * Preview text from HUMAN.md or AI.md for AI conversation folders
    *
    * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+   * See: (USER_GUIDE.md#ai-conversation-hint-text)
    */
   aiHint?: string;
   /**
    * Position from .INDEX.yaml; undefined means not listed (appears after indexed entries)
    *
    * See: (docs/technical_notes/document_mode.md#the-indexyaml-file)
+   * See: (USER_GUIDE.md#document-mode)
    */
   indexOrder?: number;
   /**
    * Contents of an associated .attach folder, pre-loaded by readDirectory
    *
    * See: (docs/technical_notes/file_attachments.md#fileentry-interface-srcsharedsharedts)
+   * See: (USER_GUIDE.md#file-attachments)
    */
   attachments?: FileEntry[];
   /**
@@ -363,14 +439,20 @@ export interface SearchResult {
   createdTime?: number;
   /** Set (in 'content' mode only) when the file matched on its NAME, so its
    * contents were never read — matchCount counts occurrences within the file name
-   * rather than the body. The results view shows "name match" instead of a count. */
+   * rather than the body. The results view shows "name match" instead of a count.
+   *
+   * See: (USER_GUIDE.md#search-results)
+   */
   nameMatch?: boolean;
   /** Set when the result is a folder (only a names-only search returns folders). */
   isDirectory?: boolean;
 }
 
 /** What a folder search returns over IPC: the results (capped, and ordered by
- * the requested sort) plus how many matched before the cap was applied. */
+ * the requested sort) plus how many matched before the cap was applied.
+ *
+ * See: (USER_GUIDE.md#search-results)
+ */
 export interface SearchOutcome {
   results: SearchResult[];
   /** Total matches found; larger than `results.length` when the cap truncated. */
@@ -380,6 +462,7 @@ export interface SearchOutcome {
   cancelled?: boolean;
 }
 
+// One file's outcome in Replace in Files. See: (USER_GUIDE.md#results-summary)
 export interface ReplaceResult {
   path: string;
   relativePath: string;
@@ -388,13 +471,18 @@ export interface ReplaceResult {
   error?: string;
 }
 
+// Outcome of Tools → Export to File. See: (USER_GUIDE.md#exporting)
 export interface ExportResult {
   success: boolean;
   outputPath?: string;
   error?: string;
 }
 
-/** Options chosen in the "Export to Folder (HTML)" dialog. */
+/**
+ * Options chosen in the "Export to Folder (HTML)" dialog.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
+ */
 export interface HtmlExportOptions {
   /** Generate an `_index.html` navigation page in every exported folder. */
   indexPages: boolean;
@@ -411,6 +499,8 @@ export interface HtmlExportOptions {
  * "Export to Folder (HTML)" only writes below a folder named this (`…/exports/<output>`):
  * an opinionated guard so that an overwrite, which empties the output folder, can only
  * ever hit a folder deliberately set aside for exports.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
  */
 export const EXPORTS_FOLDER_NAME = 'exports';
 
@@ -451,6 +541,7 @@ export interface HtmlExportResult {
   error?: string;
 }
 
+// Folder Analysis output: hashtag counts and the number of files scanned. See: (USER_GUIDE.md#analysis-results)
 export interface FolderAnalysisResult {
   hashtags: Array<{ tag: string; count: number }>;
   totalFiles: number;
@@ -458,6 +549,7 @@ export interface FolderAnalysisResult {
 
 // IPC wire form of a calendar event (epoch-ms times survive structured cloning).
 // See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
+// See: (USER_GUIDE.md#creating-calendar-entries)
 export interface CalendarEventResult {
   id: string;
   title: string;
@@ -472,6 +564,7 @@ export interface CalendarEventResult {
 
 // Result of the 'scan-folder-tree' IPC call (mirrors FolderGraphResult in src/main/folderGraph.ts).
 // See: (docs/technical_notes/folder_graph.md#ipc-surface)
+// See: (USER_GUIDE.md#scan-limits)
 export interface FolderGraphScanResult {
   folderPath: string;
   nodes: Array<{ id: string; name: string; isDirectory: boolean; depth: number }>;
@@ -487,6 +580,7 @@ export interface ProviderUsage {
   requests: number;
 }
 
+// Totals and per-provider breakdown shown in AI Usage Statistics. See: (USER_GUIDE.md#ai-usage-statistics)
 export interface AIUsageWithCosts {
   totalInputTokens: number;
   totalOutputTokens: number;
@@ -505,6 +599,7 @@ export interface AIUsageWithCosts {
  * when nothing was found at all.
  *
  * See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
+ * See: (USER_GUIDE.md#thesaurus)
  */
 export interface ThesaurusLookup {
   lemma: string | null;
@@ -533,6 +628,7 @@ export interface ElectronAPI {
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
   // Synonyms for the editor's thesaurus strip. See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
+  // See: (USER_GUIDE.md#thesaurus)
   lookupThesaurus: (word: string) => Promise<ThesaurusLookup>;
   /** Title of the HTML page at an http(s) URL (read from at most its first 256 KB), or '' when there is none. Never rejects. */
   fetchUrlTitle: (url: string) => Promise<string>;
@@ -541,7 +637,11 @@ export interface ElectronAPI {
   getHomeDir: () => Promise<string>;
   updateConfig: (updates: Partial<AppConfig>) => Promise<void>;
   selectFolder: () => Promise<string | null>;
-  /** The bundled Help documents folder (a copy of the repo's `docs/user_guide/`), or null if missing. */
+  /**
+   * The bundled Help documents folder (a copy of the repo's `docs/user_guide/`), or null if missing.
+   *
+   * See: (USER_GUIDE.md)
+   */
   getHelpDocsPath: () => Promise<string | null>;
   /** Absolute path of the command-line file to open at startup, or null. */
   getStartupFile: () => Promise<string | null>;
@@ -549,6 +649,7 @@ export interface ElectronAPI {
   selectFile: (title: string) => Promise<string | null>;  readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<ReadFileResult>;
   readFileWithMtime: (filePath: string) => Promise<FileReadResult>;
+  // EXIF dialog: read and write image metadata. See: (USER_GUIDE.md#image-viewer-and-exif-metadata)
   readExif: (filePath: string) => Promise<ExifData>;
   writeExif: (filePath: string, data: ExifData) => Promise<ExifWriteResult>;
   getImageDimensions: (filePath: string) => Promise<ImageDimensions | null>;
@@ -559,6 +660,8 @@ export interface ElectronAPI {
    * Finds the .md file whose front-matter `id` is `id`: first among the direct children
    * of `likelyDir`, then anywhere under `rootDir` (honoring ignored paths). The first
    * match wins; resolves to null when none is found.
+   *
+   * See: (USER_GUIDE.md#inserting-links-to-other-files)
    */
   findMarkdownById: (id: string, likelyDir: string, rootDir: string) => Promise<string | null>;
   /**
@@ -566,6 +669,8 @@ export interface ElectronAPI {
    * `ext` with its dot, or '' for none, compared ignoring case): first among the direct
    * children of `likelyDir`, then anywhere under `rootDir` (honoring ignored paths). Only
    * names are compared. The first match wins; resolves to null when none is found.
+   *
+   * See: (USER_GUIDE.md#inserting-links-to-other-files)
    */
   findFileByIdSuffix: (id: string, ext: string, likelyDir: string, rootDir: string) => Promise<string | null>;
   writeFile: (filePath: string, content: string) => Promise<FileWriteResult>;
@@ -576,6 +681,7 @@ export interface ElectronAPI {
    * auto-repair.
    *
    * See: (docs/technical_notes/document_mode.md#stable-identity-via-front-matter-ids)
+   * See: (USER_GUIDE.md#inserting-links-to-other-files)
    */
   ensureFrontMatterId: (filePath: string) => Promise<FrontMatterIdResult>;
   getFileSize: (filePath: string) => Promise<number>;
@@ -583,7 +689,9 @@ export interface ElectronAPI {
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   createFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
   // Also renames the file's sibling `.attach` folder, if any. See: (docs/technical_notes/file_attachments.md#rename-synchronization-srcmaints)
+  // See: (USER_GUIDE.md#renaming-1)
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
+  // Moves the file or folder to the OS trash. See: (USER_GUIDE.md#delete)
   deleteFile: (filePath: string) => Promise<boolean>;
   openExternal: (filePath: string) => Promise<boolean>;
   openExternalUrl: (url: string) => Promise<boolean>;
@@ -592,46 +700,68 @@ export interface ElectronAPI {
   isFolderEmpty: (folderPath: string) => Promise<boolean>;
   /** Permanently removes a folder only if it is empty on disk (deleting a lone .INDEX.yaml first); fails (never recurses) otherwise. */
   deleteEmptyFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+  // Runs a folder search (Search dialog, saved searches, hashtag clicks). See: (USER_GUIDE.md#using-search)
   searchFolder: (folderPath: string, definition: SearchDefinition) => Promise<SearchOutcome>;
-  /** V8's syntax-error message for an Advanced search query, or null if it parses. Only parses — never runs it. */
+  /**
+   * V8's syntax-error message for an Advanced search query, or null if it parses. Only parses — never runs it.
+   *
+   * See: (USER_GUIDE.md#advanced-search-predicates)
+   */
   checkAdvancedQuerySyntax: (query: string) => Promise<string | null>;
+  // Edit → Replace in Files. See: (USER_GUIDE.md#replace-in-files-1)
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
+  // Tools → Folder Analysis. See: (USER_GUIDE.md#folder-analysis)
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   // Calendar: folder crawl (starts the watcher) and search-results list. See: (docs/technical_notes/calendar_view.md#ipc-surface)
+  // See: (USER_GUIDE.md#opening-the-calendar)
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;
-  /** Calendar events for an explicit file list (search results). Stops the folder watcher. */
+  /**
+   * Calendar events for an explicit file list (search results). Stops the folder watcher.
+   *
+   * See: (USER_GUIDE.md#search-results)
+   */
   loadCalendarEventsForFiles: (filePaths: string[]) => Promise<CalendarEventResult[]>;
   /**
    * Scans `folderPath` for the folder graph; `markdownOnly` limits files to `.md` and prunes folders without any.
    *
    * See: (docs/technical_notes/folder_graph.md#ipc-surface)
+   * See: (USER_GUIDE.md#launching-the-graph)
    */
   scanFolderTree: (folderPath: string, markdownOnly?: boolean) => Promise<FolderGraphScanResult>;
   /**
    * Reads the graph's Markdown files and returns their links to other graph nodes (source -> target).
    *
    * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+   * See: (USER_GUIDE.md#reading-the-graph)
    */
   scanFolderGraphLinks: (folderPath: string, nodeIds: string[]) => Promise<Array<{ source: string; target: string }>>;
+  // Hashtag library (tags.yaml) for the tag picker and Tags Editor. See: (USER_GUIDE.md#managing-your-hashtag-library-tags-editor)
   loadTags: () => Promise<TagCategory[]>;
   saveTags: (yamlContent: string) => Promise<void>;
   setWindowTitle: (title: string) => Promise<void>;
+  // Tools → Export to File (PDF or Markdown). See: (USER_GUIDE.md#exporting)
   selectExportFolder: () => Promise<string | null>;
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;
   exportToPdf: (markdownPath: string, pdfPath: string, sourceFolder?: string) => Promise<{ success: boolean; error?: string }>;
+  // Tools → Export to Folder (HTML). See: (USER_GUIDE.md#export-to-folder-html)
   exportFolderToHtml: (sourceFolder: string, outputFolder: string, options: HtmlExportOptions) => Promise<HtmlExportResult>;
   /** Checks an HTML export output folder against the source, before the user is asked to overwrite it. */
   checkHtmlExportTarget: (sourceFolder: string, outputFolder: string) => Promise<HtmlExportTargetCheck>;
+  // Runs a .sh file (the tree's Run menu item). See: (USER_GUIDE.md#running-shell-scripts)
   runShellScript: (filePath: string) => Promise<{ success: boolean; error?: string }>;
   // AI Chat: Ask AI and Reply. See: (docs/technical_notes/ai_chat.md#code-map)
+  // See: (USER_GUIDE.md#ai-chat)
   askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   replyToAi: (parentFolderPath: string, createSubFolder: boolean) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
+  // AI Usage Statistics in AI Settings. See: (USER_GUIDE.md#ai-usage-statistics)
   getAiUsage: () => Promise<AIUsageWithCosts>;
   resetAiUsage: () => Promise<void>;
   queueScriptedAnswer: (answer: string) => Promise<void>;
   // Builds the AI Chat tab's thread. See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
   gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }>; childFolders: Array<{ role: 'human' | 'ai'; name: string; path: string; aiHint?: string }> }>;
+  // AI Rewrite of the whole file. See: (USER_GUIDE.md#how-to-use-rewrite)
   rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
+  // AI Rewrite Selection. See: (USER_GUIDE.md#rewriting-a-selection)
   rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
 
   // AI streaming events (drive the streaming dialog). See: (docs/technical_notes/ai_chat.md#asking-the-ai)
@@ -645,11 +775,13 @@ export interface ElectronAPI {
 
   // Calendar file-change and delete events
   // See: (docs/technical_notes/calendar_view.md#ipc-surface)
+  // See: (USER_GUIDE.md#opening-the-calendar)
   onCalendarFileChanged: (callback: (results: CalendarEventResult[], filePath: string) => void) => () => void;
   onCalendarFileDeleted: (callback: (deletedPath: string, isFolder: boolean) => void) => () => void;
   onCalendarWatcherError: (callback: (message: string) => void) => () => void;
 
   // Document Mode (.INDEX.yaml) operations. See: (docs/technical_notes/document_mode.md#code-locations)
+  // See: (USER_GUIDE.md#document-mode)
   insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;
   moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') => Promise<{ success: boolean; error?: string }>;

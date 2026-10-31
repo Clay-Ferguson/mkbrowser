@@ -8,6 +8,7 @@ import { logger } from '../shared/logUtil';
 
 // Calendar live updates: a chokidar watcher on the folder-sourced calendar's folder.
 // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+// See: (USER_GUIDE.md#opening-the-calendar)
 
 export type CalendarFileChangedCallback = (results: CalendarEventResult[], filePath: string) => void;
 export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolean) => void;
@@ -130,6 +131,7 @@ function buildIgnoredFn(folderPath: string, ignoredPaths: string[]): (filePath: 
  *   so a second call issued while a restart is mid-flight simply queues behind it.
  *
  * See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+ * See: (USER_GUIDE.md#opening-the-calendar)
  */
 export function startCalendarWatcher(
   folderPath: string,

@@ -19,6 +19,7 @@ import {
 } from './typesEditorModel';
 
 // Display labels for the property-type select; the stored values are the lowercase keys.
+// See: (USER_GUIDE.md#property-types)
 const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   text: 'Text',
   address: 'Address',
@@ -56,6 +57,7 @@ function sortByName(types: EditorType[]): EditorType[] {
  * `api.updateConfig({ types })`; Revert reloads from config. Since views never unmount, an unsaved draft survives tab switches.
  *
  * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+ * See: (USER_GUIDE.md#defining-your-own-types-types-editor)
  */
 export default function TypesEditorView() {
   const [types, setTypes] = useState<EditorType[]>([]);
@@ -137,6 +139,7 @@ export default function TypesEditorView() {
     setRenamingTypeId(null);
   };
 
+  // Adds a type and opens its name for typing. See: (USER_GUIDE.md#adding-renaming-and-deleting-types)
   const addType = () => {
     const type = newEditorType();
     setTypes((prev) => [...prev, type]);
@@ -158,6 +161,7 @@ export default function TypesEditorView() {
     });
   };
 
+  // Deleting a type that has properties asks first. See: (USER_GUIDE.md#adding-renaming-and-deleting-types)
   const requestDeleteType = (type: EditorType) => {
     if (type.properties.length === 0) {
       deleteType(type.id);
@@ -187,6 +191,7 @@ export default function TypesEditorView() {
     );
   };
 
+  // Adds a property row with its name field focused. See: (USER_GUIDE.md#adding-and-arranging-properties)
   const addProperty = (typeId: string) => {
     const prop = newEditorProperty();
     setTypes((prev) =>
@@ -196,6 +201,7 @@ export default function TypesEditorView() {
   };
 
   // Swap a property with its neighbor (delta -1 = up, +1 = down); no-op at either end.
+  // See: (USER_GUIDE.md#adding-and-arranging-properties)
   const moveProperty = (typeId: string, propId: string, delta: -1 | 1) => {
     setTypes((prev) =>
       prev.map((t) => {
@@ -218,6 +224,7 @@ export default function TypesEditorView() {
 
   // --- Save / Revert ---
 
+  // Save: drops blank properties, validates, and writes the types to config. See: (USER_GUIDE.md#saving-your-changes)
   const save = (model: EditorType[]) => {
     const toSave = dropBlankProperties(model);
     if (validate(toSave)) { setShowValidation(true); return; }

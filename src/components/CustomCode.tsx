@@ -15,6 +15,7 @@ import { nodeToString } from '../renderer/reactUtil';
  */
 // `node` is react-markdown's internal hast node; destructure it out so it isn't
 // spread onto the DOM <code> element (React warns on unknown DOM props).
+// See: (USER_GUIDE.md#markdown-support)
 function CustomCode({ className, children, node, ...props }: React.HTMLAttributes<HTMLElement> & ExtraProps) {
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';

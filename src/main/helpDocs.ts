@@ -9,6 +9,8 @@ import { app } from 'electron';
  * (by its basename) directly under `process.resourcesPath` on every OS (e.g. the .deb
  * installs it at `/usr/lib/mk-browser/resources/user_guide`). Dev: the live repo
  * `docs/user_guide/` folder.
+ *
+ * See: (USER_GUIDE.md)
  */
 export function getHelpDocsPath(): string {
   return app.isPackaged

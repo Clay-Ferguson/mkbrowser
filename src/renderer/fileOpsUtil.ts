@@ -46,6 +46,7 @@ import { DEFAULT_SPLIT_DELIMITER, parseSplitDelimiter } from './splitUtil';
  *
  * See: (docs/technical_notes/document_mode.md#insertintoindexyaml)
  * See: (docs/technical_notes/file_attachments.md#creating-the-folder-ensureattachfolder-srcrendererfileopsutilts)
+ * See: (USER_GUIDE.md#how-attachments-work)
  */
 export async function ensureAttachFolder(filePath: string): Promise<string | null> {
   const attachFolderPath = `${filePath}${ATTACH_SUFFIX}`;
@@ -79,6 +80,7 @@ export async function ensureAttachFolder(filePath: string): Promise<string | nul
  * @param filePath - Absolute path of the file that will own the attachment.
  *
  * See: (docs/technical_notes/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
+ * See: (USER_GUIDE.md#adding-attachments)
  */
 export async function createAttachmentFileOp(
   filePath: string
@@ -132,6 +134,7 @@ function insertAfterNameAt(insertAtIndex: number, sortedEntries: FileEntry[]): s
  *   the "insert after" sibling name when insertAtIndex is set.
  *
  * See: (docs/technical_notes/document_mode.md#insert-bars)
+ * See: (USER_GUIDE.md#cut-and-paste)
  */
 export async function pasteIntoFolder(
   folderPath: string,
@@ -268,6 +271,7 @@ async function reorderCutItemsInIndex(
  * @param onDismissConfirm - Callback invoked to close any active confirmation dialog.
  *
  * See: (docs/technical_notes/document_mode.md#when-reconciliation-runs)
+ * See: (USER_GUIDE.md#delete)
  */
 export async function deleteSelected(
   selectedItems: ItemData[],
@@ -393,6 +397,8 @@ async function insertSplitPartsIntoIndex(
  * @param hasIndexFile - Whether the current folder has an .INDEX.yaml file to update.
  * @param delimiter - Literal text to split on, with real newline characters — the
  *   Split Options dialog's input after `parseSplitDelimiter`.
+ *
+ * See: (USER_GUIDE.md#split-1)
  */
 export async function splitSelectedFile(
   currentPath: string,
@@ -439,6 +445,7 @@ export async function splitSelectedFile(
  * @param options - Join options chosen in the Join Options dialog (e.g. filename headings).
  *
  * See: (docs/technical_notes/document_mode.md#when-reconciliation-runs)
+ * See: (USER_GUIDE.md#join-1)
  */
 export async function joinSelectedFiles(
   currentPath: string,
@@ -540,6 +547,8 @@ async function createItemOp(
  * @param refresh - Brings the view up to date once the file exists. Defaults to
  *   `refreshDirectory`; the index tree passes a navigation to the file's folder instead,
  *   which loads the listing itself.
+ *
+ * See: (USER_GUIDE.md#inserting-new-files-and-folders)
  */
 export async function createFileOp(
   fileName: string,
@@ -580,6 +589,8 @@ export async function createFileOp(
  * @param sortedEntries - The current sorted list of folder entries, used to resolve the
  *   "insert after" sibling name when insertAtIndex is set.
  * @param onCloseDialog - Callback invoked to close the "new folder" dialog.
+ *
+ * See: (USER_GUIDE.md#inserting-new-files-and-folders)
  */
 export async function createFolderOp(
   folderName: string,
@@ -613,6 +624,7 @@ export async function createFolderOp(
  * @param filePath - Absolute path of the file to wrap in a folder.
  *
  * See: (docs/technical_notes/document_mode.md#insertintoindexyaml)
+ * See: (USER_GUIDE.md#make-folder-wrap-a-file-in-a-folder)
  */
 export async function makeFolderForFileOp(filePath: string): Promise<void> {
   const parentFolder = getParentPath(filePath);
@@ -691,6 +703,8 @@ export async function makeFolderForFileOp(filePath: string): Promise<void> {
  *
  * Resolves to the file's new path, or to `filePath` itself when it wasn't renamed
  * (failures are logged, and the caller then links to the file as it is); never rejects.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export async function addFileIdSuffixOp(filePath: string, id: string): Promise<string> {
   if (getItem(filePath)?.editing) return filePath;

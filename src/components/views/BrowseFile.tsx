@@ -94,6 +94,7 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
  * See: (docs/technical_notes/single_file_browsing.md#overview)
  * See: (docs/technical_notes/single_file_browsing.md#what-browsefile-renders)
  * See: (docs/technical_notes/thesaurus_view.md#thesaurusview-rendering)
+ * See: (USER_GUIDE.md#using-search)
  */
 function BrowseFile() {
   const currentPath = useAS(s => s.currentPath);

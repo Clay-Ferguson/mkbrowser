@@ -9,6 +9,8 @@ import type { StoreSet } from './core';
 /**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
+ *
+ * See: (USER_GUIDE.md#thesaurus)
  */
 export interface ThesaurusSlice {
   setThesaurusWord: (word: string | null) => void;

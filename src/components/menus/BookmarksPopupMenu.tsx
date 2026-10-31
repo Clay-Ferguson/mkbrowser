@@ -38,6 +38,9 @@ interface BookmarksPopupMenuProps {
  * Delete icon buttons. Clicking a bookmark navigates to it, right-clicking
  * reveals it in the folder tree; if the path
  * no longer exists on disk the bookmark is removed and an alert is shown.
+ *
+ * See: (USER_GUIDE.md#navigating-with-bookmarks)
+ * See: (USER_GUIDE.md#renaming-and-deleting-bookmarks)
  */
 export default function BookmarksPopupMenu({
   anchorRef,

@@ -63,6 +63,8 @@ async function performRename(
 /**
  * Hook that handles rename logic for Entry components.
  * Provides state, refs, and handlers for the rename input.
+ *
+ * See: (USER_GUIDE.md#renaming)
  */
 export function useRename({
   path,
@@ -75,6 +77,7 @@ export function useRename({
   const [newName, setNewName] = useState(name);
   const [saving, setSaving] = useState(false);
   // A new name that would lose the file's `--ID`, waiting on the user's confirmation.
+  // See: (USER_GUIDE.md#inserting-links-to-other-files)
   const [pendingIdRename, setPendingIdRename] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 

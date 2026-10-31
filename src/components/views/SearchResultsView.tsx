@@ -46,6 +46,8 @@ import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
  * results arrive already sorted by the search's chosen order (file name, created
  * time, or modified time, and direction); when the result cap truncated them, the
  * header says "Showing N of M".
+ *
+ * See: (USER_GUIDE.md#search-results)
  */
 function SearchResultsView() {
   const searchResults = useAS(s => s.searchResults);
@@ -66,6 +68,7 @@ function SearchResultsView() {
   // Results arrive already in the chosen order: the main process sorts them
   // (with compareSearchResults) before applying the result cap, and deleting a
   // result keeps the rest in place, so there is nothing to re-sort here.
+  // See: (USER_GUIDE.md#search-results)
   const truncated = searchTotalMatches > searchResults.length;
 
   // Font size CSS class mapping
@@ -76,6 +79,7 @@ function SearchResultsView() {
     xlarge: 'text-xl',
   }[fontSize];
 
+  // Opens a file result by itself (single-file view); a folder result in its parent's listing. See: (USER_GUIDE.md#using-search)
   const handleResultClick = (resultPath: string, isDirectory: boolean) => {
     // Track this as the highlighted search result
     setHighlightedSearchResult({ path: resultPath });
@@ -104,6 +108,7 @@ function SearchResultsView() {
 
   // A Recent Files search with no query just lists files by modification time;
   // its results carry a placeholder matchCount of 1, so don't show a count.
+  // See: (USER_GUIDE.md#find-recent-edits)
   const isRecentFilesListing = !!lastSearchDefinition?.mostRecent && !lastSearchDefinition.searchText.trim();
 
   // Get the folder name for display
@@ -121,6 +126,7 @@ function SearchResultsView() {
     setDeleteTarget({ path, name: fileName });
   };
 
+  // Edit: opens the file by itself with its editor already open. See: (USER_GUIDE.md#using-search)
   const handleEditClick = (e: React.MouseEvent, resultPath: string) => {
     e.stopPropagation();
 
@@ -173,6 +179,8 @@ function SearchResultsView() {
    *
    * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
    * See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
+   * See: (USER_GUIDE.md#search-results)
+   * See: (USER_GUIDE.md#find-upcoming-calendar-items)
    */
   const handleShowCalendar = () => {
     if (searchResults.length === 0) return;
@@ -204,6 +212,8 @@ function SearchResultsView() {
    * patched up: `executeSearch` scans the same folder with the same stored
    * parameters and overwrites the results outright. Disabled when no search
    * definition was recorded (results restored some other way).
+   *
+   * See: (USER_GUIDE.md#search-results)
    */
   const handleRefresh = () => {
     const definition = lastSearchDefinition;
@@ -221,6 +231,7 @@ function SearchResultsView() {
 
   // Graph button: builds the folder graph from the results, client-side.
   // See: (docs/technical_notes/folder_graph.md#search-based-graph-alternate-data-source)
+  // See: (USER_GUIDE.md#search-based-graph)
   const handleShowGraph = () => {
     if (searchResults.length === 0) return;
     setFolderGraph(buildFolderGraphFromSearchResults(searchResults));

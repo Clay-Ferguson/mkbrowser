@@ -32,6 +32,7 @@ export type PathBreadcrumbProps = {
  * A "reveal in tree" button appears at the end when the index tree panel is visible.
  *
  * See: (docs/technical_notes/single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
+ * See: (USER_GUIDE.md#drag-and-drop)
  */
 function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
   const indexTreeHidden = useAS(s => s.settings.indexTreeWidth === 'hidden');
@@ -63,6 +64,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
 
   // Produces drag-event handlers that make a breadcrumb segment a drop target for
   // ENTRY_DND_MIME payloads (dragged from BrowseView entry icons or the IndexTreeView).
+  // See: (USER_GUIDE.md#drag-and-drop)
   const dropProps = (folderPath: string) => ({
     onDragOver: (e: React.DragEvent) => {
       if (!e.dataTransfer.types.includes(ENTRY_DND_MIME)) return;

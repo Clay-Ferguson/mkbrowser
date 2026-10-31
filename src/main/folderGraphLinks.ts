@@ -9,6 +9,7 @@
  * hands back the graph's node ids, so no directory walk is repeated here.
  *
  * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+ * See: (USER_GUIDE.md#reading-the-graph)
  */
 import path from 'node:path';
 import fs from 'node:fs';

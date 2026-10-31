@@ -16,6 +16,8 @@
  * folder, plus front-matter ids for link repair), then the output is written. Link
  * and image rewriting resolve against the manifest, so a page can only link to
  * something the export actually contains.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -35,7 +37,11 @@ import type { IndexChild } from './renderExportPage';
 /** Files converted or copied at once. */
 const WRITE_CONCURRENCY = 8;
 
-/** Minimum digits of a Document Mode ordinal prefix (`0001_`); more are used past 9999 entries. */
+/**
+ * Minimum digits of a Document Mode ordinal prefix (`0001_`); more are used past 9999 entries.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
+ */
 const ORDINAL_MIN_DIGITS = 4;
 
 /** The source walk's result: the manifest plus each folder's children in display order. */
@@ -125,6 +131,8 @@ async function realPathOf(p: string): Promise<string> {
  * is emptied first, so it must also be a real folder (not a file or a symlink) that
  * doesn't contain the source and isn't the filesystem root or the home folder. Paths are compared both as given and with
  * symlinks resolved, so no alias of the source folder gets through.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
  */
 export async function checkExportTarget(root: string, out: string): Promise<HtmlExportTargetCheck> {
   const refuse = (error: string): HtmlExportTargetCheck => ({ error, exists: false });
@@ -176,6 +184,8 @@ async function emptyFolder(dir: string): Promise<void> {
  * missing parents); an existing one is emptied first when `overwrite` is set, and
  * is an error otherwise. A file that fails to convert or copy is reported in
  * `warnings` rather than aborting the rest of the export.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
  */
 export async function exportFolderToHtml(
   sourceFolder: string,

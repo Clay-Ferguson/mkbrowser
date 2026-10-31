@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 const execAsync = promisify(exec);
 
 // Terminal emulators to probe for, in order of preference.
+// See: (USER_GUIDE.md#running-shell-scripts)
 const TERMINALS = [
   { cmd: 'x-terminal-emulator', args: ['-e'] },
   { cmd: 'gnome-terminal', args: ['--'] },
@@ -53,6 +54,9 @@ export async function findTerminalEmulator(): Promise<{ cmd: string; args: strin
  *
  * Returns `{ success: false }` when the file is not a `.sh` script, cannot be
  * read, or no terminal emulator is available.
+ *
+ * See: (USER_GUIDE.md#running-shell-scripts)
+ * See: (USER_GUIDE.md#suppressing-the-terminal-window)
  */
 export async function runShellScript(filePath: string): Promise<{ success: boolean; error?: string }> {
   if (!filePath.endsWith('.sh')) {
@@ -105,6 +109,8 @@ export async function runShellScript(filePath: string): Promise<{ success: boole
  * is run via `bash` rather than executed directly, so it doesn't need the
  * executable bit. The path arrives as a positional argument, never spliced
  * into the program text, so it can't be interpreted as shell syntax.
+ *
+ * See: (USER_GUIDE.md#running-shell-scripts)
  */
 const KEEP_OPEN_WRAPPER =
   'bash "$1"; status=$?; echo; echo "--- $1 exited with status $status ---"; exec bash';

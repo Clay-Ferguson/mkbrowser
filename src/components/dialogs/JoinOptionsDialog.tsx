@@ -20,6 +20,8 @@ interface JoinOptionsDialogProps {
  * - "Include Filenames": puts each file's name in bold on its own line above that
  *   file's content.
  * Returns the choices through onJoin.
+ *
+ * See: (USER_GUIDE.md#join-1)
  */
 function JoinOptionsDialog({ fileCount, onJoin, onCancel }: JoinOptionsDialogProps) {
   const [delimiter, setDelimiter] = useState('');

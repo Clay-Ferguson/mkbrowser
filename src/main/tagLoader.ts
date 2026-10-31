@@ -20,6 +20,8 @@ import type { TagCategory } from '../shared/tagUtil';
  * Top-level keys under `hashtags` are group names; their children are tag names.
  *
  * MAIN PROCESS ONLY — uses `node:fs`.
+ *
+ * See: (USER_GUIDE.md#managing-your-hashtag-library-tags-editor)
  */
 export async function loadTags(configDir: string): Promise<TagCategory[]> {
   const tagsFile = path.join(configDir, 'tags.yaml');

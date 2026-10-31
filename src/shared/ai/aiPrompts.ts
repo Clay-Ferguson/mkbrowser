@@ -7,7 +7,11 @@ writing, editing, research, analysis, and general questions.
 When responding, use well-formatted Markdown. You can use headings, lists, \
 code blocks, tables, and other Markdown constructs as appropriate.`;
 
-/** Default AI rewrite prompt — used when the user has not customised the prompt in settings. */
+/**
+ * Default AI rewrite prompt — used when the user has not customised the prompt in settings.
+ *
+ * See: (USER_GUIDE.md#ai-personas)
+ */
 export const DEFAULT_AI_REWRITE_PERSONA = //
 `You are a helpful agent.`;
 
@@ -20,6 +24,8 @@ export const DEFAULT_AI_REWRITE_PERSONA = //
  *
  * @param persona  The resolved persona prompt to apply, or undefined/empty to
  *                 use the base system prompt with no persona.
+ *
+ * See: (USER_GUIDE.md#ai-personas)
  */
 export function buildSystemPrompt(persona?: string): string {
   const trimmed = persona?.trim();
@@ -53,6 +59,8 @@ export function buildSystemPrompt(persona?: string): string {
  * the whole-file and selection paths. Note it only reaches the model for interjections
  * inside `<content>` — one sitting outside the selection lands in `<context>`, which
  * {@link AI_REWRITE_CONTEXT_NOTE} tells the model to ignore.
+ *
+ * See: (USER_GUIDE.md#ai-interjections-the-ai-tag)
  */
 export const AI_INTERJECTION_PROMPT = //
 `
@@ -89,6 +97,7 @@ The interjection asked you to provide architectural style in your response and s
 mentioning Brutalism. However of course, the example above is only an illustration of the ai-tag \
 convention. Its subject matter has nothing to do with the text you are rewriting.`;
 
+// Instructions for a whole-file AI Rewrite. See: (USER_GUIDE.md#how-to-use-rewrite)
 export const AI_REWRITE_PROMPT = //
 `Rewrite and improve the text inside the <content> tag. \
 Fix grammar, improve clarity, and enhance readability while preserving the original meaning and general structure. \
@@ -107,6 +116,8 @@ Just the improved text.
  * first and the instructions last (see the ordering comment there). Shared by both
  * rewrite prompts, which it can be because `<content>` marks the text to rewrite on
  * both paths.
+ *
+ * See: (USER_GUIDE.md#full-document-context)
  */
 export const AI_REWRITE_CONTEXT_NOTE = //
 `In the text above, the <content> tag holding the text to rewrite is nested inside a larger \
@@ -119,6 +130,7 @@ coherent with the surrounding document. It is NOT part of what you are rewriting
 repeat, continue, or include any of it in your response. Your reply must contain nothing \
 but the replacement for what was inside <content>.`;
 
+// Instructions for AI Rewrite Selection: rewrite only the selected region. See: (USER_GUIDE.md#rewriting-a-selection)
 export const AI_REWRITE_SELECTION_PROMPT = //
 `Rewrite and improve the selected text (in the <content> tag). \
 It is an excerpt from a larger document, so it may begin or end mid-sentence — rewrite it as the excerpt it is, without completing \

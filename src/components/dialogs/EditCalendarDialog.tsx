@@ -12,6 +12,7 @@ interface EditCalendarDialogProps {
   onCancel: () => void;
 }
 
+// Recurrence builder choices (the rrule: front-matter block). See: (USER_GUIDE.md#recurring-events)
 const FREQ_OPTIONS = ['none', 'daily', 'weekly', 'monthly', 'yearly'] as const;
 type Freq = typeof FREQ_OPTIONS[number];
 const FREQ_LABELS: Record<Freq, string> = { none: 'No repeat', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
@@ -40,6 +41,9 @@ const asEndType = (value: string): EndType =>
  * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
  * See: (docs/technical_notes/calendar_view.md#recurring-events)
  * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (USER_GUIDE.md#jumping-to-a-date-from-a-file)
+ * See: (USER_GUIDE.md#adding-a-start-time-and-duration)
+ * See: (USER_GUIDE.md#recurring-events)
  */
 function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogProps) {
   const existingDue = getDueProperty(content);

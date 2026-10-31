@@ -13,6 +13,8 @@ interface RenameDialogProps {
  * Dialog for renaming a file or folder. The label and title adapt to
  * `isDirectory`. A blank or unchanged name is treated as a no-op that simply
  * dismisses via onCancel (see below) rather than calling onRename.
+ *
+ * See: (USER_GUIDE.md#renaming)
  */
 function RenameDialog({ currentName, isDirectory, onRename, onCancel }: RenameDialogProps) {
   const [name, setName] = useState(currentName);

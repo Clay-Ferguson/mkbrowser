@@ -21,6 +21,8 @@ interface EditAIModelDialogProps {
  * reference but every control is disabled and Save is blocked. The price fields
  * are held as raw strings and validated via `parseNonNegative`, so Save stays
  * disabled until the name, model id, and both prices are valid.
+ *
+ * See: (USER_GUIDE.md#create--edit--delete-models)
  */
 function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialogProps) {
   const [name, setName] = useState(initialModel?.name ?? '');

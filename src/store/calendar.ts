@@ -11,14 +11,18 @@ import type { StoreSet, StoreGet } from './core';
 /**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
+ *
+ * See: (USER_GUIDE.md#calendar)
  */
 export interface CalendarSlice {
   setCalendarSource: (source: CalendarSource | null) => void;
+  // Show Calendar: scans a folder (and watches it for changes). See: (USER_GUIDE.md#opening-the-calendar)
   showCalendarForFolder: (folder: string) => void;
   deleteCalendarEventsUnderPath: (deletedPath: string) => void;
   updateCalendarEvent: (filePath: string, updated: CalendarEvent[]) => void;
   setCalendarEvents: (events: CalendarEvent[]) => void;
   setCalendarLoading: (loading: boolean) => void;
+  // Month / Week / Day / Agenda, and the date being viewed; both are remembered. See: (USER_GUIDE.md#navigating-the-calendar)
   setCalendarViewType: (viewType: CalendarViewType) => void;
   setCalendarViewTime: (date: Date) => void;
   setCalendarTargetDate: (date: Date | null) => void;

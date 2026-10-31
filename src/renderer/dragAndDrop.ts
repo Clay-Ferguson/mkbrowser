@@ -12,6 +12,8 @@ import { logger } from '../shared/logUtil';
 /**
  * Custom drag-and-drop MIME type used to carry a single dragged file/folder between
  * the BrowseView entry icons (drag source) and the IndexTreeView folders (drop target).
+ *
+ * See: (USER_GUIDE.md#drag-and-drop)
  */
 export const ENTRY_DND_MIME = 'application/x-mkbrowser-entry';
 
@@ -70,6 +72,8 @@ export function makeEntryDragStartHandler(payload: DragPayload) {
  * Returns true if the dragged payload can legally be dropped into the destination folder:
  * not onto itself, not into the folder it already lives in, and (for folders) not into one
  * of its own descendants.
+ *
+ * See: (USER_GUIDE.md#drag-and-drop)
  */
 export function canDropInto(payload: DragPayload, destFolder: string): boolean {
   // isSamePath rather than string equality: the payload path and the destination
@@ -91,6 +95,8 @@ export function canDropInto(payload: DragPayload, destFolder: string): boolean {
  *
  * @param payload - The file/folder being moved.
  * @param destFolder - Absolute path of the destination folder.
+ *
+ * See: (USER_GUIDE.md#drag-and-drop)
  */
 export async function moveEntryIntoFolder(payload: DragPayload, destFolder: string): Promise<MoveResult> {
   const sourceFolder = getParentPath(payload.path);
@@ -135,6 +141,7 @@ export async function moveEntryIntoFolder(payload: DragPayload, destFolder: stri
  * never be dropped onto a file it contains.
  *
  * See: (docs/technical_notes/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
+ * See: (USER_GUIDE.md#drag-and-drop)
  */
 export function canDropAsAttachment(payload: DragPayload, filePath: string): boolean {
   if (isSamePath(payload.path, filePath)) return false;
@@ -173,6 +180,7 @@ export function affectsBrowseListing(folder: string, currentPath: string): boole
  * @returns True if the item was moved (failures are already reported via setAppError).
  *
  * See: (docs/technical_notes/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
+ * See: (USER_GUIDE.md#drag-and-drop)
  */
 export async function completeEntryDrop(
   payload: DragPayload,
@@ -212,6 +220,7 @@ export async function completeEntryDrop(
  * @returns True if the item was moved (failures are already reported via setAppError).
  *
  * See: (docs/technical_notes/file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
+ * See: (USER_GUIDE.md#adding-attachments)
  */
 export async function dropAsAttachment(
   payload: DragPayload,

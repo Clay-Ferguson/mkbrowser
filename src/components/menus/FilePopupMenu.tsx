@@ -17,6 +17,8 @@ interface FilePopupMenuProps {
  * Popup menu for the File toolbar button. Shows "Open Folder", an optional
  * list of recently visited folders, and "Quit". Recent folders that resolve
  * to the root ("/") are omitted since the root has its own dedicated nav icon.
+ *
+ * See: (USER_GUIDE.md#recent-folders)
  */
 export default function FilePopupMenu({
   anchorRef,

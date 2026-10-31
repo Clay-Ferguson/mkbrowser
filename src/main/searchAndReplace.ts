@@ -20,6 +20,7 @@ const REPLACE_FILE_CONCURRENCY = 32;
  * MAX_SEARCH_FILE_BYTES in search.ts. */
 const MAX_REPLACE_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
 
+// One file's outcome, summarized in the Replace in Files results dialog. See: (USER_GUIDE.md#results-summary)
 export interface ReplaceResult {
   path: string;
   relativePath: string;
@@ -36,6 +37,8 @@ export interface ReplaceResult {
  * @param replaceText - The literal text to replace with
  * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
  * @returns Array of ReplaceResult with details of each file processed
+ *
+ * See: (USER_GUIDE.md#what-happens)
  */
 export async function searchAndReplace(
   folderPath: string,

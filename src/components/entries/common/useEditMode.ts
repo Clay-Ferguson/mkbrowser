@@ -107,6 +107,8 @@ async function writeFileKeepEditing(
  *
  * Edit content is stored in the global store (ItemData.editContent) so that
  * child components like TagsPicker can read and modify it.
+ *
+ * See: (USER_GUIDE.md#editing-files)
  */
 export function useEditMode({ path }: UseEditModeOptions): EditModeState {
   const item = useAS(s => s.items.get(path));

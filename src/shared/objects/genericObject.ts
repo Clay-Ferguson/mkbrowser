@@ -40,7 +40,11 @@ export type ResolvedObject =
   /** A defined type whose values don't fit — render a hint instead of the card. */
   | { kind: 'invalid'; type: string; error: string };
 
-/** Whether two type names are the same type. Type names are case-insensitive: `Person` is `person`. */
+/**
+ * Whether two type names are the same type. Type names are case-insensitive: `Person` is `person`.
+ *
+ * See: (USER_GUIDE.md#naming-rules)
+ */
 export function sameTypeName(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
 }
@@ -50,6 +54,8 @@ export function sameTypeName(a: string, b: string): boolean {
  * so a hand-edited config that defines both `Person` and `person` (which the Types Editor
  * refuses to save) still resolves each one to itself. Only own keys are considered: `type:
  * toString` must not find a prototype member.
+ *
+ * See: (USER_GUIDE.md#naming-rules)
  */
 export function findTypeName(defs: TypeDefinitions, name: string): string | undefined {
   if (Object.hasOwn(defs, name)) return name;
@@ -84,6 +90,8 @@ export function hasObjectType(props: Record<string, unknown>, defs: TypeDefiniti
  * `readTextFields`); a value that isn't text fails with "<key> must be text". Keys the type
  * doesn't define are ignored — front matter legitimately holds others (`tags`, `id`, `due`, …).
  * An object with nothing filled in yet is still valid: its card is titled "Untitled <type>".
+ *
+ * See: (USER_GUIDE.md#when-there-is-no-card)
  */
 export function parseGenericObject(def: TypeDefinition, data: Record<string, unknown>): ObjectParseResult<GenericObjectData> {
   const keys = Object.keys(def.properties);
@@ -109,6 +117,8 @@ export function parseGenericObject(def: TypeDefinition, data: Record<string, unk
 /**
  * Decides whether a file's front matter (parsed to a mapping) is an object, and if so how it
  * renders. Returns null when there is no object: no `type`, or a `type` that isn't defined.
+ *
+ * See: (USER_GUIDE.md#how-objects-are-displayed)
  */
 export function resolveFrontMatterObject(props: Record<string, unknown>, defs: TypeDefinitions): ResolvedObject | null {
   const found = objectTypeOf(props, defs);
@@ -124,6 +134,8 @@ export function resolveFrontMatterObject(props: Record<string, unknown>, defs: T
  * The front-matter keys that belong to the file's object — `type` plus every property its type
  * defines — or an empty set when the front matter has no object. The property pills leave these
  * out, since the object's card already shows them.
+ *
+ * See: (USER_GUIDE.md#how-objects-are-displayed)
  */
 export function objectPropertyKeys(props: Record<string, unknown>, defs: TypeDefinitions): Set<string> {
   const found = objectTypeOf(props, defs);

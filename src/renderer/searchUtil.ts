@@ -56,6 +56,8 @@ let latestSearchId = 0;
  * search fails (e.g. an invalid or timed-out advanced query) and is still the
  * latest, with the main process's message; callers report it. Earlier results
  * are left in place.
+ *
+ * See: (USER_GUIDE.md#using-search)
  */
 export async function executeSearch(folder: string, definition: SearchDefinition): Promise<boolean> {
   const searchId = ++latestSearchId;
@@ -76,6 +78,8 @@ export async function executeSearch(folder: string, definition: SearchDefinition
  * a saved search in the Search menu): shows the Search Results tab once the
  * results are published, and reports a failure through the app-wide error
  * dialog.
+ *
+ * See: (USER_GUIDE.md#using-search)
  */
 export function runSearch(folder: string, definition: SearchDefinition): void {
   runOp(async () => {
@@ -87,6 +91,8 @@ export function runSearch(folder: string, definition: SearchDefinition): void {
  * Upserts a saved search definition into the user's settings, keyed by `definition.name`.
  * An existing definition with the same name is replaced. Updates both the reactive store
  * and the persisted config file. Throws if the persist fails.
+ *
+ * See: (USER_GUIDE.md#saving-search-definitions)
  */
 export async function saveSearchDefinitionToConfig(definition: SearchDefinition): Promise<void> {
   const currentSettings = getSettings();
@@ -103,6 +109,8 @@ export async function saveSearchDefinitionToConfig(definition: SearchDefinition)
  * position in the list. Updates both the reactive store and the persisted config file.
  * Throws if the persist fails. Callers validate `newName` first (see
  * validateSearchDefinitionName), so it never collides with another definition.
+ *
+ * See: (USER_GUIDE.md#saving-search-definitions)
  */
 export async function renameSearchDefinitionInConfig(oldName: string, newName: string): Promise<void> {
   const currentSettings = getSettings();
@@ -116,6 +124,8 @@ export async function renameSearchDefinitionInConfig(oldName: string, newName: s
 /**
  * Removes the saved search definition with the given name from the user's settings.
  * Updates both the reactive store and the persisted config file. Throws if the persist fails.
+ *
+ * See: (USER_GUIDE.md#saving-search-definitions)
  */
 export async function deleteSearchDefinitionFromConfig(name: string): Promise<void> {
   const currentSettings = getSettings();

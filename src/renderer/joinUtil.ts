@@ -4,6 +4,8 @@
  * `joinFiles` concatenates multiple files (sorted alphabetically) into the
  * alphabetically-first file, deleting the rest only after the write is verified.
  * The inverse of `splitFile` in `splitUtil.ts`.
+ *
+ * See: (USER_GUIDE.md#join-1)
  */
 
 import { dumpYaml } from '../shared/yamlUtil';
@@ -36,7 +38,11 @@ function prepareMarkdownForAppend(filePath: string, rawContent: string): string 
   return fencedBlock + content;
 }
 
-/** User-chosen options for a join, gathered by the Join Options dialog. */
+/**
+ * User-chosen options for a join, gathered by the Join Options dialog.
+ *
+ * See: (USER_GUIDE.md#join-1)
+ */
 export interface JoinOptions {
   /**
    * Put each file's name, in bold (`**name**`), on its own line followed by a
@@ -98,6 +104,8 @@ export interface JoinFilesResult {
  *   `deleteFile`.
  * @param options - Join options; see {@link JoinOptions}.
  * @returns Result object with success status and info
+ *
+ * See: (USER_GUIDE.md#join-1)
  */
 export async function joinFiles(
   filePaths: string[],

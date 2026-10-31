@@ -42,6 +42,7 @@ function sortByName(cats: EditorCategory[]): EditorCategory[] {
  * switches.
  *
  * See: (docs/technical_notes/application_tabs.md#mounting-and-scroll-position-important)
+ * See: (USER_GUIDE.md#managing-your-hashtag-library-tags-editor)
  */
 export default function TagsEditorView() {
   const [categories, setCategories] = useState<EditorCategory[]>([]);

@@ -58,6 +58,10 @@ const VIEWPORT_MARGIN = 8;
  *
  * Insert Object does not act directly: it replaces the menu's items, in place, with the list
  * of registered object types (`contextMenu.submenu`), and picking one adds it to the front matter.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
+ * See: (USER_GUIDE.md#inserting-objects)
+ * See: (USER_GUIDE.md#thesaurus)
  */
 export function EditorContextMenu({
   contextMenu,

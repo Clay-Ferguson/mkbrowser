@@ -26,6 +26,8 @@ interface TagsPickerProps {
  * except in the special "all" category which allows multiple simultaneous selections.
  * The definitions are re-fetched whenever the Tags Editor saves (`tagsRevision`).
  * Returns null until the tag definitions are loaded or when no categories exist.
+ *
+ * See: (USER_GUIDE.md#tag-picker)
  */
 export default function TagsPicker({ filePath }: TagsPickerProps) {
   const editContent = useAS(s => s.items.get(filePath)?.editContent ?? '');
@@ -66,6 +68,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
 
   // Toggle a tag in the file's front matter. For non-"all" categories, removes any
   // already-active sibling tag before inserting the new one.
+  // See: (USER_GUIDE.md#category-behavior)
   const handleToggle = (category: TagCategory, def: HashtagDefinition) => {
     let currentContent = getItemEditContent(filePath);
     // No edit content means the item is gone or no longer in edit mode

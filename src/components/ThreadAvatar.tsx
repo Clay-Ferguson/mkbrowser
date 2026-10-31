@@ -6,6 +6,8 @@
  * to it.  This keeps the DOM cost negligible even with a hundred turns on
  * screen at once — the browser rasterizes the shared symbol, not a fresh
  * copy of the artwork per row.
+ *
+ * See: (USER_GUIDE.md#chat-thread-view)
  */
 
 /**

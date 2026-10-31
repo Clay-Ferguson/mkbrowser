@@ -19,6 +19,8 @@ interface ObjectBlockProps {
  *
  * A click (other than on a link) opens the editor with the front matter shown and the cursor on
  * the object's first property line.
+ *
+ * See: (USER_GUIDE.md#how-objects-are-displayed)
  */
 export default function ObjectBlock({ type, source, children, onMouseUp }: ObjectBlockProps) {
   return (
@@ -47,6 +49,8 @@ interface InvalidObjectHintProps {
 /**
  * Shown in place of the card when the front matter's `type` is a defined object type but its
  * values don't fit it (e.g. a list where text is expected), saying why there is no card.
+ *
+ * See: (USER_GUIDE.md#when-there-is-no-card)
  */
 export function InvalidObjectHint({ type, error }: InvalidObjectHintProps) {
   return (

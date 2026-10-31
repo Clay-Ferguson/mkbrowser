@@ -3,6 +3,8 @@
  *
  * Persists cumulative token usage to ~/.config/mk-browser/ai-usage.json.
  * Provides estimated cost calculations based on known per-token pricing.
+ *
+ * See: (USER_GUIDE.md#ai-usage-statistics)
  */
 
 import path from 'node:path';
@@ -147,7 +149,11 @@ export function recordUsage(
   }, 'Failed to record AI usage');
 }
 
-/** Reset all usage stats to zero. */
+/**
+ * Reset all usage stats to zero.
+ *
+ * See: (USER_GUIDE.md#ai-usage-statistics)
+ */
 export function resetUsage(): Promise<void> {
   return enqueueUsageWrite(() => saveUsage(defaultUsage()), 'Failed to reset AI usage');
 }
@@ -169,6 +175,8 @@ export function estimateCost(
  * Load usage data and compute estimated costs per provider.
  * Uses provider default pricing for cost estimation (since we don't
  * track which specific model was used per-request in cumulative mode).
+ *
+ * See: (USER_GUIDE.md#ai-usage-statistics)
  */
 export async function getUsageWithCosts(): Promise<AIUsageWithCosts> {
   const data = await loadUsage();

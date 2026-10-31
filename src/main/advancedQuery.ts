@@ -22,6 +22,8 @@
  * entire fs/process attack surface. The per-evaluation timeout (with
  * `microtaskMode: 'afterEvaluate'` so promise tricks can't dodge the watchdog)
  * also stops `while(true){}` from hanging the main process.
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
  */
 import vm from 'node:vm';
 
@@ -29,7 +31,10 @@ import vm from 'node:vm';
  * legitimate query over a 20 MB file finishes in well under this — but it turns
  * an infinite loop into a per-search error instead of a frozen main process.
  * The watchdog adds ~80µs per evaluation (measured), immaterial next to the
- * per-file stat+read the search already does. */
+ * per-file stat+read the search already does.
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
+ */
 const EVAL_TIMEOUT_MS = 1000;
 
 /** Host-side helpers the sandboxed query calls back into, rebound per file. */
@@ -75,7 +80,10 @@ export class AdvancedQueryRuntimeError extends Error {
 /** Defines $, tag, p, ts, past, future, today inside the sandbox realm as wrappers
  * around the host dispatcher, then removes the dispatcher from the global so
  * query code can only reach it through these frozen wrappers. Runs once per
- * compiled query. */
+ * compiled query.
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
+ */
 const BOOTSTRAP = `
 (() => {
   'use strict';
@@ -153,6 +161,8 @@ function compileQueryScript(queryStr: string): vm.Script | string {
  * Returns V8's syntax-error message for an advanced query, or null if it parses.
  * Only compiles the query — nothing runs. Backs the Search dialog's validation,
  * which can't parse the query itself: the renderer's CSP forbids `unsafe-eval`.
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
  */
 export function getAdvancedQuerySyntaxError(queryStr: string): string | null {
   const result = compileQueryScript(queryStr);
@@ -166,6 +176,8 @@ export function getAdvancedQuerySyntaxError(queryStr: string): string | null {
  * returned function evaluates the expression against one file's helpers and
  * returns its truthiness; a runtime error in the query surfaces as
  * AdvancedQueryRuntimeError, and a timeout as AdvancedQueryTimeoutError.
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
  */
 export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost) => boolean {
   // Compile FIRST so a syntax error throws before we bother building a context.

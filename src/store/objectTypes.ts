@@ -9,6 +9,8 @@ import type { TypeDefinitions } from '../shared/shared';
 /**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
+ *
+ * See: (USER_GUIDE.md#objects-and-custom-types)
  */
 export interface ObjectTypesSlice {
   setTypeDefs: (typeDefs: TypeDefinitions) => void;

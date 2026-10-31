@@ -24,6 +24,7 @@ interface AppTabButtonsProps {
 
 // Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings, AI Settings, Types, Tags, Calendar, Help
 // See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+// See: (USER_GUIDE.md#tab-bar)
 const allTabs: TabConfig[] = [
   { id: 'browser', label: 'Browse', hasCloseButton: false },
   { id: 'thread', label: 'AI Chat', hasCloseButton: false },
@@ -51,6 +52,9 @@ const allTabs: TabConfig[] = [
  *
  * See: (docs/technical_notes/application_tabs.md#tab-navigation)
  * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+ * See: (USER_GUIDE.md#tab-bar)
+ * See: (USER_GUIDE.md#recent-folders)
+ * See: (USER_GUIDE.md#up-level)
  */
 function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
   const currentView = useAS(s => s.currentView);

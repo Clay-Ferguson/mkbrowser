@@ -36,6 +36,8 @@ interface FolderEntryProps extends BaseEntryProps {
  * their position in the index is tied to their parent file.
  *
  * See: (docs/technical_notes/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
+ * See: (USER_GUIDE.md#viewing-content)
+ * See: (USER_GUIDE.md#renaming)
  */
 function FolderEntry(props: FolderEntryProps) {
   const { entry, onNavigate, onPasteIntoFolder, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder, indentFolder } = props;
@@ -59,6 +61,7 @@ function FolderEntry(props: FolderEntryProps) {
 
   // Drop target: accept a file/folder dragged from the entry list or the index tree
   // and move it into this folder.
+  // See: (USER_GUIDE.md#drag-and-drop)
   const drop = useDropTarget(
     payload => canDropInto(payload, entry.path),
     payload => void completeEntryDrop(payload, entry.path)

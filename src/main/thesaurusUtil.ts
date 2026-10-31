@@ -132,6 +132,7 @@ function resolveKey(key: string, index: Map<string, string>): string | null {
  *
  * See: (docs/technical_notes/thesaurus_view.md#finding-the-root-word)
  * See: (docs/technical_notes/thesaurus_view.md#why-the-alias-table-wins-over-the-rules)
+ * See: (USER_GUIDE.md#thesaurus)
  */
 export function findRoot(word: string, index: Map<string, string>): string | null {
   const direct = resolveKey(word, index);
@@ -163,6 +164,7 @@ export function findRoot(word: string, index: Map<string, string>): string | nul
  * comparator would be relying on the sort being stable to do the same.
  *
  * See: (docs/technical_notes/thesaurus_view.md#ordering-single-words-first)
+ * See: (USER_GUIDE.md#thesaurus)
  */
 export function singleWordsFirst(synonyms: string[]): string[] {
   const words: string[] = [];
@@ -215,6 +217,7 @@ function loadThesaurus(filePath: string): Promise<Map<string, string>> {
  * over an array that was just built anyway.
  *
  * See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
+ * See: (USER_GUIDE.md#thesaurus)
  */
 export async function lookupThesaurus(
   word: string,

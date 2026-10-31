@@ -104,6 +104,9 @@ function exifWriteAlert(res: ExifWriteResult): string | null {
  * type-appropriate "Description" field can be added (see getExifDescriptionTarget).
  * Saving writes via `api.writeExif` then reloads from disk so the view reflects
  * what was actually persisted. Errors surface through a stacked AlertDialog.
+ *
+ * See: (USER_GUIDE.md#image-viewer-and-exif-metadata)
+ * See: (USER_GUIDE.md#editing-exif-data)
  */
 function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   // Current display data (starts with prop, updates after save)

@@ -52,6 +52,7 @@ export function buildHumanMessage(result: PreprocessResult): HumanMessage {
  * or undefined when none is selected (so callers can fall back as appropriate).
  *
  * See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
+ * See: (USER_GUIDE.md#ai-personas)
  */
 export function resolveActivePersona(): string | undefined {
   const config = getConfig();

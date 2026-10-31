@@ -33,6 +33,8 @@ type TextEntryProps = BaseEntryProps & AttachMenuProps;
  * clicking the content area opens an editable CodeMirror editor. Supports AI rewrite of the
  * whole document or a selected range; after a rewrite completes, the editor itself enters an
  * in-place diff review (CodeMirror's unified merge view) via its `reviewText` prop.
+ *
+ * See: (USER_GUIDE.md#editing-files)
  */
 function TextEntry(props: TextEntryProps) {
   const { entry, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false, alwaysExpandedEditor = false } = props;

@@ -72,6 +72,8 @@ function rewriteImagePathsToAbsolute(content: string, sourceFilePath: string): s
  * eligible input for the *next* export of the same folder, which would append the
  * previous run's full text to this run's — doubling the file on every export. So
  * the traversal skips the output path itself; re-exporting is then idempotent.
+ *
+ * See: (USER_GUIDE.md#exporting)
  */
 export async function exportFolderContents(
   sourceFolder: string,
@@ -161,6 +163,8 @@ export async function exportFolderContents(
  * @param pdfPath       Absolute path for the generated PDF
  * @param resourcePath  Directory containing `generate-pdf.sh`
  * @param sourceFolder  Optional root folder to search for a glossary file
+ *
+ * See: (USER_GUIDE.md#exporting)
  */
 export async function exportToPdf(
   markdownPath: string,

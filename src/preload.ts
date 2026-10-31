@@ -17,16 +17,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
   // Synonyms for the editor's thesaurus strip. See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
+  // See: (USER_GUIDE.md#thesaurus)
   lookupThesaurus: (word: string) => ipcRenderer.invoke('lookup-thesaurus', word),
   fetchUrlTitle: (url: string) => ipcRenderer.invoke('fetch-url-title', url),
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
   readFileWithMtime: (filePath: string) => ipcRenderer.invoke('read-file-with-mtime', filePath),
+  // EXIF dialog: read and write image metadata. See: (USER_GUIDE.md#image-viewer-and-exif-metadata)
   readExif: (filePath: string) => ipcRenderer.invoke('read-exif', filePath),
   writeExif: (filePath: string, data: Record<string, Record<string, string>>) => ipcRenderer.invoke('write-exif', filePath, data),
   getImageDimensions: (filePath: string) => ipcRenderer.invoke('get-image-dimensions', filePath),
   pathExists: (checkPath: string) => ipcRenderer.invoke('path-exists', checkPath),
   isDirectory: (checkPath: string) => ipcRenderer.invoke('is-directory', checkPath),
+  // Paste Link ids and link auto-repair. See: (USER_GUIDE.md#inserting-links-to-other-files)
   ensureFrontMatterId: (filePath: string) => ipcRenderer.invoke('ensure-front-matter-id', filePath),
   findMarkdownById: (id: string, likelyDir: string, rootDir: string) =>
     ipcRenderer.invoke('find-markdown-by-id', id, likelyDir, rootDir),
@@ -38,25 +41,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeFileBinary: (filePath: string, base64Data: string) => ipcRenderer.invoke('write-file-binary', filePath, base64Data),
   createFile: (filePath: string, content: string) => ipcRenderer.invoke('create-file', filePath, content),
   // Main also renames the file's sibling `.attach` folder. See: (docs/technical_notes/file_attachments.md#rename-synchronization-srcmaints)
+  // See: (USER_GUIDE.md#renaming-1)
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
+  // Moves to the OS trash. See: (USER_GUIDE.md#delete)
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
   isFolderEmpty: (folderPath: string) => ipcRenderer.invoke('is-folder-empty', folderPath),
   deleteEmptyFolder: (folderPath: string) => ipcRenderer.invoke('delete-empty-folder', folderPath),
+  // Search, and the Advanced-mode syntax check. See: (USER_GUIDE.md#using-search)
   searchFolder: (folderPath: string, definition: SearchDefinition) => ipcRenderer.invoke('search-folder', folderPath, definition),
   checkAdvancedQuerySyntax: (query: string) => ipcRenderer.invoke('check-advanced-query-syntax', query),
+  // Tools → Folder Analysis. See: (USER_GUIDE.md#folder-analysis)
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   // Calendar loaders: folder crawl (arms the watcher) and search-results list. See: (docs/technical_notes/calendar_view.md#ipc-surface)
+  // See: (USER_GUIDE.md#opening-the-calendar)
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),
   loadCalendarEventsForFiles: (filePaths: string[]) => ipcRenderer.invoke('load-calendar-events-for-files', filePaths),
   // Folder Graph: tree scan and the Links overlay's file-to-file scan. See: (docs/technical_notes/folder_graph.md#ipc-surface)
+  // See: (USER_GUIDE.md#folder-graph)
   scanFolderTree: (folderPath: string, markdownOnly?: boolean) => ipcRenderer.invoke('scan-folder-tree', folderPath, markdownOnly),
   scanFolderGraphLinks: (folderPath: string, nodeIds: string[]) => ipcRenderer.invoke('scan-folder-graph-links', folderPath, nodeIds),
+  // Hashtag library (tags.yaml) for the tag picker and Tags Editor. See: (USER_GUIDE.md#managing-your-hashtag-library-tags-editor)
   loadTags: () => ipcRenderer.invoke('load-tags'),
   saveTags: (yamlContent: string) => ipcRenderer.invoke('save-tags', yamlContent),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
+  // Tools → Export to File and Export to Folder (HTML). See: (USER_GUIDE.md#exporting)
   selectExportFolder: () => ipcRenderer.invoke('select-export-folder'),
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => 
     ipcRenderer.invoke('export-folder-contents', sourceFolder, outputFolder, outputFileName, includeSubfolders, includeFilenames, includeDividers),
@@ -66,18 +77,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('export-folder-html', sourceFolder, outputFolder, options),
   checkHtmlExportTarget: (sourceFolder: string, outputFolder: string) =>
     ipcRenderer.invoke('check-html-export-target', sourceFolder, outputFolder),
+  // Runs a .sh file (the tree's Run menu item). See: (USER_GUIDE.md#running-shell-scripts)
   runShellScript: (filePath: string) =>
     ipcRenderer.invoke('run-shell-script', filePath),
   // AI Chat: Ask AI and Reply. See: (docs/technical_notes/ai_chat.md#code-map)
+  // See: (USER_GUIDE.md#ai-chat)
   askAi: (prompt: string, parentFolderPath: string) =>
     ipcRenderer.invoke('ask-ai', prompt, parentFolderPath),
   replyToAi: (parentFolderPath: string, createSubFolder: boolean) =>
     ipcRenderer.invoke('reply-to-ai', parentFolderPath, createSubFolder),
+  // AI Usage Statistics in AI Settings. See: (USER_GUIDE.md#ai-usage-statistics)
   getAiUsage: () => ipcRenderer.invoke('get-ai-usage'),
   resetAiUsage: () => ipcRenderer.invoke('reset-ai-usage'),
   queueScriptedAnswer: (answer: string) => ipcRenderer.invoke('queue-scripted-answer', answer),
   // Builds the AI Chat tab's thread. See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
   gatherThreadEntries: (folderPath: string) => ipcRenderer.invoke('gather-thread-entries', folderPath),
+  // AI Rewrite of a whole file or a selection. See: (USER_GUIDE.md#ai-rewrite)
   rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => ipcRenderer.invoke('rewrite-content', content, filePath, hasIndexFile),
   rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => ipcRenderer.invoke('rewrite-content-selection', content, selectionFrom, selectionTo, filePath, hasIndexFile),
 
@@ -116,6 +131,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Calendar file-change events (chokidar → renderer)
   // See: (docs/technical_notes/calendar_view.md#ipc-surface)
+  // See: (USER_GUIDE.md#opening-the-calendar)
   onCalendarFileChanged: (callback: (results: CalendarEventResult[], filePath: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, results: CalendarEventResult[], filePath: string) => callback(results, filePath);
     ipcRenderer.on('calendar-file-changed', listener);
@@ -138,6 +154,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // Document Mode (.INDEX.yaml) operations. See: (docs/technical_notes/document_mode.md#code-locations)
+  // See: (USER_GUIDE.md#document-mode)
   insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) =>
     ipcRenderer.invoke('insert-into-index-yaml', dirPath, newNames, insertAfterName),
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') =>

@@ -20,6 +20,9 @@ interface SearchPopupMenuProps {
  * alphabetically (left-click to run, right-click to edit) and provides a
  * "New Search…" entry at the top. Also shows "Clear Highlight" when a
  * global text highlight is active.
+ *
+ * See: (USER_GUIDE.md#saving-search-definitions)
+ * See: (USER_GUIDE.md#search-highlight)
  */
 export default function SearchPopupMenu({
   anchorRef,

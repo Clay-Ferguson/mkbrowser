@@ -89,6 +89,8 @@ export interface DuplicateCheckResult {
  * error rather than being swallowed as "does not exist": treating a failed
  * existence check as absent would risk a later `renameFile` silently
  * overwriting a real file at the destination.
+ *
+ * See: (USER_GUIDE.md#cut-and-paste)
  */
 export async function findPasteDuplicates(
   cutItems: Pick<ItemData, 'name'>[],
@@ -159,6 +161,8 @@ export interface PasteResult {
 
 /**
  * Paste cut items to the destination folder
+ *
+ * See: (USER_GUIDE.md#cut-and-paste)
  */
 export async function pasteCutItems(
   cutItems: CutItem[],
@@ -346,6 +350,8 @@ export interface DeleteResult {
  *
  * The independent deletes run with bounded concurrency rather than one-at-a-time
  * so a large multi-select doesn't serialize hundreds of IPC round-trips.
+ *
+ * See: (USER_GUIDE.md#delete)
  */
 export async function deleteSelectedItems(
   selectedItems: Pick<ItemData, 'path' | 'name'>[],
@@ -387,6 +393,8 @@ export interface SplitFileValidationResult {
  *
  * @param delimiter - Literal text to split on, with real newline characters (see
  *   `parseSplitDelimiter` in splitUtil.ts).
+ *
+ * See: (USER_GUIDE.md#split-1)
  */
 export async function performSplitFile(
   selectedItems: ItemData[],
@@ -434,6 +442,8 @@ export interface JoinFilesValidationResult {
 /**
  * Validate and perform join files operation on selected items.
  * Checks that at least two text/markdown files are selected, then joins them.
+ *
+ * See: (USER_GUIDE.md#join-1)
  */
 export async function performJoinFiles(
   selectedItems: ItemData[],

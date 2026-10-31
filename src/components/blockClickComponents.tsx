@@ -80,6 +80,8 @@ function BlockElement<Tag extends BlockTag>({ tag, node, children, ...props }: B
 /**
  * Copies `link` to the clipboard and confirms it (or reports the failure) in App's
  * message dialog. Module-level, so it is a plain function the React Compiler leaves alone.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 function copyHeadingLink(link: string): void {
   navigator.clipboard.writeText(link)
@@ -97,6 +99,8 @@ function copyHeadingLink(link: string): void {
  * (the id rehype-slug assigns). "Paste Link" in the editor turns it into a link relative to
  * the file it is pasted into. Files outside the root (e.g. the bundled User Guide in
  * HelpView) have no such path, so they render as plain block elements with no icon.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 function BlockHeading<Tag extends HeadingTag>({ tag, children, className, ...props }: BlockProps<Tag> & { tag: Tag }) {
   const entryPath = useContext(MarkdownEntryContext);

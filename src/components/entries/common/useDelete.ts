@@ -37,6 +37,8 @@ async function performDelete(path: string, onDelete: () => void): Promise<void> 
 /**
  * Hook that handles delete logic for Entry components.
  * Provides state and handlers for delete confirmation dialog.
+ *
+ * See: (USER_GUIDE.md#delete)
  */
 export function useDelete({ path, onDelete }: UseDeleteOptions): DeleteState {
   const [deleting, setDeleting] = useState(false);

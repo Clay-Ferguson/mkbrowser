@@ -8,6 +8,8 @@
  * disk (the original is deleted last, never written through), and on any
  * mid-operation failure it attempts a best-effort rollback so the user's files
  * are left as they were.
+ *
+ * See: (USER_GUIDE.md#split-1)
  */
 
 import { getFileName, getParentPath, joinPath } from './pathUtil';
@@ -18,6 +20,8 @@ import { splitFrontMatter } from '../shared/frontMatterUtil';
  * Default delimiter text shown in the Split Options dialog: a blank line, so each
  * paragraph becomes its own part. Written in the dialog's escaped form, where `\n`
  * stands for a newline (see {@link parseSplitDelimiter}).
+ *
+ * See: (USER_GUIDE.md#split-1)
  */
 export const DEFAULT_SPLIT_DELIMITER = '\\n\\n';
 
@@ -92,6 +96,8 @@ export interface SplitFileResult {
  * @param delimiter - Literal text to split on, with real newline characters (the
  *   output of {@link parseSplitDelimiter}). Defaults to a blank line.
  * @returns Result object with success status and file info
+ *
+ * See: (USER_GUIDE.md#split-1)
  */
 export async function splitFile(
   filePath: string,

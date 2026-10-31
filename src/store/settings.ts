@@ -12,6 +12,8 @@ export { defaultSettings };
 /**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
+ *
+ * See: (USER_GUIDE.md#settings)
  */
 export interface SettingsSlice {
   setSettings: (settings: AppSettings) => void;
@@ -21,13 +23,16 @@ export interface SettingsSlice {
   setFoldersOnTop: (foldersOnTop: boolean) => void;
   setShowToc: (showToc: boolean) => void;
   setShowPropsInEditor: (showPropsInEditor: boolean) => void;
+  // Settings → Files to Ignore. See: (USER_GUIDE.md#files-to-ignore)
   setIgnoredPaths: (ignoredPaths: string) => void;
   setContentWidth: (contentWidth: ContentWidth) => void;
   setCalendarItemsFolder: (calendarItemsFolder: string) => void;
   setIndexTreeWidth: (indexTreeWidth: IndexTreeWidth) => void;
   setImageSize: (imageSize: ImageSize) => void;
+  // Enable / Disable Thesaurus (editor right-click menu). See: (USER_GUIDE.md#thesaurus)
   setEnableThesaurus: (enableThesaurus: boolean) => void;
   setWordWrap: (wordWrap: boolean) => void;
+  // Bookmarks (the Index Tree's Bookmarks menu and the entry menu's Add/Remove Bookmark). See: (USER_GUIDE.md#bookmarks)
   toggleBookmark: (filePath: string) => boolean;
   addBookmark: (filePath: string, name: string, isDirectory: boolean) => void;
   updateBookmarkName: (filePath: string, name: string) => void;

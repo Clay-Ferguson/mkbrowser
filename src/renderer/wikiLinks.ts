@@ -3,6 +3,8 @@
  * created on the spot (empty) and opened for editing in single-file mode — no
  * prompt. Only a plain name is created this way, so a wikilink can only ever make a
  * file in the linking file's own folder.
+ *
+ * See: (USER_GUIDE.md#creating-files-from-wikilinks)
  */
 import { api } from './api';
 import { resolveLinkPath } from './linkUtil';
@@ -24,6 +26,8 @@ const INVALID_NAME_CHARS = /[/\\<>:"|?*#^[\]\p{Cc}]/u;
  * True when a clicked wikilink's (decoded) target may be auto-created: a plain file
  * name that starts with a valid file name character — so never `.`/`..`-relative,
  * absolute, or reaching into another folder.
+ *
+ * See: (USER_GUIDE.md#creating-files-from-wikilinks)
  */
 export function isCreatableWikiLinkTarget(target: string): boolean {
   return /^[^.\s]/u.test(target) && !INVALID_NAME_CHARS.test(target);
@@ -32,6 +36,8 @@ export function isCreatableWikiLinkTarget(target: string): boolean {
 /**
  * The file a wikilink names: the target as written when it's already a Markdown or
  * text file, otherwise with `.md` appended (`[[My Note]]` → `My Note.md`).
+ *
+ * See: (USER_GUIDE.md#syntax)
  */
 export function withWikiLinkExtension(target: string): string {
   return isMarkdownFile(target) || isTextFile(target) ? target : `${target}.md`;
@@ -46,6 +52,8 @@ export function withWikiLinkExtension(target: string): string {
  *     an empty file next to `sourcePath` and opened for editing. Anything else opens as
  *     a plain file link would.
  * Never rejects — failures are reported as an app error.
+ *
+ * See: (USER_GUIDE.md#wikilinks)
  */
 export function openWikiLink(sourcePath: string, target: string, headingSlug?: string): void {
   followWikiLink(sourcePath, target, headingSlug)

@@ -7,7 +7,11 @@ import { logger, toErrorMessage } from '../../shared/logUtil';
 import MarkdownView from '../entries/MarkdownView';
 import HelpSearchBar from './HelpSearchBar';
 
-/** The document the Help tab shows, relative to the bundled Help documents folder. */
+/**
+ * The document the Help tab shows, relative to the bundled Help documents folder.
+ *
+ * See: (USER_GUIDE.md)
+ */
 const HELP_FILE = 'USER_GUIDE.md';
 
 type HelpDoc =
@@ -37,6 +41,8 @@ async function loadHelpDoc(): Promise<HelpDoc> {
  * scroll area so it stays visible, and searches only the rendered guide. The guide is
  * focusable (tabIndex -1) so the search bar can focus it after a search, letting the arrow
  * keys and Enter step through matches at once.
+ *
+ * See: (USER_GUIDE.md)
  */
 export default function HelpView() {
   const contentWidth = useAS(s => s.settings.contentWidth);

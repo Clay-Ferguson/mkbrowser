@@ -5,17 +5,32 @@ import { format, parse, startOfWeek, getDay, isSameDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { api } from '../../renderer/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { setCalendarViewType, setCalendarViewTime, setCalendarWatcherWarning, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, setCurrentView, useAS, useIsActiveView } from '../../store';
+import { setAppError, setCalendarViewType, setCalendarViewTime, setCalendarWatcherWarning, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, setCurrentView, useAS, useIsActiveView } from '../../store';
 import type { CalendarEvent, CalendarSource, CalendarViewType } from '../../shared/types';
 import { logger } from '../../shared/logUtil';
 import { getFileName, getParentPath, joinPath } from '../../renderer/pathUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
 import { BUTTON_CLASS_LINK_AMBER } from '../../renderer/styles';
 
+// Shown when a slot is clicked with no Calendar Items Folder set: new event files have nowhere to go.
+// See: (USER_GUIDE.md#calendar-items-folder)
+const NO_CALENDAR_FOLDER_ERROR =
+  'To create calendar items, first set the Calendar Items Folder in Settings.';
+
+// Logs and shows a failed calendar-file create. Module-level (not compiled by the React
+// Compiler): the conditionals would make the compiler bail out on CalendarView if they sat
+// inside its try/catch.
+function reportCreateFailure(detail: unknown): void {
+  logger.error('Failed to create calendar file:', detail);
+  const reason = detail instanceof Error ? detail.message : String(detail ?? 'Unknown error');
+  setAppError(`Failed to create calendar file: ${reason}`);
+}
+
 /**
  * Formats a Date as MM/DD/YYYY for use in the `due:` front-matter field.
  *
  * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (USER_GUIDE.md#creating-calendar-entries)
  */
 function formatDueDate(d: Date): string {
   const pad = (n: number) => n.toString().padStart(2, '0');
@@ -26,6 +41,7 @@ function formatDueDate(d: Date): string {
  * Formats a Date as H:MM AM/PM for use in the `start:` front-matter field.
  *
  * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (USER_GUIDE.md#adding-a-start-time-and-duration)
  */
 function formatStartTime(d: Date): string {
   const h24 = d.getHours();
@@ -62,6 +78,7 @@ interface PendingSlot {
  * to be calendar files, and navigates back to the result list.
  *
  * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (USER_GUIDE.md#search-results)
  */
 function CalendarSourceHeader({ source, eventCount }: { source: CalendarSource; eventCount: number }) {
   const bannerClass = 'w-full px-4 py-2 text-slate-300 text-sm truncate cursor-pointer';
@@ -115,6 +132,7 @@ function CalendarSourceHeader({ source, eventCount }: { source: CalendarSource; 
  *
  * See: (docs/technical_notes/calendar_view.md#overview)
  * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (USER_GUIDE.md#calendar)
  */
 export default function CalendarView() {
   const events = useAS(s => s.calendarEvents);
@@ -146,6 +164,7 @@ export default function CalendarView() {
 
   // The view type goes to the store and to config (the one calendar field persisted to disk).
   // See: (docs/technical_notes/calendar_view.md#global-state)
+  // See: (USER_GUIDE.md#navigating-the-calendar)
   const handleViewChange = (v: View) => {
     const vt = v as CalendarViewType;
     setCalendarViewType(vt);
@@ -156,10 +175,17 @@ export default function CalendarView() {
    * Handles a drag-select or click on an empty calendar slot. Builds the initial
    * front-matter block (`due:`, and optionally `start:` + `duration:` for timed
    * slots) and opens the new-file dialog so the user can name the event file.
+   * With no Calendar Items Folder set, it reports that instead of asking for a
+   * name the file could never be created under.
    *
    * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+   * See: (USER_GUIDE.md#creating-calendar-entries)
    */
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
+    if (!calendarItemsFolder) {
+      setAppError(NO_CALENDAR_FOLDER_ERROR);
+      return;
+    }
     const { start, end } = slotInfo;
     const isAllDay =
       start.getHours() === 0 && start.getMinutes() === 0 && start.getSeconds() === 0 &&
@@ -184,15 +210,17 @@ export default function CalendarView() {
    * opens it for editing.
    *
    * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+   * See: (USER_GUIDE.md#calendar-items-folder)
    */
   const handleCreateCalendarFile = (fileName: string) => {
     if (!pendingSlot) return;
     const { content } = pendingSlot;
     setPendingSlot(null);
 
+    // Re-checked here in case the setting was cleared while the name dialog was open.
     const folder = calendarItemsFolder;
     if (!folder) {
-      logger.error('Calendar items folder is not configured. Set it in Settings.');
+      setAppError(NO_CALENDAR_FOLDER_ERROR);
       return;
     }
     const normalizedName = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
@@ -201,7 +229,7 @@ export default function CalendarView() {
       try {
         const result = await api.createFile(filePath, content);
         if (!result.success) {
-          logger.error('Failed to create calendar file:', result.error);
+          reportCreateFailure(result.error);
           return;
         }
         setHighlightItem(filePath);
@@ -213,12 +241,13 @@ export default function CalendarView() {
         // request would silently target a path that isn't rendered.
         requestDirectoryRefresh();
       } catch (err) {
-        logger.error('Failed to create calendar file:', err);
+        reportCreateFailure(err);
       }
     })();
   };
 
   // Jumps to the event's file in BrowseView, highlighted. See: (docs/technical_notes/calendar_view.md#calendarview-component)
+  // See: (USER_GUIDE.md#jumping-to-a-file)
   const handleSelectEvent = (event: CalendarEvent) => {
     if (!event.filePath) return;
     const folderPath = getParentPath(event.filePath);

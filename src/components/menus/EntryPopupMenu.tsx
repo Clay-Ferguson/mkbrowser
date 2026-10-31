@@ -29,6 +29,9 @@ interface EntryPopupMenuProps {
  * "Attach" items sit at the bottom, below a divider.
  *
  * See: (docs/technical_notes/file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
+ * See: (USER_GUIDE.md#adding-a-bookmark)
+ * See: (USER_GUIDE.md#make-folder-wrap-a-file-in-a-folder)
+ * See: (USER_GUIDE.md#adding-attachments)
  */
 export default function EntryPopupMenu({
   anchorRef,

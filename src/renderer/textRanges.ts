@@ -112,6 +112,9 @@ function addRunRanges(run: Text[], pattern: RegExp, ranges: Range[]): void {
  * highlight markers never appear inside editable or code-execution contexts, and so are CodeMirror
  * editors and KaTeX's hidden MathML (see SKIP_SELECTOR). Returns an empty array for empty or
  * whitespace-only `searchText`.
+ *
+ * See: (USER_GUIDE.md#searching-the-help-tab)
+ * See: (USER_GUIDE.md#search-highlight)
  */
 export function findTextRanges(root: Node, searchText: string): Range[] {
   const ranges: Range[] = [];

@@ -27,6 +27,8 @@ interface SearchDefinitionsPanelProps {
  * (rename in place) and ✕ (delete) buttons. Enter or blur commits a name, Escape
  * or a blank name cancels, and a clashing name shows an error under the input.
  * Every list change is saved immediately by the dialog's callbacks.
+ *
+ * See: (USER_GUIDE.md#saving-search-definitions)
  */
 function SearchDefinitionsPanel({
   definitions,

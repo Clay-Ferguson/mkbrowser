@@ -27,6 +27,9 @@ import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
  * front-matter properties from the selected files.
  * Each action callback is responsible for the actual operation; the menu only
  * wires up the items and closes itself after a selection.
+ *
+ * See: (USER_GUIDE.md#edit-menu-features)
+ * See: (USER_GUIDE.md#enabling-document-mode)
  */
 interface EditPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;

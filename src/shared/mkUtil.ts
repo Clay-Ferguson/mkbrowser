@@ -38,7 +38,10 @@ function replaceOutsideFences(content: string, pattern: RegExp, replaceMatch: (m
 
 /** Replaces escaped dollar signs (`\$`) with the HTML entity `&#36;` so KaTeX
  *  does not interpret them as the start of a math expression. Fenced code blocks
- *  are left untouched. */
+ *  are left untouched.
+ *
+ * See: (USER_GUIDE.md#escaping-dollar-signs-for-currency)
+ */
 export function preprocessMathEscapes(content: string): string {
   return replaceOutsideFences(content, /\\\$/, () => '&#36;');
 }
@@ -80,6 +83,8 @@ export function stripHtmlComments(content: string): string {
  * The link title `preprocessWikiLinks` gives a converted wikilink when asked to mark
  * it, so the app's link handler (CustomAnchor) can tell a wikilink from an ordinary
  * Markdown link once both are plain `<a>` elements.
+ *
+ * See: (USER_GUIDE.md#wikilinks)
  */
 export const WIKILINK_TITLE = 'mk:wikilink';
 
@@ -100,6 +105,8 @@ export const WIKILINK_TITLE = 'mk:wikilink';
  * A wikilink must open and close on the same line and can't contain brackets, so a
  * stray `[[` never pairs with the `]]` of a later wikilink. Fenced code blocks are
  * left untouched.
+ *
+ * See: (USER_GUIDE.md#syntax)
  */
 export function preprocessWikiLinks(content: string, markTitle = false): string {
   const title = markTitle ? ` "${WIKILINK_TITLE}"` : '';
@@ -127,6 +134,8 @@ export function preprocessWikiLinks(content: string, markTitle = false): string 
  *
  * A bare CommonMark link destination can't contain whitespace, so a destination with
  * spaces (`[[my note]]`) is wrapped in angle brackets, where spaces are literal.
+ *
+ * See: (USER_GUIDE.md#syntax)
  */
 function wikiLinkDestination(target: string): string {
   let dest = target;
@@ -156,6 +165,8 @@ export interface ColumnChunk {
  * only `|||`), returning each segment as a `ColumnChunk`. Delimiters inside
  * fenced code blocks are ignored. Whitespace-only leading lines are trimmed from
  * each chunk, and `lineOffset` is adjusted to point at the first real line.
+ *
+ * See: (USER_GUIDE.md#column-layout-)
  */
 export function splitOnColumnBreaks(content: string): ColumnChunk[] {
   const lines = content.split('\n');

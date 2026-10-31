@@ -13,6 +13,9 @@
  *
  * ⚠️  Because this regex has the `g` flag, callers sharing the same instance
  * must reset `lastIndex = 0` before each use when calling `.exec()` in a loop.
+ *
+ * See: (USER_GUIDE.md#what-gets-scanned)
+ * See: (USER_GUIDE.md#clickable-hashtags)
  */
 export const HASHTAG_REGEX = /(?<![^\s])#[a-zA-Z][a-zA-Z0-9_-]*/g;
 

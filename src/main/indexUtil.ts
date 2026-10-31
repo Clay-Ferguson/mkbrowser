@@ -1,5 +1,6 @@
 // Document Mode's .INDEX.yaml engine: reconcile, insert, move, rename, and entry identity.
 // See: (docs/technical_notes/document_mode.md)
+// See: (USER_GUIDE.md#document-mode)
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -1077,6 +1078,7 @@ function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
  * Moves an entry up or down one position in .INDEX.yaml by swapping it with its neighbor.
  *
  * See: (docs/technical_notes/document_mode.md#atomic-serialized-index-updates)
+ * See: (USER_GUIDE.md#editing-mode)
  */
 export async function moveInIndexYaml(
   dirPath: string,
@@ -1131,6 +1133,7 @@ export async function moveInIndexYaml(
  * Does the 'move to top' and 'move to bottom' of a file
  *
  * See: (docs/technical_notes/document_mode.md#atomic-serialized-index-updates)
+ * See: (USER_GUIDE.md#editing-mode)
  */
 export async function moveToEdgeInIndexYaml(
   dirPath: string,
@@ -1311,6 +1314,7 @@ export async function recordFrontMatterIdInIndex(filePath: string, fileId: strin
  * unparseable one. `written` is set only when the file was rewritten.
  *
  * See: (docs/technical_notes/document_mode.md#stable-identity-via-front-matter-ids)
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export async function ensureFrontMatterId(filePath: string): Promise<FrontMatterIdResult> {
   const result = await withIndexLock(path.dirname(filePath), async (): Promise<FrontMatterIdResult> => {
@@ -1452,6 +1456,7 @@ async function buildEntryForName(dirPath: string, name: string): Promise<IndexEn
  *
  * See: (docs/technical_notes/document_mode.md#insertintoindexyaml)
  * See: (docs/technical_notes/file_attachments.md#document-mode-ordering-srcmainindexutilts)
+ * See: (USER_GUIDE.md#inserting-new-files-and-folders)
  */
 export async function insertIntoIndexYaml(
   dirPath: string,

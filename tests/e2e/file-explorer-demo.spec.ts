@@ -4,7 +4,7 @@ import { takeScreenshot, writeNarration, demoClick, demoRightClick, findActionBa
 
 // Override testDataPath so the app browses the mkbrowser repo itself rather than
 // the usual mkbrowser-test fixture folder — this demo needs a real, deeply nested
-// folder structure and a real markdown document (docs/user_guide/USER_GUIDE.md).
+// folder structure and a real markdown document (USER_GUIDE.md).
 // Resolved from __dirname so it works on any clone, at any location.
 const test = baseTest.extend({
   // eslint-disable-next-line no-empty-pattern

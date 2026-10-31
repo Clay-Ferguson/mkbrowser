@@ -66,6 +66,8 @@ function nextMermaidId(): number {
  * Renders are serialized through a module-level queue because Mermaid's renderer is
  * not re-entrant. When `code` changes the component resets to a loading state during
  * render (not inside an effect) to avoid a cascading re-render.
+ *
+ * See: (USER_GUIDE.md#markdown-support)
  */
 export function MermaidDiagram({ code }: { code: string }) {
   const [svg, setSvg] = useState<string>('');

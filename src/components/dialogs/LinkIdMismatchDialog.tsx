@@ -16,6 +16,8 @@ interface LinkIdMismatchDialogProps {
  * id doesn't match the link's, so the user may be viewing a different file than the
  * one the link was made for. When the file that does carry the link's id was found,
  * it is named and can be opened from here.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 function LinkIdMismatchDialog({ mismatch, onOpenOther, onClose }: LinkIdMismatchDialogProps) {
   const { linkId, openedPath, openedId, otherPath } = mismatch;

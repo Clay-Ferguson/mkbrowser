@@ -36,6 +36,9 @@ const IMAGE_SIZE_CLASSES: Record<ImageSize, string> = {
  * image size setting (small/medium/large, chosen in Settings > Appearance). Clicking the image
  * opens a fullscreen overlay (FullscreenImageViewer). An overlaid button shows EXIF metadata;
  * its dialog state is shared with the fullscreen viewer so only one dialog instance exists.
+ *
+ * See: (USER_GUIDE.md#viewing-content)
+ * See: (USER_GUIDE.md#image-viewer-and-exif-metadata)
  */
 function ImageEntry(props: ImageEntryProps) {
   const { entry, allImages, onDelete, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
@@ -60,7 +63,11 @@ function ImageEntry(props: ImageEntryProps) {
 
   const handleToggleExpanded = () => toggleItemExpanded(entry.path);
 
-  /** Fetches EXIF metadata for the given image and opens the EXIF dialog. */
+  /**
+   * Fetches EXIF metadata for the given image and opens the EXIF dialog.
+   *
+   * See: (USER_GUIDE.md#image-viewer-and-exif-metadata)
+   */
   const handleExifClick = (e: React.MouseEvent, imagePath: string, imageName: string) => {
     e.stopPropagation();
     setExifLoading(true);

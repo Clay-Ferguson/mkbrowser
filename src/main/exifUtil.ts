@@ -9,9 +9,13 @@ import type { ExifData, ExifWriteResult, ImageDimensions } from '../shared/share
  * inside the packaged app.asar archive, so the vendored copy only works when
  * unpacked from the asar — machinery we've chosen not to maintain. exiftool
  * must be installed on the machine (e.g. `apt install libimage-exiftool-perl`);
- * if it isn't, EXIF reads/writes fail with a clear spawn error at first use
- * and the rest of the app is unaffected. No process is spawned until the
- * first EXIF operation.
+ * if it isn't, EXIF writes (and readImageDimensions' fallback for formats
+ * ExifReader can't size) fail with a clear spawn error at first use, and the
+ * rest of the app is unaffected. Reading metadata for the EXIF dialog uses
+ * ExifReader and never needs exiftool. No process is spawned until the first
+ * exiftool operation.
+ *
+ * See: (USER_GUIDE.md#exiftool-requirement)
  */
 const exiftool = new ExifTool({
   exiftoolPath: 'exiftool',
@@ -41,6 +45,7 @@ const READ_ONLY_GROUPS = new Set(['file', 'composite', 'pngFile']);
  */
 const VALID_TAG_NAME = /^[A-Za-z0-9_:*?+#^][A-Za-z0-9_:\-*?+#^]*$/;
 
+// Saves the EXIF dialog's edits; needs the system exiftool. See: (USER_GUIDE.md#editing-exif-data)
 export async function writeExifMetadata(filePath: string, data: ExifData): Promise<ExifWriteResult> {
   // Flatten grouped tags with group prefixes: { "EXIF:TagName": value, ... }
   // This preserves which metadata section each tag belongs to
@@ -107,6 +112,8 @@ function orientedDimensions(width: number, height: number, orientation: unknown)
  * for EXIF writes and covers essentially every format via a cheap stay-open
  * process. Returns null when dimensions can't be determined; rejects on
  * files that aren't a recognized image format at all.
+ *
+ * See: (USER_GUIDE.md#exiftool-requirement)
  */
 export async function readImageDimensions(filePath: string): Promise<ImageDimensions | null> {
   const tags = await ExifReader.load(filePath, { expanded: true, length: 128 * 1024 });
@@ -139,6 +146,8 @@ export async function readImageDimensions(filePath: string): Promise<ImageDimens
  * value is a flat object mapping tag name to its human-readable description string.
  * Thumbnail groups are excluded. Tags whose description is not a string or number
  * are omitted. Groups with no eligible tags are omitted from the result.
+ *
+ * See: (USER_GUIDE.md#image-viewer-and-exif-metadata)
  */
 export async function readExifMetadata(filePath: string): Promise<ExifData> {
   const tags = await ExifReader.load(filePath, { expanded: true, length: 128 * 1024 });

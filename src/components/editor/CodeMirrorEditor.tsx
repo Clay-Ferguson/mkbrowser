@@ -363,6 +363,8 @@ function applyPostMountFocus(
  * The view is created once on mount and never rebuilt for prop changes — mutable props
  * (value, fontSize, showPropsInEditor, reviewText) are applied through separate effects or
  * compartments so that undo history, cursor position, and the async spell checker are preserved.
+ *
+ * See: (USER_GUIDE.md#editing-files)
  */
 function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSaveKeepEditing, onSelectionChange, showPropsInEditor = true, readOnly = false, filePath, fillHeight = false, showTopBorder = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -428,6 +430,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   });
   // The keybinding events return true when a handler consumed the key, false to let
   // CodeMirror fall through to its default binding.
+  // See: (USER_GUIDE.md#editor-keyboard-shortcuts)
   const escapeEvent = useEffectEvent((): boolean => {
     if (!onEscape) return false;
     // Deliver any pending onChange first: the parent's Escape handler decides whether
@@ -614,6 +617,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // customRenderPlugin, <-- Keep for future use
       // customRenderTheme, <-- Keep for future use
       compartments.wordWrap.of(cfg.wordWrap ? EditorView.lineWrapping : []),
+      // Esc (exit if unmodified), Ctrl+Q (abandon), Ctrl+S (save and exit). See: (USER_GUIDE.md#editor-keyboard-shortcuts)
       keymap.of([
         {
           key: 'Escape',
@@ -939,6 +943,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     });
   }, [showPropsInEditor, compartments]);
 
+  // Accept All in the AI Rewrite diff review. See: (USER_GUIDE.md#how-to-use-rewrite)
   const handleReviewAcceptAll = () => {
     const view = viewRef.current;
     if (!view || !reviewingRef.current) return;
@@ -964,6 +969,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     onReviewComplete?.(finalText);
   };
 
+  // Cancel Rewrite: restores the pre-review text. See: (USER_GUIDE.md#how-to-use-rewrite)
   const handleReviewCancel = () => {
     const view = viewRef.current;
     if (!view || !reviewingRef.current) return;

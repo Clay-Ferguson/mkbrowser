@@ -48,6 +48,10 @@ interface EntryEditToolbarProps {
  * Cancel/Save pair — all of which were duplicated across TextEntry and
  * MarkdownEntry. Entry-specific buttons are supplied via the `leftExtras` and
  * `middleExtras` slots.
+ *
+ * See: (USER_GUIDE.md#editing-files)
+ * See: (USER_GUIDE.md#how-to-use-rewrite)
+ * See: (USER_GUIDE.md#expand-editor)
  */
 export function EntryEditToolbar({
   expandedEditor,

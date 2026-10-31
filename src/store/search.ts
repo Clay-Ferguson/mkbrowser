@@ -15,6 +15,8 @@ export interface SearchOutcomeData {
 /**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
+ *
+ * See: (USER_GUIDE.md#search-results)
  */
 export interface SearchSlice {
   setHighlightedSearchResult: (result: HighlightedSearchResult | null) => void;

@@ -29,6 +29,8 @@ interface AddLinkIdDialogProps {
  * resolveLinkTargetId) — an id is never added silently: a Markdown file gets an injected
  * front-matter block, visible to anyone reading the file, and any other file is renamed
  * to carry the id in its name (`report--3D6B20DDF.pdf`). Used by the editor's "Paste Link".
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 function AddLinkIdDialog({ targetPath, onClose, onLink }: AddLinkIdDialogProps) {
   // A file-name id is chosen up front so the message can show the exact new name.

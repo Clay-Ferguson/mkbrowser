@@ -17,6 +17,8 @@
  * backend is configured, so there is no `execute` tool and no shell access.
  *
  * This module runs in the main process only — never import from the renderer.
+ *
+ * See: (USER_GUIDE.md#agentic-mode)
  */
 import { createDeepAgent } from 'deepagents';
 import type { BaseMessage } from '@langchain/core/messages';

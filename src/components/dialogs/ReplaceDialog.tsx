@@ -11,6 +11,8 @@ interface ReplaceDialogProps {
  * Find-and-replace dialog that collects a search string and its replacement, then
  * hands them to `onReplace` for a recursive replace across .md and .txt files.
  * The search field is required; an empty replacement (delete the matches) is allowed.
+ *
+ * See: (USER_GUIDE.md#using-replace-in-files)
  */
 function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
   const [searchText, setSearchText] = useState('');

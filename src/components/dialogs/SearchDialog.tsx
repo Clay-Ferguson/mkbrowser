@@ -52,6 +52,9 @@ interface PendingConfirm {
  * definitions and the search itself). For literal searches the query is also
  * pushed into the globalHighlight module so matches stay highlighted in the
  * document view after the dialog closes.
+ *
+ * See: (USER_GUIDE.md#using-search)
+ * See: (USER_GUIDE.md#saving-search-definitions)
  */
 function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, onDeleteSearchDefinition, initialDefinition, searchDefinitions }: SearchDialogProps) {
   const [def, setDef] = useState(() =>

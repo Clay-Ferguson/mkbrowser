@@ -9,11 +9,17 @@
  * Every existence check goes against the export's manifest (the set of files and
  * folders found by the source walk), never the disk, so all of this is testable
  * without touching the file system.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
  */
 import path from 'node:path';
 import { decodeMarkdownUrl, splitHeadingFragment } from '../../shared/markdownLinks';
 
-/** File name of the generated per-folder navigation page. */
+/**
+ * File name of the generated per-folder navigation page.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
+ */
 export const INDEX_PAGE_NAME = '_index.html';
 
 /** Matches the Markdown extension a converted page swaps for `.html`. */
@@ -147,6 +153,8 @@ function kindOf(manifest: ExportManifest, p: string): 'file' | 'dir' | null {
  *     target is missing, a link titled `id:…` is repaired through the target's front-matter
  *     id (as linkRepair.ts does in the app), and an extension-less wikilink target finds its
  *     `.md` file. A target outside the export, or still missing, is left unchanged.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
  */
 export function resolveExportLink(href: string, title: string | undefined, ctx: PageLinkContext): RewrittenLink {
   const unchanged: RewrittenLink = { href, external: false };

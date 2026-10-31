@@ -12,6 +12,8 @@ import type { PropertyDefinition, PropertyType, TypeDefinition, TypeDefinitions 
  * digits, or underscores (e.g. `cell_phone`). This matches the keys object
  * blocks already use, and since it rules out integer-like keys, JS object key
  * order (and so YAML key order) is always insertion order.
+ *
+ * See: (USER_GUIDE.md#naming-rules)
  */
 export const TYPE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -20,6 +22,8 @@ export const TYPE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
  * it is, so a property of that name could never hold a value of its own. Every other name is
  * allowed, including keys the app also gives a meaning to (e.g. `due`, which then also puts the
  * object on the calendar), and the same name may appear in any number of types.
+ *
+ * See: (USER_GUIDE.md#naming-rules)
  */
 export const TYPE_KEY = 'type';
 
@@ -111,6 +115,8 @@ export function toTypeDefs(editor: EditorType[]): TypeDefinitions {
  * Drop property rows whose name and description are both blank (e.g. one the
  * user added but never filled in), so they're silently discarded on Save
  * instead of failing validation.
+ *
+ * See: (USER_GUIDE.md#saving-your-changes)
  */
 export function dropBlankProperties(editor: EditorType[]): EditorType[] {
   return editor.map((type) => ({
@@ -125,6 +131,8 @@ export function dropBlankProperties(editor: EditorType[]): EditorType[] {
  * TYPE_NAME_PATTERN, and be unique (types globally and ignoring case, properties
  * within their type), and no property may be named TYPE_KEY. Expects fully blank properties to have been
  * removed already (see dropBlankProperties).
+ *
+ * See: (USER_GUIDE.md#naming-rules)
  */
 export function validate(editor: EditorType[]): string | null {
   const typeNames = editor.map((t) => t.name.trim());

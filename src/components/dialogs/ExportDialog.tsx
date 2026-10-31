@@ -8,6 +8,7 @@ import CheckboxField from './common/CheckboxField';
 import RadioField from './common/RadioField';
 import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_NEUTRAL, DLG_FOOTER_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE, DLG_LABEL_CLASS } from '../../renderer/styles';
 
+// Options from the Tools → Export to File dialog. See: (USER_GUIDE.md#exporting)
 export interface ExportOptions {
   outputFolder: string;
   /** Always carries a `.md` extension; the caller handles PDF conversion from it. */
@@ -33,6 +34,8 @@ interface ExportDialogProps {
  * inline error); `handleExport` always emits a `.md` filename in ExportOptions and
  * signals PDF via `exportToPdf`, leaving the actual Markdown→PDF conversion to the
  * caller. Returns the chosen options through onExport.
+ *
+ * See: (USER_GUIDE.md#exporting)
  */
 function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: ExportDialogProps) {
   const [outputFolder, setOutputFolder] = useState(defaultFolder);

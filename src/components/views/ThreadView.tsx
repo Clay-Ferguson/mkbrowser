@@ -70,6 +70,8 @@ async function gatherThread(path: string) {
  * HUMAN.md or AI.md turn in chronological order (oldest at top).
  *
  * See: (docs/technical_notes/ai_chat.md#the-ai-chat-tab-threadview)
+ * See: (USER_GUIDE.md#chat-thread-view)
+ * See: (USER_GUIDE.md#replying-in-a-thread)
  */
 function ThreadView() {
   const currentPath = useAS(s => s.currentPath);
@@ -103,6 +105,7 @@ function ThreadView() {
    * same store mirror) picks it up immediately.
    *
    * See: (docs/technical_notes/ai_chat.md#what-the-view-shows)
+   * See: (USER_GUIDE.md#selecting-the-active-prompt)
    */
   const handlePersonaSelect = (name: string) => {
     runOp(() => saveAiConfig({ aiRewritePrompt: name }), 'Failed to save persona: ');
@@ -235,6 +238,7 @@ function ThreadView() {
    * without switching to the browser tab.
    *
    * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+   * See: (USER_GUIDE.md#replying-in-a-thread)
    */
   const handleChildFolderClick = (folderPath: string) => {
     navigateToBrowserPath(folderPath, undefined, 'thread');

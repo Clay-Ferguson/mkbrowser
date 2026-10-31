@@ -62,6 +62,7 @@ const INDENT_SIZE = 20;
 
 // ── Type guards ──────────────────────────────────────────────────────────────
 
+// `.sh` files get a Run item in the tree's context menu. See: (USER_GUIDE.md#running-shell-scripts)
 function isShellScript(node: FileNode): boolean {
   return !node.isDirectory && node.name.toLowerCase().endsWith('.sh');
 }
@@ -274,6 +275,8 @@ const MemoTreeFileRow = memo(TreeFileRow);
  * script's context menu has a "Run" item.
  *
  * See: (docs/technical_notes/file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+ * See: (USER_GUIDE.md#bookmarks)
+ * See: (USER_GUIDE.md#drag-and-drop)
  */
 function IndexTreeView() {
   const rootPath = useAS(s => s.rootPath);
@@ -567,6 +570,7 @@ function IndexTreeView() {
   // Fire-and-forget UI handler: sync signature with the async body run through
   // runOp so failures are reported instead of leaking an unhandled
   // rejection.
+  // See: (USER_GUIDE.md#cut-and-paste)
   const handleCutNode = (node: FileNode) => {
     runOp(async () => {
       const parentPath = getParentPath(node.path);
@@ -751,6 +755,8 @@ function IndexTreeView() {
    * Handles a drag-and-drop of a file or folder entry onto a directory node.
    * Validates the drop here, then hands the move and all the follow-up view
    * refreshes to the shared completeEntryDrop.
+   *
+   * See: (USER_GUIDE.md#drag-and-drop)
    */
   const handleDropOnFolder = (node: FileNode, e: React.DragEvent) => {
     e.preventDefault();
@@ -783,6 +789,7 @@ function IndexTreeView() {
     setDragOverPath(prev => (prev === path ? null : prev));
   };
 
+  // Run: launches the script (in a terminal unless it says # Terminal=false). See: (USER_GUIDE.md#running-shell-scripts)
   const handleRunScript = (node: FileNode) => {
     if (runningScript) return;
     setRunningScript(node.path);
@@ -796,6 +803,7 @@ function IndexTreeView() {
     }, 3000);
   };
 
+  // The Bookmarks button at the top of the tree. See: (USER_GUIDE.md#navigating-with-bookmarks)
   const toggleBookmarksMenu = () => setShowBookmarksMenu(prev => !prev);
   const closeBookmarksMenu = () => setShowBookmarksMenu(false);
   const saveTreeWidth = (width: typeof indexTreeWidth) => {
@@ -812,6 +820,7 @@ function IndexTreeView() {
    * it is the only thing on screen. A bookmarked folder browses its listing.
    *
    * See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-tree-click)
+   * See: (USER_GUIDE.md#navigating-with-bookmarks)
    */
   const handleBookmarkNavigate = (fullPath: string, isDirectory: boolean) => {
     if (isDirectory) {

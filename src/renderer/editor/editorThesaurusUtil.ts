@@ -16,6 +16,7 @@ import { frontMatterEndLine } from './editorFrontMatterUtil';
  */
 
 // How long the cursor must sit still (and no typing occur) before a lookup fires.
+// See: (USER_GUIDE.md#thesaurus)
 export const THESAURUS_IDLE_MS = 2000;
 
 // Words this short are articles, prepositions and initials — a thesaurus has nothing
@@ -104,6 +105,7 @@ export function synonymInsertPos(state: EditorState): number | null {
  * editor, so the user can carry straight on typing (or immediately delete the original).
  *
  * See: (docs/technical_notes/thesaurus_view.md#clicking-a-pill-insert-never-replace)
+ * See: (USER_GUIDE.md#thesaurus)
  */
 export function insertSynonymAfterWord(synonym: string): boolean {
   const view = sourceView;
@@ -140,6 +142,7 @@ export function insertSynonymAfterWord(synonym: string): boolean {
  *   within one word doesn't re-trigger a lookup and make the pills flicker.
  *
  * See: (docs/technical_notes/thesaurus_view.md#the-onoff-switch-enablethesaurus)
+ * See: (USER_GUIDE.md#thesaurus)
  */
 export function createThesaurusPlugin(
   onWord: (word: string | null) => void,

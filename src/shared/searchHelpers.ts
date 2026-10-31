@@ -29,6 +29,8 @@ function baseName(relativePath: string): string {
  * File-name order compares base names, ignoring case. Time order treats a
  * missing timestamp as 0 (oldest). Ties fall back to the relative path, so the
  * order — and therefore which results survive the cap — is deterministic.
+ *
+ * See: (USER_GUIDE.md#search-results)
  */
 export function compareSearchResults(
   sortBy: SearchSortBy,
@@ -48,7 +50,11 @@ export function compareSearchResults(
   };
 }
 
-/** A new, unnamed search with the Search dialog's default options. */
+/**
+ * A new, unnamed search with the Search dialog's default options.
+ *
+ * See: (USER_GUIDE.md#using-search)
+ */
 export function newSearchDefinition(searchText = ''): SearchDefinition {
   return {
     name: '',
@@ -109,6 +115,8 @@ export function isSearchDefinitionDirty(form: SearchDefinition, saved: SearchDef
  * message, or null when the name is usable. Names are compared trimmed and
  * case-insensitively, so "Foo" and "foo " can't both exist; `currentName` (the
  * definition being renamed) is excluded, so a case-only rename is allowed.
+ *
+ * See: (USER_GUIDE.md#saving-search-definitions)
  */
 export function validateSearchDefinitionName(
   name: string,
@@ -123,6 +131,8 @@ export function validateSearchDefinitionName(
 
 /**
  * Parse a newline-delimited ignored-paths string into a trimmed, non-empty array.
+ *
+ * See: (USER_GUIDE.md#files-to-ignore)
  */
 export function parseIgnoredPaths(raw: string): string[] {
   return raw
@@ -143,6 +153,8 @@ export function parseIgnoredPaths(raw: string): string[] {
  *
  * @param content - The text content to search within
  * @returns The helpers and a match count getter
+ *
+ * See: (USER_GUIDE.md#using-search)
  */
 export function createContentSearcher(content: string): {
   $: (searchText: string) => boolean;
@@ -200,6 +212,8 @@ export function createContentSearcher(content: string): {
  * Summarize the outcome of a search-and-replace operation as a human-readable
  * string. Reports total replacement count, number of files modified, and (if
  * any) how many files could not be processed.
+ *
+ * See: (USER_GUIDE.md#results-summary)
  */
 export function buildReplaceResultMessage(results: Array<{ success: boolean; replacementCount: number }>): string {
   const successfulFiles = results.filter((r) => r.success);

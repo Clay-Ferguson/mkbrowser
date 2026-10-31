@@ -47,6 +47,7 @@ export function useEditorChrome({ path, edit, alwaysExpandedEditor, fillPaneWhen
   // Only exit edit mode on Escape when the content is unmodified (see isEditUnmodified for the
   // TOC-stripping rule). If the user has typed something, Escape falls through to CodeMirror
   // (e.g. to dismiss autocomplete).
+  // See: (USER_GUIDE.md#editor-keyboard-shortcuts)
   const handleEscape = () => {
     // Read the edit buffer at call time — the editor flushes its debounced onChange right
     // before invoking onEscape, so this render's edit.editContent may predate the flush.
@@ -59,6 +60,7 @@ export function useEditorChrome({ path, edit, alwaysExpandedEditor, fillPaneWhen
   // file the whole pane via BrowseFile, collapsing drops back to the folder
   // listing with the editor still open inline.
   // See: (docs/technical_notes/single_file_browsing.md#entering-single-file-mode-expanded-editing)
+  // See: (USER_GUIDE.md#expand-editor)
   const handleToggleExpandedEditor = () => {
     toggleExpandedEditor(path);
     saveSettings();

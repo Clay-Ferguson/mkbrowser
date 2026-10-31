@@ -7,6 +7,7 @@
  * in ./aiPatterns instead.
  *
  * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+ * See: (USER_GUIDE.md#ai-conversation-hint-text)
  */
 
 import path from 'node:path';
@@ -14,7 +15,11 @@ import fs from 'node:fs/promises';
 import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from '../../shared/ai/aiPatterns';
 import { HUMAN_FILENAME, AI_FILENAME } from '../../shared/specialFiles';
 
-/** Max length of the preview snippet shown next to a conversation folder. */
+/**
+ * Max length of the preview snippet shown next to a conversation folder.
+ *
+ * See: (USER_GUIDE.md#ai-conversation-hint-text)
+ */
 export const AI_HINT_MAX_LENGTH = 120;
 
 /**

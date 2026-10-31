@@ -61,6 +61,7 @@ export function friendlyAIError(error: unknown): string {
  * @returns          Full absolute path for the first available folder.
  *
  * See: (docs/technical_notes/ai_chat.md#folder-layout-of-a-conversation)
+ * See: (USER_GUIDE.md#7-branching-visibility-at-a-glance)
  */
 export async function findNextNumberedFolder(parentDir: string, baseName: string): Promise<string> {
   // Try bare baseName first (e.g. "A"), then "A1", "A2", ...
@@ -206,6 +207,7 @@ export type AskAIResult =
  *
  * See: (docs/technical_notes/ai_chat.md#asking-the-ai)
  * See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
+ * See: (USER_GUIDE.md#ai-chat)
  */
 export async function handleAskAI(
   prompt: string,
@@ -332,6 +334,7 @@ function stripFrontMatter(text: string): string {
  * file, when only a selection is being rewritten.
  *
  * See: (docs/technical_notes/document_mode.md#overview)
+ * See: (USER_GUIDE.md#full-document-context)
  */
 async function buildDocumentContext(
   filePath: string,
@@ -491,6 +494,8 @@ async function runRewrite(
  *
  * When `streamCallbacks` is provided, tokens are streamed to the renderer so
  * the StreamingDialog can show live progress (see {@link invokeRewrite}).
+ *
+ * See: (USER_GUIDE.md#how-to-use-rewrite)
  */
 export async function handleRewriteContent(
   content: string,
@@ -530,6 +535,8 @@ export async function handleRewriteContent(
  * Only the selection goes in `<content>`; the text on either side of it is sent as
  * surrounding context (see {@link runRewrite}). The AI returns only the rewritten
  * selection, which is spliced back in using the original character offsets.
+ *
+ * See: (USER_GUIDE.md#rewriting-a-selection)
  */
 export async function handleRewriteContentSection(
   content: string,
@@ -574,6 +581,7 @@ export async function handleRewriteContentSection(
  *
  * See: (docs/technical_notes/ai_chat.md#replying-to-the-ai)
  * See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
+ * See: (USER_GUIDE.md#replying-in-a-thread)
  */
 export async function handleReplyToAI(
   parentFolderPath: string,
@@ -645,6 +653,7 @@ export interface ThreadChildFolder {
  * Matches conversation branch folder names: H, A, H1, A2, etc.
  *
  * See: (docs/technical_notes/ai_chat.md#folder-layout-of-a-conversation)
+ * See: (USER_GUIDE.md#11-minimal-path-depth-ha-convention)
  */
 const THREAD_CHILD_FOLDER_RE = /^[AH]\d*$/;
 
@@ -685,6 +694,7 @@ async function gatherThreadChildFolders(folderPath: string): Promise<ThreadChild
  * so the caller can let the user choose which branch to follow.
  *
  * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+ * See: (USER_GUIDE.md#chat-thread-view)
  */
 export async function gatherThreadEntries(
   folderPath: string,

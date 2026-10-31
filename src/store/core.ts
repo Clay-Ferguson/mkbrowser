@@ -42,6 +42,8 @@ export type StoreGet = () => StoreState;
 
 /**
  * Default settings
+ *
+ * See: (USER_GUIDE.md#settings)
  */
 export const defaultSettings: AppSettings = {
   fontSize: 'medium',

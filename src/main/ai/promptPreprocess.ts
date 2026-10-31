@@ -5,6 +5,7 @@
  * it can be unit-tested in a plain Node environment.
  *
  * See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
+ * See: (USER_GUIDE.md#attaching-files-with-file)
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -15,7 +16,11 @@ import { HUMAN_FILENAME } from '../../shared/specialFiles';
 
 const debug: boolean = false;
 
-/** Matches a #file: directive on its own line. Captures the pattern after the colon. */
+/**
+ * Matches a #file: directive on its own line. Captures the pattern after the colon.
+ *
+ * See: (USER_GUIDE.md#attaching-files-with-file)
+ */
 export const FILE_DIRECTIVE_REGEX = /^\s*#file:(.+?)\s*$/;
 
 // ── Image detection & MIME mapping ─────────────────────────────────
@@ -23,7 +28,11 @@ export const FILE_DIRECTIVE_REGEX = /^\s*#file:(.+?)\s*$/;
 /** Maximum image file size in bytes (10 MB). Larger images are skipped. */
 export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 
-/** File extensions we treat as images (sent as base64 image_url parts). */
+/**
+ * File extensions we treat as images (sent as base64 image_url parts).
+ *
+ * See: (USER_GUIDE.md#what-gets-sent-to-the-ai)
+ */
 export const IMAGE_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg',
   '.bmp', '.ico', '.tiff', '.tif', '.avif',
@@ -80,6 +89,8 @@ export interface PreprocessResult {
  *   `*.md`    → /^.*\.md$/
  *   `data.*`  → /^data\..*$/
  *   `notes.txt` → /^notes\.txt$/
+ *
+ * See: (USER_GUIDE.md#patterns-and-wildcards)
  */
 export function wildcardToRegex(pattern: string): RegExp {
   // Case-sensitive, anchored match — #file: patterns are matched against
@@ -110,6 +121,7 @@ export function wildcardToRegex(pattern: string): RegExp {
  *                      text and any image attachments.
  *
  * See: (docs/technical_notes/ai_chat.md#what-gets-sent-to-the-model)
+ * See: (USER_GUIDE.md#what-gets-sent-to-the-ai)
  */
 export async function preprocessPrompt(
   rawText: string,

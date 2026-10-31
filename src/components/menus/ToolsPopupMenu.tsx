@@ -23,6 +23,9 @@ interface ToolsPopupMenuProps {
  *
  * See: (docs/technical_notes/ai_chat.md#starting-a-conversation)
  * See: (docs/technical_notes/folder_graph.md#overview)
+ * See: (USER_GUIDE.md#folder-analysis)
+ * See: (USER_GUIDE.md#launching-the-graph)
+ * See: (USER_GUIDE.md#exporting)
  */
 export default function ToolsPopupMenu({
   anchorRef,

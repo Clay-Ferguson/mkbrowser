@@ -79,6 +79,8 @@ const URL_SCHEME_RE = /^[a-z][a-z0-9+.-]+:/i;
  * code blocks or inline code, external URLs (any scheme), and in-page `#anchor`
  * links are skipped. Destinations are returned unresolved and in document order,
  * duplicates included.
+ *
+ * See: (USER_GUIDE.md#reading-the-graph)
  */
 export function extractLinkDestinations(content: string): LinkDestination[] {
   const out: LinkDestination[] = [];

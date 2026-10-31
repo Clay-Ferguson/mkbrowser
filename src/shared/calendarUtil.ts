@@ -2,6 +2,7 @@
  * Utilities for turning a markdown file into a calendar item via front matter injection.
  *
  * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (USER_GUIDE.md#creating-calendar-entries)
  */
 
 import { splitFrontMatter, setFrontMatterProperty, assembleFrontMatter } from '../shared/frontMatterUtil';
@@ -13,6 +14,7 @@ import type { CalendarEvent } from '../shared/types';
  * The front-matter properties that make a file a calendar item (EditCalendarDialog owns them).
  *
  * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (USER_GUIDE.md#adding-a-start-time-and-duration)
  */
 export const CALENDAR_PROPS: ReadonlySet<string> = new Set(['due', 'start', 'duration', 'rrule']);
 
@@ -190,6 +192,7 @@ function buildLocalDate(year: number, month: number, day: number): Date | null {
  * calendar date, not UTC. Without ISO support such an event would be dropped silently.
  *
  * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (USER_GUIDE.md#creating-calendar-entries)
  */
 export function parseDueStr(dueStr: string): Date | null {
   const trimmed = dueStr.trim();
@@ -269,6 +272,7 @@ function scalarFieldToString(value: unknown): string | undefined {
  * Parses the `rrule:` block from front matter and returns its fields, or null if absent.
  *
  * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (USER_GUIDE.md#recurring-events)
  */
 export function getRRuleProperty(content: string): RRuleProps | null {
   const parsed = splitFrontMatter(content);
@@ -333,6 +337,7 @@ function buildRRuleObject(rrule: RRuleProps): Record<string, unknown> {
  * rather than risking further corruption.
  *
  * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (USER_GUIDE.md#recurring-events)
  */
 export function setRRuleProperty(content: string, rrule: RRuleProps | null): string {
   const parsed = splitFrontMatter(content);

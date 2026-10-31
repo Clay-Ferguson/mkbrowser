@@ -156,6 +156,8 @@ export async function renderMarkdownPage(
  * The generated `_index.html` for a folder: a breadcrumb, then its subfolders and
  * pages in the app's order (.INDEX.yaml or natural name order), then the other
  * copied files. Images are not listed — they appear on the pages that show them.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
  */
 export function renderFolderIndex(manifest: ExportManifest, dir: string, children: IndexChild[]): string {
   const indexFile = path.join(dir, INDEX_PAGE_NAME);

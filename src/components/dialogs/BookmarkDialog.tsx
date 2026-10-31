@@ -22,6 +22,9 @@ function basename(p: string): string {
  * name is supplied, the default seeds from the path's basename, dropping the
  * extension for files but keeping the full name for folders. Save is blocked
  * while the name is blank.
+ *
+ * See: (USER_GUIDE.md#adding-a-bookmark)
+ * See: (USER_GUIDE.md#renaming-and-deleting-bookmarks)
  */
 function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: BookmarkDialogProps) {
   const base = basename(path);

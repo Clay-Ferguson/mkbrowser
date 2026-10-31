@@ -28,6 +28,8 @@ const inputTheme = EditorView.theme({
  * A plain, minimal CodeMirror editor with JavaScript syntax highlighting, used as a
  * small form field (e.g. the Advanced search expression). Deliberately unrelated to
  * the full-featured file editor in `components/editor/`.
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
  */
 function JsCodeInput({ value, onChange, onSubmit, placeholder, testId, focusRef }: JsCodeInputProps) {
   const hostRef = useRef<HTMLDivElement>(null);

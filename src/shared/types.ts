@@ -37,7 +37,11 @@ export interface ItemData {
   /** Whether this item is selected (for checkbox selection, defaults to false) */
   isSelected: boolean;
 
-  /** Whether this item has been cut (hidden from view) */
+  /**
+   * Whether this item has been cut (hidden from view)
+   *
+   * See: (USER_GUIDE.md#cut-and-paste)
+   */
   isCut: boolean;
 
   /** Whether the file's content is currently expanded (visible) */
@@ -103,6 +107,7 @@ export interface ItemData {
    * Only populated when aiEnabled is true in AppConfig.
    *
    * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+   * See: (USER_GUIDE.md#ai-conversation-hint-text)
    */
   aiHint?: string;
 
@@ -145,6 +150,8 @@ export interface HashtagEntry {
 
 /**
  * State for the folder analysis feature
+ *
+ * See: (USER_GUIDE.md#the-analysis-tab)
  */
 export interface FolderAnalysisState {
   /** Map of hashtag -> count */
@@ -195,6 +202,7 @@ export interface FolderGraphLink {
  *
  * See: (docs/technical_notes/folder_graph.md#store-and-types)
  * See: (docs/technical_notes/folder_graph.md#persistence-model)
+ * See: (USER_GUIDE.md#tab-persistence)
  */
 export interface FolderGraphState {
   /** The folder that was scanned to produce this graph */
@@ -208,9 +216,14 @@ export interface FolderGraphState {
    * always false: the scanner falls back to folders-only or throws instead.
    *
    * See: (docs/technical_notes/folder_graph.md#scan-algorithm)
+   * See: (USER_GUIDE.md#scan-limits)
    */
   truncated: boolean;
-  /** True if the full scan exceeded the node cap and we fell back to folders-only. */
+  /**
+   * True if the full scan exceeded the node cap and we fell back to folders-only.
+   *
+   * See: (USER_GUIDE.md#scan-limits)
+   */
   foldersOnly: boolean;
 }
 
@@ -311,6 +324,8 @@ export interface AppMessage {
  * A clicked Markdown link titled `"id:<linkId>"` opened a file whose front-matter id
  * is different (or missing), so it may not be the file the link was made for.
  * `otherPath` is the file that does carry `linkId`, when one was found.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
 export interface LinkIdMismatch {
   linkId: string;
@@ -422,6 +437,8 @@ export interface AppState {
   /**
    * How many files matched the most recent search before the result cap. Larger
    * than `searchResults.length` when the results were truncated.
+   *
+   * See: (USER_GUIDE.md#search-results)
    */
   searchTotalMatches: number;
 
@@ -520,6 +537,8 @@ export interface AppState {
 
   /**
    * Folder analysis results (null until an analysis is run)
+   *
+   * See: (USER_GUIDE.md#the-analysis-tab)
    */
   folderAnalysis: FolderAnalysisState | null;
 
@@ -531,6 +550,7 @@ export interface AppState {
    *
    * See: (docs/technical_notes/folder_graph.md#store-and-types)
    * See: (docs/technical_notes/folder_graph.md#persistence-model)
+   * See: (USER_GUIDE.md#tab-persistence)
    */
   folderGraph: FolderGraphState | null;
 
@@ -548,6 +568,7 @@ export interface AppState {
    * Whether the Folder Graph view draws file-to-file links (session only, off by default).
    *
    * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+   * See: (USER_GUIDE.md#reading-the-graph)
    */
   showGraphFileLinks: boolean;
 
@@ -590,6 +611,7 @@ export interface AppState {
    * Not persisted — resets to defaults on restart.
    *
    * See: (docs/technical_notes/application_tabs.md#which-tabs-are-shown)
+   * See: (USER_GUIDE.md#tab-bar)
    */
   visibleTabs: Set<AppView>;
 
@@ -599,6 +621,7 @@ export interface AppState {
    * `currentEntries` (set in the same update), never written on its own.
    *
    * See: (docs/technical_notes/document_mode.md#overview)
+   * See: (USER_GUIDE.md#document-mode)
    */
   hasIndexFile: boolean;
 
@@ -616,6 +639,7 @@ export interface AppState {
    * so the calendar stays stable while the user navigates elsewhere.
    *
    * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (USER_GUIDE.md#opening-the-calendar)
    */
   calendarSource: CalendarSource | null;
 
@@ -638,6 +662,7 @@ export interface AppState {
    * Persisted to AppConfig so it survives app restarts.
    *
    * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (USER_GUIDE.md#navigating-the-calendar)
    */
   calendarViewType: CalendarViewType;
 
@@ -647,6 +672,7 @@ export interface AppState {
    * tab switches within a session.
    *
    * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (USER_GUIDE.md#navigating-the-calendar)
    */
   calendarViewTime: Date;
 
@@ -654,6 +680,7 @@ export interface AppState {
    * The day the calendar was opened to show (a clicked date), drawn highlighted; null for none.
    *
    * See: (docs/technical_notes/calendar_view.md#global-state)
+   * See: (USER_GUIDE.md#jumping-to-a-date-from-a-file)
    */
   calendarTargetDate: Date | null;
 
@@ -686,6 +713,7 @@ export interface AppState {
    * Holds only the word — the synonym lookup is the pane's own concern. Not persisted.
    *
    * See: (docs/technical_notes/thesaurus_view.md#the-store-slice-and-why-it-exists)
+   * See: (USER_GUIDE.md#thesaurus)
    */
   thesaurusWord: string | null;
 
@@ -693,6 +721,8 @@ export interface AppState {
    * Renderer mirror of the user-defined object types (`AppConfig.types`), keyed by type
    * name. Seeded by `loadConfig` and replaced after each Types Editor save; read by the
    * editor's "Insert Object" menu. See `store/objectTypes.ts`.
+   *
+   * See: (USER_GUIDE.md#objects-and-custom-types)
    */
   typeDefs: TypeDefinitions;
 
@@ -744,6 +774,7 @@ export interface AiConfigState {
  * folders, so there is nothing coherent to watch and no live updates are applied.
  *
  * See: (docs/technical_notes/calendar_view.md#event-sources)
+ * See: (USER_GUIDE.md#search-results)
  */
 export type CalendarSource =
   | { kind: 'folder'; folder: string }
@@ -764,6 +795,7 @@ export type CalendarSource =
  * form of CalendarEventResult).
  *
  * See: (docs/technical_notes/calendar_view.md#global-state)
+ * See: (USER_GUIDE.md#calendar)
  */
 export interface CalendarEvent {
   id: string;
@@ -782,6 +814,7 @@ export interface CalendarEvent {
  * image attachments or other artifacts alongside the markdown content.
  *
  * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+ * See: (USER_GUIDE.md#chat-thread-view)
  */
 export interface ThreadEntry {
   /** Role of this conversation turn */
@@ -804,6 +837,7 @@ export interface ThreadEntry {
  * turn file. They are listed as clickable choices for which branch to follow.
  *
  * See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+ * See: (USER_GUIDE.md#replying-in-a-thread)
  */
 export interface ThreadChildFolder {
   /** Role implied by the folder name's first character (H=human, A=ai) */
@@ -812,7 +846,11 @@ export interface ThreadChildFolder {
   name: string;
   /** Absolute path to the folder */
   path: string;
-  /** Short preview snippet from the folder's HUMAN.md / AI.md, if any */
+  /**
+   * Short preview snippet from the folder's HUMAN.md / AI.md, if any
+   *
+   * See: (USER_GUIDE.md#ai-conversation-hint-text)
+   */
   aiHint?: string;
 }
 

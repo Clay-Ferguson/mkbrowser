@@ -14,6 +14,9 @@ interface FolderAnalysisViewProps {
  * a clickable button (via the `onSearchHashtag` callback): a plain click runs a
  * literal search (substring, so #foo also finds #foobar, and file names match
  * too), and Ctrl+click runs an advanced tag("#foo") search for the whole tag.
+ *
+ * See: (USER_GUIDE.md#analysis-results)
+ * See: (USER_GUIDE.md#clicking-a-hashtag)
  */
 function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
   const folderAnalysis = useAS(s => s.folderAnalysis);

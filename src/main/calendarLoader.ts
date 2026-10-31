@@ -12,6 +12,7 @@ import { splitFrontMatter } from '../shared/frontMatterUtil';
 // Calendar file scanning: turns Markdown files with a `due:` front-matter property into
 // calendar events, for the folder crawl, the search-results list, and the watcher.
 // See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
+// See: (USER_GUIDE.md#calendar)
 
 // The IPC wire form of a calendar event (epoch-ms times survive structured cloning).
 // See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
@@ -35,6 +36,7 @@ export interface CalendarEventResult {
  * anything unrecognized so the caller can warn and fall back to an all-day event.
  *
  * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (USER_GUIDE.md#adding-a-start-time-and-duration)
  */
 function parseStartTime(timeStr: string): { hours: number; minutes: number } | null {
   const trimmed = timeStr.trim();
@@ -74,6 +76,7 @@ function parseStartTime(timeStr: string): { hours: number; minutes: number } | n
  * `end` at or before `start`). Returns null so the caller can warn and default to 1.
  *
  * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (USER_GUIDE.md#adding-a-start-time-and-duration)
  */
 function coerceDuration(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -147,6 +150,7 @@ interface RRuleYaml {
  * here so every field has a known type before it reaches the rule engine.
  *
  * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (USER_GUIDE.md#recurring-events)
  */
 function normalizeRRule(raw: Record<string, unknown>): RRuleYaml {
   const toPositiveInt = (value: unknown): number | undefined => {
@@ -176,6 +180,7 @@ function normalizeRRule(raw: Record<string, unknown>): RRuleYaml {
  * Returns `[]` when `rruleYaml.freq` is absent or unrecognized.
  *
  * See: (docs/technical_notes/calendar_view.md#recurring-events)
+ * See: (USER_GUIDE.md#recurring-events)
  */
 function expandRRule(
   rruleYaml: RRuleYaml,
@@ -283,6 +288,7 @@ function extractSnippet(body: string): string {
  *
  * See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
  * See: (docs/technical_notes/calendar_view.md#calendar-entry-format)
+ * See: (USER_GUIDE.md#creating-calendar-entries)
  */
 export async function loadCalendarEntryForFile(filePath: string): Promise<CalendarEventResult[]> {
   try {
@@ -375,6 +381,7 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
  * CALENDAR_READ_CONCURRENCY concurrent operations to avoid EMFILE on large vaults.
  *
  * See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
+ * See: (USER_GUIDE.md#what-gets-scanned-1)
  */
 export async function loadCalendarEvents(
   folderPath: string,
@@ -409,6 +416,7 @@ export async function loadCalendarEvents(
  *
  * See: (docs/technical_notes/calendar_view.md#file-scanning--srcmaincalendarloaderts)
  * See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
+ * See: (USER_GUIDE.md#search-results)
  */
 export async function loadCalendarEventsForFiles(filePaths: string[]): Promise<CalendarEventResult[]> {
   const mdFiles = filePaths.filter(f => f.toLowerCase().endsWith('.md'));

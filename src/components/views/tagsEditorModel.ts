@@ -78,6 +78,8 @@ export function dropBlankTags(cats: EditorCategory[]): EditorCategory[] {
  * categories are valid: names must be non-empty and unique, both for categories
  * and for the tags within each category. Expects fully blank tags to have been
  * removed already (see dropBlankTags).
+ *
+ * See: (USER_GUIDE.md#managing-your-hashtag-library-tags-editor)
  */
 export function validate(cats: EditorCategory[]): string | null {
   const catNames = cats.map((c) => c.name.trim());

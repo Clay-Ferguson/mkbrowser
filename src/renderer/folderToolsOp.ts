@@ -29,7 +29,11 @@ import { logger } from '../shared/logUtil';
 let latestAnalysisId = 0;
 let latestGraphId = 0;
 
-/** Counts the hashtags under `folderPath` and shows them in the Folder Analysis view. */
+/**
+ * Counts the hashtags under `folderPath` and shows them in the Folder Analysis view.
+ *
+ * See: (USER_GUIDE.md#running-an-analysis)
+ */
 export function showFolderAnalysis(folderPath: string): void {
   const id = ++latestAnalysisId;
   runOp(async () => {
@@ -49,6 +53,7 @@ export function showFolderAnalysis(folderPath: string): void {
  * With `markdownOnly`, only `.md` files (and the folders leading to them) are graphed.
  *
  * See: (docs/technical_notes/folder_graph.md#end-to-end-flow-folder-scan)
+ * See: (USER_GUIDE.md#launching-the-graph)
  */
 export function showFolderGraph(folderPath: string, markdownOnly = false): void {
   const id = ++latestGraphId;
@@ -72,6 +77,7 @@ export function showFolderGraph(folderPath: string, markdownOnly = false): void 
  * replaced (a new scan) while this one ran, since the edges belong to `graph`.
  *
  * See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+ * See: (USER_GUIDE.md#reading-the-graph)
  */
 export function loadFolderGraphFileLinks(graph: FolderGraphState): void {
   runOp(async () => {
@@ -86,6 +92,8 @@ export function loadFolderGraphFileLinks(graph: FolderGraphState): void {
  * it), then opens the Markdown file when no PDF was asked for. The chosen
  * output folder is remembered, both through `onOutputFolderChosen` and in the
  * persisted config, before the export itself runs.
+ *
+ * See: (USER_GUIDE.md#exporting)
  */
 export function exportFolder(
   folderPath: string,
@@ -147,6 +155,8 @@ function buildHtmlExportMessage(result: HtmlExportResult): string {
  * with "reply was never sent" well after the export succeeded.
  * The output's parent folder is remembered as the last export folder, both
  * through `onOutputFolderChosen` and in the persisted config.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
  */
 export function exportFolderHtml(
   folderPath: string,
@@ -183,6 +193,8 @@ export function exportFolderHtml(
  * Replaces `searchText` with `replaceText` in every file under `folderPath`,
  * then reports the per-file outcome (or the failure) through `onResult` and
  * reloads the listing if anything changed.
+ *
+ * See: (USER_GUIDE.md#replace-in-files-1)
  */
 export function replaceInFolder(
   folderPath: string,

@@ -63,6 +63,7 @@ interface BrowseViewProps {
  *
  * See: (docs/technical_notes/document_mode.md#overview)
  * See: (docs/technical_notes/file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
+ * See: (USER_GUIDE.md#browsing-and-editing)
  */
 function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps) {
   const [overlay, setOverlay] = useState<BrowseOverlay>(NO_OVERLAY);

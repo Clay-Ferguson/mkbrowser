@@ -36,6 +36,8 @@ interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement
  */
 // `node` is react-markdown's internal hast node; destructure it out so it isn't
 // spread onto the DOM <a> element (React warns on unknown DOM props).
+// See: (USER_GUIDE.md#inserting-links-to-other-files)
+// See: (USER_GUIDE.md#wikilinks)
 export default function CustomAnchor({ href, children, entryPath, node, ...props }: CustomAnchorProps) {
   const isWikiLink = props.title === WIKILINK_TITLE;
 

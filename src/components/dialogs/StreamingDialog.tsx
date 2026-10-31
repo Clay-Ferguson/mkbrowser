@@ -22,6 +22,7 @@ interface StreamingDialogProps {
  * why output is written to the DOM directly instead of through React state.
  *
  * See: (docs/technical_notes/ai_chat.md#asking-the-ai)
+ * See: (USER_GUIDE.md#ai-chat)
  */
 function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
   const outputRef = useRef<HTMLPreElement>(null);

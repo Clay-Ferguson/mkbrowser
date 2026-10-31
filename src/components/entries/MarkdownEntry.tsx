@@ -98,6 +98,7 @@ async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<v
  * The one property whose two pill halves do different things (edit vs. show on the calendar).
  *
  * See: (docs/technical_notes/calendar_view.md#calendarview-component)
+ * See: (USER_GUIDE.md#jumping-to-a-date-from-a-file)
  */
 const DUE_PROP = 'due';
 
@@ -164,6 +165,8 @@ async function saveCalendarProps(path: string, newContent: string): Promise<void
  *
  * See: (docs/technical_notes/file_attachments.md#paperclip-button-srccomponentsentriesmarkdownentrytsx)
  * See: (docs/technical_notes/ai_chat.md#code-map)
+ * See: (USER_GUIDE.md#viewing-content)
+ * See: (USER_GUIDE.md#editing-files)
  */
 function MarkdownEntry(props: MarkdownEntryProps) {
   const { entry, view, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, isAttachment = false, alwaysExpandedEditor = false } = props;
@@ -245,6 +248,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   const handleToggleExpanded = () => toggleItemExpanded(entry.path);
 
+  // Shows or hides the tag picker below the editor. See: (USER_GUIDE.md#tag-picker)
   const handleToggleTagsVisible = () => {
     // saveAiConfig both persists and mirrors into the store (which the editor
     // subscribes to), so this updates the panel and survives a restart.
@@ -255,6 +259,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   // When enabling the props panel for the first time on a file that has no front matter,
   // prepend an empty YAML block so the editor starts inside the delimiters.
+  // See: (USER_GUIDE.md#objects-and-custom-types)
   const handleToggleShowProps = () => {
     const turningOn = !showPropsInEditor;
     if (turningOn && !splitFrontMatter(edit.editContent)) {
@@ -277,6 +282,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // Promise .finally() instead of try/finally: the React Compiler bails out on
   // any try statement with a finalizer, which would de-optimize this component.
   // See: (docs/technical_notes/ai_chat.md#where-the-response-goes)
+  // See: (USER_GUIDE.md#ai-chat)
   const handleAskAi = async (promptContent: string | undefined, endEdit: boolean) => {
     const textToSend = promptContent || content;
     if (!textToSend) return;
@@ -305,6 +311,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     }).finally(() => setIsAiLoading(false));
   };
 
+  // Reply on an AI.md: starts the next HUMAN.md turn. See: (USER_GUIDE.md#replying-in-a-thread)
   const handleReply = () => {
     setIsReplyLoading(true);
     void replyToAiAndNavigate(entry.path, view).finally(() => setIsReplyLoading(false));
@@ -548,6 +555,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   // A click on the object's card (other than on a link) opens the editor with the front matter
   // shown and the cursor on the card's title property, as a click on its pill would.
+  // See: (USER_GUIDE.md#how-objects-are-displayed)
   const handleObjectMouseUp = (e: React.MouseEvent) => {
     if (!isEditClick(e)) return;
     e.stopPropagation();
@@ -557,6 +565,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // A click on a date in the object's card jumps to that date on the Calendar tab, as a `due`
   // pill's value does, highlighting this file so it's marked once the user comes back.
   // See: (docs/technical_notes/calendar_view.md#calendarview-component)
+  // See: (USER_GUIDE.md#property-types)
   const handleObjectDateClick = (date: Date): void => {
     setHighlightItem(entry.path);
     openCalendarAtDate(getParentPath(entry.path), date);

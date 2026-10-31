@@ -2,7 +2,11 @@
 // template's placeholder is replaced with the URL-encoded value. Hard-coded for now; meant to
 // become user settings later.
 
-/** Map search for an address. `{address}` is the address. */
+/**
+ * Map search for an address. `{address}` is the address.
+ *
+ * See: (USER_GUIDE.md#property-types)
+ */
 export const MAP_URL_TEMPLATE = 'https://www.google.com/maps/search/?api=1&query={address}';
 
 /**
@@ -37,6 +41,8 @@ export function buildEmailUrl(email: string, template: string = EMAIL_URL_TEMPLA
  * The URL to open for a `url` property. A value with no scheme (`example.com/page`) gets
  * `https://`; a value with an explicit scheme is kept as is, so one the main process won't open
  * (anything but http/https/file) simply does nothing when clicked.
+ *
+ * See: (USER_GUIDE.md#property-types)
  */
 export function buildWebUrl(url: string): string {
   const trimmed = url.trim();
@@ -50,6 +56,8 @@ export function buildWebUrl(url: string): string {
  * A trailing extension (`x89`, `ext. 89`, `extension 89`, `#89`) becomes RFC 3966's `;ext=89`.
  * A value with letters in the number itself (a vanity number like `1-800-FLOWERS`) is not linked,
  * since dropping the letters would dial the wrong number.
+ *
+ * See: (USER_GUIDE.md#property-types)
  */
 export function buildPhoneUrl(phone: string): string | undefined {
   const match = /^(.*?)(?:\s*(?:ext\.?|extension|x|#)\s*(\d+))?$/i.exec(phone.trim());

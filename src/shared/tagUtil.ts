@@ -7,7 +7,11 @@ export interface HashtagDefinition {
   description: string;
 }
 
-/** A named group of hashtags as defined in `tags.yaml`. */
+/**
+ * A named group of hashtags as defined in `tags.yaml`.
+ *
+ * See: (USER_GUIDE.md#category-behavior)
+ */
 export interface TagCategory {
   name: string;
   tags: HashtagDefinition[];
@@ -16,6 +20,8 @@ export interface TagCategory {
 /**
  * True for the special "all" category (case-insensitive): its tags allow multiple
  * selections in TagsPicker and their pills are shown without a category label.
+ *
+ * See: (USER_GUIDE.md#category-behavior)
  */
 export function isAllTagCategory(name: string): boolean {
   return name.toLowerCase() === 'all';
@@ -62,6 +68,8 @@ export function getTagsFromYaml(yamlStr: string): string[] {
  * Serialize `tags` back into a YAML string, replacing any existing `tags` key.
  * Tags are stored sorted alphabetically. If `tags` is empty the key is omitted.
  * Returns an empty string when the resulting document would be empty.
+ *
+ * See: (USER_GUIDE.md#tag-picker)
  */
 export function setTagsInYaml(yamlStr: string, tags: string[]): string {
   let parsed: Record<string, unknown>;
@@ -104,7 +112,11 @@ export function insertTagIntoText(text: string, tag: string): string {
   return assembleFrontMatter(`tags:\n  - ${tag}`, text);
 }
 
-/** Converts a TagCategory[] back to the canonical tags.yaml YAML string. */
+/**
+ * Converts a TagCategory[] back to the canonical tags.yaml YAML string.
+ *
+ * See: (USER_GUIDE.md#managing-your-hashtag-library-tags-editor)
+ */
 export function serializeTagsToYaml(categories: TagCategory[]): string {
   const hashtags: Record<string, Record<string, { description: string }>> = {};
   for (const cat of categories) {

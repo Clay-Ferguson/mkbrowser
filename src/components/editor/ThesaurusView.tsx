@@ -28,6 +28,7 @@ import { insertSynonymAfterWord } from '../../renderer/editor/editorThesaurusUti
  * Rendered only by `BrowseFile`, and only while editing.
  *
  * See: (docs/technical_notes/thesaurus_view.md#thesaurusview-rendering)
+ * See: (USER_GUIDE.md#thesaurus)
  */
 
 /** What is currently on screen: the word looked up under the cursor, and what came back. */
@@ -102,6 +103,7 @@ function ThesaurusView() {
   // failure here means that editor is gone, in which case there is nothing to insert into
   // and nothing worth telling the user.
   // See: (docs/technical_notes/thesaurus_view.md#getting-back-into-the-editor)
+  // See: (USER_GUIDE.md#thesaurus)
   const handleSynonymClick = (synonym: string) => {
     if (!insertSynonymAfterWord(synonym)) {
       logger.warn('Thesaurus insert ignored: no editor to insert into');

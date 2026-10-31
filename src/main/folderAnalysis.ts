@@ -3,6 +3,8 @@
  * 
  * This module handles the main-process side of the folder analysis feature.
  * It uses fdir for recursive directory crawling and extracts hashtags from file content.
+ *
+ * See: (USER_GUIDE.md#folder-analysis)
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -26,6 +28,8 @@ export interface FolderAnalysisResult {
  * @param folderPath   - Root folder to scan
  * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
  * @returns FolderAnalysisResult with hashtag counts and total files scanned
+ *
+ * See: (USER_GUIDE.md#what-gets-scanned)
  */
 export async function analyzeFolderHashtags(
   folderPath: string,

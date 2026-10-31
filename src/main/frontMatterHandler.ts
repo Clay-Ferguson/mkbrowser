@@ -23,6 +23,9 @@ import { logger } from '../shared/logUtil';
  *
  * Other errors during autogen are logged but do not propagate (the primary
  * save has already succeeded).
+ *
+ * See: (USER_GUIDE.md#how-it-works)
+ * See: (USER_GUIDE.md#technical-details)
  */
 export async function frontMatterFileSaved(
   sourceFilePath: string,

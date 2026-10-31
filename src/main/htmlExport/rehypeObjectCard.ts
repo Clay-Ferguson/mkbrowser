@@ -16,6 +16,8 @@ import { h } from './hastUtil';
  * border: the title is the `<summary>`, so the rows stay hidden until it is clicked.
  *
  * Use it on the page's first column only — the front matter belongs to the page, not a column.
+ *
+ * See: (USER_GUIDE.md#export-to-folder-html)
  */
 export function rehypeObjectCard(object: ResolvedObject | null, collapsible = false) {
   return (tree: Root) => {

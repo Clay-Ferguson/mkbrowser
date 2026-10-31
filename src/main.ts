@@ -227,6 +227,7 @@ function setupIpcHandlers(): void {
   // never pay for it. A missing or corrupt file resolves to no synonyms rather than
   // rejecting — the pane simply stays empty instead of surfacing an error mid-edit.
   // See: (docs/technical_notes/thesaurus_view.md#the-ipc-surface)
+  // See: (USER_GUIDE.md#thesaurus)
   ipcMain.handle('lookup-thesaurus', async (_event, word: string): Promise<ThesaurusLookup> => {
     return lookupThesaurus(word, {
       resourcesPath: process.resourcesPath,
@@ -340,6 +341,7 @@ function setupIpcHandlers(): void {
   });
 
   // Read EXIF metadata from an image file
+  // See: (USER_GUIDE.md#image-viewer-and-exif-metadata)
   ipcMain.handle('read-exif', async (_event, filePath: string): Promise<Record<string, Record<string, string>>> => {
     try {
       return await readExifMetadata(filePath);
@@ -361,6 +363,7 @@ function setupIpcHandlers(): void {
   });
 
   // Write EXIF metadata to an image file
+  // See: (USER_GUIDE.md#editing-exif-data)
   ipcMain.handle('write-exif', async (_event, filePath: string, data: Record<string, Record<string, string>>): Promise<ExifWriteResult> => {
     try {
       return await writeExifMetadata(filePath, data);
@@ -404,6 +407,7 @@ function setupIpcHandlers(): void {
       // front-matter `id`. Ids are only ever added with the user's consent, by the
       // editor's "Paste Link".
       if (filePath.toLowerCase().endsWith('.md')) {
+        // Regenerates any <!-- TOC --> block and puts an object's front matter in canonical order (Property order). See: (USER_GUIDE.md#automatic-table-of-contents-generation)
         finalContent = orderObjectFrontMatter(await processTOC(content), getConfig().types ?? {});
         // Take the per-directory index lock for the write itself: reconcile's
         // read → write-ids cycle for .md files (re-keying duplicate ids) runs
@@ -424,6 +428,7 @@ function setupIpcHandlers(): void {
       }
 
       // Post-save: run front-matter autogen for Markdown files
+      // See: (USER_GUIDE.md#automatic-markdown-to-html-export-front-matter-autogen)
       if (filePath.toLowerCase().endsWith('.md')) {
         const { yaml: frontMatter, content: body } = parseFrontMatter(finalContent);
         if (frontMatter) {
@@ -541,6 +546,7 @@ function setupIpcHandlers(): void {
       await renameInIndexYaml(dirPath, oldName, newName);
       // Rename the associated attach folder if it exists, and update its index entry
       // See: (docs/technical_notes/file_attachments.md#rename-synchronization-srcmaints)
+      // See: (USER_GUIDE.md#renaming-1)
       const oldAttachName = `${oldName}${ATTACH_SUFFIX}`;
       const newAttachName = `${newName}${ATTACH_SUFFIX}`;
       try {
@@ -558,6 +564,7 @@ function setupIpcHandlers(): void {
   });
 
   // Delete a file or folder (moves to OS trash)
+  // See: (USER_GUIDE.md#delete)
   ipcMain.handle('delete-file', async (_event, filePath: string): Promise<boolean> => {
     try {
       await shell.trashItem(filePath);
@@ -622,16 +629,19 @@ function setupIpcHandlers(): void {
 
   // Insert one or more new entries into .INDEX.yaml at the specified position
   // See: (docs/technical_notes/document_mode.md#insert-bars)
+  // See: (USER_GUIDE.md#inserting-new-files-and-folders)
   ipcMain.handle('insert-into-index-yaml', async (_event, dirPath: string, newNames: string | string[], insertAfterName: string | null): Promise<{ success: boolean; error?: string }> => {
     return alertIfCorruptIndex(dirPath, await insertIntoIndexYaml(dirPath, newNames, insertAfterName));
   });
 
   // Move an entry up or down one position in .INDEX.yaml
+  // See: (USER_GUIDE.md#editing-mode)
   ipcMain.handle('move-in-index-yaml', async (_event, dirPath: string, name: string, direction: 'up' | 'down'): Promise<{ success: boolean; error?: string }> => {
     return alertIfCorruptIndex(dirPath, await moveInIndexYaml(dirPath, name, direction));
   });
 
   // Move an entry to the top or bottom of .INDEX.yaml
+  // See: (USER_GUIDE.md#editing-mode)
   ipcMain.handle('move-to-edge-in-index-yaml', async (_event, dirPath: string, name: string, edge: 'top' | 'bottom'): Promise<{ success: boolean; error?: string }> => {
     return alertIfCorruptIndex(dirPath, await moveToEdgeInIndexYaml(dirPath, name, edge));
   });
@@ -648,6 +658,7 @@ function setupIpcHandlers(): void {
   });
 
   // Search and replace in files recursively
+  // See: (USER_GUIDE.md#replace-in-files-1)
   ipcMain.handle('search-and-replace', async (_event, folderPath: string, searchText: string, replaceText: string): Promise<ReplaceResult[]> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
@@ -660,6 +671,7 @@ function setupIpcHandlers(): void {
 
   // Get a .md file's front-matter id, adding one if missing ("Paste Link")
   // See: (docs/technical_notes/document_mode.md#stable-identity-via-front-matter-ids)
+  // See: (USER_GUIDE.md#inserting-links-to-other-files)
   ipcMain.handle('ensure-front-matter-id', async (_event, filePath: string): Promise<FrontMatterIdResult> => {
     try {
       return await ensureFrontMatterId(filePath);
@@ -670,6 +682,7 @@ function setupIpcHandlers(): void {
   });
 
   // Find the .md file whose front-matter id matches (Markdown link auto-repair)
+  // See: (USER_GUIDE.md#inserting-links-to-other-files)
   ipcMain.handle('find-markdown-by-id', async (_event, id: string, likelyDir: string, rootDir: string): Promise<string | null> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
@@ -681,6 +694,7 @@ function setupIpcHandlers(): void {
   });
 
   // Find the file whose name carries the id before the given extension (link auto-repair)
+  // See: (USER_GUIDE.md#inserting-links-to-other-files)
   ipcMain.handle('find-file-by-id-suffix', async (_event, id: string, ext: string, likelyDir: string, rootDir: string): Promise<string | null> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
@@ -721,6 +735,7 @@ function setupIpcHandlers(): void {
   // runs at a time: a new request cancels the one in progress and waits for it
   // to stop first. The cancelled request resolves with `cancelled: true` (not an
   // error: Electron logs every rejected handler) and the renderer drops it.
+  // See: (USER_GUIDE.md#using-search)
   const runExclusiveSearch = createExclusiveSearchRunner();
   ipcMain.handle('search-folder', async (_event, folderPath: string, definition: SearchDefinition): Promise<SearchOutcome> => {
     try {
@@ -738,10 +753,12 @@ function setupIpcHandlers(): void {
 
   // Parse (never run) an advanced query for the Search dialog's validation —
   // the renderer can't, since its CSP forbids 'unsafe-eval'.
+  // See: (USER_GUIDE.md#advanced-search-predicates)
   ipcMain.handle('check-advanced-query-syntax', (_event, query: string): string | null =>
     getAdvancedQuerySyntaxError(query));
 
   // Analyze folder for hashtags in .md and .txt files
+  // See: (USER_GUIDE.md#running-an-analysis)
   ipcMain.handle('analyze-folder-hashtags', async (_event, folderPath: string): Promise<FolderAnalysisResult> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
@@ -755,6 +772,7 @@ function setupIpcHandlers(): void {
   // Scan folder for markdown files with a 'due' front matter property, then start watching it
   // See: (docs/technical_notes/calendar_view.md#ipc-surface)
   // See: (docs/technical_notes/calendar_view.md#file-system-monitoring--srcmaincalendarwatcherts)
+  // See: (USER_GUIDE.md#opening-the-calendar)
   ipcMain.handle('load-calendar-events', async (_event, folderPath: string): Promise<CalendarEventResult[]> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
@@ -790,6 +808,7 @@ function setupIpcHandlers(): void {
 
   // Load calendar events for an explicit list of files (the search-results calendar).
   // See: (docs/technical_notes/calendar_view.md#search-source--snapshot)
+  // See: (USER_GUIDE.md#search-results)
   ipcMain.handle('load-calendar-events-for-files', async (_event, filePaths: string[]): Promise<CalendarEventResult[]> => {
     try {
       // Snapshot semantics: a search-sourced calendar spans arbitrarily many folders,
@@ -807,6 +826,7 @@ function setupIpcHandlers(): void {
 
   // Recursively scan folder structure for the FolderGraphView (D3 graph).
   // See: (docs/technical_notes/folder_graph.md#main-process)
+  // See: (USER_GUIDE.md#launching-the-graph)
   ipcMain.handle('scan-folder-tree', async (_event, folderPath: string, markdownOnly = false): Promise<FolderGraphResult> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
@@ -823,6 +843,7 @@ function setupIpcHandlers(): void {
   // Read the folder graph's Markdown files for their file-to-file links (the
   // graph view's "Links" toggle). Runs separately from the tree scan.
   // See: (docs/technical_notes/folder_graph.md#file-to-file-links-overlay)
+  // See: (USER_GUIDE.md#reading-the-graph)
   ipcMain.handle('scan-folder-graph-links', async (_event, folderPath: string, nodeIds: string[]): Promise<FolderGraphLinkData[]> => {
     try {
       return await scanFolderGraphLinks(folderPath, nodeIds);
@@ -833,6 +854,7 @@ function setupIpcHandlers(): void {
   });
 
   // Load tags from the tags.yaml in the config folder
+  // See: (USER_GUIDE.md#managing-your-hashtag-library-tags-editor)
   ipcMain.handle('load-tags', async (): Promise<TagCategory[]> => {
     try {
       const configDir = app.getPath('userData');
@@ -844,6 +866,7 @@ function setupIpcHandlers(): void {
   });
 
   // Save tags.yaml to the config folder
+  // See: (USER_GUIDE.md#managing-your-hashtag-library-tags-editor)
   ipcMain.handle('save-tags', async (_event, yamlContent: string): Promise<void> => {
     const configDir = app.getPath('userData');
     const tagsFile = path.join(configDir, 'tags.yaml');
@@ -851,6 +874,7 @@ function setupIpcHandlers(): void {
   });
 
   // Select folder for export output
+  // See: (USER_GUIDE.md#exporting)
   ipcMain.handle('select-export-folder', async (): Promise<string | null> => {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory', 'createDirectory'],
@@ -864,6 +888,7 @@ function setupIpcHandlers(): void {
   });
 
   // Export folder contents to a single markdown file
+  // See: (USER_GUIDE.md#exporting)
   ipcMain.handle('export-folder-contents', async (
     _event,
     sourceFolder: string,
@@ -885,6 +910,7 @@ function setupIpcHandlers(): void {
   });
 
   // Export a folder tree as a browsable HTML folder ("Export to Folder (HTML)")
+  // See: (USER_GUIDE.md#export-to-folder-html)
   ipcMain.handle('export-folder-html', async (
     _event,
     sourceFolder: string,
@@ -908,6 +934,7 @@ function setupIpcHandlers(): void {
   });
 
   // Check an HTML export output folder before the dialog offers to overwrite it
+  // See: (USER_GUIDE.md#export-to-folder-html)
   ipcMain.handle('check-html-export-target', async (
     _event,
     sourceFolder: string,
@@ -922,6 +949,7 @@ function setupIpcHandlers(): void {
   });
 
   // Export markdown to PDF using external terminal
+  // See: (USER_GUIDE.md#exporting)
   ipcMain.handle('export-to-pdf', async (
     _event,
     markdownPath: string,
@@ -942,6 +970,7 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Runs a .sh file from the tree's Run menu item, in a terminal unless it says # Terminal=false. See: (USER_GUIDE.md#running-shell-scripts)
   ipcMain.handle('run-shell-script', async (_event, filePath: string): Promise<{ success: boolean; error?: string }> => {
     try {
       return await runShellScript(filePath);
@@ -952,6 +981,7 @@ function setupIpcHandlers(): void {
 
   // Ask AI: submit a prompt and write the response to A/AI.md (or A1/AI.md, etc.)
   // See: (docs/technical_notes/ai_chat.md#asking-the-ai)
+  // See: (USER_GUIDE.md#ai-chat)
   ipcMain.handle('ask-ai', async (
     _event,
     prompt: string,
@@ -1071,6 +1101,7 @@ function setupIpcHandlers(): void {
   };
 
   // Rewrite content via AI: takes raw text, returns improved version
+  // See: (USER_GUIDE.md#how-to-use-rewrite)
   ipcMain.handle('rewrite-content', async (_event, content: string, filePath: string, hasIndexFile: boolean) => {
     const { abortController, callbacks, onStreamDone, onStreamError, cleanup } = setupRewriteStreaming();
     try {
@@ -1084,6 +1115,7 @@ function setupIpcHandlers(): void {
   });
 
   // Rewrite a selected region of content via AI
+  // See: (USER_GUIDE.md#rewriting-a-selection)
   ipcMain.handle('rewrite-content-selection', async (_event, content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => {
     const { abortController, callbacks, onStreamDone, onStreamError, cleanup } = setupRewriteStreaming();
     try {
@@ -1102,11 +1134,13 @@ function setupIpcHandlers(): void {
   });
 
   // Get AI usage statistics
+  // See: (USER_GUIDE.md#ai-usage-statistics)
   ipcMain.handle('get-ai-usage', async () => {
     return getUsageWithCosts();
   });
 
   // Reset AI usage statistics
+  // See: (USER_GUIDE.md#ai-usage-statistics)
   ipcMain.handle('reset-ai-usage', async () => {
     await resetUsage();
   });
@@ -1114,6 +1148,7 @@ function setupIpcHandlers(): void {
   // Reply to AI: create an H subfolder with an empty HUMAN.md for the user to write in
   // (or, for "New AI Chat", HUMAN.md directly in the folder).
   // See: (docs/technical_notes/ai_chat.md#replying-to-the-ai)
+  // See: (USER_GUIDE.md#replying-in-a-thread)
   ipcMain.handle('reply-to-ai', async (_event, parentFolderPath: string, createSubFolder: boolean) => {
     try {
       return await handleReplyToAI(parentFolderPath, createSubFolder);
@@ -1125,6 +1160,7 @@ function setupIpcHandlers(): void {
 
   // Gather AI conversation thread entries for the ThreadView.
   // See: (docs/technical_notes/ai_chat.md#how-the-thread-is-gathered)
+  // See: (USER_GUIDE.md#chat-thread-view)
   ipcMain.handle('gather-thread-entries', async (_event, folderPath: string) => {
     return gatherThreadEntries(folderPath);
   });
