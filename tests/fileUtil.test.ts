@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readDirectory, isFolderEmpty, deleteEmptyFolder } from '../src/main/fileUtil';
+import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry } from '../src/main/fileUtil';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from '../src/shared/specialFiles';
 
 let tmpDir: string;
@@ -157,12 +157,152 @@ describe('deleteEmptyFolder', () => {
     expect(fs.readFileSync(path.join(target, '.secret'), 'utf8')).toBe('keep me');
   });
 
-  it('still fails at the OS level if the emptiness check is bypassed', async () => {
-    // The second guard on its own: rmdir never removes a folder with content.
-    const target = path.join(tmpDir, 'full');
+  it('keeps a file that appears after the emptiness check (rmdir is never recursive)', async () => {
+    // The second guard: a file created between the check and the delete makes
+    // rmdir fail (ENOTEMPTY) instead of being removed along with the folder.
+    const target = path.join(tmpDir, 'racy');
     fs.mkdirSync(target);
-    fs.writeFileSync(path.join(target, 'note.md'), 'keep me', 'utf8');
-    await expect(fs.promises.rmdir(target)).rejects.toMatchObject({ code: 'ENOTEMPTY' });
-    expect(fs.existsSync(path.join(target, 'note.md'))).toBe(true);
+    const realRmdir = fs.promises.rmdir.bind(fs.promises);
+    const spy = vi.spyOn(fs.promises, 'rmdir').mockImplementation(async (...args) => {
+      fs.writeFileSync(path.join(target, 'note.md'), 'keep me', 'utf8');
+      return realRmdir(...(args as Parameters<typeof realRmdir>));
+    });
+    try {
+      await expect(deleteEmptyFolder(target)).rejects.toMatchObject({ code: 'ENOTEMPTY' });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(fs.readFileSync(path.join(target, 'note.md'), 'utf8')).toBe('keep me');
+  });
+
+  it('keeps a file that appears while a lone .INDEX.yaml is being removed', async () => {
+    const target = path.join(tmpDir, 'racy-doc');
+    fs.mkdirSync(target);
+    fs.writeFileSync(path.join(target, INDEX_FILENAME), 'files: []', 'utf8');
+    const realUnlink = fs.promises.unlink.bind(fs.promises);
+    const spy = vi.spyOn(fs.promises, 'unlink').mockImplementation(async (...args) => {
+      fs.writeFileSync(path.join(target, 'note.md'), 'keep me', 'utf8');
+      return realUnlink(...(args as Parameters<typeof realUnlink>));
+    });
+    try {
+      await expect(deleteEmptyFolder(target)).rejects.toMatchObject({ code: 'ENOTEMPTY' });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(fs.readFileSync(path.join(target, 'note.md'), 'utf8')).toBe('keep me');
+  });
+
+  it('refuses a folder holding only a subfolder, leaving the subfolder and its files', async () => {
+    const target = path.join(tmpDir, 'outer');
+    fs.mkdirSync(path.join(target, 'inner'), { recursive: true });
+    fs.writeFileSync(path.join(target, 'inner', 'deep.md'), 'keep me', 'utf8');
+    await expect(deleteEmptyFolder(target)).rejects.toThrow('Folder is not empty');
+    expect(fs.readFileSync(path.join(target, 'inner', 'deep.md'), 'utf8')).toBe('keep me');
+  });
+});
+
+describe('renameEntry', () => {
+  const p = (name: string) => path.join(tmpDir, name);
+  const write = (name: string, content: string) => fs.writeFileSync(p(name), content, 'utf8');
+  const read = (name: string) => fs.readFileSync(p(name), 'utf8');
+  const writeIndex = (names: string[]) =>
+    fs.writeFileSync(p(INDEX_FILENAME), `files:\n${names.map((n) => `  - name: ${n}\n`).join('')}`, 'utf8');
+  const indexNames = () =>
+    [...fs.readFileSync(p(INDEX_FILENAME), 'utf8').matchAll(/name: (.+)/g)].map((m) => m[1]);
+
+  it('renames a file', async () => {
+    write('a.md', 'A');
+    expect(await renameEntry(p('a.md'), p('b.md'))).toBe(true);
+    expect(fs.existsSync(p('a.md'))).toBe(false);
+    expect(read('b.md')).toBe('A');
+  });
+
+  it('refuses to replace an existing file, leaving both untouched', async () => {
+    write('a.md', 'A');
+    write('b.md', 'B');
+    expect(await renameEntry(p('a.md'), p('b.md'))).toBe(false);
+    expect(read('a.md')).toBe('A');
+    expect(read('b.md')).toBe('B');
+  });
+
+  it('refuses to replace an existing folder', async () => {
+    fs.mkdirSync(p('src'));
+    write('src/x.md', 'X');
+    fs.mkdirSync(p('dst'));
+    expect(await renameEntry(p('src'), p('dst'))).toBe(false);
+    expect(read('src/x.md')).toBe('X');
+    expect(fs.readdirSync(p('dst'))).toEqual([]);
+  });
+
+  it('refuses to replace a dangling symlink at the destination', async () => {
+    // stat() reports a dangling link as absent; only lstat() sees it is there.
+    write('a.md', 'A');
+    fs.symlinkSync(p('missing-target.md'), p('b.md'));
+    expect(await renameEntry(p('a.md'), p('b.md'))).toBe(false);
+    expect(read('a.md')).toBe('A');
+    expect(fs.lstatSync(p('b.md')).isSymbolicLink()).toBe(true);
+  });
+
+  it('refuses to rename onto a hard link of the same file (both names would survive)', async () => {
+    write('a.md', 'A');
+    fs.linkSync(p('a.md'), p('b.md'));
+    expect(await renameEntry(p('a.md'), p('b.md'))).toBe(false);
+    expect(read('a.md')).toBe('A');
+  });
+
+  it('moves into another folder without clobbering a same-named file there', async () => {
+    write('a.md', 'source');
+    fs.mkdirSync(p('dest'));
+    write('dest/a.md', 'already here');
+    expect(await renameEntry(p('a.md'), p('dest/a.md'))).toBe(false);
+    expect(read('a.md')).toBe('source');
+    expect(read('dest/a.md')).toBe('already here');
+  });
+
+  it('rejects (and changes nothing) when the source does not exist', async () => {
+    await expect(renameEntry(p('nope.md'), p('b.md'))).rejects.toMatchObject({ code: 'ENOENT' });
+    expect(fs.existsSync(p('b.md'))).toBe(false);
+  });
+
+  it('carries the .attach folder and both index entries along on a same-folder rename', async () => {
+    write('a.md', 'A');
+    fs.mkdirSync(p(`a.md${ATTACH_SUFFIX}`));
+    write(`a.md${ATTACH_SUFFIX}/pic.png`, 'png');
+    writeIndex(['a.md', `a.md${ATTACH_SUFFIX}`]);
+
+    expect(await renameEntry(p('a.md'), p('b.md'))).toBe(true);
+
+    expect(read('b.md')).toBe('A');
+    expect(read(`b.md${ATTACH_SUFFIX}/pic.png`)).toBe('png');
+    expect(fs.existsSync(p(`a.md${ATTACH_SUFFIX}`))).toBe(false);
+    expect(indexNames()).toEqual(['b.md', `b.md${ATTACH_SUFFIX}`]);
+  });
+
+  it('leaves the .attach folder in place when its new name is already taken', async () => {
+    write('a.md', 'A');
+    fs.mkdirSync(p(`a.md${ATTACH_SUFFIX}`));
+    write(`a.md${ATTACH_SUFFIX}/mine.png`, 'mine');
+    // An orphaned attach folder already sits at the new name — even an empty one
+    // (which a bare rename would silently replace) must not be touched.
+    fs.mkdirSync(p(`b.md${ATTACH_SUFFIX}`));
+    write(`b.md${ATTACH_SUFFIX}/theirs.png`, 'theirs');
+
+    expect(await renameEntry(p('a.md'), p('b.md'))).toBe(true);
+
+    expect(read('b.md')).toBe('A');
+    expect(read(`a.md${ATTACH_SUFFIX}/mine.png`)).toBe('mine');
+    expect(read(`b.md${ATTACH_SUFFIX}/theirs.png`)).toBe('theirs');
+  });
+
+  it('does not rename the .attach folder when the entry moves to another folder', async () => {
+    write('a.md', 'A');
+    fs.mkdirSync(p(`a.md${ATTACH_SUFFIX}`));
+    write(`a.md${ATTACH_SUFFIX}/pic.png`, 'png');
+    fs.mkdirSync(p('dest'));
+
+    expect(await renameEntry(p('a.md'), p('dest/a.md'))).toBe(true);
+
+    expect(read('dest/a.md')).toBe('A');
+    expect(read(`a.md${ATTACH_SUFFIX}/pic.png`)).toBe('png');
   });
 });

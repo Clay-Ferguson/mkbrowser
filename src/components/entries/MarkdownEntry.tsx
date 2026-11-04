@@ -6,7 +6,7 @@ import { api, ipcErrorMessage } from '../../renderer/api';
 import { saveAiConfig, saveSettings } from '../../renderer/config';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../shared/types';
-import { splitFrontMatter, getPropsFromYaml } from '../../shared/frontMatterUtil';
+import { splitFrontMatter, getPropsFromYaml, getFrontMatterError } from '../../shared/frontMatterUtil';
 import { getTagsFromYaml } from '../../shared/tagUtil';
 import { CALENDAR_PROPS } from '../../shared/calendarUtil';
 import {
@@ -29,6 +29,7 @@ import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import TagsPicker from '../TagsPicker';
 import PropsDisplay from '../PropsDisplay';
+import InvalidFrontMatterWarning from '../InvalidFrontMatterWarning';
 import ObjectBlock, { InvalidObjectHint } from '../objects/ObjectBlock';
 import GenericObject from '../objects/GenericObject';
 import { isEditClick } from '../blockClickComponents';
@@ -470,6 +471,17 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   /** Opens the editor with the front matter shown and the cursor on the `key:` line (if there is one). */
   const openFrontMatterAt = (key: string): void => {
+    // Scan only the front-matter block, not the whole document: a body line beginning with
+    // e.g. `due:` would otherwise win over the real property. yamlStr starts on document line 2
+    // (line 1 is the opening `---`), so a 0-based index within it maps to document line idx + 2.
+    const propPrefix = `${key}:`;
+    const fm = splitFrontMatter(content);
+    const fmIdx = fm ? fm.yamlStr.split('\n').findIndex(l => l.startsWith(propPrefix)) : -1;
+    openFrontMatterAtLine(fmIdx >= 0 ? fmIdx + 2 : null);
+  };
+
+  /** Opens the editor with the front matter shown and the cursor on the given 1-based document line (if any). */
+  const openFrontMatterAtLine = (line: number | null): void => {
     if (edit.isEditing) {
       // Already in the editor — just reveal the front matter. Calling handleEditClick here would
       // re-seed the edit buffer from disk and throw away any unsaved changes.
@@ -478,14 +490,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       return;
     }
     void (async () => {
-      // Scan only the front-matter block, not the whole document: a body line beginning with
-      // e.g. `due:` would otherwise win over the real property. yamlStr starts on document line 2
-      // (line 1 is the opening `---`), so a 0-based index within it maps to document line idx + 2.
-      const propPrefix = `${key}:`;
-      const fm = splitFrontMatter(content);
-      const fmIdx = fm ? fm.yamlStr.split('\n').findIndex(l => l.startsWith(propPrefix)) : -1;
-      const line = fmIdx >= 0 ? fmIdx + 2 : 0;
-      await edit.handleEditClick(line > 0 ? line : undefined);
+      await edit.handleEditClick(line ?? undefined);
       setShowPropsInEditor(true);
       saveSettings();
     })();
@@ -583,6 +588,20 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     </div>
   ) : null;
 
+  // Front matter that isn't valid YAML is read as holding nothing, so the pills and object card
+  // above would silently vanish. In view mode a warning takes their place, saying why; a click on
+  // it opens the editor at the problem line.
+  // See: (USER_GUIDE.md#invalid-front-matter)
+  const frontMatterError = edit.isEditing ? null : getFrontMatterError(content || '');
+  const handleFrontMatterErrorMouseUp = (e: React.MouseEvent) => {
+    if (!isEditClick(e)) return;
+    e.stopPropagation();
+    openFrontMatterAtLine(frontMatterError?.line ?? null);
+  };
+  const frontMatterWarning = frontMatterError ? (
+    <InvalidFrontMatterWarning error={frontMatterError} onMouseUp={handleFrontMatterErrorMouseUp} />
+  ) : null;
+
   // During an in-place AI review (the CodeMirror unified merge view inside the live editor) the
   // tag pills/picker are hidden — TagsPicker writes into the edit buffer, which the editor
   // deliberately ignores during a review. Front matter is forced visible so a diff chunk in a
@@ -648,6 +667,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             </>
           ) : (
             <>
+              {frontMatterWarning}
               {propsDisplay}
               {objectCard}
               <ErrorBoundary label="markdown content" resetKeys={[content]}>

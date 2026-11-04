@@ -4,6 +4,7 @@ import { fdir } from 'fdir';
 import { escapeRegexLiteral, buildExcludePredicate } from '../shared/pathPattern';
 import { mapWithConcurrency } from '../shared/asyncUtil';
 import { writeFileAtomic } from './atomicWrite';
+import { withIndexLock } from './indexUtil';
 
 /** Max number of files read/written concurrently during a search-and-replace.
  * Bounded so huge trees don't exhaust file descriptors (EMFILE) while still
@@ -168,7 +169,28 @@ export async function searchAndReplace(
         // half-written — readers see either the full old file or the full new
         // file. This is a bulk rewrite of the user's own docs, where data
         // integrity matters most.
-        await writeFileAtomic(filePath, newContent);
+        //
+        // newContent derives from the bytes read above, so if the file changed
+        // since (an editor save, a reconcile id re-key, an external program),
+        // writing it would silently discard that newer change. Re-read and
+        // compare first — a compare-and-swap, the same guard reconcile uses —
+        // under the directory's index lock, which the editor's save of a .md
+        // file and reconcile's id writes also hold, so neither can land between
+        // the compare and the write.
+        const written = await withIndexLock(path.dirname(filePath), async () => {
+          if (!(await fs.promises.readFile(filePath)).equals(buf)) return false;
+          await writeFileAtomic(filePath, newContent);
+          return true;
+        });
+        if (!written) {
+          return {
+            path: filePath,
+            relativePath: path.relative(folderPath, filePath),
+            replacementCount: 0,
+            success: false,
+            error: 'File changed while the replace was running; skipped to avoid overwriting the newer content',
+          };
+        }
 
         return {
           path: filePath,

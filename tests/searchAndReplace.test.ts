@@ -7,7 +7,7 @@
 import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { searchAndReplace } from '../src/main/searchAndReplace';
 
 let tmpDir: string;
@@ -229,6 +229,62 @@ describe('searchAndReplace', () => {
     expect(bigResult?.replacementCount).toBe(0);
     expect(bigResult?.error).toMatch(/too large/i);
     expect((await fs.promises.stat(bigPath)).size).toBe(bigSizeBefore);
+  });
+
+  it('leaves a non-UTF-8 (legacy-encoded) file byte-for-byte untouched and reports it', async () => {
+    // Latin-1 "café needle": decoding as UTF-8 turns 0xE9 into U+FFFD, so writing
+    // the replaced string back would permanently mangle every accented character.
+    const latin1 = Buffer.from([0x63, 0x61, 0x66, 0xe9, 0x20, ...Buffer.from('needle')]);
+    const file = path.join(tmpDir, 'legacy.md');
+    await fs.promises.writeFile(file, latin1);
+    await writeFile('ok.md', 'café needle');
+
+    const results = await searchAndReplace(tmpDir, 'needle', 'pin', []);
+
+    const byRel = new Map(results.map(r => [r.relativePath, r]));
+    expect(byRel.get('legacy.md')).toMatchObject({ success: false, replacementCount: 0 });
+    expect(byRel.get('legacy.md')?.error).toMatch(/UTF-8/);
+    expect((await fs.promises.readFile(file)).equals(latin1)).toBe(true);
+    // Genuine UTF-8 with non-ASCII characters is still processed.
+    expect(byRel.get('ok.md')).toMatchObject({ success: true, replacementCount: 1 });
+    expect(await fs.promises.readFile(path.join(tmpDir, 'ok.md'), 'utf-8')).toBe('café pin');
+  });
+
+  it('does not overwrite a file that changed after it was read (e.g. an editor save)', async () => {
+    // A save that lands between the replace's read and its write must win: the
+    // replace's content was computed from the old bytes and would discard it.
+    const file = await writeFile('a.md', 'needle one');
+    const realReadFile = fs.promises.readFile.bind(fs.promises);
+    const spy = vi.spyOn(fs.promises, 'readFile').mockImplementation(async (target, ...args) => {
+      const result = await realReadFile(target as never, ...(args as unknown as never[]));
+      if (typeof target === 'string' && path.resolve(target) === path.resolve(file)) {
+        spy.mockRestore(); // only the first read is intercepted
+        fs.writeFileSync(file, 'needle one, plus the user\'s newer edit', 'utf-8');
+      }
+      return result;
+    });
+
+    let results;
+    try {
+      results = await searchAndReplace(tmpDir, 'needle', 'pin', []);
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ relativePath: 'a.md', success: false, replacementCount: 0 });
+    expect(results[0].error).toMatch(/changed/i);
+    expect(await fs.promises.readFile(file, 'utf-8')).toBe("needle one, plus the user's newer edit");
+  });
+
+  it('preserves the file mode of a replaced file', async () => {
+    const file = await writeFile('private.md', 'needle');
+    await fs.promises.chmod(file, 0o600);
+
+    await searchAndReplace(tmpDir, 'needle', 'pin', []);
+
+    expect(await fs.promises.readFile(file, 'utf-8')).toBe('pin');
+    expect((await fs.promises.stat(file)).mode & 0o777).toBe(0o600);
   });
 
   it('respects ignored patterns and always excludes hidden files', async () => {

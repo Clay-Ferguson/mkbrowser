@@ -33,9 +33,12 @@ function makeFs(
     return { ok: true as const, content };
   };
 
+  // Mirrors the real create-file handler's 'wx' flag: it never replaces an
+  // existing file, whatever the earlier pathExists check said.
   const createFile = async (path: string, content: string) => {
     calls.create++;
     if (opts.createFailOn === path) return { success: false, error: `create failed: ${path}` };
+    if (fs.has(path)) return { success: false, error: 'A file/folder with this name already exists' };
     fs.set(path, content);
     return { success: true };
   };
@@ -126,6 +129,21 @@ describe('splitFile — input/IO errors before mutation', () => {
     expect(m.calls.create + m.calls.delete).toBe(0);
   });
 
+  it('returns an error (no mutation) when the read reports failure (ok: false)', async () => {
+    // The real readFile reports failure in its result rather than throwing; an
+    // unreadable file must never be split as if it were empty.
+    const m = makeFs({ '/docs/note.md': 'AAA\n\n\nBBB' });
+    const result = await splitFile('/docs/note.md', {
+      ...m,
+      readFile: async () => ({ ok: false as const, error: 'EACCES' }),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/failed to read/i);
+    expect(m.calls.create + m.calls.delete).toBe(0);
+    expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB');
+  });
+
   it('returns an error (no mutation) when the collision check throws', async () => {
     const m = makeFs(
       { '/docs/note.md': 'AAA\n\n\nBBB' },
@@ -191,6 +209,49 @@ describe('splitFile — collision detection', () => {
   });
 });
 
+describe('splitFile — content is never lost', () => {
+  // Every non-whitespace character of the original must land in exactly one part,
+  // in order — the delimiter (only whitespace by default) is all a split may drop.
+  const cases: Record<string, string> = {
+    plain: 'AAA\n\nBBB\n\n\n\nCCC',
+    'leading/trailing blank lines': '\n\n\nAAA\n\nBBB\n\n',
+    'front matter': '---\nid: abc\ntitle: T\n---\n\nAAA\n\nBBB',
+    'CRLF line endings': 'AAA\r\n\r\nBBB\r\n\r\nCCC',
+    'markdown with code and lists': '# H\n\n- a\n- b\n\n```js\nx = 1;\n```\n\ntext $1 $& end',
+  };
+  for (const [label, content] of Object.entries(cases)) {
+    it(`preserves all content: ${label}`, async () => {
+      const m = makeFs({ '/docs/note.md': content });
+      const result = await run('/docs/note.md', m);
+
+      expect(result.success).toBe(true);
+      const parts = result.filePaths!.map((p) => m.fs.get(p)!);
+      const squash = (t: string) => t.replace(/\s+/g, '');
+      expect(squash(parts.join(''))).toBe(squash(content));
+    });
+  }
+});
+
+describe('splitFile — a target that appears after the collision check', () => {
+  it('never overwrites it, and rolls back the parts already created', async () => {
+    // note-01.md is created by someone else between the collision check and the
+    // create (simulated by pathExists answering "absent" for it). The create must
+    // refuse rather than clobber it, and the split must undo itself.
+    const m = makeFs(
+      { '/docs/note.md': 'AAA\n\n\nBBB\n\n\nCCC', '/docs/note-01.md': 'someone else' },
+      { existsOverride: (p) => (p === '/docs/note-01.md' ? false : undefined) }
+    );
+    const result = await run('/docs/note.md', m);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/rolled back/i);
+    expect(m.fs.get('/docs/note-01.md')).toBe('someone else');
+    expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB\n\n\nCCC');
+    expect(m.fs.has('/docs/note-00.md')).toBe(false);
+    expect(m.fs.has('/docs/note-02.md')).toBe(false);
+  });
+});
+
 describe('splitFile — rollback on failure', () => {
   it('creates every part as a new file and only deletes the original once they all exist', async () => {
     const m = makeFs({ '/docs/note.md': 'AAA\n\n\nBBB\n\n\nCCC' });
@@ -200,6 +261,19 @@ describe('splitFile — rollback on failure', () => {
     // One create per part (including -00), and exactly one delete: the original.
     expect(m.calls.create).toBe(3);
     expect(m.calls.delete).toBe(1);
+  });
+
+  it('deletes the original only after every part is on disk', async () => {
+    const m = makeFs({ '/docs/note.md': 'AAA\n\n\nBBB\n\n\nCCC' });
+    const partsAtDelete: string[][] = [];
+    const deleteFile = async (path: string) => {
+      partsAtDelete.push([...m.fs.keys()].filter((k) => k !== '/docs/note.md').sort());
+      return m.deleteFile(path);
+    };
+    const result = await splitFile('/docs/note.md', { ...m, deleteFile });
+
+    expect(result.success).toBe(true);
+    expect(partsAtDelete).toEqual([['/docs/note-00.md', '/docs/note-01.md', '/docs/note-02.md']]);
   });
 
   it('create-fails-on-the-first-part: leaves the original fully intact', async () => {

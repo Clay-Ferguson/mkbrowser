@@ -688,7 +688,7 @@ export interface ElectronAPI {
   getFileMtime: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   createFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
-  // Also renames the file's sibling `.attach` folder, if any. See: (file_attachments.md#rename-synchronization-srcmaints)
+  // Also renames the file's sibling `.attach` folder, if any. See: (file_attachments.md#rename-synchronization-srcmainfileutilts)
   // See: (USER_GUIDE.md#renaming-1)
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   // Moves the file or folder to the OS trash. See: (USER_GUIDE.md#delete)

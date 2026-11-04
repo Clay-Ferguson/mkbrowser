@@ -78,10 +78,20 @@ export function isMarkdownPath(p: string): boolean {
   return MD_EXT_RE.test(p);
 }
 
-/** True when `p` is `root` itself or lies somewhere beneath it. */
+/**
+ * True when `p` is `root` itself or lies somewhere beneath it.
+ *
+ * Only a `..` *segment* means "outside": a child folder whose name merely starts
+ * with two dots (`root/..drafts`) gives the relative path `..drafts`, which is
+ * inside. Testing `startsWith('..')` alone misreads it as outside — and since the
+ * HTML export empties its output folder, that misreading would let an output
+ * folder that contains the source (or sits inside it) through the guards.
+ */
 export function isInsideOrEqual(root: string, p: string): boolean {
   const rel = path.relative(root, p);
-  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+  if (rel === '') return true;
+  const escapes = rel === '..' || rel.startsWith(`..${path.sep}`);
+  return !escapes && !path.isAbsolute(rel);
 }
 
 /** A source path's mirrored path in the output: `.md` files become `.html`, everything else keeps its name. */

@@ -60,6 +60,63 @@ describe('writeFileAtomic', () => {
     expect(await listDir()).toEqual(['busy']);
   });
 
+  it('leaves an existing file byte-for-byte intact when the write itself fails (e.g. disk full)', async () => {
+    // The data-loss case that atomicity exists for: the new bytes can't all be
+    // written. A plain truncate-then-write would leave the original empty or
+    // half-written; the atomic path must leave it exactly as it was.
+    const target = path.join(tmpDir, 'note.md');
+    await fs.promises.writeFile(target, 'original content', 'utf8');
+
+    const realOpen = fs.promises.open;
+    const openSpy = vi.spyOn(fs.promises, 'open').mockImplementation(async (...args: Parameters<typeof realOpen>) => {
+      const handle = await realOpen(...args);
+      vi.spyOn(handle, 'writeFile').mockImplementation(async () => {
+        throw Object.assign(new Error('ENOSPC: no space left on device'), { code: 'ENOSPC' });
+      });
+      return handle;
+    });
+    try {
+      await expect(writeFileAtomic(target, 'replacement')).rejects.toThrow(/ENOSPC/);
+    } finally {
+      openSpy.mockRestore();
+    }
+
+    expect(await fs.promises.readFile(target, 'utf8')).toBe('original content');
+    expect(await listDir()).toEqual(['note.md']);
+  });
+
+  it('leaves an existing file intact when the fsync fails, and never renames', async () => {
+    const target = path.join(tmpDir, 'note.md');
+    await fs.promises.writeFile(target, 'original content', 'utf8');
+
+    const realOpen = fs.promises.open;
+    const openSpy = vi.spyOn(fs.promises, 'open').mockImplementation(async (...args: Parameters<typeof realOpen>) => {
+      const handle = await realOpen(...args);
+      vi.spyOn(handle, 'sync').mockRejectedValue(Object.assign(new Error('EIO'), { code: 'EIO' }));
+      return handle;
+    });
+    const renameSpy = vi.spyOn(fs.promises, 'rename');
+    try {
+      await expect(writeFileAtomic(target, 'replacement')).rejects.toThrow(/EIO/);
+    } finally {
+      openSpy.mockRestore();
+      renameSpy.mockRestore();
+    }
+
+    expect(renameSpy).not.toHaveBeenCalled();
+    expect(await fs.promises.readFile(target, 'utf8')).toBe('original content');
+    expect(await listDir()).toEqual(['note.md']);
+  });
+
+  it('round-trips multi-byte UTF-8 and large content exactly', async () => {
+    const target = path.join(tmpDir, 'note.md');
+    const content = 'naïve café — 日本語 🎉\r\n'.repeat(50_000);
+
+    await writeFileAtomic(target, content);
+
+    expect(await fs.promises.readFile(target, 'utf8')).toBe(content);
+  });
+
   it('places the temp file in the same directory with a hidden, .tmp-suffixed name', async () => {
     // Spy on the rename so we can inspect the temp path the function chose
     // before it is renamed away on success.
@@ -249,7 +306,9 @@ describe('writeFileAtomic', () => {
       expect(await listDir()).toEqual(['link.md']);
     });
 
-    it('propagates a failed write-through on a read-only symlink target instead of clobbering the link', async () => {
+    // root ignores the read-only mode, so the write-through would succeed there.
+    const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
+    it.skipIf(isRoot)('propagates a failed write-through on a read-only symlink target instead of clobbering the link', async () => {
       // Writing through a link to a read-only file fails with EACCES. The buggy
       // fallback would "succeed" here — rename only needs write permission on the
       // directory — replacing the link with a regular file and silently forking

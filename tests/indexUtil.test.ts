@@ -1070,10 +1070,28 @@ describe('reconcileIndexedFiles', () => {
     await reconcileIndexedFiles(tmpDir);
 
     // b.md is re-keyed, but its other front-matter fields survive untouched.
-    const bFm = parseFrontMatter(fs.readFileSync(path.join(tmpDir, 'b.md'), 'utf8')).yaml;
+    const { yaml: bFm, content: bBody } = parseFrontMatter(fs.readFileSync(path.join(tmpDir, 'b.md'), 'utf8'));
     expect(bFm?.id).not.toBe('DUP000001');
     expect(bFm?.title).toBe('Copy');
     expect(bFm?.tags).toEqual(['x']);
+    // ...and so does the document itself.
+    expect(bBody).toBe('# B');
+    // The older file keeping the id is not rewritten at all.
+    expect(fs.readFileSync(path.join(tmpDir, 'a.md'), 'utf8')).toBe('---\nid: DUP000001\ntitle: Original\n---\n# A');
+  });
+
+  it('keeps a re-keyed file\'s body byte-for-byte, including blank lines, CRLF and fence-like lines', async () => {
+    touchFile('a.md', '---\nid: DUP000001\n---\n# A');
+    await new Promise((r) => { setTimeout(r, 20); });
+    const body = '\n# Title\r\n\r\n---\ntext after a rule\n\n```yaml\nid: not-front-matter\n```\n\n\ntrailing\n';
+    touchFile('b.md', `---\nid: DUP000001\n---\n${body}`);
+    writeIndex({ files: [{ name: 'a.md', id: 'DUP000001' }] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    const { yaml: bFm, content: bBody } = parseFrontMatter(fs.readFileSync(path.join(tmpDir, 'b.md'), 'utf8'));
+    expect(bFm?.id).not.toBe('DUP000001');
+    expect(bBody).toBe(body);
   });
 
   it('re-keys all but the oldest when three files share an id', async () => {

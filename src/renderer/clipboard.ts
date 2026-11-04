@@ -3,8 +3,9 @@ import { joinPath } from './pathUtil';
 /**
  * Generates a timestamp-based filename in the format `YYYY-MM-DD--HH-MM-SS-mmm<extension>`,
  * used for pasted clipboard items where no meaningful name is available.
- * Milliseconds are included so two pastes in the same second don't collide (the
- * main-process write handlers overwrite existing files without warning).
+ * Milliseconds are included so two pastes in the same second don't collide (an image
+ * paste refuses an existing name, but a text paste goes through write-file, which
+ * replaces an existing file without warning).
  */
 export function generateTimestampFilename(extension: string): string {
   const now = new Date();

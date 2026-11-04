@@ -130,6 +130,16 @@ export async function joinFiles(
       };
     }
 
+    // Every path must be distinct. A path listed twice would be both the write
+    // target and one of the "other" files deleted after the write, so the joined
+    // result itself would be thrown away.
+    if (new Set(filePaths).size !== filePaths.length) {
+      return {
+        success: false,
+        error: 'Cannot join: the same file was selected more than once. No files were changed.',
+      };
+    }
+
     // Sort file paths alphabetically by filename
     const sortedPaths = [...filePaths].sort((a, b) => {
       const nameA = getFileName(a);

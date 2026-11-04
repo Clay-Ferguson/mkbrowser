@@ -106,6 +106,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Inserting an Object into a Document](#inserting-an-object-into-a-document)
   * [How Objects Are Displayed](#how-objects-are-displayed)
     * [When There Is No Card](#when-there-is-no-card)
+    * [Invalid Front Matter](#invalid-front-matter)
   * [Changing a Type Later](#changing-a-type-later)
 * [AI Chat](#ai-chat)
   * [Chat Thread View](#chat-thread-view)
@@ -1350,6 +1351,24 @@ A YAML code block (` ```yaml `) in the body of a file is always displayed as ord
 A file shows no card when its front matter has no `type:`, or its `type:` doesn't match any of your types (check the spelling; capitalization doesn't matter).
 
 If the type *does* match but a value can't be shown — a property's value is a list or a nested set of values instead of plain text — a short amber note is shown in place of the card, explaining which property is the problem (for example, **"Invalid person: address must be text"**).
+
+### Invalid Front Matter
+
+If a file's front matter isn't valid YAML, MkBrowser can't read any of its properties, so the file shows no tag or property pills and no card. Instead, an orange **Invalid YAML in front matter** box appears at the top of the rendered file, naming the problem and the line it was found on. Click the box to open the editor with the front matter shown and the cursor on that line. (The same box appears if the front matter is written as a list or a single value rather than `key: value` properties.)
+
+A common cause is a value that begins with a character YAML treats specially, such as `[`, `{`, `*`, `&`, `!`, or `|`, or that contains `: ` or ` #`. For example, pasting a Markdown link as a value is invalid:
+
+```yaml
+website: [Nazo](https://example.com/gold-buying)
+```
+
+Enclose such a value in double quotes and it is read as plain text:
+
+```yaml
+website: "[Nazo](https://example.com/gold-buying)"
+```
+
+Saving a file never checks its front matter, so invalid YAML is saved as you typed it; the box is shown as soon as you view the file again.
 
 ## Changing a Type Later
 

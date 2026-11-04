@@ -10,6 +10,7 @@ import type { TypeDefinitions } from '../src/shared/shared';
 import { isUnderExportsFolder } from '../src/shared/shared';
 import {
   hrefBetween,
+  isInsideOrEqual,
   resolveExportImage,
   resolveExportLink,
   type ExportManifest,
@@ -48,6 +49,24 @@ function bodyOf(html: string): string {
 function ctx(mdPath: string, indexPages = true): PageLinkContext {
   return { manifest: manifest(), mdPath, indexPages };
 }
+
+describe('isInsideOrEqual', () => {
+  it('is true for the folder itself and anything beneath it', () => {
+    expect(isInsideOrEqual('/a/src', '/a/src')).toBe(true);
+    expect(isInsideOrEqual('/a/src', '/a/src/sub/x')).toBe(true);
+  });
+
+  it('treats a child whose name starts with ".." as inside', () => {
+    expect(isInsideOrEqual('/a/src', '/a/src/..drafts')).toBe(true);
+    expect(isInsideOrEqual('/a/src', '/a/src/..drafts/exports/out')).toBe(true);
+  });
+
+  it('is false for parents, siblings and name-prefix siblings', () => {
+    expect(isInsideOrEqual('/a/src', '/a')).toBe(false);
+    expect(isInsideOrEqual('/a/src', '/a/other')).toBe(false);
+    expect(isInsideOrEqual('/a/src', '/a/src-archive')).toBe(false);
+  });
+});
 
 describe('isUnderExportsFolder', () => {
   it('needs a parent folder named exactly "exports"', () => {
@@ -441,6 +460,29 @@ describe('exportFolderToHtml', () => {
     expect(fs.readFileSync(path.join(keep, 'data.txt'), 'utf8')).toBe('keep');
     // Any depth below `exports` is fine.
     expect((await checkExportTarget(src, path.join(tmpDir, 'exports', 'a', 'b'))).error).toBeNull();
+  });
+
+  it('never empties an output folder that holds the source in a child whose name starts with ".."', async () => {
+    // path.relative(out, source) is '..notes' here: a child, not a parent. Reading
+    // every '..'-prefixed relative path as "outside" let this through, and the
+    // overwrite then emptied the output folder — deleting the source with it.
+    const out = path.join(tmpDir, 'exports', 'out');
+    const source = path.join(out, '..notes');
+    await fs.promises.mkdir(source, { recursive: true });
+    await fs.promises.writeFile(path.join(source, 'precious.md'), 'keep me');
+
+    expect((await checkExportTarget(source, out)).error).toMatch(/cannot contain/);
+    const result = await exportFolderToHtml(source, out, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+    expect(result.success).toBe(false);
+    expect(fs.readFileSync(path.join(source, 'precious.md'), 'utf8')).toBe('keep me');
+  });
+
+  it('refuses an output folder inside the source under a child whose name starts with ".."', async () => {
+    const out = path.join(src, '..drafts', 'exports', 'out');
+    expect((await checkExportTarget(src, out)).error).toMatch(/cannot be inside/);
+    const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false, overwrite: false }, {}, []);
+    expect(result.success).toBe(false);
+    expect(fs.existsSync(path.join(src, '..drafts'))).toBe(false);
   });
 
   it('refuses an output folder inside the source', async () => {

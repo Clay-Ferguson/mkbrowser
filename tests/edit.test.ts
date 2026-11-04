@@ -24,6 +24,16 @@ function makeItem(path: string, name: string, isDirectory = false): ItemData {
   return { path, name, isDirectory } as ItemData;
 }
 
+/** A renameFile stub that records every attempted move (and always succeeds). */
+function recordingRename() {
+  const calls: Array<[string, string]> = [];
+  const renameFile = async (oldPath: string, newPath: string) => {
+    calls.push([oldPath, newPath]);
+    return true;
+  };
+  return { calls, renameFile };
+}
+
 // ---------------------------------------------------------------------------
 // findCutItemsFromDifferentFolders
 // ---------------------------------------------------------------------------
@@ -170,9 +180,11 @@ describe('pasteCutItems', () => {
 
   it('returns error when pasting to the same folder the items came from', async () => {
     const items = [makeItem('/docs/a.md', 'a.md')];
-    const result = await pasteCutItems(items, '/docs', async () => false, async () => true);
+    const { calls, renameFile } = recordingRename();
+    const result = await pasteCutItems(items, '/docs', async () => false, renameFile);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/already in this folder/i);
+    expect(calls).toEqual([]);
   });
 
   it('recognizes the source folder even when the destination is spelled differently', async () => {
@@ -204,10 +216,24 @@ describe('pasteCutItems', () => {
 
   it('rejects moving a folder into a direct child', async () => {
     const items = [makeItem('/notes/projects', 'projects', true)];
-    const result = await pasteCutItems(items, '/notes/projects/sub', async () => false, async () => true);
+    const { calls, renameFile } = recordingRename();
+    const result = await pasteCutItems(items, '/notes/projects/sub', async () => false, renameFile);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/itself or one of its subfolders/i);
     expect(result.movedPaths).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  it('rejects the whole batch, moving nothing, when any one folder would move into itself', async () => {
+    // The descendant check must run before ANY rename, not per item as it goes.
+    const items = [
+      makeItem('/notes/a.md', 'a.md'),
+      makeItem('/notes/projects', 'projects', true),
+    ];
+    const { calls, renameFile } = recordingRename();
+    const result = await pasteCutItems(items, '/notes/projects/sub', async () => false, renameFile);
+    expect(result.success).toBe(false);
+    expect(calls).toEqual([]);
   });
 
   it('rejects moving a folder into a deep descendant', async () => {
@@ -239,9 +265,11 @@ describe('pasteCutItems', () => {
       makeItem('/docs/a.md', 'a.md'),
       makeItem('/other/b.md', 'b.md'),
     ];
-    const result = await pasteCutItems(items, '/dest', async () => false, async () => true);
+    const { calls, renameFile } = recordingRename();
+    const result = await pasteCutItems(items, '/dest', async () => false, renameFile);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/same folder/i);
+    expect(calls).toEqual([]);
   });
 
   it('reports the cross-folder reason (not same-folder) when item[0] is in the destination but a later item is not', async () => {
@@ -262,9 +290,34 @@ describe('pasteCutItems', () => {
   it('returns error when destination already has a file with the same name', async () => {
     const items = [makeItem('/docs/a.md', 'a.md')];
     const pathExists = async (_p: string) => true; // simulates existing file
-    const result = await pasteCutItems(items, '/dest', pathExists, async () => true);
+    const { calls, renameFile } = recordingRename();
+    const result = await pasteCutItems(items, '/dest', pathExists, renameFile);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/already exist/i);
+    // The existing destination file must never be renamed over.
+    expect(calls).toEqual([]);
+  });
+
+  it('moves nothing when only one of several items collides at the destination', async () => {
+    // A partial paste that skipped the collision would still have to be undone by
+    // hand; the duplicate check must reject the batch before the first rename.
+    const items = [makeItem('/docs/a.md', 'a.md'), makeItem('/docs/b.md', 'b.md')];
+    const { calls, renameFile } = recordingRename();
+    const result = await pasteCutItems(items, '/dest', async (p) => p === '/dest/b.md', renameFile);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('b.md');
+    expect(calls).toEqual([]);
+  });
+
+  it('moves each item to the same name directly inside the destination', async () => {
+    const items = [makeItem('/docs/a.md', 'a.md'), makeItem('/docs/sub', 'sub', true)];
+    const { calls, renameFile } = recordingRename();
+    const result = await pasteCutItems(items, '/dest', async () => false, renameFile);
+    expect(result.success).toBe(true);
+    expect(calls).toEqual([
+      ['/docs/a.md', '/dest/a.md'],
+      ['/docs/sub', '/dest/sub'],
+    ]);
   });
 
   it('aborts (without moving anything) when two cut items differ only in case', async () => {
@@ -718,7 +771,11 @@ describe('joinFiles (write verification)', () => {
     return {
       store,
       deleted,
-      readFile: async (p: string) => ({ ok: true as const, content: store[p] ?? '' }),
+      // A missing file is a failed read, never an empty one (the real IPC contract).
+      readFile: async (p: string) =>
+        p in store
+          ? { ok: true as const, content: store[p]! }
+          : { ok: false as const, error: `ENOENT: ${p}` },
       writeFile: async (p: string, c: string) => {
         store[p] = c;
         return { ok: true, content: c };
@@ -733,7 +790,14 @@ describe('joinFiles (write verification)', () => {
 
   it('joins files and deletes the non-lead sources after verification', async () => {
     const fs = makeFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
-    const result = await joinFiles(['/docs/b.txt', '/docs/a.txt'], fs);
+    // Each source may only be deleted once its content is already in the lead file.
+    const leadAtDelete: string[] = [];
+    const deleteFile = async (p: string) => {
+      leadAtDelete.push(fs.store['/docs/a.txt']!);
+      return fs.deleteFile(p);
+    };
+    const result = await joinFiles(['/docs/b.txt', '/docs/a.txt'], { ...fs, deleteFile });
+    expect(leadAtDelete).toEqual(['alpha\n\n\nbeta']);
     expect(result.success).toBe(true);
     expect(result.resultPath).toBe('/docs/a.txt');
     expect(result.filesJoined).toBe(2);
@@ -743,7 +807,7 @@ describe('joinFiles (write verification)', () => {
   });
 
   it('succeeds when the writer normalizes content, as long as the read-back matches what was written', async () => {
-    // Simulates markdown transformation (e.g. front-matter id injection): the
+    // Simulates markdown transformation (e.g. TOC regeneration on save): the
     // bytes on disk differ from joinedContent, but match writeSuccess.content.
     const fs = makeFs({ '/docs/a.md': 'alpha', '/docs/b.md': 'beta' });
     const writeFile = async (p: string, c: string) => {
@@ -796,7 +860,11 @@ function makeJoinFs(initial: Record<string, string>) {
   return {
     store,
     deleted,
-    readFile: async (p: string) => ({ ok: true as const, content: store[p] ?? '' }),
+    // A missing file is a failed read, never an empty one (the real IPC contract).
+    readFile: async (p: string) =>
+      p in store
+        ? { ok: true as const, content: store[p]! }
+        : { ok: false as const, error: `ENOENT: ${p}` },
     writeFile: async (p: string, c: string) => {
       store[p] = c;
       return { ok: true, content: c };
@@ -1003,6 +1071,55 @@ describe('joinFiles (delete + error paths)', () => {
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/failed to delete/i);
     expect(result.error).toContain('/docs/b.txt');
+    // Nothing is lost: the joined lead holds both parts, and the source survives.
+    expect(fs.store['/docs/a.txt']).toBe('alpha\n\n\nbeta');
+    expect(fs.store['/docs/b.txt']).toBe('beta');
+  });
+
+  it('stops at the first failed delete, leaving every later source in place', async () => {
+    const fs = makeJoinFs({ '/docs/a.txt': 'A', '/docs/b.txt': 'B', '/docs/c.txt': 'C' });
+    const attempted: string[] = [];
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt', '/docs/c.txt'], {
+      ...fs,
+      deleteFile: async (p: string) => {
+        attempted.push(p);
+        return false;
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(attempted).toEqual(['/docs/b.txt']);
+    expect(fs.store['/docs/a.txt']).toBe('A\n\n\nB\n\n\nC');
+    expect(fs.store['/docs/c.txt']).toBe('C');
+  });
+
+  it('refuses a path listed twice instead of deleting the file it just wrote', async () => {
+    // Without the guard, '/docs/a.txt' would be the write target AND one of the
+    // "other" files deleted afterwards — throwing the joined result away.
+    const fs = makeJoinFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
+
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt', '/docs/a.txt'], fs);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/more than once/i);
+    expect(fs.deleted).toEqual([]);
+    expect(fs.store['/docs/a.txt']).toBe('alpha');
+    expect(fs.store['/docs/b.txt']).toBe('beta');
+  });
+
+  it('does not delete sources when the read-back of the lead fails', async () => {
+    const fs = makeJoinFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
+    let reads = 0;
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt'], {
+      ...fs,
+      // The two source reads succeed; the third read (the verification) fails.
+      readFile: async (p: string) => (++reads <= 2 ? fs.readFile(p) : { ok: false as const, error: 'EIO' }),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/verification failed/i);
+    expect(fs.deleted).toEqual([]);
+    expect(fs.store['/docs/b.txt']).toBe('beta');
   });
 
   it('refuses to join files from different folders, writing and deleting nothing', async () => {

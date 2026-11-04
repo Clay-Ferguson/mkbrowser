@@ -292,26 +292,15 @@ file's attach folder is not also selected.
 
 ---
 
-## Rename Synchronization (`src/main.ts`)
+## Rename Synchronization (`src/main/fileUtil.ts`)
 
-When the user renames a file (the inline rename input in the listing, or a rename from the index tree), the `rename-file` IPC handler (`api.renameFile`) in `src/main.ts` renames the file, updates its `.INDEX.yaml` entry, and then automatically renames the sibling attach folder if one exists:
+When the user renames a file (the inline rename input in the listing, or a rename from the index tree), the `rename-file` IPC handler (`api.renameFile`) calls `renameEntry` in `src/main/fileUtil.ts`, which renames the file, updates its `.INDEX.yaml` entry, and then automatically renames the sibling attach folder if one exists.
 
-```ts
-// Rename the associated attach folder if it exists, and update its index entry
-const oldAttachName = `${oldName}${ATTACH_SUFFIX}`;
-const newAttachName = `${newName}${ATTACH_SUFFIX}`;
-try {
-  await fs.promises.access(path.join(dirPath, oldAttachName));
-  await fs.promises.rename(path.join(dirPath, oldAttachName), path.join(dirPath, newAttachName));
-  await renameInIndexYaml(dirPath, oldAttachName, newAttachName);
-} catch {
-  // No attach folder exists, nothing to do
-}
-```
+`renameEntry` never replaces anything at the destination: `fs.rename` silently overwrites its target, so before each rename (the file's, then the attach folder's) it checks the destination with `lstat` and refuses when a *different* entry is there — a file, a folder, or even a dangling symlink. The only occupant it allows is the source itself, reached by a case-only rename (`Readme.md` → `README.md`) on a case-insensitive filesystem. When the file's destination is taken the whole rename is refused (`renameFile` resolves to false); when only the attach folder's new name is taken, the file is renamed and the attach folder is left where it was under its old name.
 
 This is done unconditionally in the main process, so the file and its attach folder are renamed together in one IPC round-trip. The index YAML entry for the attach folder is also updated via `renameInIndexYaml`.
 
-The attach folder is only carried along **within the same directory** (`dirPath` is the file's old folder). A *move* through `renameFile`, such as cut/paste or drag-and-drop, leaves the attach folder behind, which is why cutting a file without its attach folder asks for confirmation. The one move that takes the attach folder along is **Make Folder** (`makeFolderForFileOp` in `src/renderer/fileOpsUtil.ts`), which wraps a file in a new folder and moves its `.attach` folder in explicitly.
+The attach folder is only carried along **within the same directory**. A *move* through `renameFile`, such as cut/paste or drag-and-drop, leaves the attach folder behind, which is why cutting a file without its attach folder asks for confirmation. The one move that takes the attach folder along is **Make Folder** (`makeFolderForFileOp` in `src/renderer/fileOpsUtil.ts`), which wraps a file in a new folder and moves its `.attach` folder in explicitly.
 
 ---
 
@@ -368,6 +357,6 @@ So every attachment row has its own `ItemData` (expansion, editing, selection, c
 | `src/components/entries/common/EntryActionBar.tsx` | `bindAttachMenu` — binds those callbacks to the entry's path for the popup menu |
 | `src/components/entries/FolderEntry.tsx` | `isAttachFolder` hides the move buttons in Document Mode; `indentFolder` indents the row and labels it `*.attach` |
 | `src/main/indexUtil.ts` | `reorderAttachFolders` — keeps `.INDEX.yaml` ordering correct after moves |
-| `src/main.ts` | IPC `rename-file` handler automatically renames the sibling `.attach` folder |
+| `src/main/fileUtil.ts` | `renameEntry` (behind the IPC `rename-file` handler) renames the sibling `.attach` folder and never overwrites an existing entry |
 | `src/store/items.ts` | `applyDirectoryListing` adds each attach folder's contents to the items Map; `remapEntry` remaps them on rename |
 | `src/renderer/treeNodes.ts` | `makeTreeNodes` / `mergeTreeNodes` / `makeFileChildren` / `expandFileNode` / `refreshExpandedNodes` — the only builders of index-tree children; attach folders become the first child of their owning file |

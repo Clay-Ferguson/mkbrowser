@@ -6,9 +6,9 @@ import { initConfig, getConfig, updateConfig, flushConfig } from './main/configM
 import type { AppConfig, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
-import { readDirectory, isFolderEmpty, deleteEmptyFolder } from './main/fileUtil';
+import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterId, renameInIndexYaml, withIndexLock, type IndexMutationResult } from './main/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterId, withIndexLock, type IndexMutationResult } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
 import { writeFileAtomic } from './main/atomicWrite';
 import { processTOC } from './shared/tocUtil';
@@ -54,7 +54,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 import type { FileEntry } from './global';
-import { ATTACH_SUFFIX, INDEX_FILENAME } from './shared/specialFiles';
+import { INDEX_FILENAME } from './shared/specialFiles';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -472,11 +472,13 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Write binary content to a file (for images)
+  // Write binary content to a NEW file (for pasted images). The 'wx' flag
+  // (O_CREAT|O_EXCL) refuses an existing path, so a name collision fails the paste
+  // instead of silently replacing whatever file already had that name.
   ipcMain.handle('write-file-binary', async (_event, filePath: string, base64Data: string): Promise<boolean> => {
     try {
       const buffer = Buffer.from(base64Data, 'base64');
-      await fs.promises.writeFile(filePath, buffer);
+      await fs.promises.writeFile(filePath, buffer, { flag: 'wx' });
       return true;
     } catch (error) {
       logger.error('Error writing binary file:', error);
@@ -507,56 +509,13 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Rename a file or folder
+  // Rename a file or folder, never replacing an existing entry at the destination
+  // (see renameEntry, which also carries the .INDEX.yaml entry and .attach folder along)
+  // See: (file_attachments.md#rename-synchronization-srcmainfileutilts)
+  // See: (USER_GUIDE.md#renaming-1)
   ipcMain.handle('rename-file', async (_event, oldPath: string, newPath: string): Promise<boolean> => {
     try {
-      // Refuse to clobber a *different* existing entry at the destination.
-      // fs.rename silently overwrites the target on POSIX, and on Windows
-      // (libuv uses MoveFileEx with MOVEFILE_REPLACE_EXISTING), so without this
-      // guard a move/paste onto an occupied path would destroy the existing
-      // file. On case-insensitive filesystems (NTFS/APFS) this is also how a
-      // paste of two items differing only in case would silently lose data.
-      //
-      // The "different" qualifier matters: a pure case-only rename of a single
-      // file (Readme.md -> README.md) targets the SAME on-disk entry on a
-      // case-insensitive FS, where stat(newPath) resolves back to the source.
-      // That must still succeed, so we only block when the target is a distinct
-      // entry (different dev/ino).
-      if (oldPath !== newPath) {
-        let targetStat: import('fs').Stats | null = null;
-        try {
-          targetStat = await fs.promises.stat(newPath);
-        } catch {
-          targetStat = null; // nothing at the destination — safe to rename
-        }
-        if (targetStat) {
-          const sourceStat = await fs.promises.stat(oldPath);
-          const sameEntry = targetStat.dev === sourceStat.dev && targetStat.ino === sourceStat.ino;
-          if (!sameEntry) {
-            logger.warn(`Refusing to rename ${oldPath} -> ${newPath}: a different entry already exists at the destination`);
-            return false;
-          }
-        }
-      }
-      await fs.promises.rename(oldPath, newPath);
-      const dirPath = path.dirname(oldPath);
-      const oldName = path.basename(oldPath);
-      const newName = path.basename(newPath);
-      // Update the file's entry in .INDEX.yaml if present
-      await renameInIndexYaml(dirPath, oldName, newName);
-      // Rename the associated attach folder if it exists, and update its index entry
-      // See: (file_attachments.md#rename-synchronization-srcmaints)
-      // See: (USER_GUIDE.md#renaming-1)
-      const oldAttachName = `${oldName}${ATTACH_SUFFIX}`;
-      const newAttachName = `${newName}${ATTACH_SUFFIX}`;
-      try {
-        await fs.promises.access(path.join(dirPath, oldAttachName));
-        await fs.promises.rename(path.join(dirPath, oldAttachName), path.join(dirPath, newAttachName));
-        await renameInIndexYaml(dirPath, oldAttachName, newAttachName);
-      } catch {
-        // No attach folder exists, nothing to do
-      }
-      return true;
+      return await renameEntry(oldPath, newPath);
     } catch (error) {
       logger.error('Error renaming file:', error);
       return false;
@@ -870,7 +829,8 @@ function setupIpcHandlers(): void {
   ipcMain.handle('save-tags', async (_event, yamlContent: string): Promise<void> => {
     const configDir = app.getPath('userData');
     const tagsFile = path.join(configDir, 'tags.yaml');
-    await fs.promises.writeFile(tagsFile, yamlContent, 'utf-8');
+    // Atomic: a crash mid-save must never leave the user's tag list truncated.
+    await writeFileAtomic(tagsFile, yamlContent);
   });
 
   // Select folder for export output

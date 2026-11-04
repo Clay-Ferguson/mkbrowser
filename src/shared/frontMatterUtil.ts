@@ -86,6 +86,44 @@ export function parseFrontMatter(rawContent: string): FrontMatterResult {
   return { yaml: null, content: rawContent };
 }
 
+/** Why a file's front matter couldn't be read, from {@link getFrontMatterError}. */
+export interface FrontMatterError {
+  /** Short description of the problem, e.g. "bad indentation of a mapping entry". */
+  reason: string;
+  /** 1-based line in the whole document where the problem was found, or null if unknown. */
+  line: number | null;
+}
+
+/**
+ * Reports why a document's front matter can't be used: malformed YAML, or a block whose top level
+ * is a scalar or list rather than `key: value` properties. Returns null when there is no front
+ * matter, when it is empty, or when it parses to a mapping. Every reader of front matter
+ * ({@link parseFrontMatter}, {@link getPropsFromYaml}, …) silently treats such a block as holding
+ * nothing, so this is what lets the view tell the user why their properties aren't shown.
+ *
+ * See: (USER_GUIDE.md#invalid-front-matter)
+ */
+export function getFrontMatterError(content: string): FrontMatterError | null {
+  const parts = splitFrontMatter(content);
+  if (!parts) return null;
+  let parsed: unknown;
+  try {
+    parsed = loadYaml(parts.yamlStr);
+  } catch (err) {
+    // js-yaml's YAMLException carries a one-line `reason` and a 0-based `mark.line` within the
+    // YAML text. yamlStr starts on document line 2 (line 1 is the opening `---`).
+    const e = err as { reason?: unknown; mark?: { line?: unknown } };
+    const reason = typeof e.reason === 'string' && e.reason ? e.reason : String(err);
+    const line = typeof e.mark?.line === 'number' ? e.mark.line + 2 : null;
+    return { reason, line };
+  }
+  if (parsed === null || parsed === undefined) return null;
+  if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { reason: 'front matter must be a list of "key: value" properties', line: null };
+  }
+  return null;
+}
+
 /** Wrap a YAML string and body back into a front-matter document. Empty YAML yields just the body. */
 export function assembleFrontMatter(yamlContent: string, body: string): string {
   const trimmed = yamlContent.trim();

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import type { FileEntry } from "../global";
 import { logger } from '../shared/logUtil';
 import { readAiHint } from './ai/aiHint';
-import { readIndexYaml, compareByIndexOrder } from './indexUtil';
+import { readIndexYaml, compareByIndexOrder, renameInIndexYaml } from './indexUtil';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from '../shared/specialFiles';
 import { compareNames } from '../shared/fileTypes';
 import { mapWithConcurrency } from '../shared/asyncUtil';
@@ -204,4 +204,85 @@ export async function deleteEmptyFolder(dirPath: string): Promise<void> {
     await fs.promises.unlink(path.join(dirPath, INDEX_FILENAME));
   }
   await fs.promises.rmdir(dirPath);
+}
+
+/**
+ * True when `newPath` is taken by an entry *other than* `oldPath`, i.e. when renaming
+ * `oldPath` there would replace something. `fs.rename` silently overwrites its target
+ * (on POSIX, and on Windows, where libuv passes MOVEFILE_REPLACE_EXISTING), so every
+ * rename must ask this first.
+ *
+ * The destination is examined with `lstat`, so a symlink there — even a dangling one,
+ * which `stat` would report as absent — counts as occupied. Only ENOENT means free; any
+ * other failure to examine the destination is thrown rather than read as "nothing
+ * there".
+ *
+ * The one occupant that is not "other" is the source itself, reached through a
+ * case-only rename (`Readme.md` → `README.md`) on a case-insensitive filesystem
+ * (NTFS/APFS), where both spellings resolve to the same entry. That exception is
+ * limited to names differing only in case: two hard links share an inode too, but
+ * renaming one onto the other is a no-op that would leave both names in place.
+ */
+async function isOccupiedByOtherEntry(oldPath: string, newPath: string): Promise<boolean> {
+  let target: fs.Stats;
+  try {
+    target = await fs.promises.lstat(newPath);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw err;
+  }
+  if (oldPath.toLowerCase() !== newPath.toLowerCase()) return true;
+  const source = await fs.promises.lstat(oldPath);
+  return target.dev !== source.dev || target.ino !== source.ino;
+}
+
+/**
+ * Renames (or moves) a file or folder, never replacing an existing entry at `newPath`
+ * (see {@link isOccupiedByOtherEntry}). Resolves to false, having changed nothing, when
+ * the destination is taken; rejects when the rename itself fails.
+ *
+ * A rename within one folder also keeps Document Mode and attachments in step: the
+ * entry's .INDEX.yaml line is renamed, and so is its `.attach` folder (and that
+ * folder's index line). The attach folder is carried along only when its own
+ * destination is free, so it can never replace an existing folder; otherwise it is
+ * left where it was under its old name. A move to another folder renames neither —
+ * callers that move a file across folders move its `.attach` folder themselves.
+ *
+ * See: (file_attachments.md#rename-synchronization-srcmainfileutilts)
+ * See: (USER_GUIDE.md#renaming-1)
+ */
+export async function renameEntry(oldPath: string, newPath: string): Promise<boolean> {
+  if (oldPath === newPath) return true;
+  if (await isOccupiedByOtherEntry(oldPath, newPath)) {
+    logger.warn(`Refusing to rename ${oldPath} -> ${newPath}: a different entry already exists at the destination`);
+    return false;
+  }
+  await fs.promises.rename(oldPath, newPath);
+
+  const dirPath = path.dirname(oldPath);
+  if (dirPath !== path.dirname(newPath)) return true;
+
+  const oldName = path.basename(oldPath);
+  const newName = path.basename(newPath);
+  await renameInIndexYaml(dirPath, oldName, newName);
+
+  const oldAttachPath = path.join(dirPath, `${oldName}${ATTACH_SUFFIX}`);
+  const newAttachPath = path.join(dirPath, `${newName}${ATTACH_SUFFIX}`);
+  try {
+    await fs.promises.access(oldAttachPath);
+  } catch {
+    return true; // no attach folder — nothing more to carry along
+  }
+  try {
+    if (await isOccupiedByOtherEntry(oldAttachPath, newAttachPath)) {
+      logger.warn(`Renamed ${oldPath} but left its attach folder: ${newAttachPath} already exists`);
+      return true;
+    }
+    await fs.promises.rename(oldAttachPath, newAttachPath);
+    await renameInIndexYaml(dirPath, `${oldName}${ATTACH_SUFFIX}`, `${newName}${ATTACH_SUFFIX}`);
+  } catch (err) {
+    // The entry itself was renamed; a stranded attach folder is still intact on disk.
+    logger.warn(`Renamed ${oldPath} but could not rename its attach folder:`, err);
+  }
+  return true;
 }

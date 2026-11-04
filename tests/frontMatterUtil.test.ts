@@ -6,6 +6,7 @@ import {
   getPropsFromYaml,
   setFrontMatterProperty,
   removeFrontMatterExceptId,
+  getFrontMatterError,
 } from '../src/shared/frontMatterUtil';
 
 describe('splitFrontMatter', () => {
@@ -360,5 +361,39 @@ describe('removeFrontMatterExceptId', () => {
   it('preserves a string id that looks like a number', () => {
     const result = removeFrontMatterExceptId("---\nid: '0123'\nx: 1\n---\nB");
     expect(result).toEqual({ status: 'changed', content: "---\nid: '0123'\n---\nB" });
+  });
+});
+
+describe('getFrontMatterError', () => {
+  it('returns null when there is no front matter', () => {
+    expect(getFrontMatterError('# Just a heading\n')).toBeNull();
+  });
+
+  it('returns null for valid front matter', () => {
+    expect(getFrontMatterError('---\ntype: shop\nwebsite: "[Nazo](https://example.com)"\n---\nBody')).toBeNull();
+  });
+
+  it('returns null for an empty or comment-only block', () => {
+    expect(getFrontMatterError('---\n---\nBody')).toBeNull();
+    expect(getFrontMatterError('---\n# just a comment\n---\nBody')).toBeNull();
+  });
+
+  it('reports an unquoted Markdown link value with its document line', () => {
+    const doc = '---\ntype: shop\nname: Nazo\nwebsite: [Nazo](https://example.com/gold)\n---\nBody';
+    const err = getFrontMatterError(doc);
+    expect(err).not.toBeNull();
+    expect(err?.reason).toMatch(/\S/);
+    // Line 1 is the opening fence, so the `website:` line is document line 4.
+    expect(err?.line).toBe(4);
+  });
+
+  it('reports a block that is a list rather than properties', () => {
+    const err = getFrontMatterError('---\n- a\n- b\n---\nBody');
+    expect(err).not.toBeNull();
+    expect(err?.line).toBeNull();
+  });
+
+  it('reports a block that is a bare scalar', () => {
+    expect(getFrontMatterError('---\njust text\n---\nBody')).not.toBeNull();
   });
 });
