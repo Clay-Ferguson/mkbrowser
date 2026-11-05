@@ -3,7 +3,7 @@ import IndexInsertBar from '../IndexInsertBar';
 import BrowseEntryRow from './BrowseEntryRow';
 import EmptyFolderNotice from './EmptyFolderNotice';
 import { useAS, getCutPaths } from '../../store';
-import { isImageFile } from '../../shared/fileTypes';
+import { isImageEntry } from '../../shared/fileTypes';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 import { listingTimes, sortListing } from './browseListing';
 import type { FileEntry } from '../../global';
@@ -72,7 +72,7 @@ function BrowseEntryList({
   const times = useAS(useShallow(s => listingTimes(s.items, entries)));
 
   const sortedEntries = sortListing(entries, times, cutPaths, hasIndexFile, sortOrder, foldersOnTop);
-  const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
+  const allImages = sortedEntries.filter(isImageEntry);
   // Offered whenever anything is cut — including items cut from this same
   // document, where the paste moves them to that position (a reorder).
   const showPasteHere = hasIndexFile && cutPaths.size > 0;
@@ -112,11 +112,11 @@ function BrowseEntryList({
         // An attach folder listed right after the file that owns it is
         // indented under that file and shown only while it is expanded.
         const isOwnedAttach = entry.name.endsWith(ATTACH_SUFFIX) && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
-        const isImage = !entry.isDirectory && isImageFile(entry.name);
+        const isImage = isImageEntry(entry);
         // In the grid, an image's attach folder would be a full-width row that
         // breaks the image run (and, even collapsed, an empty wrapper that still
         // takes a grid cell), so it isn't rendered; the image links to it instead.
-        if (gridActive && isOwnedAttach && prevEntry && !prevEntry.isDirectory && isImageFile(prevEntry.name)) {
+        if (gridActive && isOwnedAttach && prevEntry && isImageEntry(prevEntry)) {
           return null;
         }
         const nextEntry = sortedEntries[idx + 1];

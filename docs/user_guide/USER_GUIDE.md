@@ -449,7 +449,7 @@ As you drag, an outline of the item follows the cursor, and the folder you're ho
 
 A file or folder that is a **symbolic link** (a link pointing to another file or folder) shows a small light-gray circle with an arrow pointing up and to the right after its name. You see it in the browse view, in the folder tree, and in the breadcrumb path at the top of the browse view: each folder in the path that is a link shows the badge after its name, and when the root folder itself is a link the badge appears next to the home icon. Hover over it to see "Symbolic link". Hover over the item's name to see where the link points: the flyover includes a line like `Link to: projects/original.md`, giving the original's location relative to the root folder (the folder the home icon in the breadcrumbs takes you to). An original outside the root folder is shown by its full path. On a file in the browse view, that line comes after the file's usual flyover (such as its created and modified dates); on folders and in the folder tree, it is the whole flyover. The item otherwise looks and works like the file or folder it points to: a linked folder opens like a folder, and a linked Markdown file renders like any Markdown file.
 
-Links whose target no longer exists (broken links) are not shown.
+A link whose original no longer exists is a broken link, and is marked differently (see [Broken Links](#broken-links)).
 
 Symbolic links exist on Linux, macOS and Windows. Windows `.lnk` shortcuts and macOS Finder aliases are ordinary files, not symbolic links, so they don't get the badge.
 
@@ -472,11 +472,19 @@ The link gets the same name as the item it points to, and shows the link badge. 
 
 If you rename the copied item (or a folder above it) before pasting, the paste links to it under its new name. If you delete it, the app forgets it.
 
-The link records the full path of the item it points to, so you can move the link itself around freely. If the original is later moved, renamed or deleted, the link breaks, and broken links are not shown (see above).
+The link records the full path of the item it points to, so you can move the link itself around freely. If the original is later moved, renamed or deleted, the link breaks (see [Broken Links](#broken-links)).
 
 Deleting a link from the app deletes only the link, never the file or folder it points to.
 
 Copy Symlink and Paste Symlink are not offered on Windows, where creating symbolic links needs administrator rights or Developer Mode.
+
+### Broken Links
+
+A link whose original has been moved, renamed or deleted is **broken**. Broken links stay visible, so you can find and remove them: instead of the gray link badge, a broken link shows a bright red warning triangle after its name, in both the folder tree and the browse view. Hover over the name to see where the link used to point.
+
+In the browse view, a broken link has no content. In its place is a red box reading **Symlink Target not found**, with the missing original's location underneath. With the original gone there is nothing to open, edit or move, so the only action offered is **Delete** (the trash can button that appears when you hover over the row). In the folder tree, right-clicking a broken link offers only **Browse** and **Delete**.
+
+Since there is no way to tell whether a broken link used to point to a file or a folder, broken links are always shown as files.
 
 # Bookmarks
 

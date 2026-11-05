@@ -6,7 +6,7 @@ import { initConfig, getConfig, updateConfig, flushConfig } from './main/configM
 import type { AppConfig, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
-import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks, createSymlink } from './main/fileUtil';
+import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks, createSymlink, isBrokenSymlink } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
 import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterId, withIndexLock, type IndexMutationResult } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
@@ -546,6 +546,17 @@ function setupIpcHandlers(): void {
       await shell.trashItem(filePath);
       return true;
     } catch (error) {
+      // A trash implementation may refuse a link whose target is gone. Such a link
+      // holds no data, so removing it outright loses nothing. See: (USER_GUIDE.md#broken-links)
+      if (await isBrokenSymlink(filePath)) {
+        try {
+          await fs.promises.unlink(filePath);
+          return true;
+        } catch (unlinkError) {
+          logger.error('Error removing broken symbolic link:', unlinkError);
+          return false;
+        }
+      }
       logger.error('Error moving to trash:', error);
       return false;
     }

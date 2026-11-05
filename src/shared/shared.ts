@@ -380,7 +380,7 @@ export interface FileEntry {
   /**
    * True when the entry itself is a symbolic link (to a file or a folder). The other
    * fields describe the link's target: `isDirectory`, times and size come from a
-   * stat that follows the link. Broken links are not listed at all.
+   * stat that follows the link, except for a broken link (see `isBrokenLink`).
    *
    * See: (USER_GUIDE.md#symbolic-links)
    */
@@ -392,6 +392,14 @@ export interface FileEntry {
    * See: (USER_GUIDE.md#symbolic-links)
    */
   linkTarget?: string;
+  /**
+   * A symbolic link whose target can't be reached (`isSymlink` is also set, and
+   * `linkTarget` names the missing target). Always listed as a non-Markdown file,
+   * with the link's own times; the UI offers only Delete for it.
+   *
+   * See: (USER_GUIDE.md#broken-links)
+   */
+  isBrokenLink?: boolean;
 }
 
 /**

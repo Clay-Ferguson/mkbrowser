@@ -249,6 +249,16 @@ describe('mergeTreeNodes', () => {
     expect(unlinked).not.toHaveProperty('isSymlink');
   });
 
+  it('takes isBrokenLink from the fresh listing, so a link shows broken or mended as it changes', () => {
+    const linked = { ...entry('/root/a.md', false), isSymlink: true, linkTarget: '/x/a.md' };
+
+    const [broken] = mergeTreeNodes([{ ...linked, isBrokenLink: true }], [node('/root/a.md', false, false, null)]);
+    expect(broken!.isBrokenLink).toBe(true);
+
+    const [mended] = mergeTreeNodes([linked], [broken!]);
+    expect(mended).not.toHaveProperty('isBrokenLink');
+  });
+
   it('takes linkTarget from the fresh listing, so a re-pointed link shows its new target', () => {
     const linkedEntry = (target: string) => ({ ...entry('/root/a', true), isSymlink: true, linkTarget: target });
 

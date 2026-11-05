@@ -8,6 +8,7 @@ import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
 import FolderEntry from '../entries/FolderEntry';
+import BrokenLinkEntry from '../entries/BrokenLinkEntry';
 import ThesaurusView from '../editor/ThesaurusView';
 import PathBreadcrumb from '../PathBreadcrumb';
 import AttachFolderContents from './AttachFolderContents';
@@ -19,7 +20,7 @@ import {
   setItemEditing,
   useAS,
 } from '../../store';
-import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
+import { isImageEntry, isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
 import { getParentPath, joinPath } from '../../renderer/pathUtil';
 import { scrollElementIntoView } from '../../renderer/entryDom';
@@ -190,12 +191,12 @@ function BrowseFile() {
   // its natural, page-scrolled height unless it is being edited. Keep in sync with
   // useEditorChrome's `fillPaneWhenViewing` (on for TextEntry, off for MarkdownEntry).
   // See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
-  const fillsPane = !!entry && !entry.isMarkdown && !isImageFile(entry.name) && (isTextFile(entry.name) || isPdfFile(entry.name));
+  const fillsPane = !!entry && !entry.isBrokenLink && !entry.isMarkdown && !isImageFile(entry.name) && (isTextFile(entry.name) || isPdfFile(entry.name));
   const flexPane = editing || fillsPane;
 
   // The folder's images, in listing order — the fullscreen viewer's navigation set.
   // See: (single_file_browsing.md#what-browsefile-renders)
-  const folderImages = entries.filter((e) => !e.isDirectory && isImageFile(e.name));
+  const folderImages = entries.filter(isImageEntry);
 
   // A breadcrumb segment click: go to that folder's listing. Leaving
   // single-file mode is implicit — navigateToBrowserPath always clears
@@ -322,7 +323,9 @@ function BrowseFile() {
               editedMeta, AI loading/error flags) over to the new one. */}
           {entry && (
             <div key={entry.path} className={flexPane ? 'flex-1 min-h-0 flex flex-col' : undefined}>
-              {entry.isMarkdown ? (
+              {entry.isBrokenLink ? (
+                <BrokenLinkEntry entry={entry} onDelete={handleRefresh} />
+              ) : entry.isMarkdown ? (
                 <MarkdownEntry entry={entry} view="browser" onRename={handleRefresh} onDelete={handleRefresh} alwaysExpandedEditor={alwaysExpandedEditor} />
               ) : isImageFile(entry.name) ? (
                 /* allImages drives only the fullscreen viewer's prev/next. Only this one

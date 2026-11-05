@@ -340,6 +340,13 @@ export interface FileNode {
    * See: (USER_GUIDE.md#symbolic-links)
    */
   linkTarget?: string;
+  /**
+   * A symbolic link whose target is missing (from FileEntry.isBrokenLink); shows a
+   * BrokenLinkBadge instead of the SymlinkBadge.
+   *
+   * See: (USER_GUIDE.md#broken-links)
+   */
+  isBrokenLink?: boolean;
 }
 
 /**

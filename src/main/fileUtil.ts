@@ -71,10 +71,11 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
         isDirectory = stat.isDirectory();
       }
     } catch (err) {
-      // Broken symlink — skip it.
+      // Broken symlink: listed and flagged, so the user can see it and delete it.
+      // See: (USER_GUIDE.md#broken-links)
       if (entry.isSymbolicLink()) {
-        logger.debug(`readDirectory: skipping broken symlink "${fullPath}": ${err}`);
-        return null;
+        logger.debug(`readDirectory: broken symlink "${fullPath}": ${err}`);
+        return brokenLinkEntry(dirPath, entry.name, fullPath);
       }
       logger.debug(`readDirectory: stat failed for "${fullPath}", using current time: ${err}`);
       modifiedTime = Date.now();
@@ -191,6 +192,51 @@ async function folderEmptiness(dirPath: string): Promise<'empty' | 'indexOnly' |
   } finally {
     await dir.close();
   }
+}
+
+/**
+ * The listing entry for a symbolic link whose target can't be reached (missing,
+ * or otherwise unstat-able). Its times are the link's own (`lstat`). With no
+ * target there is no way to tell a link to a file from a link to a folder, so it
+ * is listed as a file: never a folder, never Markdown, so nothing tries to open,
+ * load or browse into it. Never rejects (readDirectory's fan-out relies on that);
+ * a link that can't even be read itself is left out, as before.
+ *
+ * See: (USER_GUIDE.md#broken-links)
+ */
+async function brokenLinkEntry(dirPath: string, name: string, fullPath: string): Promise<FileEntry | null> {
+  try {
+    const [stat, target] = await Promise.all([fs.promises.lstat(fullPath), fs.promises.readlink(fullPath)]);
+    return {
+      name,
+      path: fullPath,
+      isDirectory: false,
+      isMarkdown: false,
+      modifiedTime: stat.mtimeMs,
+      createdTime: stat.birthtimeMs,
+      isSymlink: true,
+      isBrokenLink: true,
+      linkTarget: path.resolve(dirPath, target),
+    };
+  } catch (err) {
+    logger.debug(`readDirectory: skipping unreadable symlink "${fullPath}": ${err}`);
+    return null;
+  }
+}
+
+/**
+ * True when `p` is a symbolic link whose target can't be reached. False for
+ * anything else, including a path that doesn't exist at all.
+ *
+ * See: (USER_GUIDE.md#broken-links)
+ */
+export async function isBrokenSymlink(p: string): Promise<boolean> {
+  try {
+    if (!(await fs.promises.lstat(p)).isSymbolicLink()) return false;
+  } catch {
+    return false;
+  }
+  return fs.promises.stat(p).then(() => false, () => true);
 }
 
 /**

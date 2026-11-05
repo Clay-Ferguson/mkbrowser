@@ -9,6 +9,7 @@ import { BUTTON_CLASS_TB_NORMAL, ENTRY_DROP_TARGET, ROW_HOVER } from '../../rend
 import { runOp } from '../../renderer/runOp';
 import FileTypeIcon from '../FileTypeIcon';
 import SymlinkBadge from '../SymlinkBadge';
+import BrokenLinkBadge from '../BrokenLinkBadge';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
 import CreateFileDialog from '../dialogs/CreateFileDialog';
@@ -268,7 +269,7 @@ function TreeFileRow({
         }
       </span>
       <span className={nameClassName} title={withLinkFlyover(undefined, node.linkTarget, rootPath)}>{isAttach ? `*${ATTACH_SUFFIX}` : node.name}</span>
-      {node.isSymlink && <SymlinkBadge />}
+      {node.isBrokenLink ? <BrokenLinkBadge /> : node.isSymlink && <SymlinkBadge />}
       {/* Marks a file that owns attachments, which a click reveals as its `*.attach`
           child. Amber like the folder icons, tying it to that folder row. */}
       {node.hasAttachFolder && (
@@ -892,7 +893,8 @@ function IndexTreeView() {
    * editor's "Paste Link" turns into a relative Markdown link, and (except on Windows) "Copy
    * Symlink", greyed out on a node that is itself a link (no links to links); directories also
    * get "Paste Symlink", greyed out until something can be linked there. A link also gets
-   * "Open Symlink", which opens its original in the browse view.
+   * "Open Symlink", which opens its original in the browse view. A broken link gets only
+   * Browse and Delete.
    *
    * "Browse" always lands in a folder listing, so it is also an exit from single-file mode.
    * See: (single_file_browsing.md#leaving-single-file-mode-the-index-tree)
@@ -904,21 +906,31 @@ function IndexTreeView() {
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();
     const linkTarget = node.linkTarget;
+    const browse = () => {
+      if (node.isDirectory) {
+        navigateToBrowserPath(node.path);
+      } else {
+        const folderPath = getParentPath(node.path);
+        setHighlightItem(node.path);
+        navigateToBrowserPath(folderPath, node.path);
+      }
+    };
+    const startDelete = () => setDeleteTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory });
+
+    // A broken link's target is gone, so there is nothing to open, copy, cut or rename:
+    // it offers only Browse (to see it in its folder) and Delete. See: (USER_GUIDE.md#broken-links)
+    if (node.isBrokenLink) {
+      setContextMenu({ x: e.clientX, y: e.clientY, path: node.path, isDirectory: false, isSymlink: true, onBrowse: browse, onDelete: startDelete });
+      return;
+    }
+
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
       path: node.path,
       isDirectory: node.isDirectory,
       isSymlink: !!node.isSymlink,
-      onBrowse: () => {
-        if (node.isDirectory) {
-          navigateToBrowserPath(node.path);
-        } else {
-          const folderPath = getParentPath(node.path);
-          setHighlightItem(node.path);
-          navigateToBrowserPath(folderPath, node.path);
-        }
-      },
+      onBrowse: browse,
       ...(linkTarget ? {
         onOpenSymlink: () => openSymlinkTarget(node.name, linkTarget, node.isDirectory),
       } : {}),
@@ -926,7 +938,7 @@ function IndexTreeView() {
         onRun: () => handleRunScript(node),
       } : {}),
       onRename: () => setRenameTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
-      onDelete: () => setDeleteTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
+      onDelete: startDelete,
       ...(node.isDirectory ? {
         onNewFile: () => startNewFile(node.path),
         onNewFolder: () => setCreateFolderParent(node.path),

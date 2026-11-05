@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isMarkdownFile } from '../src/shared/fileTypes';
+import { isImageEntry, isMarkdownFile } from '../src/shared/fileTypes';
 
 // ---------------------------------------------------------------------------
 // isMarkdownFile — the single source of truth for the markdown extension
@@ -24,5 +24,14 @@ describe('isMarkdownFile', () => {
     expect(isMarkdownFile('note.txt')).toBe(false);
     expect(isMarkdownFile('note.html')).toBe(false);
     expect(isMarkdownFile('note')).toBe(false);
+  });
+});
+
+describe('isImageEntry', () => {
+  it('is true for an image file, and false for a folder or a broken link with an image name', () => {
+    expect(isImageEntry({ name: 'pic.png', isDirectory: false })).toBe(true);
+    expect(isImageEntry({ name: 'pics.png', isDirectory: true })).toBe(false);
+    expect(isImageEntry({ name: 'pic.png', isDirectory: false, isBrokenLink: true })).toBe(false);
+    expect(isImageEntry({ name: 'note.md', isDirectory: false })).toBe(false);
   });
 });

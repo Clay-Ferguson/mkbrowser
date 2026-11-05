@@ -6,6 +6,7 @@ import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
+import BrokenLinkEntry from '../entries/BrokenLinkEntry';
 import ErrorBoundary from '../ErrorBoundary';
 import IndexInsertBar from '../IndexInsertBar';
 import AttachFolderContents from './AttachFolderContents';
@@ -103,7 +104,9 @@ function BrowseEntryRow({
   return (
     <div className={spanFull ? 'col-span-full' : undefined}>
       <ErrorBoundary label={entry.name} resetKeys={[entry.modifiedTime]}>
-        {entry.isDirectory ? (
+        {entry.isBrokenLink ? (
+          <BrokenLinkEntry entry={entry} onDelete={onDelete} />
+        ) : entry.isDirectory ? (
           <>
             {/* Folders are shown whenever their parent is expanded (attach folders included). */}
             {parentExpanded && (

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks, createSymlink } from '../src/main/fileUtil';
+import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks, createSymlink, isBrokenSymlink } from '../src/main/fileUtil';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from '../src/shared/specialFiles';
 
 let tmpDir: string;
@@ -69,6 +69,23 @@ describe('readDirectory symlink flag', () => {
 
     expect(byName.get('abs.md')?.linkTarget).toBe(path.join(tmpDir, 'real.md'));
     expect(byName.get('rel.md')?.linkTarget).toBe(path.join(tmpDir, 'real.md'));
+  });
+
+  it('lists a broken link as a flagged, non-Markdown file naming its missing target', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'gone-dir'));
+    fs.symlinkSync(path.join(tmpDir, 'gone.md'), path.join(tmpDir, 'to-file.md'));
+    fs.symlinkSync(path.join(tmpDir, 'gone-dir'), path.join(tmpDir, 'to-dir'));
+    fs.rmdirSync(path.join(tmpDir, 'gone-dir'));
+
+    const byName = new Map((await readDirectory(tmpDir, false)).map((e) => [e.name, e]));
+
+    expect(byName.get('to-file.md')).toMatchObject({
+      isSymlink: true, isBrokenLink: true, isDirectory: false, isMarkdown: false,
+      linkTarget: path.join(tmpDir, 'gone.md'),
+    });
+    // With the target gone, a link to a folder can't be told apart: it is listed as a file.
+    expect(byName.get('to-dir')).toMatchObject({ isBrokenLink: true, isDirectory: false, linkTarget: path.join(tmpDir, 'gone-dir') });
+    expect(byName.get('to-file.md')!.modifiedTime).toBeGreaterThan(0);
   });
 
   it('gives a link to a link the path that link stores, not the end of the chain', async () => {
@@ -183,6 +200,19 @@ describe('createSymlink', () => {
     const result = await createSymlink(path.join(tmpDir, 'gone.md'), tmpDir);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/no longer exists/);
+  });
+});
+
+describe('isBrokenSymlink', () => {
+  it('is true only for a link whose target is missing', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'real.md'), 'x', 'utf8');
+    fs.symlinkSync(path.join(tmpDir, 'real.md'), path.join(tmpDir, 'good'));
+    fs.symlinkSync(path.join(tmpDir, 'missing'), path.join(tmpDir, 'bad'));
+
+    expect(await isBrokenSymlink(path.join(tmpDir, 'bad'))).toBe(true);
+    expect(await isBrokenSymlink(path.join(tmpDir, 'good'))).toBe(false);
+    expect(await isBrokenSymlink(path.join(tmpDir, 'real.md'))).toBe(false);
+    expect(await isBrokenSymlink(path.join(tmpDir, 'nothing-here'))).toBe(false);
   });
 });
 

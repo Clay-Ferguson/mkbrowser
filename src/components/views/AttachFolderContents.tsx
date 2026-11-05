@@ -5,9 +5,10 @@ import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
+import BrokenLinkEntry from '../entries/BrokenLinkEntry';
 import ErrorBoundary from '../ErrorBoundary';
 import { getCutPaths, useAS } from '../../store';
-import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
+import { isImageEntry, isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 interface AttachFolderContentsProps {
@@ -38,14 +39,16 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
   const cutPaths = useAS(s => getCutPaths(s.items));
   const visibleEntries = entries.filter((entry) => !cutPaths.has(entry.path));
   if (visibleEntries.length === 0) return null;
-  const allImages = visibleEntries.filter(e => !e.isDirectory && isImageFile(e.name));
+  const allImages = visibleEntries.filter(isImageEntry);
 
   return (
     <div style={{ paddingLeft: `${level * 32}px` }}>
       {visibleEntries.map(entry => (
         <div key={entry.path}>
           <ErrorBoundary label={entry.name} resetKeys={[entry.modifiedTime]}>
-            {entry.isDirectory ? (
+            {entry.isBrokenLink ? (
+              <BrokenLinkEntry entry={entry} onDelete={onDelete} />
+            ) : entry.isDirectory ? (
               <>
                 <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onPasteIntoFolder={onPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
                 {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (

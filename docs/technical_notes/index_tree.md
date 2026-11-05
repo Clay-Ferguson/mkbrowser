@@ -25,6 +25,7 @@ interface FileNode {
   isOwnedAttach?: boolean;      // an attachment folder shown under its owning file
   isSymlink?: boolean;          // the entry is a symbolic link (shows a SymlinkBadge)
   linkTarget?: string;          // a link's absolute target; the name's "Link to: …" flyover shows it root-relative (withLinkFlyover)
+  isBrokenLink?: boolean;       // a link whose target is missing (shows a red BrokenLinkBadge instead of the SymlinkBadge)
 }
 ```
 
@@ -137,7 +138,7 @@ The same width can be picked in Settings, which offers narrow, medium and wide. 
 
 ## Context Menu
 
-`handleFileNodeContextMenu` builds the item callbacks, and `IndexTreeContextMenu` (`src/components/menus/`) renders only the items whose callbacks are provided:
+`handleFileNodeContextMenu` builds the item callbacks, and `IndexTreeContextMenu` (`src/components/menus/`) renders only the items whose callbacks are provided. A broken link (`node.isBrokenLink`) gets only Browse and Delete; every other node gets the items below:
 
 | Item | Shown for | Behavior |
 |---|---|---|

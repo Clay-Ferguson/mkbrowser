@@ -28,6 +28,16 @@ function getExtension(fileName: string): string {
 export function isImageFile(fileName: string): boolean {
   return IMAGE_EXTENSIONS.has(getExtension(fileName));
 }
+
+/**
+ * Returns true if a listing entry renders as an image: an image file that is
+ * neither a folder nor a broken link (whose target, and so whose pixels, are gone).
+ *
+ * See: (USER_GUIDE.md#broken-links)
+ */
+export function isImageEntry(entry: Pick<FileEntry, 'name' | 'isDirectory' | 'isBrokenLink'>): boolean {
+  return !entry.isDirectory && !entry.isBrokenLink && isImageFile(entry.name);
+}
 export type TextFileLanguage = 'javascript' | 'typescript' | 'python' | 'shell' | 'text';
 
 const TEXT_FILE_LANGUAGES: Record<string, TextFileLanguage> = {
