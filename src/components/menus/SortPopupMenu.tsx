@@ -13,6 +13,8 @@ interface SortPopupMenuProps {
 /**
  * Popup menu for the Sort toolbar button. Renders a checkable list of sort
  * options.
+ *
+ * See: (popup_menus.md#2-specific-menu-components--srccomponentsmenus)
  */
 export default function SortPopupMenu({
   anchorRef,

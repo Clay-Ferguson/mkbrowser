@@ -52,6 +52,7 @@ interface EntryActionBarProps {
  * See: (file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  * See: (USER_GUIDE.md#delete)
  * See: (USER_GUIDE.md#editing-mode)
+ * See: (popup_menus.md#menus-inside-clickable-rows)
  */
 export function EntryActionBar({
   path,
@@ -77,6 +78,7 @@ export function EntryActionBar({
   // See: (single_file_browsing.md#why-browsefilemode)
   const isViewingThisFile = useAS(s => s.browseFileName !== null && joinPath(s.currentPath, s.browseFileName) === path);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
+  // Open flag and anchor for the hamburger "More actions" menu (EntryPopupMenu). See: (popup_menus.md#step-2-add-the-trigger-button-and-menu-to-the-parent-component)
   const [showMenu, setShowMenu] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 

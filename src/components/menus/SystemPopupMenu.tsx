@@ -14,13 +14,14 @@ interface SystemPopupMenuProps {
 }
 
 /**
- * Popup menu for the system (gear/hamburger) toolbar button. Provides
+ * Popup menu for the system (hamburger) button in AppTabButtons. Provides
  * navigation to the general Settings view, the AI Settings view, the
  * Types Editor view, the Tags (hashtag editor) view, and the Help tab.
  *
  * See: (USER_GUIDE.md#settings)
  * See: (USER_GUIDE.md#opening-the-types-editor)
  * See: (USER_GUIDE.md#managing-your-hashtag-library-tags-editor)
+ * See: (popup_menus.md#2-specific-menu-components--srccomponentsmenus)
  */
 export default function SystemPopupMenu({
   anchorRef,

@@ -43,6 +43,8 @@ interface BookmarksPopupMenuProps {
  * See: (USER_GUIDE.md#renaming-and-deleting-bookmarks)
  * See: (index_tree.md#toolbar-and-width)
  * See: (index_tree.md#revealing-a-path)
+ * See: (popup_menus.md#styling-reference)
+ * See: (popup_menus.md#1-base-component--srccomponentsmenusbasepopupmenutsx)
  */
 export default function BookmarksPopupMenu({
   anchorRef,
@@ -52,6 +54,7 @@ export default function BookmarksPopupMenu({
   onNavigate,
 }: BookmarksPopupMenuProps) {
   const [missingPath, setMissingPath] = useState<string | null>(null);
+  // While set, the edit dialog is open and the menu's dismissal is suppressed (disableClose). See: (popup_menus.md#1-base-component--srccomponentsmenusbasepopupmenutsx)
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
 
   // Filter to bookmarks under rootPath, then sort alphabetically by name

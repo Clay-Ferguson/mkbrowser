@@ -9,6 +9,7 @@ import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 // worked example for any future menu that needs to offer a choice of values
 // instead of firing an action. Restoring it means uncommenting these four
 // blocks and having the parent pass `imageSize` / `onChangeImageSize`.
+// See: (popup_menus.md#1-base-component--srccomponentsmenusbasepopupmenutsx)
 //
 // import type { ImageSize } from '../../shared/shared';
 // import { PopupMenuComboBox, type PopupMenuComboBoxOption } from './base/PopupMenu';
@@ -30,6 +31,7 @@ import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
  *
  * See: (USER_GUIDE.md#edit-menu-features)
  * See: (USER_GUIDE.md#enabling-document-mode)
+ * See: (popup_menus.md#2-specific-menu-components--srccomponentsmenus)
  */
 interface EditPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;

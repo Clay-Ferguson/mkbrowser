@@ -70,6 +70,7 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
   const rootPath = useAS(s => s.rootPath);
   const backEnabled = useAS(canGoBack);
   const forwardEnabled = useAS(canGoForward);
+  // Anchors and open flags for the File (app logo) and System (hamburger) menus. See: (popup_menus.md#step-2-add-the-trigger-button-and-menu-to-the-parent-component)
   const logoRef = useRef<HTMLButtonElement>(null);
   const systemMenuRef = useRef<HTMLButtonElement>(null);
   const [showFileMenu, setShowFileMenu] = useState(false);

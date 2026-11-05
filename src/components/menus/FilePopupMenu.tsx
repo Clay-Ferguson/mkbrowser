@@ -14,11 +14,13 @@ interface FilePopupMenuProps {
 }
 
 /**
- * Popup menu for the File toolbar button. Shows "Open Folder", an optional
- * list of recently visited folders, and "Quit". Recent folders that resolve
- * to the root ("/") are omitted since the root has its own dedicated nav icon.
+ * Popup menu for the app logo (File menu) button in AppTabButtons. Shows "Open
+ * Folder", an optional list of recently visited folders, and "Quit". Recent folders
+ * that resolve to the root ("/") are omitted since the root has its own dedicated nav icon.
  *
  * See: (USER_GUIDE.md#recent-folders)
+ * See: (popup_menus.md#2-specific-menu-components--srccomponentsmenus)
+ * See: (popup_menus.md#styling-reference)
  */
 export default function FilePopupMenu({
   anchorRef,

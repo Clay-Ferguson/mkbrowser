@@ -32,6 +32,8 @@ interface EntryPopupMenuProps {
  * See: (USER_GUIDE.md#adding-a-bookmark)
  * See: (USER_GUIDE.md#make-folder-wrap-a-file-in-a-folder)
  * See: (USER_GUIDE.md#adding-attachments)
+ * See: (popup_menus.md#2-specific-menu-components--srccomponentsmenus)
+ * See: (popup_menus.md#step-1-create-the-menu-component)
  */
 export default function EntryPopupMenu({
   anchorRef,

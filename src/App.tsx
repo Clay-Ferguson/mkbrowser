@@ -179,6 +179,7 @@ function App() {
       if (e.isComposing) return;
       // Already consumed (CodeMirror's own Escape keymap, autocomplete, search panel), or
       // meant for an open dialog/menu: that Esc dismisses the overlay, not the editor.
+      // See: (popup_menus.md#rendering-layer-popover-api)
       if (e.defaultPrevented || isKeyForOverlay(e)) return;
       // Only an editor that is on screen: the items Map is global, and an editing item
       // can belong to a folder the user has navigated away from.

@@ -22,6 +22,8 @@ interface ImageColsPopupMenuProps {
 /**
  * Popup menu for the Image columns toolbar button. Renders a checkable list of
  * column counts for laying out image entries side by side in the listing.
+ *
+ * See: (popup_menus.md#2-specific-menu-components--srccomponentsmenus)
  */
 export default function ImageColsPopupMenu({
   anchorRef,

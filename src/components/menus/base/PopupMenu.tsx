@@ -1,31 +1,62 @@
+// Popup menus: the shared base every menu is built from. See: (popup_menus.md)
 import { useRef, useLayoutEffect, useEffect, useEffectEvent, useState, type ReactNode, type RefObject, type ComponentType } from 'react';
 import { clsx } from 'clsx';
 import { CheckIcon } from '@heroicons/react/24/solid';
 import { MENU_CONTAINER, MENU_ITEM_BASE, MENU_ITEM_ENABLED, MENU_ITEM_DISABLED, MENU_DIVIDER } from '../../../renderer/styles';
 
-/** Gap in px between the anchor element and the menu. */
+/**
+ * Gap in px between the anchor element (or cursor) and the menu.
+ *
+ * See: (popup_menus.md#positioning-behavior)
+ */
 const ANCHOR_GAP = 4;
-/** Minimum px kept between the menu and each viewport edge. */
+/**
+ * Minimum px kept between the menu and each viewport edge.
+ *
+ * See: (popup_menus.md#positioning-behavior)
+ */
 const VIEWPORT_MARGIN = 8;
 
+// Props of the base menu container. See: (popup_menus.md#1-base-component--srccomponentsmenusbasepopupmenutsx)
 export interface PopupMenuProps {
   /** Ref to the button/element that triggered the menu */
   anchorRef?: RefObject<HTMLElement | null>;
-  /** Mouse coordinates to position the menu at (alternative to anchorRef) */
+  /**
+   * Mouse coordinates to position the menu at (alternative to anchorRef, for
+   * context menus; used when both are given)
+   *
+   * See: (popup_menus.md#context-menus-mouse-position)
+   */
   mousePosition?: { x: number; y: number };
-  /** Called when the menu should close (click outside, Escape, item click) */
+  /**
+   * Called when the menu should close (click outside or Escape). An item click
+   * does not call it: each item's onClick must call onClose itself.
+   *
+   * See: (popup_menus.md#dismiss-behavior)
+   */
   onClose: () => void;
-  /** When true, click-outside and Escape dismissal are suppressed (e.g. while a sub-dialog is open) */
+  /**
+   * When true, click-outside and Escape dismissal are suppressed (e.g. while a sub-dialog is open)
+   *
+   * See: (popup_menus.md#dismiss-behavior)
+   */
   disableClose?: boolean;
   /**
    * Which of the menu's corners lines up with the anchor. 'left' (default) puts
    * the menu's top-left under the anchor's bottom-left; 'right' puts its
    * top-right under the anchor's bottom-right — the natural choice for a button
    * sitting at the right end of a toolbar. Ignored when `mousePosition` is used.
+   *
+   * See: (popup_menus.md#positioning-behavior)
    */
   align?: 'left' | 'right';
   children: ReactNode;
-  /** Optional extra inline styles merged onto the menu container */
+  /**
+   * Optional extra inline styles merged onto the menu container (usually a
+   * `maxWidth` that lifts MENU_CONTAINER's max-w-xs cap)
+   *
+   * See: (popup_menus.md#styling-reference)
+   */
   style?: React.CSSProperties;
   /** Optional test hook rendered on the menu container */
   'data-testid'?: string;
@@ -35,6 +66,9 @@ export interface PopupMenuProps {
  * Reusable popup menu that renders in the browser's top layer (via the Popover
  * API) and positions itself below an anchor element or at mouse coordinates.
  * Handles click-outside dismiss, Escape key, and viewport edge-clipping.
+ *
+ * See: (popup_menus.md#1-base-component--srccomponentsmenusbasepopupmenutsx)
+ * See: (popup_menus.md#rendering-layer-popover-api)
  */
 export default function PopupMenu({ anchorRef, mousePosition, onClose, disableClose = false, align = 'left', children, style: extraStyle, 'data-testid': dataTestId }: PopupMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -44,11 +78,13 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   // the numbers rather than the mousePosition object's identity. A caller passing
   // an inline { x, y } literal would otherwise re-create it every render and make
   // the effect tear down / re-attach its resize+scroll listeners each time.
+  // See: (popup_menus.md#context-menus-mouse-position)
   const mouseX = mousePosition?.x;
   const mouseY = mousePosition?.y;
 
   // Effect event so the dismiss listeners always call the latest onClose without
   // re-subscribing every render when callers pass an inline arrow function.
+  // See: (popup_menus.md#dismiss-behavior)
   const onCloseEvent = useEffectEvent(() => onClose());
 
   // Promote the menu into the browser's top layer via the Popover API, then
@@ -65,6 +101,8 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   // Reposition while open if the viewport resizes or scrolls, so the menu stays
   // anchored instead of detaching/overflowing. Scroll uses capture to also catch
   // scrolling inside nested scrollable containers.
+  // See: (popup_menus.md#rendering-layer-popover-api)
+  // See: (popup_menus.md#positioning-behavior)
   useLayoutEffect(() => {
     // Calculate position relative to anchor or mouse position, adjusting for viewport edges
     const updatePosition = () => {
@@ -143,6 +181,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   }, [anchorRef, mouseX, mouseY, align]);
 
   // Click-outside and Escape dismiss
+  // See: (popup_menus.md#dismiss-behavior)
   useEffect(() => {
     if (disableClose) return;
     const handleMouseDown = (e: MouseEvent) => {
@@ -190,6 +229,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   );
 }
 
+// Props of a single clickable menu row. See: (popup_menus.md#1-base-component--srccomponentsmenusbasepopupmenutsx)
 export interface PopupMenuItemProps {
   label: string;
   onClick: () => void;
@@ -201,7 +241,13 @@ export interface PopupMenuItemProps {
   'data-testid'?: string;
 }
 
-/** A clickable menu item inside a PopupMenu. */
+/**
+ * A clickable menu item inside a PopupMenu. It does not close the menu: its
+ * onClick must run the action and then call the menu's onClose.
+ *
+ * See: (popup_menus.md#1-base-component--srccomponentsmenusbasepopupmenutsx)
+ * See: (popup_menus.md#step-1-create-the-menu-component)
+ */
 export function PopupMenuItem({
   label,
   onClick,
@@ -236,7 +282,11 @@ export function PopupMenuItem({
   );
 }
 
-/** A horizontal divider line inside a PopupMenu. */
+/**
+ * A horizontal divider line inside a PopupMenu.
+ *
+ * See: (popup_menus.md#1-base-component--srccomponentsmenusbasepopupmenutsx)
+ */
 export function PopupMenuDivider() {
   return <div className={MENU_DIVIDER} />;
 }
@@ -264,6 +314,8 @@ export interface PopupMenuComboBoxProps<T extends string> {
  * PopupMenu's click-outside dismissal never sees it. The row itself is not a
  * button — clicks inside it must not close the menu, so callers close (or not)
  * from `onChange`.
+ *
+ * See: (popup_menus.md#1-base-component--srccomponentsmenusbasepopupmenutsx)
  */
 export function PopupMenuComboBox<T extends string>({
   label,

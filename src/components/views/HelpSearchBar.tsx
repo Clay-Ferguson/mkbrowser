@@ -48,6 +48,8 @@ const NEXT_TITLE = `Go to the next match\n\n${ARROW_HINT}`;
  * True when an arrow key should keep its normal meaning: it was already consumed, carries a
  * modifier (e.g. Alt+Left history, Shift+arrow selection), or is aimed at a text field
  * (the search input included, so its caret still moves), a CodeMirror editor, or a dialog/menu.
+ *
+ * See: (popup_menus.md#rendering-layer-popover-api)
  */
 function isArrowForSomethingElse(e: globalThis.KeyboardEvent): boolean {
   if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return true;

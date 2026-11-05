@@ -320,6 +320,7 @@ function IndexTreeView() {
   const [revealScrollTarget, setRevealScrollTarget] = useState<string | null>(null);
   const [runningScript, setRunningScript] = useState<string | null>(null);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
+  // Right-click position plus the node's item callbacks, shown by IndexTreeContextMenu. See: (popup_menus.md#context-menus-mouse-position)
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -841,6 +842,7 @@ function IndexTreeView() {
 
   // The Bookmarks button at the top of the tree. See: (USER_GUIDE.md#navigating-with-bookmarks)
   // See: (index_tree.md#toolbar-and-width)
+  // See: (popup_menus.md#step-2-add-the-trigger-button-and-menu-to-the-parent-component)
   const toggleBookmarksMenu = () => setShowBookmarksMenu(prev => !prev);
   const closeBookmarksMenu = () => setShowBookmarksMenu(false);
   // Narrow tree / Widen tree: step the panel width and persist it. See: (index_tree.md#toolbar-and-width)
@@ -880,6 +882,7 @@ function IndexTreeView() {
    * "Browse" always lands in a folder listing, so it is also an exit from single-file mode.
    * See: (single_file_browsing.md#leaving-single-file-mode-the-index-tree)
    * See: (index_tree.md#context-menu)
+   * See: (popup_menus.md#context-menus-mouse-position)
    */
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();

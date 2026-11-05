@@ -8,6 +8,8 @@
  * Every app dialog is a native <dialog> opened with showModal(), so this needs no
  * cooperation from the dialogs themselves: a document 'keydown' listener just
  * returns early when this is true.
+ *
+ * See: (popup_menus.md#rendering-layer-popover-api)
  */
 export function isKeyForOverlay(e: KeyboardEvent): boolean {
   if (e.target instanceof Element && e.target.closest('dialog,[popover]')) return true;

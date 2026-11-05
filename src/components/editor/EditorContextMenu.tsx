@@ -59,6 +59,10 @@ const VIEWPORT_MARGIN = 8;
  * Insert Object does not act directly: it replaces the menu's items, in place, with the list
  * of registered object types (`contextMenu.submenu`), and picking one adds it to the front matter.
  *
+ * Not built on PopupMenu: a separate, older implementation with its own positioning and
+ * dismissal, stacked with Z_MODAL rather than the popover top layer.
+ *
+ * See: (popup_menus.md#2-specific-menu-components--srccomponentsmenus)
  * See: (USER_GUIDE.md#inserting-links-to-other-files)
  * See: (USER_GUIDE.md#inserting-objects)
  * See: (USER_GUIDE.md#thesaurus)

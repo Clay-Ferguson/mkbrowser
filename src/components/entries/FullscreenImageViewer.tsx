@@ -71,6 +71,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       // A dialog/menu opened over the viewer (EXIF, delete confirm, …) owns the keyboard:
       // its arrows/Space/Esc must not navigate, select, or close the image underneath.
+      // See: (popup_menus.md#rendering-layer-popover-api)
       if (isKeyForOverlay(e)) return;
       if (e.key === 'Escape') {
         onClose();

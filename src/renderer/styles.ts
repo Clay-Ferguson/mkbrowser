@@ -408,12 +408,14 @@ export const RENAME_INPUT_CLASS = 'flex-1 bg-slate-900 text-slate-200 px-2 py-1 
 // Popup menu structural classes
 // Menus render in the browser's top layer via the Popover API (see PopupMenu.tsx),
 // so they clear CodeMirror's internal panels/tooltips without needing Z_MODAL.
+// See: (popup_menus.md#styling-reference)
 export const MENU_CONTAINER    = `fixed bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px] max-w-xs`;
 export const MENU_ITEM_BASE    = 'w-full text-left py-2 text-sm transition-colors flex items-center gap-2';
 export const MENU_ITEM_ENABLED = 'text-btn-neutral-fg hover:bg-btn-menu-hover cursor-pointer';
 export const MENU_ITEM_DISABLED = 'text-btn-label-off cursor-not-allowed';
 export const MENU_DIVIDER      = 'border-t border-slate-500 my-1';
 // Row with inline action buttons revealed on hover (e.g. bookmark rows)
+// See: (popup_menus.md#styling-reference)
 // py-1 (not py-2): the 32px MENU_ICON_BTN sets the row height, keeping rows at 40px
 export const MENU_ROW          = 'flex items-center gap-1 px-1.5 py-1 rounded hover:bg-btn-menu-hover group';
 // Standard icon-button hover (GHOST: gray fill + frame), sized like the action-bar

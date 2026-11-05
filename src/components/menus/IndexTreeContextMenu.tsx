@@ -36,6 +36,7 @@ interface IndexTreeContextMenuProps {
  * See: (USER_GUIDE.md#running-shell-scripts)
  * See: (USER_GUIDE.md#inserting-links-to-other-files)
  * See: (index_tree.md#context-menu)
+ * See: (popup_menus.md#context-menus-mouse-position)
  */
 export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewFolder, onRename, onDelete, onCut, onPaste, onCopyPath }: IndexTreeContextMenuProps) {
   return (

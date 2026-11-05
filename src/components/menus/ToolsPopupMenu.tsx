@@ -26,6 +26,7 @@ interface ToolsPopupMenuProps {
  * See: (USER_GUIDE.md#folder-analysis)
  * See: (USER_GUIDE.md#launching-the-graph)
  * See: (USER_GUIDE.md#exporting)
+ * See: (popup_menus.md#existing-example)
  */
 export default function ToolsPopupMenu({
   anchorRef,
@@ -38,6 +39,7 @@ export default function ToolsPopupMenu({
   onNewAiChat,
 }: ToolsPopupMenuProps) {
   // Read live from the store so toggling "Enable AI" in AI Settings takes effect without a restart.
+  // See: (popup_menus.md#step-1-create-the-menu-component)
   const aiEnabled = useAS(s => s.aiConfig.aiEnabled);
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>

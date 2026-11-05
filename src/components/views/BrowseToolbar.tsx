@@ -41,6 +41,7 @@ import { isImageFile, isMarkdownFile } from '../../shared/fileTypes';
 import type { BrowseOverlay } from './browseOverlay';
 import { getSelectedItems } from './browseListing';
 
+// The toolbar's five popup menus; at most one is open at a time. See: (popup_menus.md#several-menus-in-one-toolbar)
 type MenuKind = 'tools' | 'edit' | 'search' | 'sort' | 'imageCols';
 
 /**
@@ -135,11 +136,13 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
   // A second click on a menu's own button closes it (PopupMenu ignores
   // mousedowns on its anchor, so only this click sees it). Clicking another
   // menu's button closes the first via PopupMenu's click-outside handling.
+  // See: (popup_menus.md#several-menus-in-one-toolbar)
   const toggleMenu = (which: MenuKind) => {
     setOpenMenu((m) => (m === which ? null : which));
   };
   // Conditional, like BrowseView's closeOverlay, so a late close from one menu
   // can't close a different menu opened since.
+  // See: (popup_menus.md#several-menus-in-one-toolbar)
   const closeMenu = (which: MenuKind) => {
     setOpenMenu((m) => (m === which ? null : m));
   };

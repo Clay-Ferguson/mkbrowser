@@ -23,6 +23,7 @@ interface SearchPopupMenuProps {
  *
  * See: (USER_GUIDE.md#saving-search-definitions)
  * See: (USER_GUIDE.md#search-highlight)
+ * See: (popup_menus.md#2-specific-menu-components--srccomponentsmenus)
  */
 export default function SearchPopupMenu({
   anchorRef,
