@@ -7,6 +7,7 @@ import { refreshDirectory } from '../../renderer/directoryLoader';
 import { BUTTON_CLASS_TB_NORMAL, ENTRY_DROP_TARGET, ROW_HOVER } from '../../renderer/styles';
 import { runOp } from '../../renderer/runOp';
 import FileTypeIcon from '../FileTypeIcon';
+import SymlinkBadge from '../SymlinkBadge';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
 import CreateFileDialog from '../dialogs/CreateFileDialog';
@@ -251,6 +252,7 @@ function TreeFileRow({
         }
       </span>
       <span className={nameClassName}>{isAttach ? `*${ATTACH_SUFFIX}` : node.name}</span>
+      {node.isSymlink && <SymlinkBadge />}
       {/* Marks a file that owns attachments, which a click reveals as its `*.attach`
           child. Amber like the folder icons, tying it to that folder row. */}
       {node.hasAttachFolder && (

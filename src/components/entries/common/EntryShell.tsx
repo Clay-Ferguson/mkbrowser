@@ -5,6 +5,7 @@ import { buildEntryHeaderId } from '../../../renderer/entryDom';
 import { formatFlyoverInfo } from '../../../shared/fileTypes';
 import { makeEntryDragStartHandler, canDropAsAttachment, dropAsAttachment } from '../../../renderer/dragAndDrop';
 import ConfirmDialog from '../../dialogs/ConfirmDialog';
+import SymlinkBadge from '../../SymlinkBadge';
 import { idSuffixLossMessage } from '../../../shared/fileIdSuffix';
 import { RenameInput } from './RenameInput';
 import { SelectionCheckbox } from './SelectionCheckbox';
@@ -170,10 +171,14 @@ export function EntryShell({
             // nameClassName carries `cursor-pointer` and callers supply their own.
             onClick={isEditing ? undefined : onToggleExpanded}
             style={isEditing ? { cursor: 'default' } : undefined}
-            className={nameClassName}
+            // The span stays flex-1 so the whole width toggles expansion; as a flex
+            // row it holds the name (truncating on its own) and keeps the symlink
+            // badge right after the name, visible even when the name is cut short.
+            className={clsx(nameClassName, 'flex items-center gap-1.5')}
             title={nameTitle ?? formatFlyoverInfo(entry)}
           >
-            {entry.name}
+            <span className="truncate">{entry.name}</span>
+            {entry.isSymlink && <SymlinkBadge />}
           </span>
         )}
         {!isRenaming && headerRight}

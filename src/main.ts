@@ -6,7 +6,7 @@ import { initConfig, getConfig, updateConfig, flushConfig } from './main/configM
 import type { AppConfig, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
-import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry } from './main/fileUtil';
+import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
 import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterId, withIndexLock, type IndexMutationResult } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
@@ -390,6 +390,12 @@ function setupIpcHandlers(): void {
     } catch {
       return false;
     }
+  });
+
+  // Which of the given paths are symbolic links (the breadcrumb's link badges).
+  // See: (USER_GUIDE.md#symbolic-links)
+  ipcMain.handle('find-symlinks', async (_event, paths: string[]): Promise<string[]> => {
+    return findSymlinks(paths);
   });
 
   // Write content to a file. Returns the file's post-write mtime so the

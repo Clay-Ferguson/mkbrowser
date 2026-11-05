@@ -368,6 +368,14 @@ export interface FileEntry {
    * See: (file_attachments.md#fileentry-interface-srcsharedsharedts)
    */
   hasAttachFolder?: boolean;
+  /**
+   * True when the entry itself is a symbolic link (to a file or a folder). The other
+   * fields describe the link's target: `isDirectory`, times and size come from a
+   * stat that follows the link. Broken links are not listed at all.
+   *
+   * See: (USER_GUIDE.md#symbolic-links)
+   */
+  isSymlink?: boolean;
 }
 
 /**
@@ -656,6 +664,13 @@ export interface ElectronAPI {
   pathExists: (checkPath: string) => Promise<boolean>;
   /** True when the path exists and is a directory; false otherwise (including when missing). */
   isDirectory: (checkPath: string) => Promise<boolean>;
+  /**
+   * The given paths that are themselves symbolic links, in input order; paths that
+   * are missing or unreadable are left out.
+   *
+   * See: (USER_GUIDE.md#symbolic-links)
+   */
+  findSymlinks: (paths: string[]) => Promise<string[]>;
   /**
    * Finds the .md file whose front-matter `id` is `id`: first among the direct children
    * of `likelyDir`, then anywhere under `rootDir` (honoring ignored paths). The first

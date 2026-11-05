@@ -10,6 +10,7 @@ import {
 } from '../../renderer/dragAndDrop';
 import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED, ENTRY_DROP_TARGET, ROW_HOVER } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
+import SymlinkBadge from '../SymlinkBadge';
 import {
   useEntry,
   useDropTarget,
@@ -107,6 +108,7 @@ function FolderEntry(props: FolderEntryProps) {
         ) : (
           <>
             <span id={buildEntryHeaderId(entry.path)} className={clsx('font-medium truncate flex-shrink-0', indentFolder ? 'text-slate-400 italic' : 'text-btn-accent-amber')}>{indentFolder ? `*${ATTACH_SUFFIX}` : entry.name}</span>
+            {entry.isSymlink && <SymlinkBadge />}
             {aiHint && (
               <span className="text-slate-400 italic text-sm truncate min-w-0" title={aiHint}>{aiHint}</span>
             )}

@@ -235,6 +235,18 @@ describe('mergeTreeNodes', () => {
     expect(replaced!.children).toBeNull();
   });
 
+  it('takes isSymlink from the fresh listing, keeping the expansion state', () => {
+    const previous = [node('/root/a', true, true, [])];
+
+    const [linked] = mergeTreeNodes([{ ...entry('/root/a', true), isSymlink: true }], previous);
+    expect(linked!.isSymlink).toBe(true);
+    expect(linked!.isExpanded).toBe(true);
+
+    // A link replaced by a real folder loses the flag rather than keeping the old one.
+    const [unlinked] = mergeTreeNodes([entry('/root/a', true)], [linked!]);
+    expect(unlinked).not.toHaveProperty('isSymlink');
+  });
+
   it('returns freshly collapsed nodes when there is nothing to merge with', () => {
     expect(mergeTreeNodes([entry('/root/a', true)], null)).toEqual([
       node('/root/a', true, false, null),

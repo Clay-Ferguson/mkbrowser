@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry } from '../src/main/fileUtil';
+import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks } from '../src/main/fileUtil';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from '../src/shared/specialFiles';
 
 let tmpDir: string;
@@ -42,6 +42,46 @@ describe('readDirectory attach folder pre-loading', () => {
       expect(entry.attachments).toBeUndefined();
     }
   }, 10000);
+});
+
+describe('readDirectory symlink flag', () => {
+  it('flags linked files and folders, and describes them by their targets', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'real-dir'));
+    fs.writeFileSync(path.join(tmpDir, 'real.md'), '# real', 'utf8');
+    fs.symlinkSync(path.join(tmpDir, 'real-dir'), path.join(tmpDir, 'link-dir'));
+    fs.symlinkSync(path.join(tmpDir, 'real.md'), path.join(tmpDir, 'link.md'));
+
+    const byName = new Map((await readDirectory(tmpDir, false)).map((e) => [e.name, e]));
+
+    expect(byName.get('link-dir')).toMatchObject({ isSymlink: true, isDirectory: true });
+    expect(byName.get('link.md')).toMatchObject({ isSymlink: true, isDirectory: false, isMarkdown: true });
+    expect(byName.get('real-dir')).not.toHaveProperty('isSymlink');
+    expect(byName.get('real.md')).not.toHaveProperty('isSymlink');
+  });
+});
+
+describe('findSymlinks', () => {
+  it('returns only the paths that are links themselves, in input order', async () => {
+    // real/linked -> real: the breadcrumb for "real/linked/inner" checks a real
+    // folder, a link, and a real folder reached through that link.
+    const real = path.join(tmpDir, 'real');
+    fs.mkdirSync(path.join(real, 'inner'), { recursive: true });
+    fs.symlinkSync(real, path.join(real, 'linked'));
+    const linked = path.join(real, 'linked');
+    fs.symlinkSync(path.join(tmpDir, 'missing'), path.join(tmpDir, 'dangling'));
+
+    const found = await findSymlinks([
+      tmpDir,
+      real,
+      linked,
+      path.join(linked, 'inner'),
+      path.join(tmpDir, 'dangling'),
+      path.join(tmpDir, 'does-not-exist'),
+    ]);
+
+    // A dangling link is still a link; a missing path is simply not one.
+    expect(found).toEqual([linked, path.join(tmpDir, 'dangling')]);
+  });
 });
 
 describe('readDirectory I/O fan-out', () => {

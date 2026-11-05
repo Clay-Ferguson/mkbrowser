@@ -12,7 +12,7 @@ import { logger } from '../shared/logUtil';
 // ============================================================================
 
 /** A directory listing entry, as far as the tree builders need it. */
-type TreeEntry = { path: string; name: string; isDirectory: boolean; indexOrder?: number; hasAttachFolder?: boolean };
+type TreeEntry = { path: string; name: string; isDirectory: boolean; indexOrder?: number; hasAttachFolder?: boolean; isSymlink?: boolean };
 
 /**
  * Builds the IndexTreeView's lazily-loaded child nodes from a directory listing. An
@@ -43,6 +43,7 @@ export function makeTreeNodes(entries: TreeEntry[]): FileNode[] {
     children: null,
     ...(e.indexOrder !== undefined ? { indexOrder: e.indexOrder } : {}),
     ...(!e.isDirectory && e.hasAttachFolder ? { hasAttachFolder: true } : {}),
+    ...(e.isSymlink ? { isSymlink: true } : {}),
   }));
 }
 
@@ -127,7 +128,7 @@ export function mergeTreeNodes(
     if (!existing || existing.isDirectory !== node.isDirectory) return node;
     const attachChanged = existing.hasAttachFolder !== node.hasAttachFolder;
     // Unchanged on disk: reuse the old node so the memo()'d tree row skips its re-render.
-    if (existing.name === node.name && existing.indexOrder === node.indexOrder && !attachChanged && !existing.isLoading) return existing;
+    if (existing.name === node.name && existing.indexOrder === node.indexOrder && existing.isSymlink === node.isSymlink && !attachChanged && !existing.isLoading) return existing;
     // A file whose attachment folder appeared or vanished gets that child added or removed.
     const children = attachChanged ? syncAttachChild(existing.children, node) : existing.children;
     return { ...node, isExpanded: existing.isExpanded, children };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { HomeIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import { useAS, setPendingIndexTreeReveal, setCurrentView } from '../store';
@@ -11,13 +11,24 @@ import {
 import { BREADCRUMB_REVEAL_IDLE, BREADCRUMB_SEGMENT_IDLE, ENTRY_DROP_TARGET } from '../renderer/styles';
 import { joinPath, splitPathSegments, isPathInside } from '../renderer/pathUtil';
 import { reconcileAndRefresh } from '../renderer/indexOrderOp';
+import { api } from '../renderer/api';
 import { logger } from '../shared/logUtil';
+import SymlinkBadge from './SymlinkBadge';
 
 export type PathBreadcrumbProps = {
   rootPath: string;
   currentPath: string;
   onNavigate: (path: string) => void;
 };
+
+/**
+ * The breadcrumb segments below the root, each with its absolute path:
+ * `a/b` under `/root` gives `a` → `/root/a` and `b` → `/root/a/b`.
+ */
+function buildSegments(root: string, relativePath: string): { name: string; path: string }[] {
+  const parts = splitPathSegments(relativePath);
+  return parts.map((name, i) => ({ name, path: joinPath(root, ...parts.slice(0, i + 1)) }));
+}
 
 /**
  * Renders the current directory path as a row of clickable breadcrumb segments.
@@ -30,8 +41,10 @@ export type PathBreadcrumbProps = {
  * shown and always clickable, even at the root itself. Every segment — including
  * that home icon — doubles as a drag-and-drop target that accepts file/folder moves.
  * A "reveal in tree" button appears at the end when the index tree panel is visible.
+ * Any segment (or the root) that is a symbolic link shows the SymlinkBadge.
  *
  * See: (single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
+ * See: (USER_GUIDE.md#symbolic-links)
  * See: (USER_GUIDE.md#drag-and-drop)
  */
 function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
@@ -44,13 +57,25 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
     ? normalizedCurrent.slice(normalizedRoot.length)
     : normalizedCurrent;
 
-  const parts = splitPathSegments(relativePath);
+  const segments = buildSegments(normalizedRoot, relativePath);
 
-  // Returns the absolute path for breadcrumb segment at `index`; -1 resolves to root.
-  const buildPathForIndex = (index: number) => {
-    if (index < 0) return normalizedRoot;
-    return joinPath(normalizedRoot, ...parts.slice(0, index + 1));
-  };
+  // The root and segment paths that are symbolic links, for their badges. One
+  // lstat batch per navigation. A result left over from the previous path is
+  // harmless while the next loads: it is keyed by absolute path, and whether a
+  // path is a link doesn't depend on which folder is being browsed.
+  const [linkPaths, setLinkPaths] = useState<ReadonlySet<string>>(() => new Set());
+  useEffect(() => {
+    let ignore = false;
+    const paths = [normalizedRoot, ...buildSegments(normalizedRoot, relativePath).map(s => s.path)];
+    api.findSymlinks(paths)
+      .then(found => {
+        if (!ignore) setLinkPaths(new Set(found));
+      })
+      .catch(err => logger.error('Failed to check breadcrumb paths for symlinks:', err));
+    return () => {
+      ignore = true;
+    };
+  }, [normalizedRoot, relativePath]);
 
   // Clicking the current folder refreshes it (listing + index tree) first.
   const handleClick = (path: string) => {
@@ -60,7 +85,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
     onNavigate(path);
   };
 
-  const isAtRoot = parts.length === 0;
+  const isAtRoot = segments.length === 0;
 
   // Produces drag-event handlers that make a breadcrumb segment a drop target for
   // ENTRY_DND_MIME payloads (dragged from BrowseView entry icons or the IndexTreeView).
@@ -99,7 +124,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
         {...dropProps(normalizedRoot)}
         data-testid="breadcrumb-home-button"
         className={clsx(
-          'p-2 border border-transparent rounded cursor-pointer flex-shrink-0 transition-colors',
+          'flex items-center gap-1.5 p-2 border border-transparent rounded cursor-pointer flex-shrink-0 transition-colors',
           dragOverPath === normalizedRoot
             ? `text-white ${ENTRY_DROP_TARGET}`
             : BREADCRUMB_SEGMENT_IDLE,
@@ -109,16 +134,16 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
         title={isAtRoot ? 'Refresh (root folder)' : 'Go to root folder'}
       >
         <HomeIcon className="w-5 h-5" />
+        {linkPaths.has(normalizedRoot) && <SymlinkBadge />}
       </button>
 
       {isAtRoot && (
         <span className="text-btn-accent-amber font-medium">/</span>
       )}
 
-      {parts.map((part, index) => {
-        const segmentPath = buildPathForIndex(index);
+      {segments.map(({ name: part, path: segmentPath }, index) => {
         const isDragOver = dragOverPath === segmentPath;
-        const isCurrent = index === parts.length - 1;
+        const isCurrent = index === segments.length - 1;
         return (
           <div key={segmentPath} className="flex items-center">
             <span className="text-btn-accent-amber mx-1">/</span>
@@ -131,20 +156,21 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
               aria-current={isCurrent ? 'location' : undefined}
               title={isCurrent ? 'Refresh' : undefined}
               className={clsx(
-                'px-2 py-1 border border-transparent rounded cursor-pointer no-underline break-all transition-colors',
+                'inline-flex items-center gap-1.5 px-2 py-1 border border-transparent rounded cursor-pointer no-underline break-all transition-colors',
                 isDragOver
                   ? `text-white ${ENTRY_DROP_TARGET}`
                   : BREADCRUMB_SEGMENT_IDLE,
               )}
             >
               {part}
+              {linkPaths.has(segmentPath) && <SymlinkBadge />}
             </button>
 
           </div>
         );
       })}
 
-      {parts.length > 0 && !indexTreeHidden && (
+      {segments.length > 0 && !indexTreeHidden && (
         <button
           type="button"
           onClick={() => {

@@ -112,6 +112,7 @@ Each visible row is a memo()'d `TreeFileRow`, indented 20px per depth level. Eac
 - **Directory**: amber folder icon (open or closed) and amber text.
 - **Attachment folder under its file**: labelled `*.attach` (the node keeps its real name and path), italic and dimmed.
 - **File**: a `FileTypeIcon`, plus a paperclip icon after the name when the file owns an attachment folder. `.sh` files have green text.
+- **Symbolic link** (file or folder, `FileNode.isSymlink`): a `SymlinkBadge` right after the name, the same badge the browse view uses.
 - **Browsed folder and its ancestors**: a translucent purple background on the name. The browsed folder itself also gets a gray border.
 - **Highlighted item** (`highlightItem`, file or folder): white text and a purple border on the name.
 - **Context-menu target**: a blue row background while its menu is open.

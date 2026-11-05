@@ -309,6 +309,12 @@ export interface FileNode {
    * See: (file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
    */
   isOwnedAttach?: boolean;
+  /**
+   * The entry is a symbolic link (from FileEntry.isSymlink).
+   *
+   * See: (USER_GUIDE.md#symbolic-links)
+   */
+  isSymlink?: boolean;
 }
 
 /**

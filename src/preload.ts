@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getImageDimensions: (filePath: string) => ipcRenderer.invoke('get-image-dimensions', filePath),
   pathExists: (checkPath: string) => ipcRenderer.invoke('path-exists', checkPath),
   isDirectory: (checkPath: string) => ipcRenderer.invoke('is-directory', checkPath),
+  // Breadcrumb link badges. See: (USER_GUIDE.md#symbolic-links)
+  findSymlinks: (paths: string[]) => ipcRenderer.invoke('find-symlinks', paths),
   // Paste Link ids and link auto-repair. See: (USER_GUIDE.md#inserting-links-to-other-files)
   ensureFrontMatterId: (filePath: string) => ipcRenderer.invoke('ensure-front-matter-id', filePath),
   findMarkdownById: (id: string, likelyDir: string, rootDir: string) =>

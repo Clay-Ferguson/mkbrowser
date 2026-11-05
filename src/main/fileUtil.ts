@@ -91,6 +91,10 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
       createdTime,
       size,
     };
+    // Dirent comes from readdir, which doesn't follow links, so this is the entry
+    // itself. Node reports Windows junctions as symlinks too.
+    // See: (USER_GUIDE.md#symbolic-links)
+    if (entry.isSymbolicLink()) fileEntry.isSymlink = true;
 
     // Pre-load contents of .attach folders so the renderer needs no extra I/O.
     // Symlinks never recurse: a link named "*.attach" that resolves to one of its
@@ -176,6 +180,20 @@ async function folderEmptiness(dirPath: string): Promise<'empty' | 'indexOnly' |
   } finally {
     await dir.close();
   }
+}
+
+/**
+ * The members of `paths` that are themselves symbolic links, in input order. Each is
+ * checked with `lstat`, which looks at the path's last component without following
+ * it; a path that can't be checked (missing, unreadable) counts as not a link.
+ *
+ * See: (USER_GUIDE.md#symbolic-links)
+ */
+export async function findSymlinks(paths: string[]): Promise<string[]> {
+  const isLink = await Promise.all(paths.map((p) =>
+    fs.promises.lstat(p).then((s) => s.isSymbolicLink(), () => false)
+  ));
+  return paths.filter((_, i) => isLink[i]);
 }
 
 /**

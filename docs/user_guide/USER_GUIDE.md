@@ -445,6 +445,14 @@ Dragging works in both directions between the **folder tree** (the panel on the 
 
 As you drag, an outline of the item follows the cursor, and the folder you're hovering over is highlighted to show where the item will land. The destination folder's contents refresh automatically wherever the change is visible.
 
+## Symbolic Links
+
+A file or folder that is a **symbolic link** (a link pointing to another file or folder) shows a small light-gray circle with an arrow pointing up and to the right after its name. You see it in the browse view, in the folder tree, and in the breadcrumb path at the top of the browse view: each folder in the path that is a link shows the badge after its name, and when the root folder itself is a link the badge appears next to the home icon. Hover over it to see "Symbolic link". The item otherwise looks and works like the file or folder it points to: a linked folder opens like a folder, and a linked Markdown file renders like any Markdown file.
+
+Links whose target no longer exists (broken links) are not shown.
+
+Symbolic links exist on Linux, macOS and Windows. Windows `.lnk` shortcuts and macOS Finder aliases are ordinary files, not symbolic links, so they don't get the badge.
+
 # Bookmarks
 
 Bookmarks give you quick access to frequently visited files and folders. They are managed from the **Index Tree** panel on the left side of the Browse view.
