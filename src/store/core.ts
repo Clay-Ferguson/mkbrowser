@@ -128,6 +128,7 @@ const initialState: AppState = {
   rootPath: '',
   // Explicitly shown tabs; AppTabButtons adds the data-derived ones. See: (application_tabs.md#which-tabs-are-shown)
   visibleTabs: new Set<AppState['currentView']>(['browser']),
+  // Index Tree panel state. See: (index_tree.md#store-integration)
   indexTreeRoot: null,
   pendingIndexTreeReveal: null,
   pendingIndexTreeRevealExpandsFile: false,

@@ -238,6 +238,7 @@ const AppSettingsSchema = z
     contentWidth: z.enum(['narrow', 'medium', 'wide', 'full']).catch(defaultSettings.contentWidth),
     bookmarks: tolerantArray(BookmarkSchema),
     calendarItemsFolder: z.string().catch(defaultSettings.calendarItemsFolder),
+    // 'hidden' is accepted here although no UI sets it. See: (index_tree.md#toolbar-and-width)
     indexTreeWidth: z.enum(['hidden', 'narrow', 'medium', 'wide']).catch(defaultSettings.indexTreeWidth),
     showPropsInEditor: z.boolean().catch(defaultSettings.showPropsInEditor),
     expandedEditor: z.boolean().catch(defaultSettings.expandedEditor),

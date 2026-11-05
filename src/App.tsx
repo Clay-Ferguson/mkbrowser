@@ -102,6 +102,7 @@ function App() {
   const hasFolderGraph = useAS(s => s.folderGraph !== null);
   const fontSize = useAS(s => s.settings.fontSize);
   // 'hidden' leaves IndexTreeView out of the Browse tab. See: (application_tabs.md#the-browse-tab)
+  // See: (index_tree.md)
   const indexTreeWidth = useAS(s => s.settings.indexTreeWidth);
   const tagsRevision = useAS(s => s.tagsRevision);
 
@@ -219,6 +220,7 @@ function App() {
         // A file named on the command line opens in single-file mode, exactly as
         // if it had been clicked in the index tree — including expanding its tree
         // node so its attachment folder (if any) is visible.
+        // See: (index_tree.md#revealing-a-path)
         const startupFile = await api.getStartupFile();
         if (cancelled) return;
         if (startupFile) {

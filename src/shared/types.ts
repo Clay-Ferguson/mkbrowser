@@ -286,15 +286,22 @@ export type CalendarViewType = 'month' | 'week' | 'work_week' | 'day' | 'agenda'
  * attachment folder (see makeFileChildren in treeNodes.ts).
  *
  * See: (file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+ * See: (index_tree.md#node-type)
  */
 export interface FileNode {
   path: string;
   name: string;
   isDirectory: boolean;
   isExpanded: boolean;
+  // Nothing currently sets this to true, and no row renders a spinner for it. See: (index_tree.md#node-type)
   isLoading: boolean;
-  /** null = never loaded; populated array = loaded (may be empty) */
+  /**
+   * null = never loaded; populated array = loaded (may be empty)
+   *
+   * See: (index_tree.md#node-type)
+   */
   children: FileNode[] | null;
+  // Document Mode (.INDEX.yaml) position; keeps siblings in index order. See: (index_tree.md#rendering)
   indexOrder?: number;
   /**
    * File nodes only: a sibling `<name>.attach` folder exists (from FileEntry.hasAttachFolder).
@@ -307,12 +314,14 @@ export interface FileNode {
    * orphaned `.attach` folder is an ordinary folder node and shows its real name.
    *
    * See: (file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
+   * See: (index_tree.md#rendering)
    */
   isOwnedAttach?: boolean;
   /**
    * The entry is a symbolic link (from FileEntry.isSymlink).
    *
    * See: (USER_GUIDE.md#symbolic-links)
+   * See: (index_tree.md#rendering)
    */
   isSymlink?: boolean;
 }
@@ -581,12 +590,16 @@ export interface AppState {
   /**
    * Root node of the IndexTree sidebar.
    * Null until the tree has been initialized for a root path.
+   *
+   * See: (index_tree.md#store-integration)
    */
   indexTreeRoot: FileNode | null;
 
   /**
    * When set, IndexTree should expand to reveal this path and scroll it into view.
    * Cleared immediately when the IndexTree picks it up.
+   *
+   * See: (index_tree.md#revealing-a-path)
    */
   pendingIndexTreeReveal: string | null;
 
@@ -594,6 +607,8 @@ export interface AppState {
    * When true, a pending reveal whose target is a file also expands that file's
    * tree node (showing its attachment folder), as clicking it would. Set
    * together with `pendingIndexTreeReveal`; cleared with it.
+   *
+   * See: (index_tree.md#revealing-a-path)
    */
   pendingIndexTreeRevealExpandsFile: boolean;
 

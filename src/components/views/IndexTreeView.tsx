@@ -1,3 +1,4 @@
+// Index Tree panel: the folder tree on the left of the Browse tab. See: (index_tree.md)
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, PaperClipIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
@@ -64,6 +65,7 @@ const INDENT_SIZE = 20;
 // ── Type guards ──────────────────────────────────────────────────────────────
 
 // `.sh` files get a Run item in the tree's context menu. See: (USER_GUIDE.md#running-shell-scripts)
+// See: (index_tree.md#context-menu)
 function isShellScript(node: FileNode): boolean {
   return !node.isDirectory && node.name.toLowerCase().endsWith('.sh');
 }
@@ -71,18 +73,21 @@ function isShellScript(node: FileNode): boolean {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+// Enables the Collapse All button when any top-level node is expanded. See: (index_tree.md#toolbar-and-width)
 function isAnyExpanded(nodes: FileNode[]): boolean {
   return nodes.some(n => n.isExpanded);
 }
 
 /**
  * Flattens the visible portion of the tree into a flat array of `{node, depth}`
- * pairs for virtual list rendering. Collapsed nodes are included but their
+ * pairs for rendering. Collapsed nodes are included but their
  * children are omitted; cut nodes are skipped entirely. Index-ordered (document
  * mode) nodes preserve their existing order; all other nodes are sorted
- * alphabetically with optional folders-on-top.
+ * alphabetically with optional folders-on-top. This is the only place tree
+ * order is decided; the node builders never sort.
  *
  * See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+ * See: (index_tree.md#rendering)
  */
 function flattenVisible(
   nodes: FileNode[],
@@ -124,8 +129,13 @@ function isParentOf(candidatePath: string, currentPath: string): boolean {
 // large .map() list, and every prop is stable — `node` keeps its identity until
 // that node changes, the flags are primitives, and the handlers are compiled
 // in IndexTreeView on inputs that change only on navigation or a cut.
+// See: (index_tree.md#rendering)
 
-/** How a directory row relates to the folder the browse view is showing. */
+/**
+ * How a directory row relates to the folder the browse view is showing.
+ *
+ * See: (index_tree.md#rendering)
+ */
 type FolderRelation = 'current' | 'ancestor' | 'none';
 
 function folderRelation(node: FileNode, currentPath: string): FolderRelation {
@@ -147,6 +157,7 @@ interface TreeFileRowProps {
   onDropOnFolder: (node: FileNode, e: React.DragEvent) => void;
 }
 
+// One tree row: drag-handle icon, name, badges, and its highlight states. See: (index_tree.md#rendering)
 function TreeFileRow({
   node, depth, isDragOver, isRunning, isContextTarget,
   onNodeClick, onContextMenu, onDragOverFolder, onDragLeaveFolder, onDropOnFolder,
@@ -271,11 +282,12 @@ const MemoTreeFileRow = memo(TreeFileRow);
 /**
  * Collapsible file-explorer sidebar showing the full folder tree rooted at the
  * app's root path. Supports expand/collapse (lazy-loading children on first
- * expand), drag-and-drop reordering between folders, cut/paste, rename, delete,
+ * expand), drag-and-drop moves between folders, cut/paste, rename, delete,
  * bookmarks, and a right-click context menu. A file with an attachment folder
- * expands to reveal it. Clicking a file opens it in the browse view; a shell
+ * expands to reveal it. Clicking a file opens it in single-file browsing; a shell
  * script's context menu has a "Run" item.
  *
+ * See: (index_tree.md)
  * See: (file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
  * See: (USER_GUIDE.md#bookmarks)
  * See: (USER_GUIDE.md#drag-and-drop)
@@ -292,12 +304,14 @@ function IndexTreeView() {
   // Subscribing to the cut *paths* (not just "is anything cut") keeps the tree in
   // step when one pending cut replaces another: the boolean would stay true
   // across that swap and leave the newly cut node still on screen.
+  // See: (index_tree.md#context-menu)
   const cutPaths = useAS(s => getCutPaths(s.items));
   const hasCutItems = cutPaths.size > 0;
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   // Bumped per reveal, so an earlier reveal still awaiting a directory read
   // can't expand and scroll to its target after a newer reveal has started.
+  // See: (index_tree.md#revealing-a-path)
   const revealTokenRef = useRef(0);
   // Pending timer, tracked so it can be cancelled when superseded or on unmount.
   const scriptFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -330,9 +344,11 @@ function IndexTreeView() {
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
   // File whose cut would strand an attachments folder, held while the user confirms.
   // See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+  // See: (index_tree.md#context-menu)
   const [cutOrphanAttachTarget, setCutOrphanAttachTarget] = useState<FileEntry | null>(null);
   const widthClass = indexTreeWidth === 'wide' ? 'w-1/2' : indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
+  // Builds the root node (never drawn as a row) whenever rootPath changes. See: (index_tree.md#node-type)
   useEffect(() => {
     if (!rootPath) return;
     if (treeRoot?.path === rootPath) return;
@@ -367,6 +383,8 @@ function IndexTreeView() {
    * Waits until the tree for the current root has loaded.
    * `expandToPath` lives inside the effect (its only caller) so it doesn't need
    * memoization to be a valid dependency.
+   *
+   * See: (index_tree.md#revealing-a-path)
    */
   useEffect(() => {
     if (!pendingReveal || !treeReady) return;
@@ -403,6 +421,7 @@ function IndexTreeView() {
 
         // An attachment folder lives under its owning file, so open that file first.
         // See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+        // See: (index_tree.md#revealing-a-path)
         if (segment.endsWith(ATTACH_SUFFIX)) {
           const latest = getIndexTreeRoot();
           const owner = latest && findNodeByPath(latest, joinPath(ancestorPath, segment.slice(0, -ATTACH_SUFFIX.length)));
@@ -440,6 +459,7 @@ function IndexTreeView() {
   // committed, and `treeRoot` changing is what re-renders the tree, so keying
   // on it catches exactly that commit — before paint, with no guessed delay.
   // The target stays pending until its row appears; a newer reveal replaces it.
+  // See: (index_tree.md#revealing-a-path)
   useLayoutEffect(() => {
     if (!revealScrollTarget) return;
     const el = containerRef.current?.querySelector(`[data-tree-path="${CSS.escape(revealScrollTarget)}"]`);
@@ -462,6 +482,7 @@ function IndexTreeView() {
    *
    * See: (file_attachments.md#the-index-tree-shows-attach-folders-under-their-file)
    * See: (single_file_browsing.md#entering-single-file-mode-tree-click)
+   * See: (index_tree.md#lazy-loading-and-child-building)
    */
   const handleNodeClick = async (node: FileNode) => {
     // Every file — markdown or not — opens in single-file browsing, alongside
@@ -498,6 +519,8 @@ function IndexTreeView() {
    * and reconciled with .INDEX.yaml, so the UI never desyncs from disk. The cut
    * flag is cleared only when every item moved successfully, and any failure is
    * reported.
+   *
+   * See: (index_tree.md#context-menu)
    */
   // Fire-and-forget UI handler: sync signature with the async body run through
   // runOp so failures are reported instead of leaking an unhandled
@@ -568,6 +591,7 @@ function IndexTreeView() {
    * BrowseView does.
    *
    * See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+   * See: (index_tree.md#context-menu)
    */
   // Fire-and-forget UI handler: sync signature with the async body run through
   // runOp so failures are reported instead of leaking an unhandled
@@ -607,6 +631,8 @@ function IndexTreeView() {
    *
    * @param insertAtIndex - Document Mode position for the new file, or null in an
    *   ordinary folder (where the index isn't involved at all).
+   *
+   * See: (index_tree.md#context-menu)
    */
   const createFileInFolder = async (fileName: string, folderPath: string, insertAtIndex: number | null) => {
     await createFileOp(
@@ -638,6 +664,7 @@ function IndexTreeView() {
    * writes into.
    *
    * See: (document_mode.md#insert-bars)
+   * See: (index_tree.md#context-menu)
    */
   const startNewFile = (folderPath: string) => {
     runOp(async () => {
@@ -658,6 +685,7 @@ function IndexTreeView() {
       createFileInFolder(fileName, folderPath, null), 'Failed to create file: ');
   };
 
+  // "New Folder": creates it, reconciles the index, and refreshes the browse view and tree. See: (index_tree.md#context-menu)
   const handleCreateFolder = (folderName: string) => {
     const parentPath = createFolderParent;
     if (!parentPath) return;
@@ -685,6 +713,7 @@ function IndexTreeView() {
   };
 
   // The rename dialog's choice: asks first when the new name would lose the file's `--ID`.
+  // See: (index_tree.md#context-menu)
   const handleRename = (newName: string) => {
     const target = renameTarget;
     setRenameTarget(null);
@@ -696,6 +725,7 @@ function IndexTreeView() {
     renameTreeItem(target, newName);
   };
 
+  // Renames on disk, re-keys the store, then refreshes the browse view and tree. See: (index_tree.md#context-menu)
   const renameTreeItem = (target: { path: string; name: string; isDirectory: boolean }, newName: string) => {
     runOp(async () => {
       const parentPath = getParentPath(target.path);
@@ -725,6 +755,7 @@ function IndexTreeView() {
     }, 'Failed to rename item: ');
   };
 
+  // Deletes on disk, drops it from the store, reconciles the index, and refreshes. See: (index_tree.md#context-menu)
   const handleDelete = () => {
     const target = deleteTarget;
     setDeleteTarget(null);
@@ -759,6 +790,7 @@ function IndexTreeView() {
    * refreshes to the shared completeEntryDrop.
    *
    * See: (USER_GUIDE.md#drag-and-drop)
+   * See: (index_tree.md#rendering)
    */
   const handleDropOnFolder = (node: FileNode, e: React.DragEvent) => {
     e.preventDefault();
@@ -776,6 +808,7 @@ function IndexTreeView() {
     }, 'Failed to move item into folder: ');
   };
 
+  // Only directory rows accept drops; marks the row for the drop highlight. See: (index_tree.md#rendering)
   const handleDragOverFolder = (node: FileNode, e: React.DragEvent) => {
     if (!node.isDirectory) return;
     if (!e.dataTransfer.types.includes(ENTRY_DND_MIME)) return;
@@ -792,6 +825,7 @@ function IndexTreeView() {
   };
 
   // Run: launches the script (in a terminal unless it says # Terminal=false). See: (USER_GUIDE.md#running-shell-scripts)
+  // See: (index_tree.md#context-menu)
   const handleRunScript = (node: FileNode) => {
     if (runningScript) return;
     setRunningScript(node.path);
@@ -806,8 +840,10 @@ function IndexTreeView() {
   };
 
   // The Bookmarks button at the top of the tree. See: (USER_GUIDE.md#navigating-with-bookmarks)
+  // See: (index_tree.md#toolbar-and-width)
   const toggleBookmarksMenu = () => setShowBookmarksMenu(prev => !prev);
   const closeBookmarksMenu = () => setShowBookmarksMenu(false);
+  // Narrow tree / Widen tree: step the panel width and persist it. See: (index_tree.md#toolbar-and-width)
   const saveTreeWidth = (width: typeof indexTreeWidth) => {
     setIndexTreeWidth(width);
     saveSettings();
@@ -823,6 +859,7 @@ function IndexTreeView() {
    *
    * See: (single_file_browsing.md#entering-single-file-mode-tree-click)
    * See: (USER_GUIDE.md#navigating-with-bookmarks)
+   * See: (index_tree.md#toolbar-and-width)
    */
   const handleBookmarkNavigate = (fullPath: string, isDirectory: boolean) => {
     if (isDirectory) {
@@ -835,13 +872,14 @@ function IndexTreeView() {
 
   /**
    * Shows the context menu for a file or directory row. Available actions depend
-   * on node type: directories get Browse/New File/New Folder/Rename/Delete and (when cut
-   * items exist) Paste; files get Browse/Rename/Delete. Shell scripts (`.sh`) also get
-   * "Run". Both directories and files also get "Copy Path" (absolute), whose path the
+   * on node type: directories get Browse/New File/New Folder/Rename/Delete/Cut and (when cut
+   * items exist) Paste into Folder; files get Browse/Rename/Delete/Cut. Shell scripts (`.sh`)
+   * also get "Run". Both directories and files also get "Copy Path" (absolute), whose path the
    * editor's "Paste Link" turns into a relative Markdown link.
    *
    * "Browse" always lands in a folder listing, so it is also an exit from single-file mode.
    * See: (single_file_browsing.md#leaving-single-file-mode-the-index-tree)
+   * See: (index_tree.md#context-menu)
    */
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();
@@ -876,6 +914,7 @@ function IndexTreeView() {
     });
   };
 
+  // "Loading…" placeholder until the root's children have loaded. See: (index_tree.md#rendering)
   if (!treeRoot?.children) {
     return (
       <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-900 items-center justify-center`}>

@@ -642,6 +642,8 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * starts a new pending move rather than joining one already in progress —
      * which a cut from a different folder could not legally join anyway (paste
      * requires every cut item to share one source folder).
+     *
+     * See: (index_tree.md#context-menu)
      */
     cutSingleItem: (item) => {
       const newItems = new Map(get().items);

@@ -69,6 +69,7 @@ export function EntryActionBar({
   onCreateAttachment,
   isFolder = false,
 }: EntryActionBarProps) {
+  // The "Reveal in folder tree" button is hidden when the tree panel is. See: (index_tree.md#revealing-a-path)
   const indexTreeHidden = useAS(s => s.settings.indexTreeWidth === 'hidden');
   // In single-file browsing mode this exact file is already the one on screen,
   // so the "View File" button would be a no-op — hide it. Computed inside the

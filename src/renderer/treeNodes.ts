@@ -9,6 +9,7 @@ import { logger } from '../shared/logUtil';
 // directory listing (shared by lazy expand, drag-and-drop, cut/paste, and the
 // full refresh in directoryLoader).
 // See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+// See: (index_tree.md#lazy-loading-and-child-building)
 // ============================================================================
 
 /** A directory listing entry, as far as the tree builders need it. */
@@ -28,6 +29,7 @@ type TreeEntry = { path: string; name: string; isDirectory: boolean; indexOrder?
  *
  * See: (file_attachments.md#building-the-children--srcrenderertreenodests)
  * See: (file_attachments.md#where-the-data-comes-from--no-extra-io)
+ * See: (index_tree.md#lazy-loading-and-child-building)
  */
 export function makeTreeNodes(entries: TreeEntry[]): FileNode[] {
   const owned = new Set<string>();
@@ -71,6 +73,7 @@ function makeAttachNode(file: FileNode): FileNode {
  * otherwise none. The one place a file's child list is assembled.
  *
  * See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+ * See: (index_tree.md#lazy-loading-and-child-building)
  */
 export function makeFileChildren(file: FileNode): FileNode[] {
   return file.hasAttachFolder ? [makeAttachNode(file)] : [];
@@ -93,6 +96,7 @@ function syncAttachChild(children: FileNode[] | null, file: FileNode): FileNode[
  * otherwise they are built (the attachment folder node, if any).
  *
  * See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+ * See: (index_tree.md#lazy-loading-and-child-building)
  */
 export function expandFileNode(node: FileNode): void {
   expandIndexTreeNode(node.path, node.children ?? makeFileChildren(node));
@@ -112,6 +116,7 @@ export function expandFileNode(node: FileNode): void {
  * @param previousChildren - The node's current children, or null if it had none loaded.
  *
  * See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+ * See: (index_tree.md#lazy-loading-and-child-building)
  */
 export function mergeTreeNodes(
   entries: TreeEntry[],
@@ -142,6 +147,7 @@ export function mergeTreeNodes(
  * including attachment-folder nodes under (loaded) file nodes.
  *
  * See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+ * See: (index_tree.md#lazy-loading-and-child-building)
  */
 export function findTreeNodeByPath(root: FileNode, path: string): FileNode | null {
   if (root.path === path) return root;
@@ -156,9 +162,12 @@ export function findTreeNodeByPath(root: FileNode, path: string): FileNode | nul
 /**
  * Reloads a folder node's children from disk in the IndexTreeView, but only if that folder
  * is currently expanded. Collapsed folders need no update — their contents are loaded lazily
- * on next expand. Shared by both drag-and-drop directions and the cut/paste flow.
+ * on next expand. Called after every tree-initiated change (paste, rename, delete, new file,
+ * new folder) and by completeEntryDrop for both folders of a drag-and-drop move.
  *
  * @param folderPath - Absolute path of the folder to reload.
+ *
+ * See: (index_tree.md#keeping-the-tree-in-sync-with-disk)
  */
 export async function reloadExpandedTreeFolder(folderPath: string): Promise<void> {
   const root = getIndexTreeRoot();
@@ -193,6 +202,7 @@ export async function reloadExpandedTreeFolder(folderPath: string): Promise<void
  * siblings, which it passes through from the listing.
  *
  * See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+ * See: (index_tree.md#keeping-the-tree-in-sync-with-disk)
  */
 export async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isExpanded) return node;
@@ -215,6 +225,7 @@ export async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
  * nothing under it changed.
  *
  * See: (file_attachments.md#building-the-children--srcrenderertreenodests)
+ * See: (index_tree.md#keeping-the-tree-in-sync-with-disk)
  */
 async function refreshFileChildren(file: FileNode): Promise<FileNode> {
   const old = file.children;

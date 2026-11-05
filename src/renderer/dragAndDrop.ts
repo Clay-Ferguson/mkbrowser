@@ -158,6 +158,8 @@ export function canDropAsAttachment(payload: DragPayload, filePath: string): boo
  * exactly when every path segment between the two is itself an attachment folder — an
  * ordinary subfolder's contents are not rendered.
  *
+ * See: (index_tree.md#keeping-the-tree-in-sync-with-disk)
+ *
  * See: (file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
  */
 export function affectsBrowseListing(folder: string, currentPath: string): boolean {
@@ -181,6 +183,7 @@ export function affectsBrowseListing(folder: string, currentPath: string): boole
  *
  * See: (file_attachments.md#drag-and-drop-dropping-onto-a-file-srcrendererdraganddropts)
  * See: (USER_GUIDE.md#drag-and-drop)
+ * See: (index_tree.md#keeping-the-tree-in-sync-with-disk)
  */
 export async function completeEntryDrop(
   payload: DragPayload,

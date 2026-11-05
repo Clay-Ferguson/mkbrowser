@@ -90,13 +90,19 @@ async function findExistingAncestor(path: string): Promise<string | null> {
 /**
  * Silently reloads the current folder's listing and every expanded folder in
  * the index tree, after a file operation changed what is on disk.
+ *
+ * See: (index_tree.md#keeping-the-tree-in-sync-with-disk)
  */
 export function refreshDirectory(): void {
   void loadDirectoryContents(useAS.getState().currentPath, false);
   refreshIndexTree();
 }
 
-/** Re-reads every expanded folder of the index tree and installs the result. */
+/**
+ * Re-reads every expanded folder of the index tree and installs the result.
+ *
+ * See: (index_tree.md#keeping-the-tree-in-sync-with-disk)
+ */
 function refreshIndexTree(): void {
   const root = getIndexTreeRoot();
   if (!root) return;

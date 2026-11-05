@@ -419,7 +419,7 @@ html[data-font-size="xlarge"] {
 }
 
 /* Green flash on an index-tree row whose script was just run (IndexTreeView applies it
-   inline while the row's run is in progress). */
+   inline while the row's run is in progress). See: (index_tree.md#rendering) */
 @keyframes scriptRunFlash {
   0% { background-color: rgba(74, 222, 128, 0.45); }
   100% { background-color: transparent; }

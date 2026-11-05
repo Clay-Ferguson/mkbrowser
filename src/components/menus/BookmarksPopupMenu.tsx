@@ -41,6 +41,8 @@ interface BookmarksPopupMenuProps {
  *
  * See: (USER_GUIDE.md#navigating-with-bookmarks)
  * See: (USER_GUIDE.md#renaming-and-deleting-bookmarks)
+ * See: (index_tree.md#toolbar-and-width)
+ * See: (index_tree.md#revealing-a-path)
  */
 export default function BookmarksPopupMenu({
   anchorRef,

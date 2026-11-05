@@ -11,7 +11,12 @@ export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | '
 /** Number of grid columns image entries are laid out in, in the folder listing. */
 export type ImageCols = 1 | 2 | 3 | 4;
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
-/** Folder tree sidebar visibility and width options. */
+/**
+ * Folder tree sidebar visibility and width options. No UI sets 'hidden'; it can
+ * only come from the config file.
+ *
+ * See: (index_tree.md#toolbar-and-width)
+ */
 export type IndexTreeWidth = 'hidden' | 'narrow' | 'medium' | 'wide';
 /**
  * How the query is matched: plain text, `*` wildcards, or a JavaScript expression.
@@ -146,7 +151,11 @@ export interface AppSettings {
    * See: (USER_GUIDE.md#calendar-items-folder)
    */
   calendarItemsFolder: string;
-  /** Folder tree sidebar visibility and width. */
+  /**
+   * Folder tree sidebar visibility and width.
+   *
+   * See: (index_tree.md#toolbar-and-width)
+   */
   indexTreeWidth: IndexTreeWidth;
   /**
    * Whether to show front matter (Properties) in the editor.

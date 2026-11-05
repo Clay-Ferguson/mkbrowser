@@ -94,7 +94,11 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
     setCalendarItemsFolder: (calendarItemsFolder) =>
       patchSettings('calendarItemsFolder', calendarItemsFolder),
 
-    /** Update the index tree width setting. */
+    /**
+     * Update the index tree width setting.
+     *
+     * See: (index_tree.md#toolbar-and-width)
+     */
     setIndexTreeWidth: (indexTreeWidth) =>
       patchSettings('indexTreeWidth', indexTreeWidth),
 

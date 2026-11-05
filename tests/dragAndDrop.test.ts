@@ -101,6 +101,7 @@ describe('canDropAsAttachment', () => {
 // affectsBrowseListing — decides whether a drop refreshes the browse view
 // ---------------------------------------------------------------------------
 
+// Whether a tree-initiated change must refresh the browse view. See: (index_tree.md#keeping-the-tree-in-sync-with-disk)
 describe('affectsBrowseListing', () => {
   const cur = '/root/docs';
 
@@ -192,6 +193,7 @@ function node(path: string, isDirectory: boolean, isExpanded: boolean, children:
   };
 }
 
+// Rebuilding a folder's children from a fresh listing. See: (index_tree.md#lazy-loading-and-child-building)
 describe('mergeTreeNodes', () => {
   it('keeps the expansion state and loaded children of surviving folders', () => {
     const grandchild = node('/root/a/deep', true, true, []);
@@ -254,6 +256,7 @@ describe('mergeTreeNodes', () => {
   });
 });
 
+// The full refresh of every expanded folder. See: (index_tree.md#keeping-the-tree-in-sync-with-disk)
 describe('refreshExpandedNodes — structural sharing', () => {
   // /root (expanded) -> a/ (expanded) -> deep.md, plus b/ (expanded, empty)
   function tree(): FileNode {
@@ -300,6 +303,7 @@ function owner(path: string, isExpanded: boolean, children: FileNode[] | null): 
   return { ...node(path, false, isExpanded, children), hasAttachFolder: true };
 }
 
+// Child-list membership rules for attachment folders. See: (index_tree.md#lazy-loading-and-child-building)
 describe('makeTreeNodes / makeFileChildren — attachment folders', () => {
   it('flags owning files and keeps .attach folders out of the folder listing', () => {
     const nodes = makeTreeNodes([
@@ -329,6 +333,7 @@ describe('makeTreeNodes / makeFileChildren — attachment folders', () => {
   });
 });
 
+// See: (index_tree.md#lazy-loading-and-child-building)
 describe('mergeTreeNodes — attachment folder appearing / disappearing', () => {
   it('adds the attach node to an expanded file when its folder appears', () => {
     const [merged] = mergeTreeNodes([entry('/root/a.md', false, undefined, true)], [node('/root/a.md', false, true, [])]);
@@ -356,6 +361,7 @@ describe('mergeTreeNodes — attachment folder appearing / disappearing', () => 
   });
 });
 
+// See: (index_tree.md#keeping-the-tree-in-sync-with-disk)
 describe('refreshExpandedNodes — attach folder under an expanded file', () => {
   const listings: Record<string, ReturnType<typeof entry>[]> = {
     '/r': [entry('/r/a.md', false, undefined, true), entry('/r/a.md.attach', true)],
@@ -383,6 +389,7 @@ describe('refreshExpandedNodes — attach folder under an expanded file', () => 
   });
 });
 
+// The Collapse All store action. See: (index_tree.md#store-integration)
 describe('collapseAllIndexTreeNodes', () => {
   it('collapses expanded files and the attach folders under them', () => {
     useAS.setState({

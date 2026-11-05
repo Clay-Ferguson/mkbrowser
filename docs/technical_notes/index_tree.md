@@ -23,6 +23,7 @@ interface FileNode {
   indexOrder?: number;          // Document Mode (.INDEX.yaml) position
   hasAttachFolder?: boolean;    // file nodes only: a sibling `<name>.attach` folder exists
   isOwnedAttach?: boolean;      // an attachment folder shown under its owning file
+  isSymlink?: boolean;          // the entry is a symbolic link (shows a SymlinkBadge)
 }
 ```
 

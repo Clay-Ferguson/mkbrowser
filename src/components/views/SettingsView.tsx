@@ -49,7 +49,8 @@ interface IndexTreeWidthOption {
   label: string;
 }
 
-// Settings → Appearance: Folder Tree width (or Hidden). See: (USER_GUIDE.md#appearance)
+// Settings → Appearance: Folder Tree width. See: (USER_GUIDE.md#appearance)
+// See: (index_tree.md#toolbar-and-width)
 const indexTreeWidthOptions: IndexTreeWidthOption[] = [
   { value: 'narrow', label: 'Narrow' },
   { value: 'medium', label: 'Medium' },

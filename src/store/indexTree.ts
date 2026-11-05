@@ -4,12 +4,15 @@ import type { StoreSet, StoreGet } from './core';
 import { withHistoryPush } from './history';
 
 // ============================================================================
-// IndexTree - the hierarchical .INDEX.yaml navigation tree
+// IndexTree - the folder tree panel's state (the file system below rootPath)
+// See: (index_tree.md#store-integration)
 // ============================================================================
 
 /**
  * Recursively find and update a single node by its `path` key, returning a new
  * tree. Subtrees that don't contain the target keep their identity.
+ *
+ * See: (index_tree.md#store-integration)
  */
 function updateNodeByPath(
   node: FileNode,
@@ -32,6 +35,8 @@ function updateNodeByPath(
  * attachment folder (a child of the file) folds away. Nodes that are already
  * fully collapsed keep their identity, so the memoized tree rows for them (and
  * the store write itself, when nothing was expanded) are skipped.
+ *
+ * See: (index_tree.md#store-integration)
  */
 function collapseAllNodes(node: FileNode): FileNode {
   const collapsedChildren = collapseAllChildren(node.children);
@@ -49,6 +54,8 @@ function collapseAllChildren(children: FileNode[] | null): FileNode[] | null {
 /**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
+ *
+ * See: (index_tree.md#store-integration)
  */
 export interface IndexTreeSlice {
   setIndexTreeRoot: (root: FileNode | null) => void;
@@ -69,10 +76,20 @@ export interface IndexTreeSlice {
  */
 export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSlice {
   return {
-    /** Replace the entire index tree root (used on initialization or rootPath change). */
+    /**
+     * Replace the entire index tree root (on a rootPath change, and after a full
+     * refresh installs its result).
+     *
+     * See: (index_tree.md#store-integration)
+     */
     setIndexTreeRoot: (root) => set({ indexTreeRoot: root }),
 
-    /** Mark a directory node as loading (spinner while re-reading its children). */
+    /**
+     * Set a node's loading flag. Currently has no callers, and no row renders a
+     * spinner for it.
+     *
+     * See: (index_tree.md#node-type)
+     */
     setIndexTreeNodeLoading: (path, loading) => {
       const root = get().indexTreeRoot;
       if (!root) return;
@@ -84,6 +101,8 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
     /**
      * Set a node's children and mark it as expanded. Used for both directory
      * nodes (their listing) and file nodes (their attachment folder, if any).
+     *
+     * See: (index_tree.md#store-integration)
      */
     expandIndexTreeNode: (path, children) => {
       const root = get().indexTreeRoot;
@@ -99,7 +118,12 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
       set({ indexTreeRoot: newRoot });
     },
 
-    /** Collapse all expanded file and directory nodes in the tree (preserves root expansion). */
+    /**
+     * Collapse all expanded file and directory nodes in the tree (preserves root
+     * expansion). Backs the tree's Collapse All button.
+     *
+     * See: (index_tree.md#store-integration)
+     */
     collapseAllIndexTreeNodes: () => {
       const root = get().indexTreeRoot;
       if (!root) return;
@@ -108,7 +132,11 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
       set({ indexTreeRoot: { ...root, children: newChildren } });
     },
 
-    /** Collapse a node (file or directory) without clearing its cached children. */
+    /**
+     * Collapse a node (file or directory) without clearing its cached children.
+     *
+     * See: (index_tree.md#store-integration)
+     */
     collapseIndexTreeNode: (path) => {
       const root = get().indexTreeRoot;
       if (!root) return;
@@ -124,6 +152,8 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
      * Signal IndexTree to expand to the given path and scroll it into view. With
      * `expandFile`, a file target's own node is expanded too (see
      * pendingIndexTreeRevealExpandsFile).
+     *
+     * See: (index_tree.md#revealing-a-path)
      */
     setPendingIndexTreeReveal: (path, expandFile = false) => set({
       pendingIndexTreeReveal: path,
@@ -131,9 +161,12 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
     }),
 
     /**
-     * Reveal `path` in the index tree from an entry's action bar, in a single
-     * state update: highlight the item, switch to the browser view (where the
-     * tree lives), and queue the reveal for IndexTree to pick up.
+     * Reveal `path` in the index tree (from an entry's action bar or a right-clicked
+     * bookmark), in a single state update: highlight the item, switch to the browser
+     * view (where the tree lives), queue the reveal for IndexTree to pick up, and push
+     * a navigation-history entry.
+     *
+     * See: (index_tree.md#revealing-a-path)
      */
     revealInTree: (path) => set({
       highlightItem: path,
@@ -143,7 +176,11 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
       ...withHistoryPush(get(), path),
     }),
 
-    /** Clear the pending reveal signal (called by IndexTree when it picks it up). */
+    /**
+     * Clear the pending reveal signal (called by IndexTree when it picks it up).
+     *
+     * See: (index_tree.md#revealing-a-path)
+     */
     clearPendingIndexTreeReveal: () => {
       if (get().pendingIndexTreeReveal === null) return;
       set({ pendingIndexTreeReveal: null, pendingIndexTreeRevealExpandsFile: false });
@@ -198,6 +235,8 @@ export function setIndexYaml(indexYaml: AppState['indexYaml']): void {
 
 /**
  * Get the current IndexTree root node without subscribing (for use in async callbacks).
+ *
+ * See: (index_tree.md#store-integration)
  */
 export function getIndexTreeRoot(): FileNode | null {
   return getState().indexTreeRoot;

@@ -1,3 +1,4 @@
+// Demo of the Index Tree (file explorer) panel. See: (index_tree.md)
 import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
 import { takeScreenshot, writeNarration, demoClick, demoRightClick, findActionBarByFileName, logScreenshotSummary, cleanupScreenshots, resetSettings } from './helpers/mediaUtils';

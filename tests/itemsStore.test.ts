@@ -551,6 +551,7 @@ describe('currentEntries — the folder listing stays in step with the items Map
   });
 });
 
+// See: (index_tree.md#context-menu)
 describe('cutSingleItem — cutting one item from the index tree', () => {
   beforeEach(() => {
     useAS.setState({ items: new Map() });

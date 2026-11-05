@@ -46,6 +46,7 @@ function buildSegments(root: string, relativePath: string): { name: string; path
  * See: (single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
  * See: (USER_GUIDE.md#symbolic-links)
  * See: (USER_GUIDE.md#drag-and-drop)
+ * See: (index_tree.md#revealing-a-path)
  */
 function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
   const indexTreeHidden = useAS(s => s.settings.indexTreeWidth === 'hidden');
