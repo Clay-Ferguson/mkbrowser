@@ -231,7 +231,7 @@ await demoClick(button, { force: true });                                   // f
 
 The icon buttons on the bar are (verify test IDs against `EntryActionBar.tsx` before hardcoding): `entry-delete-button`, `entry-reveal-button` (reveal in folder tree), `entry-move-up-button` / `entry-move-down-button` (when the entry can be reordered), and, always last, `entry-menu-button` (the hamburger, "More actions").
 
-**Less common actions live in the hamburger menu** (`EntryPopupMenu.tsx`, test ID `entry-popup-menu`), not on the bar: `menu-entry-open-external`, `menu-entry-view-file`, `menu-entry-bookmark` (label toggles `Add Bookmark` / `Remove Bookmark`), `menu-entry-make-folder`, `menu-entry-copy-path`, and the attachment items `menu-entry-paste-clipboard-attachment` ("Attach: Clipboard"), `menu-entry-attach-from-file`, `menu-entry-create-attachment`. Open it with the helper, which handles the hover, the fade wait, and a stale `:hover` left behind by a closed modal dialog:
+**Less common actions live in the hamburger menu** (`EntryPopupMenu.tsx`, test ID `entry-popup-menu`), not on the bar: `menu-entry-open-symlink` (symbolic links only), `menu-entry-open-external`, `menu-entry-view-file`, `menu-entry-bookmark` (label toggles `Add Bookmark` / `Remove Bookmark`), `menu-entry-make-folder`, `menu-entry-copy-path`, and the attachment items `menu-entry-paste-clipboard-attachment` ("Attach: Clipboard"), `menu-entry-attach-from-file`, `menu-entry-create-attachment`. Open it with the helper, which handles the hover, the fade wait, and a stale `:hover` left behind by a closed modal dialog:
 
 ```typescript
 const menu = await openEntryMenu(findActionBarByFileName(mainContent, 'my-host-note.md'));

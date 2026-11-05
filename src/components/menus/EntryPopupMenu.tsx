@@ -4,6 +4,8 @@ import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 interface EntryPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
+  /** When provided (symbolic links only), an "Open Symlink" item is shown at the top. */
+  onOpenSymlink?: () => void;
   onOpenExternal: () => void;
   /** When omitted, the "View File" item is hidden (folders, or this file is already the one on screen). */
   onViewFile?: () => void;
@@ -29,6 +31,7 @@ interface EntryPopupMenuProps {
  * "Attach" items sit at the bottom, below a divider.
  *
  * See: (file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
+ * See: (USER_GUIDE.md#opening-a-links-original)
  * See: (USER_GUIDE.md#adding-a-bookmark)
  * See: (USER_GUIDE.md#make-folder-wrap-a-file-in-a-folder)
  * See: (USER_GUIDE.md#adding-attachments)
@@ -38,6 +41,7 @@ interface EntryPopupMenuProps {
 export default function EntryPopupMenu({
   anchorRef,
   onClose,
+  onOpenSymlink,
   onOpenExternal,
   onViewFile,
   onPasteClipboardAsAttachment,
@@ -51,6 +55,13 @@ export default function EntryPopupMenu({
   const hasAttachItems = !!(onPasteClipboardAsAttachment || onAttachFromFile || onCreateAttachment);
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose} align="right" data-testid="entry-popup-menu">
+      {onOpenSymlink && (
+        <PopupMenuItem
+          label="Open Symlink"
+          data-testid="menu-entry-open-symlink"
+          onClick={() => { onOpenSymlink(); onClose(); }}
+        />
+      )}
       <PopupMenuItem
         label="Open with OS App"
         data-testid="menu-entry-open-external"

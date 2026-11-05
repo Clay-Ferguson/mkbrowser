@@ -455,7 +455,7 @@ Symbolic links exist on Linux, macOS and Windows. Windows `.lnk` shortcuts and m
 
 ### Opening a Link's Original
 
-To go to the file or folder a link points to, right-click the link in the folder tree and choose **Open Symlink** (only links have this item). A linked folder opens in the browse view as that folder's listing, just like **Browse** does. A linked file opens on its own, in single-file mode, just like clicking a file in the tree. The folder tree itself stays where it is.
+To go to the file or folder a link points to, choose **Open Symlink** (only links have this item). In the folder tree, right-click the link. In the browse view, hover over the link, click its **More actions** (☰) button, and it's the first item. A linked folder opens in the browse view as that folder's listing, just like **Browse** does. A linked file opens on its own, in single-file mode, just like clicking a file in the tree. The folder tree itself doesn't move.
 
 If the original is outside the root folder (the folder the home icon in the breadcrumbs takes you to), it isn't opened; a message tells you where the link points instead.
 

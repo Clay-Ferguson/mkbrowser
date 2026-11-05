@@ -122,6 +122,7 @@ function FolderEntry(props: FolderEntryProps) {
           <>
             <EntryActionBar
               path={entry.path}
+              linkTarget={entry.linkTarget}
               isBookmarked={isBookmarked}
               isFolder={true}
               deleting={del.deleting}

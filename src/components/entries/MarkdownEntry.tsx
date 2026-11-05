@@ -409,6 +409,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     <>
       <EntryActionBar
         path={entry.path}
+        linkTarget={entry.linkTarget}
         isBookmarked={isBookmarked}
         deleting={del.deleting}
         onDeleteClick={del.handleDeleteClick}

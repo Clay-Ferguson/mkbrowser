@@ -9,6 +9,7 @@ import EntryPopupMenu from '../../menus/EntryPopupMenu';
 import type { AttachMenuProps } from './types';
 import { saveSettings } from '../../../renderer/config';
 import { makeFolderForFileOp } from '../../../renderer/fileOpsUtil';
+import { openSymlinkTarget } from '../../../renderer/symlinkOps';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
@@ -39,6 +40,8 @@ interface EntryActionBarProps {
   onCreateAttachment?: () => void;
   /** Whether this entry is a folder (affects bookmark default name) */
   isFolder?: boolean;
+  /** A symbolic link's absolute target (FileEntry.linkTarget); when set, the menu gets "Open Symlink" */
+  linkTarget?: string;
 }
 
 /**
@@ -46,8 +49,8 @@ interface EntryActionBarProps {
  * buttons for: delete, reveal in folder tree, and move up/down (only in
  * indexed/document mode, when the move handlers are provided), plus a trailing
  * hamburger button opening EntryPopupMenu — which holds the remaining actions
- * (open with OS app, view file, bookmark, make folder, copy path, and the three "Attach:" items) as
- * text items, so the hover bar doesn't grow unbounded.
+ * (open symlink for a link, open with OS app, view file, bookmark, make folder, copy path, and the
+ * three "Attach:" items) as text items, so the hover bar doesn't grow unbounded.
  *
  * See: (file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  * See: (USER_GUIDE.md#delete)
@@ -69,6 +72,7 @@ export function EntryActionBar({
   onAttachFromFile,
   onCreateAttachment,
   isFolder = false,
+  linkTarget,
 }: EntryActionBarProps) {
   // The "Reveal in folder tree" button is hidden when the tree panel is. See: (index_tree.md#revealing-a-path)
   const indexTreeHidden = useAS(s => s.settings.indexTreeWidth === 'hidden');
@@ -114,6 +118,12 @@ export function EntryActionBar({
     setHighlightItem(path);
     setBrowseFile(getParentPath(path), getFileName(path));
   };
+
+  // "Open Symlink": opens the link's original in the browse view, as the tree's item does.
+  // See: (USER_GUIDE.md#opening-a-links-original)
+  const handleOpenSymlink = linkTarget
+    ? () => openSymlinkTarget(getFileName(path), linkTarget, isFolder)
+    : undefined;
 
   return (
     <>
@@ -216,6 +226,7 @@ export function EntryActionBar({
         <EntryPopupMenu
           anchorRef={menuButtonRef}
           onClose={() => setShowMenu(false)}
+          onOpenSymlink={handleOpenSymlink}
           onOpenExternal={handleOpenExternal}
           onViewFile={isFolder || isViewingThisFile ? undefined : handleViewFile}
           onPasteClipboardAsAttachment={onPasteClipboardAsAttachment}
