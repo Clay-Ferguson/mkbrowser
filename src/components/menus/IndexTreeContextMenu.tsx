@@ -26,6 +26,8 @@ interface IndexTreeContextMenuProps {
   onCopyPath?: () => void;
   /** When provided, a "Copy Symlink" item is shown. */
   onCopySymlink?: () => void;
+  /** Greys out "Copy Symlink" (the node is itself a link; links to links aren't made). */
+  copySymlinkDisabled?: boolean;
   /** When provided (folders only), a "Paste Symlink" item is shown. */
   onPasteSymlink?: () => void;
   /** Greys out "Paste Symlink" (nothing copied, or this folder can't take the link). */
@@ -47,7 +49,7 @@ interface IndexTreeContextMenuProps {
  * See: (index_tree.md#context-menu)
  * See: (popup_menus.md#context-menus-mouse-position)
  */
-export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewFolder, onRename, onDelete, onCut, onPaste, onCopyPath, onCopySymlink, onPasteSymlink, pasteSymlinkDisabled = false, symlinkSourceName }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewFolder, onRename, onDelete, onCut, onPaste, onCopyPath, onCopySymlink, copySymlinkDisabled = false, onPasteSymlink, pasteSymlinkDisabled = false, symlinkSourceName }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       {onBrowse && (
@@ -115,6 +117,7 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
         <PopupMenuItem
           label="Copy Symlink"
           onClick={() => { onCopySymlink(); onClose(); }}
+          disabled={copySymlinkDisabled}
           data-testid="tree-copy-symlink"
         />
       )}

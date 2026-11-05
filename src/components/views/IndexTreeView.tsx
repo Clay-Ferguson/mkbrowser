@@ -330,6 +330,7 @@ function IndexTreeView() {
     y: number;
     path: string;
     isDirectory: boolean;
+    isSymlink: boolean;
     onBrowse?: () => void;
     onRun?: () => void;
     onNewFile?: () => void;
@@ -885,7 +886,8 @@ function IndexTreeView() {
    * items exist) Paste into Folder; files get Browse/Rename/Delete/Cut. Shell scripts (`.sh`)
    * also get "Run". Both directories and files also get "Copy Path" (absolute), whose path the
    * editor's "Paste Link" turns into a relative Markdown link, and (except on Windows) "Copy
-   * Symlink"; directories also get "Paste Symlink", greyed out until something can be linked there.
+   * Symlink", greyed out on a node that is itself a link (no links to links); directories also
+   * get "Paste Symlink", greyed out until something can be linked there.
    *
    * "Browse" always lands in a folder listing, so it is also an exit from single-file mode.
    * See: (single_file_browsing.md#leaving-single-file-mode-the-index-tree)
@@ -900,6 +902,7 @@ function IndexTreeView() {
       y: e.clientY,
       path: node.path,
       isDirectory: node.isDirectory,
+      isSymlink: !!node.isSymlink,
       onBrowse: () => {
         if (node.isDirectory) {
           navigateToBrowserPath(node.path);
@@ -1016,6 +1019,7 @@ function IndexTreeView() {
           onPaste={contextMenu.onPaste}
           onCopyPath={contextMenu.onCopyPath}
           onCopySymlink={contextMenu.onCopySymlink}
+          copySymlinkDisabled={contextMenu.isSymlink}
           onPasteSymlink={contextMenu.onPasteSymlink}
           pasteSymlinkDisabled={!canPasteSymlinkInto(symlinkSource, contextMenu.path)}
           symlinkSourceName={symlinkSource?.name}

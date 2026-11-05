@@ -204,6 +204,8 @@ export async function findSymlinks(paths: string[]): Promise<string[]> {
  * symlinks needs Developer Mode or admin rights, so the feature is not offered there.
  *
  * Refused, with nothing created:
+ * - a target that is itself a symbolic link: links to links are not made, so every
+ *   link the app creates points straight at a real file or folder;
  * - the target's own folder, where the link's name is the target's name;
  * - a folder target pasted into itself or anything beneath it (symlinks resolved),
  *   which would make an endlessly deep tree for every feature that walks folders;
@@ -223,6 +225,9 @@ export async function createSymlink(targetPath: string, destFolder: string): Pro
 
   let isDirectory: boolean;
   try {
+    if ((await fs.promises.lstat(target)).isSymbolicLink()) {
+      return { success: false, error: `"${name}" is itself a symbolic link. Link to the original instead.` };
+    }
     isDirectory = (await fs.promises.stat(target)).isDirectory();
   } catch {
     return { success: false, error: `"${name}" no longer exists.` };

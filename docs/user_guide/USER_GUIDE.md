@@ -457,7 +457,7 @@ Symbolic links exist on Linux, macOS and Windows. Windows `.lnk` shortcuts and m
 
 You can make a link to any file or folder from the folder tree, on Linux and macOS:
 
-1. Right-click the file or folder you want to link to and choose **Copy Symlink**. Nothing changes on disk yet; the app just remembers your choice.
+1. Right-click the file or folder you want to link to and choose **Copy Symlink**. Nothing changes on disk yet; the app just remembers your choice. Copy Symlink is greyed out on an item that is itself a link: copy the original instead, so a link never points at another link.
 2. Right-click the folder where the link should go and choose **Paste Symlink**. The menu item shows the name of the item you copied.
 
 The link gets the same name as the item it points to, and shows the link badge. Only the link is created: the original file or folder stays where it is, untouched. After the paste, the app forgets the copied item, so to make another link, copy again.

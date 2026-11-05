@@ -145,6 +145,17 @@ describe('createSymlink', () => {
     expect(fs.readdirSync(path.join(folder, 'sub'))).toEqual([]);
   });
 
+  itPosix('refuses a target that is itself a symbolic link', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'dest'));
+    fs.writeFileSync(path.join(tmpDir, 'note.md'), 'x', 'utf8');
+    fs.symlinkSync(path.join(tmpDir, 'note.md'), path.join(tmpDir, 'link.md'));
+
+    const result = await createSymlink(path.join(tmpDir, 'link.md'), path.join(tmpDir, 'dest'));
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/itself a symbolic link/);
+    expect(fs.readdirSync(path.join(tmpDir, 'dest'))).toEqual([]);
+  });
+
   itPosix('reports a target that no longer exists', async () => {
     const result = await createSymlink(path.join(tmpDir, 'gone.md'), tmpDir);
     expect(result.success).toBe(false);

@@ -689,9 +689,9 @@ export interface ElectronAPI {
   findSymlinks: (paths: string[]) => Promise<string[]>;
   /**
    * Creates, in `destFolder`, a symbolic link to `targetPath` (stored as an absolute
-   * path) with the target's name. Refuses the target's own folder, a folder pasted
-   * into itself or beneath itself, and a name already taken, each with an `error`
-   * for the user.
+   * path) with the target's name. Refuses a target that is itself a link, the
+   * target's own folder, a folder pasted into itself or beneath itself, and a name
+   * already taken, each with an `error` for the user.
    *
    * See: (USER_GUIDE.md#creating-symbolic-links)
    */
