@@ -24,6 +24,7 @@ interface FileNode {
   hasAttachFolder?: boolean;    // file nodes only: a sibling `<name>.attach` folder exists
   isOwnedAttach?: boolean;      // an attachment folder shown under its owning file
   isSymlink?: boolean;          // the entry is a symbolic link (shows a SymlinkBadge)
+  linkTarget?: string;          // a link's absolute target; the name's "Link to: …" flyover shows it root-relative (withLinkFlyover)
 }
 ```
 

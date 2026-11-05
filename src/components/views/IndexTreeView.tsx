@@ -60,6 +60,7 @@ import { createFileOp } from '../../renderer/fileOpsUtil';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
+import { withLinkFlyover } from '../../renderer/linkFlyover';
 import { idSuffixLossMessage, idSuffixLost } from '../../shared/fileIdSuffix';
 
 const INDENT_SIZE = 20;
@@ -168,6 +169,8 @@ function TreeFileRow({
   // when the highlight moves or the browse view navigates.
   const isHighlighted = useAS(s => s.highlightItem === node.path);
   const relation = useAS(s => folderRelation(node, s.currentPath));
+  // A link's flyover names its target relative to the root folder. See: (USER_GUIDE.md#symbolic-links)
+  const rootPath = useAS(s => s.rootPath);
 
   const isSh = isShellScript(node);
   // Only an attachment folder shown under its file; an orphaned one is an ordinary folder.
@@ -264,7 +267,7 @@ function TreeFileRow({
           : <FileTypeIcon fileName={node.name} />
         }
       </span>
-      <span className={nameClassName}>{isAttach ? `*${ATTACH_SUFFIX}` : node.name}</span>
+      <span className={nameClassName} title={withLinkFlyover(undefined, node.linkTarget, rootPath)}>{isAttach ? `*${ATTACH_SUFFIX}` : node.name}</span>
       {node.isSymlink && <SymlinkBadge />}
       {/* Marks a file that owns attachments, which a click reveals as its `*.attach`
           child. Amber like the folder icons, tying it to that folder row. */}

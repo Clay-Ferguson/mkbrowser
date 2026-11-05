@@ -249,6 +249,20 @@ describe('mergeTreeNodes', () => {
     expect(unlinked).not.toHaveProperty('isSymlink');
   });
 
+  it('takes linkTarget from the fresh listing, so a re-pointed link shows its new target', () => {
+    const linkedEntry = (target: string) => ({ ...entry('/root/a', true), isSymlink: true, linkTarget: target });
+
+    const [first] = mergeTreeNodes([linkedEntry('/x/one')], [node('/root/a', true, true, [])]);
+    expect(first!.linkTarget).toBe('/x/one');
+
+    // Unchanged: the old node is reused as is.
+    expect(mergeTreeNodes([linkedEntry('/x/one')], [first!])[0]).toBe(first);
+
+    const [repointed] = mergeTreeNodes([linkedEntry('/x/two')], [first!]);
+    expect(repointed!.linkTarget).toBe('/x/two');
+    expect(repointed!.isExpanded).toBe(true);
+  });
+
   it('returns freshly collapsed nodes when there is nothing to merge with', () => {
     expect(mergeTreeNodes([entry('/root/a', true)], null)).toEqual([
       node('/root/a', true, false, null),

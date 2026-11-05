@@ -11,6 +11,7 @@ import {
 import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED, ENTRY_DROP_TARGET, ROW_HOVER } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import SymlinkBadge from '../SymlinkBadge';
+import { withLinkFlyover } from '../../renderer/linkFlyover';
 import {
   useEntry,
   useDropTarget,
@@ -50,6 +51,8 @@ function FolderEntry(props: FolderEntryProps) {
   const hasCutItems = useAS(s => hasAnyCutItems(s.items));
   const item = useAS(s => s.items.get(entry.path));
   const hasIndexFile = useAS(s => s.hasIndexFile);
+  // A link's flyover names its target relative to the root folder. See: (USER_GUIDE.md#symbolic-links)
+  const rootPath = useAS(s => s.rootPath);
   const aiHint = item?.aiHint;
 
   const handleInputClick = (e: React.MouseEvent) => {
@@ -107,7 +110,7 @@ function FolderEntry(props: FolderEntryProps) {
           />
         ) : (
           <>
-            <span id={buildEntryHeaderId(entry.path)} className={clsx('font-medium truncate flex-shrink-0', indentFolder ? 'text-slate-400 italic' : 'text-btn-accent-amber')}>{indentFolder ? `*${ATTACH_SUFFIX}` : entry.name}</span>
+            <span id={buildEntryHeaderId(entry.path)} className={clsx('font-medium truncate flex-shrink-0', indentFolder ? 'text-slate-400 italic' : 'text-btn-accent-amber')} title={withLinkFlyover(undefined, entry.linkTarget, rootPath)}>{indentFolder ? `*${ATTACH_SUFFIX}` : entry.name}</span>
             {entry.isSymlink && <SymlinkBadge />}
             {aiHint && (
               <span className="text-slate-400 italic text-sm truncate min-w-0" title={aiHint}>{aiHint}</span>

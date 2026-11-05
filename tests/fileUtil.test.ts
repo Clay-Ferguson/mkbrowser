@@ -58,6 +58,29 @@ describe('readDirectory symlink flag', () => {
     expect(byName.get('real-dir')).not.toHaveProperty('isSymlink');
     expect(byName.get('real.md')).not.toHaveProperty('isSymlink');
   });
+
+  it('gives each link its absolute target, resolving one stored relative to its folder', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'sub'));
+    fs.writeFileSync(path.join(tmpDir, 'real.md'), '# real', 'utf8');
+    fs.symlinkSync(path.join(tmpDir, 'real.md'), path.join(tmpDir, 'sub', 'abs.md'));
+    fs.symlinkSync('../real.md', path.join(tmpDir, 'sub', 'rel.md'));
+
+    const byName = new Map((await readDirectory(path.join(tmpDir, 'sub'), false)).map((e) => [e.name, e]));
+
+    expect(byName.get('abs.md')?.linkTarget).toBe(path.join(tmpDir, 'real.md'));
+    expect(byName.get('rel.md')?.linkTarget).toBe(path.join(tmpDir, 'real.md'));
+  });
+
+  it('gives a link to a link the path that link stores, not the end of the chain', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'real.md'), '# real', 'utf8');
+    fs.symlinkSync(path.join(tmpDir, 'real.md'), path.join(tmpDir, 'first.md'));
+    fs.symlinkSync(path.join(tmpDir, 'first.md'), path.join(tmpDir, 'second.md'));
+
+    const byName = new Map((await readDirectory(tmpDir, false)).map((e) => [e.name, e]));
+
+    expect(byName.get('second.md')?.linkTarget).toBe(path.join(tmpDir, 'first.md'));
+    expect(byName.get('real.md')).not.toHaveProperty('linkTarget');
+  });
 });
 
 describe('findSymlinks', () => {

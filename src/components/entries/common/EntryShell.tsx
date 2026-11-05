@@ -3,6 +3,8 @@ import { clsx } from 'clsx';
 import type { FileEntry } from '../../../global';
 import { buildEntryHeaderId } from '../../../renderer/entryDom';
 import { formatFlyoverInfo } from '../../../shared/fileTypes';
+import { withLinkFlyover } from '../../../renderer/linkFlyover';
+import { useAS } from '../../../store';
 import { makeEntryDragStartHandler, canDropAsAttachment, dropAsAttachment } from '../../../renderer/dragAndDrop';
 import ConfirmDialog from '../../dialogs/ConfirmDialog';
 import SymlinkBadge from '../../SymlinkBadge';
@@ -48,7 +50,7 @@ interface EntryShellProps {
   // Slots
   /** Class for the name span (defaults to ENTRY_NAME_SPAN) */
   nameClassName?: string;
-  /** Title/flyover for the name span (defaults to formatFlyoverInfo(entry)) */
+  /** Title/flyover for the name span (defaults to formatFlyoverInfo(entry)); a link's "Link to: …" line is appended either way */
   nameTitle?: string;
   /** Extra class for the rename input */
   renameClassName?: string;
@@ -99,6 +101,8 @@ export function EntryShell({
   expandedAffectsHeader = true,
   'data-testid': dataTestId,
 }: EntryShellProps) {
+  // A link's flyover names its target relative to the root folder. See: (USER_GUIDE.md#symbolic-links)
+  const rootPath = useAS(s => s.rootPath);
   const { inputRef: renameInputRef, newName, setNewName, saving: renameSaving, handleKeyDown, handleSave } = rename;
 
   // Drop target: an entry dragged onto this file becomes one of its attachments,
@@ -175,7 +179,7 @@ export function EntryShell({
             // row it holds the name (truncating on its own) and keeps the symlink
             // badge right after the name, visible even when the name is cut short.
             className={clsx(nameClassName, 'flex items-center gap-1.5')}
-            title={nameTitle ?? formatFlyoverInfo(entry)}
+            title={withLinkFlyover(nameTitle ?? formatFlyoverInfo(entry), entry.linkTarget, rootPath)}
           >
             <span className="truncate">{entry.name}</span>
             {entry.isSymlink && <SymlinkBadge />}

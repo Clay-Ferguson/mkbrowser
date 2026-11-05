@@ -333,6 +333,13 @@ export interface FileNode {
    * See: (index_tree.md#rendering)
    */
   isSymlink?: boolean;
+  /**
+   * A symbolic link's absolute target (from FileEntry.linkTarget), shown in the
+   * row's "Link to: …" flyover.
+   *
+   * See: (USER_GUIDE.md#symbolic-links)
+   */
+  linkTarget?: string;
 }
 
 /**

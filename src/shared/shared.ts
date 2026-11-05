@@ -385,6 +385,13 @@ export interface FileEntry {
    * See: (USER_GUIDE.md#symbolic-links)
    */
   isSymlink?: boolean;
+  /**
+   * For a symbolic link, the absolute path it points to, shown in the row's
+   * "Link to: …" flyover. Absent for anything that isn't a link.
+   *
+   * See: (USER_GUIDE.md#symbolic-links)
+   */
+  linkTarget?: string;
 }
 
 /**

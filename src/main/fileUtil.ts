@@ -93,9 +93,19 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
       size,
     };
     // Dirent comes from readdir, which doesn't follow links, so this is the entry
-    // itself. Node reports Windows junctions as symlinks too.
+    // itself. Node reports Windows junctions as symlinks too. The target is the
+    // link's own stored path (not the end of a chain of links), made absolute
+    // against the link's folder when it was stored relative; the rows show it as
+    // "Link to: …". A readlink failure just leaves the target out.
     // See: (USER_GUIDE.md#symbolic-links)
-    if (entry.isSymbolicLink()) fileEntry.isSymlink = true;
+    if (entry.isSymbolicLink()) {
+      fileEntry.isSymlink = true;
+      try {
+        fileEntry.linkTarget = path.resolve(dirPath, await fs.promises.readlink(fullPath));
+      } catch (err) {
+        logger.debug(`readDirectory: readlink failed for "${fullPath}": ${err}`);
+      }
+    }
 
     // Pre-load contents of .attach folders so the renderer needs no extra I/O.
     // Symlinks never recurse: a link named "*.attach" that resolves to one of its
