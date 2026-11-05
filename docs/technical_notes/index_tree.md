@@ -142,6 +142,7 @@ The same width can be picked in Settings, which offers narrow, medium and wide. 
 | Item | Shown for | Behavior |
 |---|---|---|
 | Browse | all | A folder: browse to it. A file: browse to its parent folder, highlighted and scrolled to. Always lands in a folder listing, so it also exits single-file mode |
+| Open Symlink | links (`node.linkTarget`) | `openSymlinkTarget` (`src/renderer/symlinkOps.ts`): a folder link's target is browsed with `navigateToBrowserPath`, as Browse does; a file link's target opens in single-file mode with `setHighlightItem` + `setBrowseFile`, as a file click does. The tree doesn't move. A target outside `rootPath` is refused with `setAppError` |
 | Run | `.sh` files | `api.runShellScript`, with the row's green flash. Ignored while another script's flash is running |
 | New File | folders | In a Document Mode folder (one with an `.INDEX.yaml`), immediately creates a timestamp-named file at ordinal 0. Otherwise navigates to the folder and shows `CreateFileDialog`. Both use `createFileOp`, which opens the new file for editing |
 | New Folder | folders | `CreateFolderDialog`, then `api.createFolder` and index reconciliation |

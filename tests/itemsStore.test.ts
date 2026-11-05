@@ -20,7 +20,7 @@ import {
   setSymlinkSource,
   clearSymlinkSource,
 } from '../src/store/items';
-import { canPasteSymlinkInto } from '../src/renderer/symlinkOps';
+import { canPasteSymlinkInto, openSymlinkTarget } from '../src/renderer/symlinkOps';
 
 const DIR = '/notes';
 const NOTE = '/notes/note.md';
@@ -539,6 +539,47 @@ describe('canPasteSymlinkInto', () => {
     expect(canPasteSymlinkInto(file, '/notes/b')).toBe(true);
     expect(canPasteSymlinkInto(file, '/notes/a/sub')).toBe(true);
     expect(canPasteSymlinkInto(folder, '/notes/a-archive')).toBe(true);
+  });
+});
+
+describe('openSymlinkTarget — "Open Symlink"', () => {
+  beforeEach(() => {
+    useAS.setState({
+      rootPath: '/notes',
+      currentPath: '/notes/links',
+      currentView: 'browser',
+      browseFileName: null,
+      highlightItem: null,
+      appError: null,
+    });
+  });
+
+  it("browses a folder link's original as a listing", () => {
+    useAS.setState({ browseFileName: 'other.md' });
+
+    openSymlinkTarget('docs', '/notes/projects/docs', true);
+
+    const s = useAS.getState();
+    expect(s.currentPath).toBe('/notes/projects/docs');
+    expect(s.browseFileName).toBeNull();
+  });
+
+  it("opens a file link's original alone in single-file mode, highlighted", () => {
+    openSymlinkTarget('plan.md', '/notes/projects/plan.md', false);
+
+    const s = useAS.getState();
+    expect(s.currentPath).toBe('/notes/projects');
+    expect(s.browseFileName).toBe('plan.md');
+    expect(s.highlightItem).toBe('/notes/projects/plan.md');
+  });
+
+  it('refuses an original outside the root folder, leaving the view where it was', () => {
+    openSymlinkTarget('plan.md', '/elsewhere/plan.md', false);
+
+    const s = useAS.getState();
+    expect(s.currentPath).toBe('/notes/links');
+    expect(s.browseFileName).toBeNull();
+    expect(s.appError).toMatch(/outside the root folder/);
   });
 });
 

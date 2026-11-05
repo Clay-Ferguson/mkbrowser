@@ -40,7 +40,7 @@ import {
 import type { FileNode } from '../../store';
 import type { FileEntry } from '../../shared/shared';
 import { pasteCutItems, runCutPasteExclusive } from '../../renderer/edit';
-import { canPasteSymlinkInto, pasteSymlink } from '../../renderer/symlinkOps';
+import { canPasteSymlinkInto, openSymlinkTarget, pasteSymlink } from '../../renderer/symlinkOps';
 import {
   ENTRY_DND_MIME,
   parseDragPayload,
@@ -335,6 +335,7 @@ function IndexTreeView() {
     isDirectory: boolean;
     isSymlink: boolean;
     onBrowse?: () => void;
+    onOpenSymlink?: () => void;
     onRun?: () => void;
     onNewFile?: () => void;
     onNewFolder?: () => void;
@@ -890,16 +891,19 @@ function IndexTreeView() {
    * also get "Run". Both directories and files also get "Copy Path" (absolute), whose path the
    * editor's "Paste Link" turns into a relative Markdown link, and (except on Windows) "Copy
    * Symlink", greyed out on a node that is itself a link (no links to links); directories also
-   * get "Paste Symlink", greyed out until something can be linked there.
+   * get "Paste Symlink", greyed out until something can be linked there. A link also gets
+   * "Open Symlink", which opens its original in the browse view.
    *
    * "Browse" always lands in a folder listing, so it is also an exit from single-file mode.
    * See: (single_file_browsing.md#leaving-single-file-mode-the-index-tree)
    * See: (USER_GUIDE.md#creating-symbolic-links)
+   * See: (USER_GUIDE.md#opening-a-links-original)
    * See: (index_tree.md#context-menu)
    * See: (popup_menus.md#context-menus-mouse-position)
    */
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();
+    const linkTarget = node.linkTarget;
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -915,6 +919,9 @@ function IndexTreeView() {
           navigateToBrowserPath(folderPath, node.path);
         }
       },
+      ...(linkTarget ? {
+        onOpenSymlink: () => openSymlinkTarget(node.name, linkTarget, node.isDirectory),
+      } : {}),
       ...(isShellScript(node) ? {
         onRun: () => handleRunScript(node),
       } : {}),
@@ -1013,6 +1020,7 @@ function IndexTreeView() {
           isDirectory={contextMenu.isDirectory}
           onClose={() => setContextMenu(null)}
           onBrowse={contextMenu.onBrowse}
+          onOpenSymlink={contextMenu.onOpenSymlink}
           onRun={contextMenu.onRun}
           onNewFile={contextMenu.onNewFile}
           onNewFolder={contextMenu.onNewFolder}

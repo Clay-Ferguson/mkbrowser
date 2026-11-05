@@ -453,6 +453,12 @@ Links whose target no longer exists (broken links) are not shown.
 
 Symbolic links exist on Linux, macOS and Windows. Windows `.lnk` shortcuts and macOS Finder aliases are ordinary files, not symbolic links, so they don't get the badge.
 
+### Opening a Link's Original
+
+To go to the file or folder a link points to, right-click the link in the folder tree and choose **Open Symlink** (only links have this item). A linked folder opens in the browse view as that folder's listing, just like **Browse** does. A linked file opens on its own, in single-file mode, just like clicking a file in the tree. The folder tree itself stays where it is.
+
+If the original is outside the root folder (the folder the home icon in the breadcrumbs takes you to), it isn't opened; a message tells you where the link points instead.
+
 ### Creating Symbolic Links
 
 You can make a link to any file or folder from the folder tree, on Linux and macOS:

@@ -8,6 +8,8 @@ interface IndexTreeContextMenuProps {
   onClose: () => void;
   /** When provided, a "Browse" item is shown. */
   onBrowse?: () => void;
+  /** When provided (symbolic links only), an "Open Symlink" item is shown. */
+  onOpenSymlink?: () => void;
   /** When provided (shell scripts only), a "Run" item is shown. */
   onRun?: () => void;
   /** When provided, a "New File" item is shown. */
@@ -46,10 +48,11 @@ interface IndexTreeContextMenuProps {
  * See: (USER_GUIDE.md#running-shell-scripts)
  * See: (USER_GUIDE.md#inserting-links-to-other-files)
  * See: (USER_GUIDE.md#creating-symbolic-links)
+ * See: (USER_GUIDE.md#opening-a-links-original)
  * See: (index_tree.md#context-menu)
  * See: (popup_menus.md#context-menus-mouse-position)
  */
-export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewFolder, onRename, onDelete, onCut, onPaste, onCopyPath, onCopySymlink, copySymlinkDisabled = false, onPasteSymlink, pasteSymlinkDisabled = false, symlinkSourceName }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onOpenSymlink, onRun, onNewFile, onNewFolder, onRename, onDelete, onCut, onPaste, onCopyPath, onCopySymlink, copySymlinkDisabled = false, onPasteSymlink, pasteSymlinkDisabled = false, symlinkSourceName }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       {onBrowse && (
@@ -57,6 +60,13 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
           label="Browse"
           onClick={() => { onBrowse(); onClose(); }}
           data-testid="browse-to-folder"
+        />
+      )}
+      {onOpenSymlink && (
+        <PopupMenuItem
+          label="Open Symlink"
+          onClick={() => { onOpenSymlink(); onClose(); }}
+          data-testid="tree-open-symlink"
         />
       )}
       {onRun && (

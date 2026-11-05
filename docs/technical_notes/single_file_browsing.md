@@ -82,6 +82,8 @@ There is no context menu item for this; an earlier "Browse File" menu entry was 
 
 **Bookmarks are the second entry point.** `handleBookmarkNavigate` (in `IndexTreeView.tsx`) routes a bookmarked *file* through `setBrowseFile` as well — a bookmark names one specific document, so opening it alone is what the click meant. A bookmarked *folder* still goes to `navigateToBrowserPath` and lands in listing mode. The file/folder split comes from the bookmark's recorded `isDirectory`, which `BookmarksPopupMenu` passes to the handler. A legacy bookmark saved without it is resolved with `api.isDirectory` on click, and the result is written back; only the menu's icon for such a bookmark falls back to a no-extension guess.
 
+**Open Symlink is a third entry point.** The tree's "Open Symlink" item on a link to a file (`openSymlinkTarget` in `src/renderer/symlinkOps.ts`) makes the same two calls for the link's *target*, so the original opens alone. A link to a folder goes to `navigateToBrowserPath` instead, like "Browse".
+
 ## Entering Single-File Mode: Expanded Editing
 
 `settings.expandedEditor` is a persisted user preference meaning "editing opens maximized". It is **implemented by view routing, not by CSS**: with it on, starting an edit on a file in the folder listing enters single-file mode with `browseFileMode: 'expanded-edit'`, and `BrowseFile` hosts the maximized editor.
