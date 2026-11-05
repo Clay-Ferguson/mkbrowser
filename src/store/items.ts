@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import type { AppState, Bookmark, ItemData } from '../shared/types';
+import type { AppState, Bookmark, ItemData, SymlinkSource } from '../shared/types';
 import type { FileEntry } from '../shared/shared';
 import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
@@ -334,6 +334,9 @@ export interface ItemsSlice {
   cutSingleItem: (item: IncomingItem) => void;
   // Undo Cut toolbar button. See: (USER_GUIDE.md#undo-cut)
   clearAllCutItems: () => void;
+  // Copy Symlink / Paste Symlink. See: (USER_GUIDE.md#creating-symbolic-links)
+  setSymlinkSource: (source: SymlinkSource) => void;
+  clearSymlinkSource: () => void;
   renameItem: (oldPath: string, newPath: string, newName: string) => boolean;
   deleteItems: (paths: string[]) => void;
   setItemEditing: (path: string, editing: boolean, goToLine?: number) => boolean;
@@ -680,6 +683,19 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
     },
 
     /**
+     * Arm "Paste Symlink" with the item a link should point at. Replaces any
+     * earlier pending source. Nothing touches the disk until the paste.
+     *
+     * See: (USER_GUIDE.md#creating-symbolic-links)
+     */
+    setSymlinkSource: (source) => set({ symlinkSource: source }),
+
+    /** Forget the pending "Copy Symlink" source (after a successful paste). */
+    clearSymlinkSource: () => {
+      if (get().symlinkSource !== null) set({ symlinkSource: null });
+    },
+
+    /**
      * Central "path moved" handler for a rename: moves the item's entry from
      * oldPath to newPath, preserving all state (isSelected, isCut, isExpanded,
      * content, etc.) to prevent phantom entries when a selected item is
@@ -692,6 +708,8 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * - `currentPath` (so renaming the browsed folder or an ancestor follows
      *   it), `browseFileName`, `highlightItem`, and the `pending*` path fields
      * - Back/Forward `navHistory` entries (history slice)
+     * - the pending "Copy Symlink" source, so a later paste links to the item
+     *   where it now lives
      *
      * The items Map is global and long-lived — it holds entries from every
      * folder visited this session — so renaming a folder must also re-key every
@@ -813,6 +831,14 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       remapField('pendingIndexTreeReveal');
       Object.assign(patch, withHistoryRemapped(state, oldRoot, newRoot));
 
+      if (state.symlinkSource) {
+        const movedSource = remapMovedPath(state.symlinkSource.path, oldRoot, newRoot);
+        if (movedSource !== null) {
+          const name = movedSource === newPath ? newName : state.symlinkSource.name;
+          patch.symlinkSource = { ...state.symlinkSource, path: movedSource, name };
+        }
+      }
+
       if (Object.keys(patch).length > 0) {
         set(patch);
       }
@@ -826,7 +852,9 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * so leaving descendants behind would strand their editing/isCut state).
      *
      * Also drops, atomically in the same update, any `currentEntries` rows
-     * pointing at (or under) a deleted path.
+     * pointing at (or under) a deleted path, and the pending "Copy Symlink"
+     * source when it is (or is under) a deleted path — a paste would otherwise
+     * create a broken link.
      */
     deleteItems: (paths) => {
       if (paths.length === 0) return;
@@ -856,6 +884,11 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       );
       if (remainingEntries.length !== state.currentEntries.length) {
         patch.currentEntries = remainingEntries;
+      }
+
+      const source = state.symlinkSource;
+      if (source && roots.some(root => isPathInside(root, source.path))) {
+        patch.symlinkSource = null;
       }
 
       Object.assign(patch, withHistoryPruned(state, roots));
@@ -1071,6 +1104,14 @@ export function cutSingleItem(item: IncomingItem): void {
 
 export function clearAllCutItems(): void {
   getState().clearAllCutItems();
+}
+
+export function setSymlinkSource(source: SymlinkSource): void {
+  getState().setSymlinkSource(source);
+}
+
+export function clearSymlinkSource(): void {
+  getState().clearSymlinkSource();
 }
 
 export function renameItem(oldPath: string, newPath: string, newName: string): boolean {

@@ -17,7 +17,10 @@ import {
   syncDirectoryItems,
   upsertItems,
   applyDirectoryListing,
+  setSymlinkSource,
+  clearSymlinkSource,
 } from '../src/store/items';
+import { canPasteSymlinkInto } from '../src/renderer/symlinkOps';
 
 const DIR = '/notes';
 const NOTE = '/notes/note.md';
@@ -464,6 +467,78 @@ describe('renameItem / deleteItems — path-holding slices stay in sync', () => 
       expect(useAS.getState().currentPath).toBe('/root');
       expect(useAS.getState().browseFileName).toBe('renamed.md');
     });
+  });
+});
+
+describe('symlinkSource — the pending "Copy Symlink" item', () => {
+  beforeEach(() => {
+    useAS.setState({ items: new Map(), symlinkSource: null });
+  });
+
+  it('is set by Copy Symlink and forgotten by clearSymlinkSource', () => {
+    setSymlinkSource({ path: NOTE, name: 'note.md', isDirectory: false });
+    expect(useAS.getState().symlinkSource).toEqual({ path: NOTE, name: 'note.md', isDirectory: false });
+
+    clearSymlinkSource();
+    expect(useAS.getState().symlinkSource).toBeNull();
+  });
+
+  it('follows a rename of the item itself, name included', () => {
+    setSymlinkSource({ path: NOTE, name: 'note.md', isDirectory: false });
+
+    renameItem(NOTE, '/notes/renamed.md', 'renamed.md');
+
+    expect(useAS.getState().symlinkSource).toEqual({ path: '/notes/renamed.md', name: 'renamed.md', isDirectory: false });
+  });
+
+  it('follows a rename of a folder above the item, keeping its name', () => {
+    setSymlinkSource({ path: NOTE, name: 'note.md', isDirectory: false });
+
+    renameItem(DIR, '/journal', 'journal');
+
+    expect(useAS.getState().symlinkSource).toEqual({ path: '/journal/note.md', name: 'note.md', isDirectory: false });
+  });
+
+  it('ignores a rename of an unrelated sibling sharing its name as a prefix', () => {
+    setSymlinkSource({ path: DIR, name: 'notes', isDirectory: true });
+
+    renameItem('/notes-archive', '/old', 'old');
+
+    expect(useAS.getState().symlinkSource?.path).toBe(DIR);
+  });
+
+  it('is cleared when the item or a folder above it is deleted', () => {
+    setSymlinkSource({ path: NOTE, name: 'note.md', isDirectory: false });
+    deleteItems(['/notes/other.md']);
+    expect(useAS.getState().symlinkSource?.path).toBe(NOTE);
+
+    deleteItems([DIR]);
+    expect(useAS.getState().symlinkSource).toBeNull();
+  });
+});
+
+describe('canPasteSymlinkInto', () => {
+  const file = { path: '/notes/a/note.md', name: 'note.md', isDirectory: false };
+  const folder = { path: '/notes/a', name: 'a', isDirectory: true };
+
+  it('is false when nothing has been copied', () => {
+    expect(canPasteSymlinkInto(null, '/notes/b')).toBe(false);
+  });
+
+  it("is false for the copied item's own folder", () => {
+    expect(canPasteSymlinkInto(file, '/notes/a')).toBe(false);
+    expect(canPasteSymlinkInto(folder, '/notes')).toBe(false);
+  });
+
+  it('is false for a copied folder itself or anything beneath it', () => {
+    expect(canPasteSymlinkInto(folder, '/notes/a')).toBe(false);
+    expect(canPasteSymlinkInto(folder, '/notes/a/sub')).toBe(false);
+  });
+
+  it('is true for any other folder', () => {
+    expect(canPasteSymlinkInto(file, '/notes/b')).toBe(true);
+    expect(canPasteSymlinkInto(file, '/notes/a/sub')).toBe(true);
+    expect(canPasteSymlinkInto(folder, '/notes/a-archive')).toBe(true);
   });
 });
 

@@ -5,6 +5,8 @@ import { TEST_HOOKS_ARG } from './shared/shared';
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
   pathSep: process.platform === 'win32' ? '\\' : '/',
+  // Copy/Paste Symlink are offered on Linux and macOS only. See: (USER_GUIDE.md#creating-symbolic-links)
+  canCreateSymlinks: process.platform !== 'win32',
   testHooksEnabled: process.argv.includes(TEST_HOOKS_ARG),
   quit: () => ipcRenderer.invoke('quit'),
   getConfig: () => ipcRenderer.invoke('get-config'),
@@ -31,6 +33,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isDirectory: (checkPath: string) => ipcRenderer.invoke('is-directory', checkPath),
   // Breadcrumb link badges. See: (USER_GUIDE.md#symbolic-links)
   findSymlinks: (paths: string[]) => ipcRenderer.invoke('find-symlinks', paths),
+  // Paste Symlink. See: (USER_GUIDE.md#creating-symbolic-links)
+  createSymlink: (targetPath: string, destFolder: string) => ipcRenderer.invoke('create-symlink', targetPath, destFolder),
   // Paste Link ids and link auto-repair. See: (USER_GUIDE.md#inserting-links-to-other-files)
   ensureFrontMatterId: (filePath: string) => ipcRenderer.invoke('ensure-front-matter-id', filePath),
   findMarkdownById: (id: string, likelyDir: string, rootDir: string) =>

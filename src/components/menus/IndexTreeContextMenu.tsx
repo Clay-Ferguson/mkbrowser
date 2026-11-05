@@ -24,6 +24,14 @@ interface IndexTreeContextMenuProps {
   onPaste?: () => void;
   /** When provided, a "Copy Path" item is shown. */
   onCopyPath?: () => void;
+  /** When provided, a "Copy Symlink" item is shown. */
+  onCopySymlink?: () => void;
+  /** When provided (folders only), a "Paste Symlink" item is shown. */
+  onPasteSymlink?: () => void;
+  /** Greys out "Paste Symlink" (nothing copied, or this folder can't take the link). */
+  pasteSymlinkDisabled?: boolean;
+  /** Name of the copied item, shown in the "Paste Symlink" label when set. */
+  symlinkSourceName?: string;
 }
 
 /**
@@ -35,10 +43,11 @@ interface IndexTreeContextMenuProps {
  *
  * See: (USER_GUIDE.md#running-shell-scripts)
  * See: (USER_GUIDE.md#inserting-links-to-other-files)
+ * See: (USER_GUIDE.md#creating-symbolic-links)
  * See: (index_tree.md#context-menu)
  * See: (popup_menus.md#context-menus-mouse-position)
  */
-export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewFolder, onRename, onDelete, onCut, onPaste, onCopyPath }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewFolder, onRename, onDelete, onCut, onPaste, onCopyPath, onCopySymlink, onPasteSymlink, pasteSymlinkDisabled = false, symlinkSourceName }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       {onBrowse && (
@@ -95,11 +104,26 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
           onClick={() => { onPaste(); onClose(); }}
         />
       )}
-      {onCopyPath && <PopupMenuDivider />}
+      {(onCopyPath || onCopySymlink || onPasteSymlink) && <PopupMenuDivider />}
       {onCopyPath && (
         <PopupMenuItem
           label="Copy Path"
           onClick={() => { onCopyPath(); onClose(); }}
+        />
+      )}
+      {onCopySymlink && (
+        <PopupMenuItem
+          label="Copy Symlink"
+          onClick={() => { onCopySymlink(); onClose(); }}
+          data-testid="tree-copy-symlink"
+        />
+      )}
+      {onPasteSymlink && (
+        <PopupMenuItem
+          label={symlinkSourceName ? `Paste Symlink "${symlinkSourceName}"` : 'Paste Symlink'}
+          onClick={() => { onPasteSymlink(); onClose(); }}
+          disabled={pasteSymlinkDisabled}
+          data-testid="tree-paste-symlink"
         />
       )}
     </PopupMenu>

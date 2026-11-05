@@ -453,6 +453,25 @@ Links whose target no longer exists (broken links) are not shown.
 
 Symbolic links exist on Linux, macOS and Windows. Windows `.lnk` shortcuts and macOS Finder aliases are ordinary files, not symbolic links, so they don't get the badge.
 
+### Creating Symbolic Links
+
+You can make a link to any file or folder from the folder tree, on Linux and macOS:
+
+1. Right-click the file or folder you want to link to and choose **Copy Symlink**. Nothing changes on disk yet; the app just remembers your choice.
+2. Right-click the folder where the link should go and choose **Paste Symlink**. The menu item shows the name of the item you copied.
+
+The link gets the same name as the item it points to, and shows the link badge. Only the link is created: the original file or folder stays where it is, untouched. After the paste, the app forgets the copied item, so to make another link, copy again.
+
+**Paste Symlink** is greyed out until you have copied something. It also stays greyed out on the folder that already holds the copied item (the link would need the same name), and, when you copied a folder, on that folder and every folder inside it, since a folder that contains a link to itself would be endlessly deep. If the destination already has something with that name, the paste is refused with a message and nothing is changed; the copied item stays remembered, so you can paste it somewhere else.
+
+If you rename the copied item (or a folder above it) before pasting, the paste links to it under its new name. If you delete it, the app forgets it.
+
+The link records the full path of the item it points to, so you can move the link itself around freely. If the original is later moved, renamed or deleted, the link breaks, and broken links are not shown (see above).
+
+Deleting a link from the app deletes only the link, never the file or folder it points to.
+
+Copy Symlink and Paste Symlink are not offered on Windows, where creating symbolic links needs administrator rights or Developer Mode.
+
 # Bookmarks
 
 Bookmarks give you quick access to frequently visited files and folders. They are managed from the **Index Tree** panel on the left side of the Browse view.

@@ -35,10 +35,12 @@ import {
   setBrowseFile,
   setHighlightItem,
   setIndexTreeWidth,
+  setSymlinkSource,
 } from '../../store';
 import type { FileNode } from '../../store';
 import type { FileEntry } from '../../shared/shared';
 import { pasteCutItems, runCutPasteExclusive } from '../../renderer/edit';
+import { canPasteSymlinkInto, pasteSymlink } from '../../renderer/symlinkOps';
 import {
   ENTRY_DND_MIME,
   parseDragPayload,
@@ -307,6 +309,8 @@ function IndexTreeView() {
   // See: (index_tree.md#context-menu)
   const cutPaths = useAS(s => getCutPaths(s.items));
   const hasCutItems = cutPaths.size > 0;
+  // The pending "Copy Symlink" item, kept in the store so any view can paste it. See: (USER_GUIDE.md#creating-symbolic-links)
+  const symlinkSource = useAS(s => s.symlinkSource);
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   // Bumped per reveal, so an earlier reveal still awaiting a directory read
@@ -335,6 +339,8 @@ function IndexTreeView() {
     onCut?: () => void;
     onPaste?: () => void;
     onCopyPath?: () => void;
+    onCopySymlink?: () => void;
+    onPasteSymlink?: () => void;
   } | null>(null);
   // Folder awaiting a name for a new file.
   const [createFileParent, setCreateFileParent] = useState<string | null>(null);
@@ -878,10 +884,12 @@ function IndexTreeView() {
    * on node type: directories get Browse/New File/New Folder/Rename/Delete/Cut and (when cut
    * items exist) Paste into Folder; files get Browse/Rename/Delete/Cut. Shell scripts (`.sh`)
    * also get "Run". Both directories and files also get "Copy Path" (absolute), whose path the
-   * editor's "Paste Link" turns into a relative Markdown link.
+   * editor's "Paste Link" turns into a relative Markdown link, and (except on Windows) "Copy
+   * Symlink"; directories also get "Paste Symlink", greyed out until something can be linked there.
    *
    * "Browse" always lands in a folder listing, so it is also an exit from single-file mode.
    * See: (single_file_browsing.md#leaving-single-file-mode-the-index-tree)
+   * See: (USER_GUIDE.md#creating-symbolic-links)
    * See: (index_tree.md#context-menu)
    * See: (popup_menus.md#context-menus-mouse-position)
    */
@@ -915,6 +923,12 @@ function IndexTreeView() {
         onPaste: () => handlePasteIntoFolder(node),
       } : {}),
       onCopyPath: () => void navigator.clipboard.writeText(node.path),
+      ...(api.canCreateSymlinks ? {
+        onCopySymlink: () => setSymlinkSource({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
+        ...(node.isDirectory ? {
+          onPasteSymlink: () => runOp(() => pasteSymlink(node.path), 'Failed to paste symlink: '),
+        } : {}),
+      } : {}),
     });
   };
 
@@ -1001,6 +1015,10 @@ function IndexTreeView() {
           onCut={contextMenu.onCut}
           onPaste={contextMenu.onPaste}
           onCopyPath={contextMenu.onCopyPath}
+          onCopySymlink={contextMenu.onCopySymlink}
+          onPasteSymlink={contextMenu.onPasteSymlink}
+          pasteSymlinkDisabled={!canPasteSymlinkInto(symlinkSource, contextMenu.path)}
+          symlinkSourceName={symlinkSource?.name}
         />
       )}
       {createFileParent && (

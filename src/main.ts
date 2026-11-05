@@ -6,7 +6,7 @@ import { initConfig, getConfig, updateConfig, flushConfig } from './main/configM
 import type { AppConfig, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
-import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks } from './main/fileUtil';
+import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks, createSymlink } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
 import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterId, withIndexLock, type IndexMutationResult } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
@@ -396,6 +396,17 @@ function setupIpcHandlers(): void {
   // See: (USER_GUIDE.md#symbolic-links)
   ipcMain.handle('find-symlinks', async (_event, paths: string[]): Promise<string[]> => {
     return findSymlinks(paths);
+  });
+
+  // "Paste Symlink": link to targetPath from inside destFolder, under the target's name.
+  // See: (USER_GUIDE.md#creating-symbolic-links)
+  ipcMain.handle('create-symlink', async (_event, targetPath: string, destFolder: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      return await createSymlink(targetPath, destFolder);
+    } catch (error) {
+      logger.error('Error creating symbolic link:', error);
+      return { success: false, error: (error as Error).message };
+    }
   });
 
   // Write content to a file. Returns the file's post-write mtime so the

@@ -637,6 +637,13 @@ export interface ElectronAPI {
   /** Platform path separator: '\\' on Windows, '/' elsewhere. */
   pathSep: string;
   /**
+   * True where the app offers Copy Symlink / Paste Symlink: Linux and macOS, not
+   * Windows (where file symlinks need Developer Mode or admin rights).
+   *
+   * See: (USER_GUIDE.md#creating-symbolic-links)
+   */
+  canCreateSymlinks: boolean;
+  /**
    * True when the app runs unpackaged (`npm start`, and the Playwright e2e tests, which launch
    * `.vite/build/main.js` directly). Gates test-only hooks such as `window.__testStore` so they
    * never ship in the packaged app.
@@ -680,6 +687,15 @@ export interface ElectronAPI {
    * See: (USER_GUIDE.md#symbolic-links)
    */
   findSymlinks: (paths: string[]) => Promise<string[]>;
+  /**
+   * Creates, in `destFolder`, a symbolic link to `targetPath` (stored as an absolute
+   * path) with the target's name. Refuses the target's own folder, a folder pasted
+   * into itself or beneath itself, and a name already taken, each with an `error`
+   * for the user.
+   *
+   * See: (USER_GUIDE.md#creating-symbolic-links)
+   */
+  createSymlink: (targetPath: string, destFolder: string) => Promise<{ success: boolean; error?: string }>;
   /**
    * Finds the .md file whose front-matter `id` is `id`: first among the direct children
    * of `likelyDir`, then anywhere under `rootDir` (honoring ignored paths). The first

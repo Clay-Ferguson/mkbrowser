@@ -92,6 +92,8 @@ const initialState: AppState = {
   items: new Map(),
   currentEntries: [],
   entriesLoading: true,
+  // No "Copy Symlink" pending. See: (USER_GUIDE.md#creating-symbolic-links)
+  symlinkSource: null,
   currentPath: '',
   currentView: 'browser', // the active tab (any AppView). See: (application_tabs.md#tab-navigation)
   // Starts in listing mode; setBrowseFile enters single-file mode. See: (single_file_browsing.md#the-deciding-state-browsefilename)

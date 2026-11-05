@@ -7,6 +7,7 @@ import { readIndexYaml, compareByIndexOrder, renameInIndexYaml } from './indexUt
 import { ATTACH_SUFFIX, INDEX_FILENAME } from '../shared/specialFiles';
 import { compareNames } from '../shared/fileTypes';
 import { mapWithConcurrency } from '../shared/asyncUtil';
+import { isInsideOrEqual } from './htmlExport/exportPaths';
 
 /**
  * Bound on concurrently processed directory entries. Each entry's task can hold
@@ -194,6 +195,59 @@ export async function findSymlinks(paths: string[]): Promise<string[]> {
     fs.promises.lstat(p).then((s) => s.isSymbolicLink(), () => false)
   ));
   return paths.filter((_, i) => isLink[i]);
+}
+
+/**
+ * Creates, in `destFolder`, a symbolic link to `targetPath` with the target's own
+ * name ("Paste Symlink"). The link stores the target's absolute path, so moving the
+ * link elsewhere keeps it working. Linux and macOS only: on Windows, creating file
+ * symlinks needs Developer Mode or admin rights, so the feature is not offered there.
+ *
+ * Refused, with nothing created:
+ * - the target's own folder, where the link's name is the target's name;
+ * - a folder target pasted into itself or anything beneath it (symlinks resolved),
+ *   which would make an endlessly deep tree for every feature that walks folders;
+ * - a name already taken in `destFolder`. `symlink` itself fails with EEXIST for any
+ *   existing entry, a dangling link included, so there is no check-then-create race.
+ *
+ * See: (USER_GUIDE.md#creating-symbolic-links)
+ */
+export async function createSymlink(targetPath: string, destFolder: string): Promise<{ success: boolean; error?: string }> {
+  if (process.platform === 'win32') {
+    return { success: false, error: 'Creating symbolic links is not supported on Windows.' };
+  }
+
+  const target = path.resolve(targetPath);
+  const folder = path.resolve(destFolder);
+  const name = path.basename(target);
+
+  let isDirectory: boolean;
+  try {
+    isDirectory = (await fs.promises.stat(target)).isDirectory();
+  } catch {
+    return { success: false, error: `"${name}" no longer exists.` };
+  }
+
+  if (path.dirname(target) === folder) {
+    return { success: false, error: `"${name}" is already in that folder. Paste the link into a different folder.` };
+  }
+
+  if (isDirectory) {
+    const [realTarget, realFolder] = await Promise.all([fs.promises.realpath(target), fs.promises.realpath(folder)]);
+    if (isInsideOrEqual(realTarget, realFolder)) {
+      return { success: false, error: `Cannot link "${name}" into itself or one of its own folders.` };
+    }
+  }
+
+  try {
+    await fs.promises.symlink(target, path.join(folder, name), isDirectory ? 'dir' : 'file');
+    return { success: true };
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'EEXIST') {
+      return { success: false, error: `An item named "${name}" already exists in that folder.` };
+    }
+    throw err;
+  }
 }
 
 /**

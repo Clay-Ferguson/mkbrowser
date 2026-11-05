@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks } from '../src/main/fileUtil';
+import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks, createSymlink } from '../src/main/fileUtil';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from '../src/shared/specialFiles';
 
 let tmpDir: string;
@@ -81,6 +81,74 @@ describe('findSymlinks', () => {
 
     // A dangling link is still a link; a missing path is simply not one.
     expect(found).toEqual([linked, path.join(tmpDir, 'dangling')]);
+  });
+});
+
+describe('createSymlink', () => {
+  // The feature is offered on Linux and macOS only; Windows refuses outright.
+  const itPosix = process.platform === 'win32' ? it.skip : it;
+
+  itPosix('links a file into another folder under its own name, by absolute path', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'src'));
+    fs.mkdirSync(path.join(tmpDir, 'dest'));
+    const target = path.join(tmpDir, 'src', 'note.md');
+    fs.writeFileSync(target, '# note', 'utf8');
+
+    expect(await createSymlink(target, path.join(tmpDir, 'dest'))).toEqual({ success: true });
+
+    const link = path.join(tmpDir, 'dest', 'note.md');
+    expect(fs.lstatSync(link).isSymbolicLink()).toBe(true);
+    expect(fs.readlinkSync(link)).toBe(target);
+    expect(fs.readFileSync(link, 'utf8')).toBe('# note');
+  });
+
+  itPosix('links a folder', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'src', 'docs'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, 'dest'));
+
+    expect(await createSymlink(path.join(tmpDir, 'src', 'docs'), path.join(tmpDir, 'dest'))).toEqual({ success: true });
+    expect(fs.statSync(path.join(tmpDir, 'dest', 'docs')).isDirectory()).toBe(true);
+  });
+
+  itPosix("refuses the target's own folder", async () => {
+    const target = path.join(tmpDir, 'note.md');
+    fs.writeFileSync(target, 'x', 'utf8');
+
+    const result = await createSymlink(target, tmpDir);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/already in that folder/);
+  });
+
+  itPosix('refuses a name already taken, a dangling link included, and keeps it', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'src'));
+    fs.mkdirSync(path.join(tmpDir, 'dest'));
+    const target = path.join(tmpDir, 'src', 'note.md');
+    fs.writeFileSync(target, 'x', 'utf8');
+    fs.symlinkSync(path.join(tmpDir, 'missing'), path.join(tmpDir, 'dest', 'note.md'));
+
+    const result = await createSymlink(target, path.join(tmpDir, 'dest'));
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/already exists/);
+    expect(fs.readlinkSync(path.join(tmpDir, 'dest', 'note.md'))).toBe(path.join(tmpDir, 'missing'));
+  });
+
+  itPosix('refuses linking a folder into itself or beneath it, also when reached through a link', async () => {
+    const folder = path.join(tmpDir, 'a');
+    fs.mkdirSync(path.join(folder, 'sub'), { recursive: true });
+    fs.symlinkSync(path.join(folder, 'sub'), path.join(tmpDir, 'alias'));
+
+    for (const dest of [path.join(folder, 'sub'), path.join(tmpDir, 'alias')]) {
+      const result = await createSymlink(folder, dest);
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/into itself/);
+    }
+    expect(fs.readdirSync(path.join(folder, 'sub'))).toEqual([]);
+  });
+
+  itPosix('reports a target that no longer exists', async () => {
+    const result = await createSymlink(path.join(tmpDir, 'gone.md'), tmpDir);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/no longer exists/);
   });
 });
 

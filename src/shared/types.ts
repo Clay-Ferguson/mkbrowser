@@ -279,6 +279,15 @@ export type HighlightedSearchResult = { path: string };
  */
 export type CalendarViewType = 'month' | 'week' | 'work_week' | 'day' | 'agenda';
 
+/** The pending "Copy Symlink" target (see `AppState.symlinkSource`). */
+export interface SymlinkSource {
+  /** Absolute path the new link will point at. */
+  path: string;
+  /** Its name, which the link also gets. */
+  name: string;
+  isDirectory: boolean;
+}
+
 /**
  * A file or directory node in the IndexTree file/folder hierarchy. Holds the path key
  * (used by the store's path-based updater), expansion/loading state, and children.
@@ -372,6 +381,17 @@ export interface AppState {
    * flight (and at startup, until the config is read).
    */
   entriesLoading: boolean;
+
+  /**
+   * The file or folder the user picked with "Copy Symlink", waiting for a
+   * "Paste Symlink" to create a link to it in another folder; null when none
+   * is pending. Global (not tree-local) so any view's menu can offer the paste.
+   * `renameItem` remaps it and `deleteItems` clears it, so it never names a
+   * path that has moved away.
+   *
+   * See: (USER_GUIDE.md#creating-symbolic-links)
+   */
+  symlinkSource: SymlinkSource | null;
 
   /**
    * Current path being browsed
