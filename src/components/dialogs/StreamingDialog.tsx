@@ -54,6 +54,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
     }
 
     // Auto-scroll
+    // See: (scroll_management.md#other-local-scrolls)
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }

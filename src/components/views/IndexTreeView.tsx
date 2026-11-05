@@ -461,6 +461,7 @@ function IndexTreeView() {
   // on it catches exactly that commit — before paint, with no guessed delay.
   // The target stays pending until its row appears; a newer reveal replaces it.
   // See: (index_tree.md#revealing-a-path)
+  // See: (scroll_management.md#other-local-scrolls)
   useLayoutEffect(() => {
     if (!revealScrollTarget) return;
     const el = containerRef.current?.querySelector(`[data-tree-path="${CSS.escape(revealScrollTarget)}"]`);

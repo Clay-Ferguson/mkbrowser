@@ -135,6 +135,8 @@ function exitReviewToText(
  * Centers the first pending diff chunk after entering review, so the user sees the proposal
  * immediately instead of hunting for it in a long document. Runs in a rAF because the merge
  * extension computes its chunks after the reconfigure transaction settles.
+ *
+ * See: (scroll_management.md#other-local-scrolls)
  */
 function scrollFirstChunkIntoView(view: EditorView | null): void {
   if (!view) return;
@@ -798,11 +800,12 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     return cleanup;
   }, [compartments]);
 
-  // Cap the editor at ~60% of the BrowseView scroll area (`<main>`, the app's one scroll
-  // container — same discovery pattern as renderer/entryDom.ts) so CodeMirror's own
-  // .cm-scroller scrolls and its viewport rendering stays cheap on large documents. The
+  // Cap the editor at ~60% of the enclosing view's scroll area (its own `<main>`; every view
+  // has one — same closest('main') discovery pattern as renderer/entryDom.ts) so CodeMirror's
+  // own .cm-scroller scrolls and its viewport rendering stays cheap on large documents. The
   // ResizeObserver keeps the cap in sync with window/panel resizes. In fillHeight mode the
   // editor is sized by the flex chain instead, so no measurement is needed.
+  // See: (scroll_management.md#hidden-views-pitfalls)
   useEffect(() => {
     if (fillHeight) return;
     const scrollContainer = containerRef.current?.closest('main');

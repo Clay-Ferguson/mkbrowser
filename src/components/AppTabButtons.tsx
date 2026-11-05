@@ -78,6 +78,7 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
 
   // Navigate to the parent directory and highlight the folder we came from.
   // See: (application_tabs.md#tab-navigation)
+  // See: (scroll_management.md#pendingscrolltofile)
   const navigateUp = () => {
     if (!currentPath || currentPath === rootPath) return;
     const parent = getParentPath(currentPath);

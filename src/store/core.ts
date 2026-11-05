@@ -97,6 +97,7 @@ const initialState: AppState = {
   // Starts in listing mode; setBrowseFile enters single-file mode. See: (single_file_browsing.md#the-deciding-state-browsefilename)
   browseFileName: null,
   browseFileMode: 'browse',
+  // No scroll requests queued. See: (scroll_management.md#pending-scroll-requests)
   pendingScrollToFile: null,
   pendingScrollToHeadingSlug: null,
   searchQuery: '',
@@ -124,6 +125,7 @@ const initialState: AppState = {
   folderGraph: null,
   folderGraphFileLinks: null,
   showGraphFileLinks: false,
+  // See: (scroll_management.md#pendingthreadscrolltobottom)
   pendingThreadScrollToBottom: false,
   rootPath: '',
   // Explicitly shown tabs; AppTabButtons adds the data-derived ones. See: (application_tabs.md#which-tabs-are-shown)

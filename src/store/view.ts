@@ -10,6 +10,7 @@ import { type TagCategory, isAllTagCategory } from '../shared/tagUtil';
 // View / navigation - current view & path, pending scroll/edit signals,
 // tabs, root path, folder analysis/graph, and other top-level UI flags.
 // See: (application_tabs.md#switching-views-from-code)
+// See: (scroll_management.md#pending-scroll-requests)
 // ============================================================================
 
 /**
@@ -25,6 +26,7 @@ export interface ViewSlice {
   clearBrowseFile: () => void;
   // Expand editor button. See: (USER_GUIDE.md#expand-editor)
   toggleExpandedEditor: (path: string) => void;
+  // "Scroll to X once it renders" requests, consumed by the view that renders X. See: (scroll_management.md#pending-scroll-requests)
   clearPendingScrollToFile: () => void;
   setPendingScrollToFile: (fileName: string) => void;
   setPendingScrollToHeadingSlug: (slug: string) => void;
@@ -40,6 +42,7 @@ export interface ViewSlice {
   setAppMessage: (message: AppMessage | null) => void;
   // The "different file than the one linked" warning. See: (USER_GUIDE.md#inserting-links-to-other-files)
   setLinkIdMismatch: (mismatch: LinkIdMismatch | null) => void;
+  // ThreadView's scroll-to-bottom request. See: (scroll_management.md#pendingthreadscrolltobottom)
   setPendingThreadScrollToBottom: () => void;
   clearPendingThreadScrollToBottom: () => void;
   // The Analysis and Graph tabs' data (null closes the tab). See: (USER_GUIDE.md#the-analysis-tab)
@@ -108,6 +111,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      *
      * See: (single_file_browsing.md#leaving-single-file-mode-the-index-tree)
      * See: (application_tabs.md#switching-views-from-code)
+     * See: (scroll_management.md#pendingscrolltofile)
      */
     navigateToBrowserPath: (path, scrollToFile, view = 'browser') => {
       const newState: Partial<AppState> = {
@@ -207,15 +211,24 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       set({ settings, ...routing });
     },
 
-    /** Clear the pending scroll to file (call after scrolling completes). */
+    /**
+     * Clear the pending scroll to file (call after scrolling completes).
+     *
+     * See: (scroll_management.md#pendingscrolltofile)
+     */
     clearPendingScrollToFile: () => {
       if (get().pendingScrollToFile === null) return;
       set({ pendingScrollToFile: null });
     },
 
-    /** Set a file to scroll into view after render completes. */
+    /**
+     * Set a file to scroll into view after render completes.
+     *
+     * See: (scroll_management.md#pendingscrolltofile)
+     */
     setPendingScrollToFile: (fileName) => set({ pendingScrollToFile: fileName }),
 
+    // Queues a heading scroll for the view that renders the heading's file. See: (scroll_management.md#pendingscrolltoheadingslug)
     setPendingScrollToHeadingSlug: (slug) => set({ pendingScrollToHeadingSlug: slug }),
 
     clearPendingScrollToHeadingSlug: () => {
@@ -298,10 +311,15 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * Request ThreadView to scroll to bottom once its thread has loaded.
      *
      * See: (ai_chat.md#where-the-response-goes)
+     * See: (scroll_management.md#pendingthreadscrolltobottom)
      */
     setPendingThreadScrollToBottom: () => set({ pendingThreadScrollToBottom: true }),
 
-    /** Clear the pending thread scroll-to-bottom flag (call once the scroll has run). */
+    /**
+     * Clear the pending thread scroll-to-bottom flag (call once the scroll has run).
+     *
+     * See: (scroll_management.md#pendingthreadscrolltobottom)
+     */
     clearPendingThreadScrollToBottom: () => {
       if (!get().pendingThreadScrollToBottom) return;
       set({ pendingThreadScrollToBottom: false });

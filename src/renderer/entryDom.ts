@@ -1,3 +1,6 @@
+// Entry DOM helpers: scroll centering, the settle phase, and visible-element lookup.
+// See: (scroll_management.md#the-settle-phase-entrydomts)
+
 /**
  * Kill switch for the dynamic "settle" phase of scrollElementIntoView (the
  * ResizeObserver that keeps the target centered while late-loading content —
@@ -7,6 +10,8 @@
  * element to render, give late content a fixed grace period
  * (ONE_SHOT_SCROLL_DELAY_MS), then scroll to it once with no follow-up
  * corrections — i.e. the app's behavior before the settle logic was added.
+ *
+ * See: (scroll_management.md#how-a-settle-phase-runs)
  */
 const DYNAMIC_SCROLL_TO_ELEMENT = true;
 
@@ -45,6 +50,7 @@ export const buildEntryHeaderId = (filePath: string) => `entry-${encodeURICompon
  * DOM order. getElementById would hand back the hidden copy.
  *
  * See: (application_tabs.md#mounting-and-scroll-position-important)
+ * See: (scroll_management.md#hidden-views-pitfalls)
  */
 export const getVisibleElementById = (id: string): HTMLElement | null => {
   for (const el of Array.from(document.querySelectorAll<HTMLElement>(`[id="${CSS.escape(id)}"]`))) {
@@ -53,7 +59,11 @@ export const getVisibleElementById = (id: string): HTMLElement | null => {
   return null;
 };
 
-/** Scroll position that centers `element` within `container`, clamped to the valid range. */
+/**
+ * Scroll position that centers `element` within `container`, clamped to the valid range.
+ *
+ * See: (scroll_management.md#settle-entry-points)
+ */
 const computeCenteredScrollTop = (container: HTMLElement, element: HTMLElement): number => {
   const containerRect = container.getBoundingClientRect();
   const elementRect = element.getBoundingClientRect();
@@ -84,6 +94,8 @@ const computeCenteredScrollTop = (container: HTMLElement, element: HTMLElement):
  * Returns `true` if the target element was found (and scrolled), `false`
  * otherwise. Callers use this to avoid consuming a pending-scroll request
  * before the target folder's entries have actually rendered.
+ *
+ * See: (scroll_management.md#settle-entry-points)
  */
 export const scrollItemIntoView = (filePath: string, highlight = false, settle = false): boolean => {
   const element = getVisibleElementById(buildEntryHeaderId(filePath));
@@ -103,6 +115,9 @@ export const scrollItemIntoView = (filePath: string, highlight = false, settle =
  * settle phase follows it, so callers don't have to guess how long rendering
  * takes. Instant, and self-cancelling like every settle phase (user input,
  * container hidden, window elapsed).
+ *
+ * See: (scroll_management.md#settle-entry-points)
+ * See: (scroll_management.md#pendingthreadscrolltobottom)
  */
 export const pinScrollToBottom = (container: HTMLElement): void => {
   const bottom = () => container.scrollHeight - container.clientHeight;
@@ -117,6 +132,9 @@ export const pinScrollToBottom = (container: HTMLElement): void => {
  * renders, so the container may not yet be tall enough and the first scroll
  * gets clamped short. Once the offset is reached the hold ends, so it never
  * pins a listing the content has already grown to fit.
+ *
+ * See: (scroll_management.md#settle-entry-points)
+ * See: (scroll_management.md#restoring)
  */
 export const holdScrollTop = (container: HTMLElement, top: number): void => {
   container.scrollTo({ top, behavior: 'instant' });
@@ -129,6 +147,7 @@ export const holdScrollTop = (container: HTMLElement, top: number): void => {
 
 // How often to check whether the scroll target has rendered yet, and for how
 // long, before giving up (e.g. a stale heading slug that no longer exists).
+// See: (scroll_management.md#constants)
 const FIND_ELEMENT_INTERVAL_MS = 100;
 const FIND_ELEMENT_TIMEOUT_MS = 3000;
 // After the initial scroll, keep re-centering for this long while late-loading
@@ -163,6 +182,9 @@ const ONE_SHOT_SCROLL_DELAY_MS = 1000;
  *
  * The second (settle) behavior can be disabled via DYNAMIC_SCROLL_TO_ELEMENT
  * at the top of this file.
+ *
+ * See: (scroll_management.md#settle-entry-points)
+ * See: (scroll_management.md#pendingscrolltoheadingslug)
  */
 export const scrollElementIntoView = (elementId: string, highlight: boolean): void => {
   // The element usually exists already (document open and rendered) — only
@@ -189,6 +211,8 @@ export const scrollElementIntoView = (elementId: string, highlight: boolean): vo
  * Highlights the element and scrolls it to the center of its <main> container.
  * Returns the container, or null when none was found (in which case a plain
  * scrollIntoView fallback was used).
+ *
+ * See: (scroll_management.md#settle-entry-points)
  */
 const centerScrollOnElement = (element: HTMLElement, highlight: boolean, behavior: ScrollBehavior): HTMLElement | null => {
   if (highlight) temporaryHighlightItem(element);
@@ -210,7 +234,11 @@ const centerScrollOnElement = (element: HTMLElement, highlight: boolean, behavio
   return scrollContainer;
 };
 
-/** Initial centering scroll plus the self-cancelling settle/correction phase. */
+/**
+ * Initial centering scroll plus the self-cancelling settle/correction phase.
+ *
+ * See: (scroll_management.md#how-a-settle-phase-runs)
+ */
 const beginSettledScroll = (element: HTMLElement, highlight: boolean): void => {
   // One-shot mode: delay the single scroll instead of correcting afterwards,
   // then stop — no correction phase, no listeners to clean up.
@@ -234,7 +262,11 @@ const beginSettledScroll = (element: HTMLElement, highlight: boolean): void => {
 const centeredOn = (element: HTMLElement, scrollContainer: HTMLElement) => (): number | null =>
   element.isConnected ? computeCenteredScrollTop(scrollContainer, element) : null;
 
-/** The settle phase currently running on each scroll container. */
+/**
+ * The settle phase currently running on each scroll container.
+ *
+ * See: (scroll_management.md#how-a-settle-phase-runs)
+ */
 const activeSettles = new WeakMap<HTMLElement, AbortController>();
 
 /**
@@ -256,6 +288,8 @@ const activeSettles = new WeakMap<HTMLElement, AbortController>();
  * when the container is hidden (a tab switch — views stay mounted with
  * display:none, and correcting a pane with no layout would zero its scroll),
  * and when the window elapses — callers don't need to clean it up.
+ *
+ * See: (scroll_management.md#how-a-settle-phase-runs)
  */
 const beginSettleCorrections = (scrollContainer: HTMLElement, desiredTop: () => number | null, behavior: ScrollBehavior): void => {
   // Everything in the settle phase (event listeners, observer, timer) tears

@@ -93,6 +93,7 @@ function ThesaurusView() {
   // else. `result` is a fresh object per lookup, so this fires exactly when the content is
   // replaced and never on an unrelated re-render. Runs even when the pill area is not
   // currently rendered (idle/empty/loading), where the ref is simply null.
+  // See: (scroll_management.md#other-local-scrolls)
   useEffect(() => {
     const el = pillAreaRef.current;
     if (el !== null) el.scrollTop = 0;

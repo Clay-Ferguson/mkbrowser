@@ -68,6 +68,8 @@ function errorMessage(err: unknown): string {
 /**
  * True when the entry for `path` is on screen. Hidden views stay mounted, so an
  * entry in one is still in the DOM — only a visible header counts.
+ *
+ * See: (scroll_management.md#hidden-views-pitfalls)
  */
 function isEntryRendered(path: string): boolean {
   return getVisibleElementById(buildEntryHeaderId(path)) !== null;
@@ -89,11 +91,13 @@ function App() {
   // toggled via CSS), so each view's scroll position is preserved natively.
   // This set tracks which views have been activated at least once.
   // See: (application_tabs.md#mounting-and-scroll-position-important)
+  // See: (scroll_management.md#tab-switches-handled-by-the-dom)
   const [visitedViews, setVisitedViews] = useState<Set<AppView>>(() => new Set<AppView>(['browser']));
   const currentView = useAS(s => s.currentView);
   const currentPath = useAS(s => s.currentPath);
   // Non-null swaps BrowseFile in for BrowseView (swap, not hide). See: (single_file_browsing.md#routing-in-apptsx--swap-not-hide)
   // See: (application_tabs.md#the-browse-tab)
+  // The swap unmounts BrowseView, which restores its scroll on remount. See: (scroll_management.md#restoring)
   const browseFileName = useAS(s => s.browseFileName);
   const directoryRefreshNonce = useAS(s => s.directoryRefreshNonce);
   // FolderGraphView mounts on this instead of visitedViews, so closing the Graph tab
@@ -369,6 +373,7 @@ function App() {
   // appMessage, LinkIdMismatchDialog) live outside the per-view wrappers.
   // See: (application_tabs.md#mounting-and-scroll-position-important)
   // See: (folder_graph.md#persistence-model)
+  // See: (scroll_management.md#tab-switches-handled-by-the-dom)
   const viewStyle = (view: AppView): CSSProperties => ({
     display: currentView === view ? 'flex' : 'none',
   });

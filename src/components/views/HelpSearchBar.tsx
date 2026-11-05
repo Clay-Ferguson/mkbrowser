@@ -23,6 +23,8 @@ function clearHighlights(): void {
  * Highlights every match, marks `matches[index]` as the current one, and scrolls it into view.
  * Both priorities sit above the default 0 of 'global-search', so a global search highlight
  * never paints over the Help search's current match.
+ *
+ * See: (scroll_management.md#other-local-scrolls)
  */
 function showMatch(matches: Range[], index: number): void {
   const match = matches[index];

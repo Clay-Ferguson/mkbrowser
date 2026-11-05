@@ -249,6 +249,7 @@ export default function CalendarView() {
 
   // Jumps to the event's file in BrowseView, highlighted. See: (calendar_view.md#calendarview-component)
   // See: (USER_GUIDE.md#jumping-to-a-file)
+  // See: (scroll_management.md#pendingscrolltofile)
   const handleSelectEvent = (event: CalendarEvent) => {
     if (!event.filePath) return;
     const folderPath = getParentPath(event.filePath);

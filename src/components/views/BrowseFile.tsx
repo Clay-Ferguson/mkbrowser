@@ -163,6 +163,7 @@ function BrowseFile() {
   // itself polls for the heading to render and keeps it centered while the
   // document's late content reflows.
   // See: (single_file_browsing.md#heading-links-in-single-file-mode)
+  // See: (scroll_management.md#pendingscrolltoheadingslug)
   const pendingHeadingSlug = useAS(s => s.pendingScrollToHeadingSlug);
   const isCurrentEntry = !!entryPath && !!browseFileName && entryPath === joinPath(currentPath, browseFileName);
   useEffect(() => {
@@ -213,6 +214,7 @@ function BrowseFile() {
   // only once it finds the element, so a path belonging to another folder would
   // linger and hijack a later navigation there.
   // See: (single_file_browsing.md#the-header-breadcrumb--listing-hidden-badge)
+  // See: (scroll_management.md#pendingscrolltofile)
   const handleBreadcrumbNavigate = (path: string) => {
     const scrollToFile = highlightItem && getParentPath(highlightItem) === path
       ? highlightItem

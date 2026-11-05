@@ -14,6 +14,7 @@
 // store snapshot without notifying listeners.
 //
 // See: (application_tabs.md#the-one-exception-to-native-scroll-browseview-per-folder-scroll)
+// See: (scroll_management.md#why-a-module-level-map-not-the-store)
 // ============================================================================
 
 /** Browser view scroll positions, keyed by path */
@@ -21,13 +22,17 @@ const browserPositions = new Map<string, number>();
 
 /**
  * Set scroll position for the browser view at a specific path
+ *
+ * See: (scroll_management.md#saving)
  */
 export function setBrowserScrollPosition(path: string, position: number): void {
   browserPositions.set(path, position);
 }
 
 /**
- * Get scroll position for the browser view at a specific path
+ * Get scroll position for the browser view at a specific path (0 for an unknown path)
+ *
+ * See: (scroll_management.md#restoring)
  */
 export function getBrowserScrollPosition(path: string): number {
   return browserPositions.get(path) ?? 0;

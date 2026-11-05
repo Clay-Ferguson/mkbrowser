@@ -55,6 +55,8 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
 
     // Handle in-page anchor links — native hash navigation doesn't work in Electron
     // SPAs because content scrolls inside a nested container, not at window level.
+    // See: (scroll_management.md#other-local-scrolls)
+    // See: (scroll_management.md#hidden-views-pitfalls)
     if (href.startsWith('#')) {
       e.preventDefault();
       // The visible copy: a hidden view can render the same document (and ids).

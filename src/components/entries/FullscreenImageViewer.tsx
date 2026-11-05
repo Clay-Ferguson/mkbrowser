@@ -98,6 +98,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
         setItemSelected(currentPath, !isSelected);
       } else if (e.key.toLowerCase() === 'j') {
         // Jump to the current fullscreen image - close fullscreen, scroll to it, and highlight it
+        // See: (scroll_management.md#pendingscrolltofile)
         onClose();
         setHighlightItem(currentPath);
         setPendingScrollToFile(currentPath);

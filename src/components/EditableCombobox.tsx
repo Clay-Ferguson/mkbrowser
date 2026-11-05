@@ -101,6 +101,7 @@ function EditableCombobox({
   // Scroll highlighted item into view. Keyed on the highlighted option's value (not just
   // the index) so a re-filter that leaves the index unchanged but swaps the underlying row
   // still re-scrolls the new row into the viewport.
+  // See: (scroll_management.md#other-local-scrolls)
   const highlightedValue =
     highlightedIndex >= 0 ? filteredOptions[highlightedIndex]?.value : undefined;
   useEffect(() => {

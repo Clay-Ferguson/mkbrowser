@@ -32,6 +32,7 @@ import { usePendingItemScroll } from './usePendingItemScroll';
  * landed yet.
  *
  * See: (application_tabs.md#the-one-exception-to-native-scroll-browseview-per-folder-scroll)
+ * See: (scroll_management.md#per-folder-positions-in-the-browser-view)
  */
 export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement | null>) {
   const isActive = useIsActiveView('browser');
@@ -51,10 +52,12 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
   // offset first. Everything else that has to wait for the DOM (the heading
   // scroll, the per-folder position restore, pending edit/expand) stays in the
   // passive effect below, where a frame of delay is invisible anyway.
+  // See: (scroll_management.md#pendingscrolltofile)
   usePendingItemScroll();
 
   // Restore scroll position on folder navigation, and handle the remaining
   // pending requests once the directory has loaded
+  // See: (scroll_management.md#restoring)
   useEffect(() => {
     if (loading) return;
 
@@ -66,6 +69,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
       // listing that is no longer rendered). Deliberately leaves a null ref
       // null: this component can mount while another tab is active, and that
       // mount still owes a scroll restore — see isFirstMount below.
+      // See: (scroll_management.md#hidden-views-pitfalls)
       if (previousPathRef.current !== null) previousPathRef.current = currentPath;
       return;
     }
@@ -84,9 +88,11 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     // accurate to within 150ms. At app startup nothing is saved yet and the
     // restore is a harmless scrollTo(0).
     // See: (single_file_browsing.md#routing-in-apptsx--swap-not-hide)
+    // See: (scroll_management.md#restoring)
     const isFirstMount = previousPathRef.current === null;
 
     // Save scroll position for the previous folder before switching
+    // See: (scroll_management.md#saving)
     if (isNewFolder && previousPathRef.current && mainContainerRef.current) {
       setBrowserScrollPosition(previousPathRef.current, mainContainerRef.current.scrollTop);
     }
@@ -99,6 +105,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
     // as a gate, because both branches below would fight a scroll that has not
     // landed yet — and consuming it re-runs this effect, so neither branch is
     // missed.
+    // See: (scroll_management.md#pendingscrolltofile)
     if (!pendingScrollToFile) {
       if (pendingScrollToHeadingSlug) {
         // Set alongside pendingScrollToFile; reached once that file scroll has
@@ -107,6 +114,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
         // while late-loading content reflows the page, self-cancelling on user
         // input / element removal / timeout — so it deliberately isn't tied to
         // this effect's cleanup, and the flag is consumed immediately.
+        // See: (scroll_management.md#pendingscrolltoheadingslug)
         scrollElementIntoView(pendingScrollToHeadingSlug, true);
         clearPendingScrollToHeadingSlug();
       } else if (isNewFolder || isFirstMount) {
@@ -114,6 +122,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
         // the one we were already in, when remounting). The entries' bodies are
         // typically still loading, so the listing may not yet be tall enough to
         // reach the saved offset; holdScrollTop re-applies it as they fill in.
+        // See: (scroll_management.md#restoring)
         const mainContainer = mainContainerRef.current;
         if (mainContainer) {
           holdScrollTop(mainContainer, getBrowserScrollPosition(currentPath));
@@ -158,6 +167,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
   // full app teardown, closing the folder). BrowseView does not unmount on tab
   // switches, so there is no view-switch scroll position to flush here.
   // See: (application_tabs.md#the-browse-tab)
+  // See: (scroll_management.md#saving)
   useEffect(() => {
     // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending debounced scroll-save timeout on unmount.
     return () => {
@@ -168,6 +178,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
   }, []);
 
   // Handle scroll events on the main container (debounced save)
+  // See: (scroll_management.md#saving)
   const handleMainScroll = (e: UIEvent<HTMLElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
     if (scrollSaveTimerRef.current) {

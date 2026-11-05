@@ -418,7 +418,12 @@ export interface AppState {
 
   /**
    * Full file path to scroll into view after navigation completes.
-   * Set when navigating from search results, cleared after scrolling.
+   * Set by every route that lands on a specific file in the folder listing
+   * (search results, index tree, calendar, the up button, leaving an
+   * expanded edit, creating or pasting a file, ...); cleared only once the
+   * scroll has actually happened.
+   *
+   * See: (scroll_management.md#pendingscrolltofile)
    */
   pendingScrollToFile: string | null;
 
@@ -426,6 +431,8 @@ export interface AppState {
    * Heading slug to scroll to after the file entry finishes rendering.
    * Set when following a `file.md#slug` link (see openFileSingle);
    * cleared after the heading scroll completes.
+   *
+   * See: (scroll_management.md#pendingscrolltoheadingslug)
    */
   pendingScrollToHeadingSlug: string | null;
 
@@ -618,6 +625,7 @@ export interface AppState {
    * to the thread.
    *
    * See: (ai_chat.md#where-the-response-goes)
+   * See: (scroll_management.md#pendingthreadscrolltobottom)
    */
   pendingThreadScrollToBottom: boolean;
 

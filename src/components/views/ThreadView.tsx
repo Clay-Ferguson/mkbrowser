@@ -202,6 +202,7 @@ function ThreadView() {
   // pinScrollToBottom keeps following the bottom as they fill in rather than
   // hoping a fixed delay was long enough.
   // See: (ai_chat.md#where-the-response-goes)
+  // See: (scroll_management.md#pendingthreadscrolltobottom)
   useLayoutEffect(() => {
     // Hidden, the pane has no layout to scroll; the flag waits for activation.
     if (!loaded || !isActive || !pendingScrollToBottom) return;
@@ -216,6 +217,7 @@ function ThreadView() {
   // significant vertical space once it mounts, on a later commit — the
   // bottom pin follows it down as it does.
   // See: (ai_chat.md#replying-to-the-ai)
+  // See: (scroll_management.md#pendingthreadscrolltobottom)
   useEffect(() => {
     if (!loaded || !isActive || !pendingEditFile || pendingEditView !== 'thread') return;
     setItemExpanded(pendingEditFile, true);

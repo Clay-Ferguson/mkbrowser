@@ -33,8 +33,8 @@ import { scrollItemIntoView } from '../../renderer/entryDom';
  * load resolves). So this runs after *every* commit of the calling component
  * and asks the DOM: is the target here yet? That makes it self-correcting by
  * construction rather than by timing — the antithesis of a fragile
- * "hopefully 100ms is enough" delay. The check is a single `getElementById`
- * guarded by a null flag, so idle renders cost nothing.
+ * "hopefully 100ms is enough" delay. The check is a single `getVisibleElementById`
+ * lookup guarded by a null flag, so idle renders cost nothing.
  *
  * The flag is consumed only once the element is actually found and scrolled
  * (`scrollItemIntoView` reports this), so a commit that fires before the
@@ -59,6 +59,9 @@ import { scrollItemIntoView } from '../../renderer/entryDom';
  * From the view that renders the entries themselves (BrowseView), not from an
  * ancestor: layout effects fire bottom-up for the components that re-rendered,
  * and the whole point is to be on the commit where the entry rows appear.
+ *
+ * See: (scroll_management.md#pendingscrolltofile)
+ * See: (scroll_management.md#the-settle-phase-entrydomts)
  */
 export function usePendingItemScroll(): void {
   const pendingScrollToFile = useAS(s => s.pendingScrollToFile);
@@ -71,6 +74,7 @@ export function usePendingItemScroll(): void {
     // measuring or scrolling a hidden pane would produce nonsense. The request
     // stays pending and is picked up on the commit that shows this view.
     // See: (application_tabs.md#hidden-views-are-live)
+    // See: (scroll_management.md#hidden-views-pitfalls)
     if (!isActive) return;
 
     if (scrollItemIntoView(pendingScrollToFile, false, true)) {

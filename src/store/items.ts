@@ -170,6 +170,7 @@ function editingPatch(
   // isExpandedEditOf checks exactly that — so BrowseView is guaranteed to
   // find the element and consume the request.
   // See: (single_file_browsing.md#entering-single-file-mode-expanded-editing)
+  // See: (scroll_management.md#pendingscrolltofile)
   const showProps = editing && !state.settings.showPropsInEditor && isMarkdownFile(existing.name)
     && hasObjectType(existing.props ?? {}, state.typeDefs);
 

@@ -64,6 +64,7 @@ interface BrowseViewProps {
  * See: (document_mode.md#overview)
  * See: (file_attachments.md#frontend-rendering-srccomponentsviewsbrowseviewtsx)
  * See: (USER_GUIDE.md#browsing-and-editing)
+ * See: (scroll_management.md#per-folder-positions-in-the-browser-view)
  */
 function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps) {
   const [overlay, setOverlay] = useState<BrowseOverlay>(NO_OVERLAY);
@@ -87,6 +88,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
   const searchDefinitions = useAS(s => s.settings.searchDefinitions);
 
   const mainContainerRef = useRef<HTMLElement | null>(null);
+  // Per-folder scroll save/restore and pending scroll requests for <main>. See: (scroll_management.md#per-folder-positions-in-the-browser-view)
   const handleMainScroll = usePendingBrowseIntents(mainContainerRef);
 
   // Load the current folder's .INDEX.yaml into the store when it is index-ordered

@@ -73,6 +73,7 @@ interface MarkdownEntryProps extends BaseEntryProps, AttachMenuProps {
  * React Compiler bail out on MarkdownEntry.
  *
  * See: (ai_chat.md#replying-to-the-ai)
+ * See: (scroll_management.md#pendingthreadscrolltobottom)
  */
 async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<void> {
   try {
@@ -284,6 +285,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // any try statement with a finalizer, which would de-optimize this component.
   // See: (ai_chat.md#where-the-response-goes)
   // See: (USER_GUIDE.md#ai-chat)
+  // See: (scroll_management.md#pendingthreadscrolltobottom)
   const handleAskAi = async (promptContent: string | undefined, endEdit: boolean) => {
     const textToSend = promptContent || content;
     if (!textToSend) return;
