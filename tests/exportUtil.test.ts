@@ -74,4 +74,21 @@ describe('exportFolderContents', () => {
     expect(result.success).toBe(true);
     expect(await fs.promises.readFile(result.outputPath!, 'utf8')).toBe('alpha\n\nbeta');
   });
+
+  it('follows symlinked folders and files, but not a link back up the tree', async () => {
+    const elsewhere = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'export-test-linked-'));
+    try {
+      await fs.promises.writeFile(path.join(tmpDir, 'a.md'), 'alpha', 'utf8');
+      await fs.promises.writeFile(path.join(elsewhere, 'b.md'), 'beta', 'utf8');
+      await fs.promises.symlink(elsewhere, path.join(tmpDir, 'linked'));
+      await fs.promises.symlink(path.join(tmpDir, 'a.md'), path.join(tmpDir, 'c.md'));
+      await fs.promises.symlink(tmpDir, path.join(elsewhere, 'up'));
+
+      const result = await exportInto(path.join(tmpDir, 'exports'), 'out.md', true);
+      expect(result.success).toBe(true);
+      expect(await fs.promises.readFile(result.outputPath!, 'utf8')).toBe('alpha\n\nalpha\n\nbeta');
+    } finally {
+      await fs.promises.rm(elsewhere, { recursive: true, force: true });
+    }
+  });
 });

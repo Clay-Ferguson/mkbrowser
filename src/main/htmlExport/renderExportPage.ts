@@ -103,7 +103,7 @@ ${body}</body>
 `;
 }
 
-async function renderChunk(markdown: string, ctx: PageLinkContext, object: ResolvedObject | null, collapsibleObjects: boolean): Promise<string> {
+async function renderChunk(markdown: string, ctx: PageLinkContext, object: ResolvedObject | null): Promise<string> {
   // Built per chunk: the link plugin is bound to this page, and a fresh tree gets a
   // fresh heading slugger (as rehype-slug does per react-markdown instance in the app).
   const file = await unified()
@@ -116,7 +116,7 @@ async function renderChunk(markdown: string, ctx: PageLinkContext, object: Resol
     .use(rehypeKatex, { output: 'mathml' })
     .use(rehypeHeadingIds)
     .use(rehypeCallouts)
-    .use(rehypeObjectCard, object, collapsibleObjects)
+    .use(rehypeObjectCard, object)
     .use(rehypeExportLinks, ctx)
     .use(rehypeStringify)
     .process(markdown);
@@ -127,13 +127,11 @@ async function renderChunk(markdown: string, ctx: PageLinkContext, object: Resol
  * Converts one Markdown file to a complete HTML page for the export. Preprocessing
  * matches MarkdownView (HTML comments stripped, `\$` escapes, wikilinks, `|||`
  * columns); a generated TOC is kept, and its links land on the slugged headings.
- * With `collapsibleObjects`, typed object cards are `<details>` sections.
  */
 export async function renderMarkdownPage(
   content: string,
   ctx: PageLinkContext,
   typeDefs: TypeDefinitions,
-  collapsibleObjects = false,
 ): Promise<string> {
   const { manifest, mdPath, indexPages } = ctx;
   const processed = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(content)));
@@ -141,7 +139,7 @@ export async function renderMarkdownPage(
   // The page's object (typed front matter) is drawn once, as a card at the top of the first column.
   const frontMatter = parseFrontMatter(content).yaml;
   const object = frontMatter ? resolveFrontMatterObject(frontMatter, typeDefs) : null;
-  const rendered = await Promise.all(chunks.map((c, i) => renderChunk(c.text, ctx, i === 0 ? object : null, collapsibleObjects)));
+  const rendered = await Promise.all(chunks.map((c, i) => renderChunk(c.text, ctx, i === 0 ? object : null)));
 
   const inner = rendered.length > 1
     ? `<div class="columns-scroll"><div class="columns">\n${rendered.map((html) => `<div class="col">\n${html}\n</div>`).join('\n')}\n</div></div>`

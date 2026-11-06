@@ -23,9 +23,8 @@ interface HtmlExportDialogProps {
 
 /**
  * Configures "Export to Folder (HTML)": the full path of the folder to create
- * and whether each folder gets a generated index page, and whether object cards
- * are collapsible. Browse picks the parent folder; the new folder's name is
- * appended to it. Export first has the main process check the output folder: one
+ * and whether each folder gets a generated index page. Browse picks the parent
+ * folder; the new folder's name is appended to it. Export first has the main process check the output folder: one
  * that is, contains, or lies inside the source (symlinks resolved) is refused with
  * an inline error and no overwrite warning ever appears. Only a folder that passes
  * and already exists gets the red warning before its contents are replaced. The
@@ -38,7 +37,6 @@ interface HtmlExportDialogProps {
 function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName, onExport, onCancel }: HtmlExportDialogProps) {
   const [outputFolder, setOutputFolder] = useState(defaultOutputFolder);
   const [indexPages, setIndexPages] = useState(true);
-  const [collapsibleObjects, setCollapsibleObjects] = useState(true);
   const [confirmOverwrite, setConfirmOverwrite] = useState(false);
   const [folderError, setFolderError] = useState<string | null>(null);
   const outputInputRef = useRef<HTMLInputElement>(null);
@@ -65,7 +63,7 @@ function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName
       .then(({ error, exists }) => {
         if (error) setFolderError(error);
         else if (exists) setConfirmOverwrite(true);
-        else onExport(trimmedFolder, { indexPages, collapsibleObjects, overwrite: false });
+        else onExport(trimmedFolder, { indexPages, overwrite: false });
       })
       .catch((err: unknown) => logger.error('Failed to check the export folder:', err));
   };
@@ -130,16 +128,6 @@ function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName
             />
           </div>
 
-          <div className="mb-6">
-            <CheckboxField
-              label="Collapsible Objects"
-              checked={collapsibleObjects}
-              onChange={setCollapsibleObjects}
-              testId="export-html-collapsible-objects"
-              description="Show each object as a collapsed section titled by its first property; click the title to show the other properties."
-            />
-          </div>
-
           <div className={DLG_FOOTER_CLASS}>
             <button
               type="button"
@@ -170,7 +158,7 @@ function HtmlExportDialog({ sourceFolder, defaultOutputFolder, defaultFolderName
           cancelLabel="Cancel"
           onConfirm={() => {
             setConfirmOverwrite(false);
-            onExport(trimmedFolder, { indexPages, collapsibleObjects, overwrite: true });
+            onExport(trimmedFolder, { indexPages, overwrite: true });
           }}
           onCancel={() => setConfirmOverwrite(false)}
         />

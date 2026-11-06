@@ -12,18 +12,15 @@ import { h } from './hastUtil';
  * layout: the type caption, a bold title line, then bulleted name / value rows. An object whose
  * values don't fit its type gets the same "Invalid <type>: …" hint the app shows instead.
  *
- * With `collapsible`, the title and rows go inside a `<details>` within the card's
- * border: the title is the `<summary>`, so the rows stay hidden until it is clicked.
- *
  * Use it on the page's first column only — the front matter belongs to the page, not a column.
  *
  * See: (USER_GUIDE.md#export-to-folder-html)
  */
-export function rehypeObjectCard(object: ResolvedObject | null, collapsible = false) {
+export function rehypeObjectCard(object: ResolvedObject | null) {
   return (tree: Root) => {
     if (!object) return;
     const el = object.kind === 'object'
-      ? objectCard(object.type, object.data, collapsible)
+      ? objectCard(object.type, object.data)
       : h('div', { className: ['invalid-object-hint'] }, [`Invalid ${object.type}: ${object.error}`]);
     tree.children.unshift(el, { type: 'text', value: '\n' });
   };
@@ -68,28 +65,15 @@ function propertyRow(prop: ObjectRow): Element {
   );
 }
 
-/**
- * The card for one object. When `collapsible` and the object has rows, the title becomes
- * the `<summary>` of a `<details>` holding the rows; a card with no rows has nothing to
- * hide, so it keeps the plain layout rather than showing a toggle that opens onto nothing.
- */
-function objectCard(type: string, { title, rows }: GenericObjectData, collapsible: boolean): Element {
-  const hasRows = rows.length > 0;
-  const titleTag = collapsible && hasRows ? 'summary' : 'div';
+/** The card for one object: the type caption, the title line, then the rows (when there are any). */
+function objectCard(type: string, { title, rows }: GenericObjectData): Element {
   const titleText = title?.value
-    ? h(titleTag, { className: ['object-title'], title: title.description || title.key }, [title.value])
-    : h(titleTag, { className: ['object-title', 'object-untitled'] }, [`Untitled ${type}`]);
+    ? h('div', { className: ['object-title'], title: title.description || title.key }, [title.value])
+    : h('div', { className: ['object-title', 'object-untitled'] }, [`Untitled ${type}`]);
 
-  const children: Element[] = [h('div', { className: ['object-type'] }, [type])];
-  if (!hasRows) {
-    children.push(titleText);
-  } else {
-    const rowsEl = h('div', { className: ['object-rows'] }, onePerLine(rows.map(propertyRow)));
-    if (collapsible) {
-      children.push(h('details', {}, onePerLine([titleText, rowsEl])));
-    } else {
-      children.push(titleText, rowsEl);
-    }
+  const children: Element[] = [h('div', { className: ['object-type'] }, [type]), titleText];
+  if (rows.length > 0) {
+    children.push(h('div', { className: ['object-rows'] }, onePerLine(rows.map(propertyRow))));
   }
   return h('div', { className: ['object-block'], dataObjectType: type }, onePerLine(children));
 }

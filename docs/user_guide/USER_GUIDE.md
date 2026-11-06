@@ -1069,7 +1069,7 @@ You can export the contents of the current folder into a single document.
 2. Configure the export settings:
     - **Output Folder**: Choose where to save the exported file.
     - **File Name**: Name the output file.
-    - **Include Subfolders**: Check this to include content from all subfolders recursively.
+    - **Include Subfolders**: Check this to include content from all subfolders recursively. Folders reached through a [symbolic link](#symbolic-links) are included too, except a link back up to a folder that contains it.
     - **Include File Names**: Adds the filename as a header before each file's content.
     - **Include Dividers**: Adds a visual separator between files.
     - **Export to PDF**: If checked, the application will attempt to generate a PDF file instead of a Markdown file.
@@ -1083,7 +1083,6 @@ You can export the contents of the current folder into a single document.
 2. Configure the export:
     - **Output Folder**: The full path of the folder to create. It must be **inside a folder named `exports`** (for example `~/exports/my-notes`); any other location is refused. Until you've exported somewhere, it suggests `exports/<current folder name>` in your home folder; after that it suggests the location you last used. This is a deliberate safety rule: since an export can empty its output folder, it can only ever do that somewhere you've set aside for exports. If it already exists, a red warning asks you to confirm overwriting it; confirming **permanently deletes everything in that folder** (all files and subfolders) before the export runs, so the result contains only the freshly exported files. It can't be inside the folder being exported, and MkBrowser refuses to overwrite a folder that contains the folder being exported, your home folder, or the filesystem root. The folder button picks the parent folder; the new folder's name is added for you.
     - **Index Pages**: Adds a generated `_index.html` to every folder listing its subfolders and pages (in the same order MkBrowser shows them), plus a breadcrumb trail at the top of every page. When index pages are generated, the top-level `_index.html` opens in your browser once the export finishes.
-    - **Collapsible Objects** (on by default): Shows each [object](#objects-and-custom-types) as a collapsed section inside its usual border. Only the object's first property (its bold title) is visible; click it to expand the remaining properties. Turn it off to show every object fully expanded, as in MkBrowser.
 3. Click **Export**.
 
 What ends up in the output folder:
@@ -1092,6 +1091,7 @@ What ends up in the output folder:
 - Every other file — images, PDFs, text files, and so on — is copied as is.
 - Every page carries its own styles (there is no separate stylesheet file), so a page looks right even when a viewer opens it on its own, as the Google Drive phone app does.
 - Hidden files and folders (names starting with `.`) and anything matching your **Ignored Paths** setting are left out.
+- A [symbolic link](#symbolic-links) is exported as a real copy of what it points at, under the link's name: a linked folder becomes an ordinary folder with all its contents, and a linked file an ordinary file. A broken link, or a folder link that points back up to a folder containing it (which would repeat forever), is left out and listed in the export's warnings.
 - Inside a **Document Mode** folder (one with an `.INDEX.yaml`), every file and subfolder is renamed with an ordinal prefix that follows the document's order (`Intro.md` → `0001_Intro.html`, `Chapter 1` → `0002_Chapter 1`, …). This keeps the document order in any plain folder listing (a file manager, or Google Drive after uploading the export). Pages, index pages and breadcrumbs still show the original names, and every link is rewritten to the prefixed names. Other folders keep their names unchanged.
 
 Pages render much as they do in MkBrowser: tables, task lists, callouts, math, `|||` columns, and the object cards of your custom types (see [Objects and Custom Types](#objects-and-custom-types)) all carry over. Links between your Markdown files are rewritten to point at the matching `.html` pages (heading links like `Plan.md#goals` included), links to folders go to that folder's index page, and images and other linked files point at their copies. Links to anything outside the exported folder are left as written.

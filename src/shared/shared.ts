@@ -518,8 +518,6 @@ export interface ExportResult {
 export interface HtmlExportOptions {
   /** Generate an `_index.html` navigation page in every exported folder. */
   indexPages: boolean;
-  /** Render typed object cards as collapsible `<details>` sections, titled by their first property. */
-  collapsibleObjects: boolean;
   /**
    * The user confirmed replacing an existing output folder: its contents are deleted
    * (recursively) before the export. Without it, an existing output folder is an error.

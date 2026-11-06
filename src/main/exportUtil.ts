@@ -3,7 +3,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fdir } from 'fdir';
 import { writeFileAtomic } from './atomicWrite';
-import { getSortedDirEntries } from './indexUtil';
+import { getSortedDirEntries, realAncestorsWith } from './indexUtil';
 import { findTerminalEmulator } from './launcherUtil';
 
 /**
@@ -89,7 +89,9 @@ export async function exportFolderContents(
 
   // Recursive depth-first function: files and subdirs are sorted together in one
   // case-insensitive pass so ordinal prefixes (00010_, 999_, etc.) fully control order.
-  const processFolder = async (folderPath: string, relativePath: string): Promise<string[]> => {
+  // Symlinked folders are followed; `ancestors` (real paths of this folder and those
+  // above it) stops a link back up the tree from recursing forever.
+  const processFolder = async (folderPath: string, relativePath: string, ancestors: Set<string>): Promise<string[]> => {
     const parts: string[] = [];
 
     // Sorted entries — honours .INDEX.yaml document-mode ordering when present,
@@ -110,8 +112,10 @@ export async function exportFolderContents(
 
     for (const item of items) {
       if (item.isDir) {
+        const inner = await realAncestorsWith(ancestors, item.entryPath);
+        if (!inner) continue; // a link cycle
         const subRelativePath = relativePath ? `${relativePath}/${item.name}` : item.name;
-        const subParts = await processFolder(item.entryPath, subRelativePath);
+        const subParts = await processFolder(item.entryPath, subRelativePath, inner);
         parts.push(...subParts);
       } else if (imageExtensions.has(path.extname(item.name.toLowerCase()))) {
         const altText = path.basename(item.name, path.extname(item.name));
@@ -132,7 +136,7 @@ export async function exportFolderContents(
   };
 
   // Process the source folder
-  const allParts = await processFolder(sourceFolder, '');
+  const allParts = await processFolder(sourceFolder, '', await realAncestorsWith(new Set(), sourceFolder) ?? new Set());
 
   if (allParts.length === 0) {
     return {

@@ -27,7 +27,7 @@ import { EXPORTS_FOLDER_ERROR, isUnderExportsFolder } from '../../shared/shared'
 import { buildExcludePredicate } from '../../shared/pathPattern';
 import { mapWithConcurrency } from '../../shared/asyncUtil';
 import { toErrorMessage } from '../../shared/logUtil';
-import { getSortedDirEntries, readIndexYaml } from '../indexUtil';
+import { getSortedDirEntries, readIndexYaml, realAncestorsWith } from '../indexUtil';
 import { frontMatterIdOf } from '../findById';
 import { INDEX_PAGE_NAME, isInsideOrEqual, isMarkdownPath, outputSegments, toOutputPath } from './exportPaths';
 import type { ExportManifest } from './exportPaths';
@@ -54,9 +54,10 @@ interface SourceTree {
 /**
  * Walks `root` depth-first in the app's display order (getSortedDirEntries: hidden
  * entries skipped, .INDEX.yaml order honoured), also skipping the user's ignored
- * paths. Only real folders are descended into and only regular files are exported;
- * a symlink counts as whatever it points at, except that symlinked folders are
- * skipped so a link cycle can't run the walk forever.
+ * paths. A symlink counts as whatever it points at: a linked folder is exported as
+ * an ordinary folder (under the link's name) and a linked file as an ordinary file.
+ * A folder link back up to a folder the walk is already inside (a link cycle) is
+ * skipped with a warning, as is a broken link.
  *
  * In a Document Mode folder every exported entry is recorded in `manifest.renamed`
  * under its ordinal-prefixed name. Numbering counts only what is exported, so the
@@ -68,7 +69,8 @@ async function walkSource(root: string, ignoredPaths: string[]): Promise<SourceT
   const children = new Map<string, IndexChild[]>();
   const warnings: string[] = [];
 
-  const walk = async (dir: string): Promise<void> => {
+  // `ancestors`: real paths of `dir` and every folder above it (see realAncestorsWith).
+  const walk = async (dir: string, ancestors: Set<string>): Promise<void> => {
     const listed: IndexChild[] = [];
     children.set(dir, listed);
     // The root's readdir failing is a real error (thrown to the caller); a subfolder's is a warning.
@@ -82,13 +84,22 @@ async function walkSource(root: string, ignoredPaths: string[]): Promise<SourceT
     for (const entry of entries) {
       if (isExcluded(entry.name, entry.entryPath)) continue;
       if (entry.isDir) {
+        const inner = await realAncestorsWith(ancestors, entry.entryPath);
+        if (!inner) {
+          warnings.push(`Skipped ${path.relative(root, entry.entryPath)}: it links back to a folder that contains it.`);
+          continue;
+        }
         manifest.dirs.add(entry.entryPath);
         listed.push({ name: entry.name, srcPath: entry.entryPath, isDir: true });
-        await walk(entry.entryPath);
+        await walk(entry.entryPath, inner);
         continue;
       }
       const stat = await fs.promises.stat(entry.entryPath).catch(() => null);
-      if (!stat?.isFile()) continue;
+      if (!stat) {
+        warnings.push(`Skipped ${path.relative(root, entry.entryPath)}: it is a broken symbolic link or can't be read.`);
+        continue;
+      }
+      if (!stat.isFile()) continue;
       manifest.files.add(entry.entryPath);
       listed.push({ name: entry.name, srcPath: entry.entryPath, isDir: false });
       if (isMarkdownPath(entry.name)) {
@@ -108,7 +119,7 @@ async function walkSource(root: string, ignoredPaths: string[]): Promise<SourceT
     }
   };
 
-  await walk(root);
+  await walk(root, await realAncestorsWith(new Set(), root) ?? new Set());
   return { manifest, children, warnings };
 }
 
@@ -190,7 +201,7 @@ async function emptyFolder(dir: string): Promise<void> {
 export async function exportFolderToHtml(
   sourceFolder: string,
   outputFolder: string,
-  { indexPages, collapsibleObjects, overwrite }: HtmlExportOptions,
+  { indexPages, overwrite }: HtmlExportOptions,
   typeDefs: TypeDefinitions,
   ignoredPaths: string[],
 ): Promise<HtmlExportResult> {
@@ -224,7 +235,7 @@ export async function exportFolderToHtml(
     try {
       if (isMarkdownPath(file)) {
         const content = await fs.promises.readFile(file, 'utf-8');
-        const html = await renderMarkdownPage(content, { manifest, mdPath: file, indexPages }, typeDefs, collapsibleObjects);
+        const html = await renderMarkdownPage(content, { manifest, mdPath: file, indexPages }, typeDefs);
         await fs.promises.writeFile(outFileOf(file), html, 'utf-8');
         pageCount++;
       } else if (reserved.has(toOut(file))) {

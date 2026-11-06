@@ -1206,7 +1206,9 @@ export function compareByIndexOrder(
  *
  * "Visible" means non-hidden (name does not start with '.').
  * The returned objects carry `name`, `entryPath`, and `isDir` so callers
- * don't need a second readdir call.
+ * don't need a second readdir call. `isDir` follows symlinks, so a link to a
+ * folder is a folder; a caller that recurses into folders must therefore guard
+ * against link cycles (see `realAncestorsWith`).
  *
  * Contract note (issue 016): unlike the other readers in this module, this one
  * *throws* if the directory's `readdir` fails — it does not swallow it into an
@@ -1227,13 +1229,17 @@ export async function getSortedDirEntries(
   const dirEntries = await fs.promises.readdir(dirPath, { withFileTypes: true });
   const visible = dirEntries.filter((e) => !e.name.startsWith('.'));
 
-  const toItem = (e: fs.Dirent) => ({
-    name: e.name,
-    entryPath: path.join(dirPath, e.name),
-    isDir: e.isDirectory(),
-  });
+  // A symlink counts as whatever it points at (a broken one as a file), so a linked
+  // folder is listed as a folder. Callers that recurse must guard against link cycles.
+  const toItem = async (e: fs.Dirent) => {
+    const entryPath = path.join(dirPath, e.name);
+    const isDir = e.isSymbolicLink()
+      ? await fs.promises.stat(entryPath).then((s) => s.isDirectory(), () => false)
+      : e.isDirectory();
+    return { name: e.name, entryPath, isDir };
+  };
 
-  const items = visible.map(toItem);
+  const items = await Promise.all(visible.map(toItem));
 
   const indexYaml = await readIndexYaml(dirPath);
   if (!indexYaml?.files.length) {
@@ -1247,6 +1253,19 @@ export async function getSortedDirEntries(
   // on-screen order. Extras not yet in the index sort after, by name. (issue 015)
   const compare = compareByIndexOrder(indexYaml.files);
   return items.sort((a, b) => compare(a.name, b.name));
+}
+
+/**
+ * Link-cycle guard for a recursive walk that descends into symlinked folders
+ * (as `getSortedDirEntries` lists them). `ancestors` holds the real paths of the
+ * folders the walk is already inside; returns that set plus `dir`'s own real
+ * path, or null when `dir` is one of them (a link back up the tree) or can't be
+ * resolved, in which case the walk must not descend into it.
+ */
+export async function realAncestorsWith(ancestors: ReadonlySet<string>, dir: string): Promise<Set<string> | null> {
+  const real = await fs.promises.realpath(dir).catch(() => null);
+  if (!real || ancestors.has(real)) return null;
+  return new Set(ancestors).add(real);
 }
 
 /**

@@ -203,23 +203,17 @@ describe('renderMarkdownPage', () => {
     expect(body.indexOf('object-block')).toBeLessThan(body.indexOf('<p>left'));
   });
 
-  it('wraps a collapsible object\'s title and rows in details/summary inside the card', async () => {
+  it('lays out the card as type caption, title, then rows', async () => {
     const md = '---\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\n---\n';
-    const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS, true);
-    expect(html).toMatch(/<div class="object-block" data-object-type="person">\n<div class="object-type">person<\/div>\n<details>\n<summary class="object-title" title="name">Ada Lovelace<\/summary>\n<div class="object-rows">[\s\S]*ada@example\.com[\s\S]*<\/div>\n<\/details>\n<\/div>/);
+    const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS);
+    expect(html).toMatch(/<div class="object-block" data-object-type="person">\n<div class="object-type">person<\/div>\n<div class="object-title" title="name">Ada Lovelace<\/div>\n<div class="object-rows">[\s\S]*ada@example\.com[\s\S]*<\/div>\n<\/div>/);
+    expect(bodyOf(html)).not.toContain('<details>');
   });
 
-  it('keeps a collapsible object with no other properties as a plain card', async () => {
-    const html = await renderMarkdownPage('---\ntype: person\nname: Ada\n---\n', ctx(p('index.md')), TYPE_DEFS, true);
+  it('draws an object with no other properties as just its title', async () => {
+    const html = await renderMarkdownPage('---\ntype: person\nname: Ada\n---\n', ctx(p('index.md')), TYPE_DEFS);
     expect(html).toContain('<div class="object-title" title="name">Ada</div>');
-    expect(bodyOf(html)).not.toContain('<details>');
-  });
-
-  it('renders no details/summary when objects are not collapsible', async () => {
-    const md = '---\ntype: person\nname: Ada Lovelace\nemail: ada@example.com\n---\n';
-    const html = await renderMarkdownPage(md, ctx(p('index.md')), TYPE_DEFS, false);
-    expect(bodyOf(html)).not.toContain('<details>');
-    expect(bodyOf(html)).not.toContain('<summary');
+    expect(bodyOf(html)).not.toContain('object-rows');
   });
 
   it('shows the hint instead of a card for an invalid object', async () => {
@@ -311,7 +305,7 @@ describe('exportFolderToHtml', () => {
 
   it('mirrors the tree: pages as .html, other files copied, no separate stylesheet', async () => {
     const out = path.join(tmpDir, 'exports', 'out');
-    const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false, overwrite: false }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: false, overwrite: false }, {}, []);
     expect(result).toMatchObject({ success: true, outputPath: out, pageCount: 3, fileCount: 3, warnings: [] });
     expect(result.entryPage).toBeUndefined();
 
@@ -345,7 +339,7 @@ describe('exportFolderToHtml', () => {
 
   it('writes an index page per folder when asked', async () => {
     const out = path.join(tmpDir, 'exports', 'out');
-    const result = await exportFolderToHtml(src, out, { indexPages: true, collapsibleObjects: false, overwrite: false }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: true, overwrite: false }, {}, []);
     expect(result.entryPage).toBe(path.join(out, '_index.html'));
     for (const dir of ['', 'sub', path.join('sub', 'deeper')]) {
       expect(fs.existsSync(path.join(out, dir, '_index.html'))).toBe(true);
@@ -360,7 +354,7 @@ describe('exportFolderToHtml', () => {
 
   it('skips ignored paths', async () => {
     const out = path.join(tmpDir, 'exports', 'out');
-    const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false, overwrite: false }, {}, ['deeper']);
+    const result = await exportFolderToHtml(src, out, { indexPages: false, overwrite: false }, {}, ['deeper']);
     expect(result.success).toBe(true);
     expect(fs.existsSync(path.join(out, 'sub', 'deeper'))).toBe(false);
   });
@@ -368,7 +362,7 @@ describe('exportFolderToHtml', () => {
   it('refuses an output folder that already exists', async () => {
     const out = path.join(tmpDir, 'exports', 'existing');
     await fs.promises.mkdir(out, { recursive: true });
-    const result = await exportFolderToHtml(src, out, { indexPages: true, collapsibleObjects: false, overwrite: false }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: true, overwrite: false }, {}, []);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/already exists/);
     expect(fs.readdirSync(out)).toEqual([]);
@@ -379,7 +373,7 @@ describe('exportFolderToHtml', () => {
     await fs.promises.mkdir(path.join(out, 'old', 'nested'), { recursive: true });
     await fs.promises.writeFile(path.join(out, 'old', 'nested', 'stale.html'), 'old');
     await fs.promises.writeFile(path.join(out, 'stale.txt'), 'old');
-    const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: false, overwrite: true }, {}, []);
     expect(result.success).toBe(true);
     expect(fs.existsSync(path.join(out, 'old'))).toBe(false);
     expect(fs.existsSync(path.join(out, 'stale.txt'))).toBe(false);
@@ -388,20 +382,20 @@ describe('exportFolderToHtml', () => {
 
   it('with overwrite, still creates a missing output folder', async () => {
     const out = path.join(tmpDir, 'exports', 'fresh');
-    const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: false, overwrite: true }, {}, []);
     expect(result.success).toBe(true);
     expect(fs.existsSync(path.join(out, 'home.html'))).toBe(true);
   });
 
   it('never overwrites a folder that contains the source, or a file', async () => {
-    const byParent = await exportFolderToHtml(src, tmpDir, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+    const byParent = await exportFolderToHtml(src, tmpDir, { indexPages: false, overwrite: true }, {}, []);
     expect(byParent.success).toBe(false);
     expect(byParent.error).toMatch(/cannot contain/);
     expect(fs.existsSync(path.join(src, 'home.md'))).toBe(true);
 
     const file = path.join(tmpDir, 'a-file');
     await fs.promises.writeFile(file, 'keep');
-    const byFile = await exportFolderToHtml(src, file, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+    const byFile = await exportFolderToHtml(src, file, { indexPages: false, overwrite: true }, {}, []);
     expect(byFile.success).toBe(false);
     expect(byFile.error).toMatch(/not a folder/);
     expect(fs.readFileSync(file, 'utf8')).toBe('keep');
@@ -410,7 +404,7 @@ describe('exportFolderToHtml', () => {
   it('refuses the source folder itself as the output, even with overwrite, and deletes nothing', async () => {
     const before = fs.readdirSync(src).sort();
     for (const target of [src, `${src}/`, path.join(src, 'sub', '..')]) {
-      const result = await exportFolderToHtml(src, target, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+      const result = await exportFolderToHtml(src, target, { indexPages: false, overwrite: true }, {}, []);
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/is the folder being exported/);
     }
@@ -428,7 +422,7 @@ describe('exportFolderToHtml', () => {
     for (const target of [alias, path.join(parentAlias, 'src')]) {
       const check = await checkExportTarget(src, target);
       expect(check.error).toMatch(/is the folder being exported/);
-      const result = await exportFolderToHtml(src, target, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+      const result = await exportFolderToHtml(src, target, { indexPages: false, overwrite: true }, {}, []);
       expect(result.success).toBe(false);
     }
     // A new folder inside the source, reached through the alias.
@@ -447,7 +441,7 @@ describe('exportFolderToHtml', () => {
   it('requires an output folder below one named "exports", at export time too', async () => {
     for (const target of [path.join(tmpDir, 'out'), path.join(tmpDir, 'exports'), path.join(tmpDir, 'my-exports', 'out')]) {
       expect((await checkExportTarget(src, target)).error).toMatch(/inside a folder named "exports"/);
-      const result = await exportFolderToHtml(src, target, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+      const result = await exportFolderToHtml(src, target, { indexPages: false, overwrite: true }, {}, []);
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/inside a folder named "exports"/);
     }
@@ -455,7 +449,7 @@ describe('exportFolderToHtml', () => {
     const keep = path.join(tmpDir, 'precious');
     await fs.promises.mkdir(keep);
     await fs.promises.writeFile(path.join(keep, 'data.txt'), 'keep');
-    const result = await exportFolderToHtml(src, keep, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+    const result = await exportFolderToHtml(src, keep, { indexPages: false, overwrite: true }, {}, []);
     expect(result.success).toBe(false);
     expect(fs.readFileSync(path.join(keep, 'data.txt'), 'utf8')).toBe('keep');
     // Any depth below `exports` is fine.
@@ -472,7 +466,7 @@ describe('exportFolderToHtml', () => {
     await fs.promises.writeFile(path.join(source, 'precious.md'), 'keep me');
 
     expect((await checkExportTarget(source, out)).error).toMatch(/cannot contain/);
-    const result = await exportFolderToHtml(source, out, { indexPages: false, collapsibleObjects: false, overwrite: true }, {}, []);
+    const result = await exportFolderToHtml(source, out, { indexPages: false, overwrite: true }, {}, []);
     expect(result.success).toBe(false);
     expect(fs.readFileSync(path.join(source, 'precious.md'), 'utf8')).toBe('keep me');
   });
@@ -480,13 +474,13 @@ describe('exportFolderToHtml', () => {
   it('refuses an output folder inside the source under a child whose name starts with ".."', async () => {
     const out = path.join(src, '..drafts', 'exports', 'out');
     expect((await checkExportTarget(src, out)).error).toMatch(/cannot be inside/);
-    const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false, overwrite: false }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: false, overwrite: false }, {}, []);
     expect(result.success).toBe(false);
     expect(fs.existsSync(path.join(src, '..drafts'))).toBe(false);
   });
 
   it('refuses an output folder inside the source', async () => {
-    const result = await exportFolderToHtml(src, path.join(src, 'export'), { indexPages: true, collapsibleObjects: false, overwrite: false }, {}, []);
+    const result = await exportFolderToHtml(src, path.join(src, 'export'), { indexPages: true, overwrite: false }, {}, []);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/cannot be inside/);
     expect(fs.existsSync(path.join(src, 'export'))).toBe(false);
@@ -504,7 +498,7 @@ describe('exportFolderToHtml', () => {
     await fs.promises.appendFile(path.join(src, 'home.md'), '\n[book alpha](book/Alpha.md)\n');
 
     const out = path.join(tmpDir, 'exports', 'out');
-    const result = await exportFolderToHtml(src, out, { indexPages: true, collapsibleObjects: false, overwrite: false }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: true, overwrite: false }, {}, []);
     expect(result).toMatchObject({ success: true, warnings: [] });
 
     expect(fs.readdirSync(path.join(out, 'book')).sort()).toEqual(
@@ -532,10 +526,36 @@ describe('exportFolderToHtml', () => {
       .toContain('<a href="../_index.html">book</a>');
   });
 
+  it('exports a symlinked folder and file as ordinary copies, skipping link cycles and broken links', async () => {
+    const elsewhere = path.join(tmpDir, 'elsewhere');
+    await fs.promises.mkdir(elsewhere);
+    await fs.promises.writeFile(path.join(elsewhere, 'linked.md'), '# Linked');
+    await fs.promises.symlink(elsewhere, path.join(src, 'linkdir'));
+    await fs.promises.symlink(path.join(src, 'notes.txt'), path.join(src, 'notes-link.txt'));
+    await fs.promises.symlink(src, path.join(src, 'sub', 'up'));
+    await fs.promises.symlink(path.join(tmpDir, 'missing.md'), path.join(src, 'broken.md'));
+
+    const out = path.join(tmpDir, 'exports', 'out');
+    const result = await exportFolderToHtml(src, out, { indexPages: true, overwrite: false }, {}, []);
+    expect(result.success).toBe(true);
+    expect(fs.lstatSync(path.join(out, 'linkdir')).isDirectory()).toBe(true);
+    expect(fs.readFileSync(path.join(out, 'linkdir', 'linked.html'), 'utf8')).toContain('Linked');
+    expect(fs.existsSync(path.join(out, 'linkdir', '_index.html'))).toBe(true);
+    expect(fs.readFileSync(path.join(out, '_index.html'), 'utf8')).toContain('href="linkdir/_index.html"');
+    expect(fs.lstatSync(path.join(out, 'notes-link.txt')).isFile()).toBe(true);
+    expect(fs.readFileSync(path.join(out, 'notes-link.txt'), 'utf8')).toBe('plain text');
+
+    expect(fs.existsSync(path.join(out, 'sub', 'up'))).toBe(false);
+    expect(fs.existsSync(path.join(out, 'broken.html'))).toBe(false);
+    expect(result.warnings).toHaveLength(2);
+    expect(result.warnings.join('\n')).toContain(path.join('sub', 'up'));
+    expect(result.warnings.join('\n')).toContain('broken.md');
+  });
+
   it('lets a page win over a same-named .html file and reports it', async () => {
     await fs.promises.writeFile(path.join(src, 'home.html'), '<p>stale</p>');
     const out = path.join(tmpDir, 'exports', 'out');
-    const result = await exportFolderToHtml(src, out, { indexPages: false, collapsibleObjects: false, overwrite: false }, {}, []);
+    const result = await exportFolderToHtml(src, out, { indexPages: false, overwrite: false }, {}, []);
     expect(result.success).toBe(true);
     expect(result.warnings).toHaveLength(1);
     expect(fs.readFileSync(path.join(out, 'home.html'), 'utf8')).toContain('<h1 id="home">Home</h1>');
