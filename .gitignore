@@ -104,7 +104,7 @@ out/
 .idea/
 
 # Claude Code local (per-developer) settings
-.claude/settings.local.json
+.claude/
 
 # OS files
 Thumbs.db
