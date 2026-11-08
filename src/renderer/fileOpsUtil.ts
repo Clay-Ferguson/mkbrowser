@@ -12,6 +12,7 @@ import {
   setPendingExpandFile,
   setAppError,
   setCurrentPath,
+  navigateToBrowserPath,
   getCurrentPath,
   getHasIndexFile,
   renameItem,
@@ -632,6 +633,7 @@ export async function makeFolderForFileOp(filePath: string): Promise<void> {
   const dotIndex = fileName.lastIndexOf('.');
   const folderName = dotIndex > 0 ? fileName.substring(0, dotIndex).trim() : fileName;
   const folderPath = joinPath(parentFolder, folderName);
+  const newFilePath = joinPath(folderPath, fileName);
 
   setAppError(null);
   try {
@@ -668,7 +670,6 @@ export async function makeFolderForFileOp(filePath: string): Promise<void> {
       renameItem(attachPath, newAttachPath, attachName);
     }
 
-    const newFilePath = joinPath(folderPath, fileName);
     if (!(await api.renameFile(filePath, newFilePath))) {
       setAppError(`Could not move "${fileName}" into "${folderName}".`);
       refreshDirectory();
@@ -688,9 +689,10 @@ export async function makeFolderForFileOp(filePath: string): Promise<void> {
     return;
   }
 
-  setHighlightItem(folderPath);
-  setPendingScrollToFile(folderPath);
-  refreshDirectory();
+  // Browse into the new folder, with the moved file highlighted. Changing
+  // currentPath is what triggers the directory load, so no refreshDirectory().
+  navigateToBrowserPath(folderPath, newFilePath);
+  setHighlightItem(newFilePath, { history: false });
 }
 
 /**
