@@ -5,6 +5,8 @@ import { useAS } from '../../store';
 interface ToolsPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
+  // Runs the built-in Recent Files search. See: (USER_GUIDE.md#recent-files)
+  onRecentFiles: () => void;
   onFolderAnalysis: () => void;
   // Graph All (`menu-folder-graph`) and Graph Markdown (`menu-markdown-graph`).
   // See: (folder_graph.md#renderer)
@@ -17,10 +19,11 @@ interface ToolsPopupMenuProps {
 
 /**
  * Popup menu for the Tools toolbar button. Exposes advanced folder operations:
- * AI chat (when AI is enabled), folder analysis, then (each group below a
- * divider) the folder graph of all files or of Markdown files only, and the
- * export options.
+ * the built-in Recent Files listing, then (each group below a divider) AI chat
+ * (when AI is enabled) and folder analysis, the folder graph of all files or of
+ * Markdown files only, and the export options.
  *
+ * See: (USER_GUIDE.md#recent-files)
  * See: (ai_chat.md#starting-a-conversation)
  * See: (folder_graph.md#overview)
  * See: (USER_GUIDE.md#folder-analysis)
@@ -31,6 +34,7 @@ interface ToolsPopupMenuProps {
 export default function ToolsPopupMenu({
   anchorRef,
   onClose,
+  onRecentFiles,
   onFolderAnalysis,
   onFolderGraph,
   onMarkdownGraph,
@@ -43,6 +47,12 @@ export default function ToolsPopupMenu({
   const aiEnabled = useAS(s => s.aiConfig.aiEnabled);
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
+      <PopupMenuItem
+        label="Recent Files"
+        data-testid="menu-recent-files"
+        onClick={() => { onRecentFiles(); onClose(); }}
+      />
+      <PopupMenuDivider />
       {aiEnabled && (
         <PopupMenuItem
           label="New AI Chat"

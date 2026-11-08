@@ -90,11 +90,13 @@ export function runSearch(folder: string, definition: SearchDefinition): void {
 /**
  * Upserts a saved search definition into the user's settings, keyed by `definition.name`.
  * An existing definition with the same name is replaced. Updates both the reactive store
- * and the persisted config file. Throws if the persist fails.
+ * and the persisted config file. Throws if the persist fails, or if `definition` is a
+ * built-in (`internal`) search, which must never be written to the config.
  *
  * See: (USER_GUIDE.md#saving-search-definitions)
  */
 export async function saveSearchDefinitionToConfig(definition: SearchDefinition): Promise<void> {
+  if (definition.internal) throw new Error('Built-in searches cannot be saved');
   const currentSettings = getSettings();
   const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
     (def) => def.name !== definition.name

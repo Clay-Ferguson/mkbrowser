@@ -4,7 +4,7 @@
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults, newSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName } from '../src/shared/searchHelpers';
+import { compareSearchResults, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults } from '../src/store/search';
 import type { SearchDefinition } from '../src/shared/shared';
@@ -178,5 +178,26 @@ describe('validateSearchDefinitionName', () => {
   it('lets a definition be renamed to a different case of its own name', () => {
     expect(validateSearchDefinitionName('TODO', names, 'Todo')).toBeNull();
     expect(validateSearchDefinitionName('todo', names, 'Recent Edits')).toMatch(/already exists/);
+  });
+});
+
+describe('recentFilesSearchDefinition', () => {
+  it('is an internal, empty-query, names-only Recent Files search, newest first', () => {
+    // Names-only so the listing covers every file type plus folders, not just
+    // the .md/.txt content candidates. See: (USER_GUIDE.md#recent-files)
+    expect(recentFilesSearchDefinition()).toMatchObject({
+      name: 'Recent Files',
+      searchText: '',
+      searchContents: false,
+      searchNames: true,
+      mostRecent: true,
+      sortBy: 'modified-time',
+      sortDirection: 'desc',
+      internal: true,
+    });
+  });
+
+  it('returns a fresh object each call', () => {
+    expect(recentFilesSearchDefinition()).not.toBe(recentFilesSearchDefinition());
   });
 });

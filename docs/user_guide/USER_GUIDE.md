@@ -61,6 +61,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Search Highlight](#search-highlight)
   * [Searching the Help Tab](#searching-the-help-tab)
   * [Saving Search Definitions](#saving-search-definitions)
+  * [Recent Files](#recent-files)
   * [Search Tips](#search-tips)
     * [Find Recent Edits](#find-recent-edits)
     * [Find Upcoming Calendar Items](#find-upcoming-calendar-items)
@@ -901,14 +902,25 @@ Once saved, your search definitions appear in the **Search** menu on the applica
 
 **Tip:** You can right-click a search menu item to open the Search dialog with that definition selected. This lets you review the search parameters before running it, or edit and save the definition.
 
+## Recent Files
+**Tools → Recent Files** lists the 500 most recently modified files and folders under the current folder (including subfolders), newest first. It's a built-in search, so there's nothing to set up: the results open on the **Search Results** tab, labeled *Recent Files*, and the refresh button there re-runs it.
+
+Every file type is included, not just Markdown and text files, along with folders. Paths matching your **Ignored Paths** setting are skipped, as in any search.
+
+Recent Files is not a saved search definition: it doesn't appear in the **Search** menu or the Search dialog's list, and it can't be saved or changed. To make a variation of it, see [Find Recent Edits](#find-recent-edits).
+
 ## Search Tips
 ### Find Recent Edits
-To create a search definition that displays all of the files underneath a given folder, ordering them reverse chronologically, create a search definition that has: 
+The quickest way is **Tools → Recent Files** (see [Recent Files](#recent-files)), which needs no search definition.
 
-- empty search text field 
+To build a variation of it yourself (for example, one that also filters by a query), create a search definition that has:
+
+- empty search text field (or your query)
 - "Recent Files" checkbox selected
 - Order → Sort By: File Modification Time
 - Order → Direction: DESC (newest first)
+
+Which files are considered depends on the checkboxes: with **File Contents** checked, only `.md` and `.txt` files are listed (plus images when **Search Image EXIF** is checked); with only **File Names** checked, files of every type and folders are listed.
 
 ### Find Upcoming Calendar Items
 To list everything due in the next 7 days, create a search definition that has:

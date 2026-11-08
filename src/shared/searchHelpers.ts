@@ -70,6 +70,32 @@ export function newSearchDefinition(searchText = ''): SearchDefinition {
 }
 
 /**
+ * The built-in "Recent Files" search (Tools → Recent Files): the 500 most
+ * recently modified entries under the folder, newest first, with no query.
+ *
+ * It searches names only (`searchContents: false`) on purpose. With File
+ * Contents on, the Recent Files window is drawn only from content candidates
+ * (.md/.txt), whereas the names-only path takes the newest entries of every
+ * file type plus folders, which is what this listing is meant to show.
+ *
+ * `internal` marks it as never-to-be-saved; see saveSearchDefinitionToConfig.
+ *
+ * See: (USER_GUIDE.md#recent-files)
+ */
+export function recentFilesSearchDefinition(): SearchDefinition {
+  return {
+    ...newSearchDefinition(),
+    name: 'Recent Files',
+    searchContents: false,
+    searchNames: true,
+    mostRecent: true,
+    sortBy: 'modified-time',
+    sortDirection: 'desc',
+    internal: true,
+  };
+}
+
+/**
  * The search the Search dialog starts with. Editing a saved search always shows
  * that search's own query — even an empty one (a Recent Files search with no
  * text) — never the global highlight, or saving from the dialog would quietly

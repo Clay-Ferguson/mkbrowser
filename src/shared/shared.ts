@@ -98,6 +98,14 @@ export interface SearchDefinition {
    * See: (USER_GUIDE.md#find-recent-edits)
    */
   mostRecent?: boolean;
+  /**
+   * Built into the app (e.g. Tools → Recent Files) rather than one of the
+   * user's saved searches. Code that persists search definitions must refuse
+   * one with this set, so it can never end up in the config file.
+   *
+   * See: (USER_GUIDE.md#recent-files)
+   */
+  internal?: boolean;
 }
 
 // A bookmark in the Index Tree's Bookmarks menu. See: (USER_GUIDE.md#bookmarks)

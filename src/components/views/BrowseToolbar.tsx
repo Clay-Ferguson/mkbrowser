@@ -30,6 +30,7 @@ import {
 } from '../../store';
 import { BUTTON_CLASS_BAR_BLUE, BUTTON_CLASS_BAR_RED, BUTTON_CLASS_TB_AMBER, BUTTON_CLASS_TB_BLUE, BUTTON_CLASS_TB_NORMAL } from '../../renderer/styles';
 import { runSearch } from '../../renderer/searchUtil';
+import { recentFilesSearchDefinition } from '../../shared/searchHelpers';
 import { saveSettings } from '../../renderer/config';
 import { pasteFromClipboardOp } from '../../renderer/fileOpsUtil';
 import { showFolderCalendar } from '../../renderer/calendarNav';
@@ -467,6 +468,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
         <ToolsPopupMenu
           anchorRef={toolsButtonRef}
           onClose={() => closeMenu('tools')}
+          onRecentFiles={() => { if (currentPath) runSearch(currentPath, recentFilesSearchDefinition()); }}
           onFolderAnalysis={() => { if (currentPath) showFolderAnalysis(currentPath); }}
           onFolderGraph={() => { if (currentPath) showFolderGraph(currentPath); }}
           onMarkdownGraph={() => { if (currentPath) showFolderGraph(currentPath, true); }}

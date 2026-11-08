@@ -1,7 +1,8 @@
 /**
  * Tests for the saved-search config helpers in src/renderer/searchUtil.ts
  * (renameSearchDefinitionInConfig): the store updates at once, the config is
- * persisted, and a failed persist rolls the store back.
+ * persisted, and a failed persist rolls the store back. Also checks that
+ * saveSearchDefinitionToConfig refuses a built-in (`internal`) search.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { SearchDefinition } from '../src/shared/shared';
@@ -12,7 +13,8 @@ vi.mock('../src/renderer/api', () => ({
   ipcErrorMessage: (err: unknown) => (err instanceof Error ? err.message : String(err)),
 }));
 
-const { renameSearchDefinitionInConfig } = await import('../src/renderer/searchUtil');
+const { renameSearchDefinitionInConfig, saveSearchDefinitionToConfig } = await import('../src/renderer/searchUtil');
+const { recentFilesSearchDefinition } = await import('../src/shared/searchHelpers');
 const { useAS } = await import('../src/store/core');
 
 const def = (name: string): SearchDefinition => ({
@@ -46,5 +48,20 @@ describe('renameSearchDefinitionInConfig', () => {
     updateConfig.mockRejectedValue(new Error('disk full'));
     await expect(renameSearchDefinitionInConfig('b', 'bee')).rejects.toThrow();
     expect(names()).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('saveSearchDefinitionToConfig', () => {
+  it('saves a user definition', async () => {
+    updateConfig.mockResolvedValue(undefined);
+    await saveSearchDefinitionToConfig(def('d'));
+    expect(names()).toEqual(['a', 'b', 'c', 'd']);
+    expect(updateConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses a built-in (internal) definition without touching the store or config', async () => {
+    await expect(saveSearchDefinitionToConfig(recentFilesSearchDefinition())).rejects.toThrow(/Built-in/);
+    expect(names()).toEqual(['a', 'b', 'c']);
+    expect(updateConfig).not.toHaveBeenCalled();
   });
 });
