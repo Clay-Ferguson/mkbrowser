@@ -31,6 +31,12 @@ interface NameInputDialogProps {
   submitLabel?: string;
   /** Optional explanatory text shown below the input (e.g. the URL a link will point to). */
   note?: string;
+  /**
+   * Put the caret at the start of the prefilled value instead of selecting it, so typing goes
+   * in front of it — for a default that is only a suffix to keep, like the `.png` extension
+   * "Create & Paste File" suggests.
+   */
+  caretAtStart?: boolean;
 }
 
 /**
@@ -50,6 +56,7 @@ function NameInputDialog({
   createTestId,
   submitLabel = 'Create',
   note,
+  caretAtStart = false,
 }: NameInputDialogProps) {
   const [name, setName] = useState(defaultName);
   // Whether the user has edited the field; until then a changed defaultName replaces it.
@@ -60,12 +67,16 @@ function NameInputDialog({
     if (!dirty) setName(defaultName);
   }
   const inputRef = useRef<HTMLInputElement>(null);
-  // Select an adopted default so typing replaces it, as Dialog does for the initial value.
-  // Only while the field has focus, so a late default never steals it from elsewhere.
+  // Select an adopted default so typing replaces it, as Dialog does for the initial value —
+  // or, with caretAtStart, put the caret in front of it (this runs after Dialog's own mount
+  // effect, so it overrides that selection). Only while the field has focus, so a late
+  // default never steals it from elsewhere.
   useEffect(() => {
     const input = inputRef.current;
-    if (!dirty && input && document.activeElement === input) input.select();
-  }, [defaultName, dirty]);
+    if (dirty || !input || document.activeElement !== input) return;
+    if (caretAtStart) input.setSelectionRange(0, 0);
+    else input.select();
+  }, [defaultName, dirty, caretAtStart]);
   // The caller keeps this dialog open until its async create finishes, so a
   // double-click (or Enter twice) would otherwise fire a second create for the
   // same name — failing with "already exists" or, racing the first, inserting

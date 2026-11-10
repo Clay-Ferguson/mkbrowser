@@ -749,6 +749,17 @@ export interface ElectronAPI {
   getFileMtime: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   createFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
+  /**
+   * Copies a file, refusing to overwrite an existing entry at `destPath`. Used by the
+   * editor's "Create & Paste File". See: (USER_GUIDE.md#inserting-links-to-other-files)
+   */
+  copyFileExclusive: (srcPath: string, destPath: string) => Promise<{ success: boolean; error?: string }>;
+  /**
+   * The paths of the regular files copied to the clipboard in the OS file manager (empty
+   * when there are none), for "Create & Paste File". Never rejects.
+   * See: (USER_GUIDE.md#inserting-links-to-other-files)
+   */
+  readClipboardFilePaths: () => Promise<string[]>;
   // Also renames the file's sibling `.attach` folder, if any. See: (file_attachments.md#rename-synchronization-srcmainfileutilts)
   // See: (USER_GUIDE.md#renaming-1)
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;

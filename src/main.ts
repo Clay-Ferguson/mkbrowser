@@ -27,6 +27,7 @@ import { scanFolderGraphLinks } from './main/folderGraphLinks';
 import { loadTags } from './main/tagLoader';
 import { lookupThesaurus } from './main/thesaurusUtil';
 import { fetchUrlTitle } from './main/urlTitle';
+import { readClipboardFilePaths } from './main/clipboardFiles';
 import type { TagCategory } from './shared/tagUtil';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './main/ai/aiUtil';
 import { hasScriptedAnswer, queueScriptedAnswer } from './main/ai/langGraph';
@@ -525,6 +526,26 @@ function setupIpcHandlers(): void {
       return { success: false, error: errorMessage };
     }
   });
+
+  // Copy a file, refusing to overwrite an existing entry (COPYFILE_EXCL). Used by the
+  // editor's "Create & Paste File" for a file copied in the OS file manager.
+  // See: (USER_GUIDE.md#inserting-links-to-other-files)
+  ipcMain.handle('copy-file-exclusive', async (_event, srcPath: string, destPath: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await fs.promises.copyFile(srcPath, destPath, fs.constants.COPYFILE_EXCL);
+      return { success: true };
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err.code === 'EEXIST') {
+        return { success: false, error: 'A file/folder with this name already exists' };
+      }
+      logger.error('Error copying file:', error);
+      return { success: false, error: err.code === 'EACCES' || err.code === 'EPERM' ? 'Permission denied' : (err.message || 'Failed to copy file') };
+    }
+  });
+
+  // The files copied in the OS file manager, for "Create & Paste File" (see clipboardFiles.ts).
+  ipcMain.handle('read-clipboard-file-paths', (): Promise<string[]> => readClipboardFilePaths());
 
   // Rename a file or folder, never replacing an existing entry at the destination
   // (see renameEntry, which also carries the .INDEX.yaml entry and .attach folder along)

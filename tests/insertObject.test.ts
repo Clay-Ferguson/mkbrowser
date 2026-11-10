@@ -210,6 +210,7 @@ function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: Ty
     onCopy: noop,
     onPaste: noop,
     onPasteMarkdownLink: noop,
+    onCreatePasteFile: noop,
     onMakeLink: noop,
     canMakeLink,
     onSelectAll: noop,

@@ -29,6 +29,7 @@ import { EditorContextMenu } from './EditorContextMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import AddLinkIdDialog from '../dialogs/AddLinkIdDialog';
 import NameInputDialog from '../dialogs/common/NameInputDialog';
+import { normalizePastedFileName } from '../../renderer/clipboardFile';
 import { useUrlPaste } from './useUrlPaste';
 import { createFontSizeTheme } from './editorTheme';
 import { logger } from '../../shared/logUtil';
@@ -507,6 +508,10 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     handleCopy,
     handlePaste,
     handlePasteMarkdownLink,
+    handleCreatePasteFile,
+    pendingPasteFile,
+    handlePasteFileNamed,
+    closePasteFileDialog,
     handleMakeLink,
     canMakeLink,
     handleSelectAll,
@@ -1049,6 +1054,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         onCopy={handleCopy}
         onPaste={handlePaste}
         onPasteMarkdownLink={handlePasteMarkdownLink}
+        onCreatePasteFile={handleCreatePasteFile}
         onMakeLink={handleMakeLink}
         canMakeLink={canMakeLink}
         onSelectAll={handleSelectAll}
@@ -1071,6 +1077,22 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       )}
       {pendingIdLink && (
         <AddLinkIdDialog targetPath={pendingIdLink.targetPath} onClose={closeIdLinkDialog} onLink={handleIdLinkChosen} />
+      )}
+      {pendingPasteFile && (
+        // See: (USER_GUIDE.md#inserting-links-to-other-files)
+        <NameInputDialog
+          title="Create & Paste File"
+          label="File name"
+          placeholder={`name${pendingPasteFile.ext}`}
+          defaultName={pendingPasteFile.defaultName}
+          // Just an extension (image bytes have no name): the user types the name in front of it.
+          caretAtStart={pendingPasteFile.defaultName === pendingPasteFile.ext}
+          normalizeName={(raw) => normalizePastedFileName(raw, pendingPasteFile.ext)}
+          onCreate={handlePasteFileNamed}
+          onCancel={closePasteFileDialog}
+          inputTestId="create-paste-file-name-input"
+          createTestId="create-paste-file-create-button"
+        />
       )}
       {pendingUrlPaste && (
         <NameInputDialog

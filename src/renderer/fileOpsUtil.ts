@@ -20,14 +20,16 @@ import {
 } from '../store';
 import { saveSettings } from './config';
 import { pasteCutItems, runCutPasteExclusive, deleteSelectedItems, performSplitFile, performJoinFiles, orderPastedNames, findCutItemsFromDifferentFolders } from './edit';
-import { pasteFromClipboard } from './clipboard';
+import { arrayBufferToBase64, pasteFromClipboard } from './clipboard';
 import { refreshDirectory } from './directoryLoader';
 import { getFileName, getParentPath, joinPath, isSamePath } from './pathUtil';
 import { logger, toErrorMessage } from '../shared/logUtil';
 import { generateTimestampFileName } from '../shared/timeUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { removeFrontMatterExceptId } from '../shared/frontMatterUtil';
-import { withFileIdSuffix } from '../shared/fileIdSuffix';
+import { generateFileId, stripFileIdSuffix, withFileIdSuffix } from '../shared/fileIdSuffix';
+import type { ClipboardFile } from './clipboardFile';
+import { addLinkTargetId } from './linkRepair';
 import { DEFAULT_JOIN_OPTIONS, type JoinOptions } from './joinUtil';
 import { DEFAULT_SPLIT_DELIMITER, parseSplitDelimiter } from './splitUtil';
 
@@ -728,6 +730,58 @@ export async function addFileIdSuffixOp(filePath: string, id: string): Promise<s
   }
   refreshDirectory();
   return newPath;
+}
+
+/** Writes `file` (see ClipboardFile) to the new path `destPath`, never overwriting; resolves to an error message, or null on success. */
+async function writeClipboardFile(file: ClipboardFile, destPath: string): Promise<string | null> {
+  if (file.kind === 'path') {
+    const result = await api.copyFileExclusive(file.sourcePath, destPath);
+    return result.success ? null : (result.error ?? 'Failed to copy file');
+  }
+  const base64 = arrayBufferToBase64(await file.blob.arrayBuffer());
+  return (await api.writeFileBinary(destPath, base64)) ? null : 'Failed to write image (the name may already exist)';
+}
+
+/**
+ * The editor's "Create & Paste File": saves the clipboard's file (see findClipboardFile) as
+ * `name` in `folder`, ready to be linked by id. Any other than a Markdown file gets a fresh
+ * id in its name — `diagram.png` → `diagram--<id>.png` — replacing any id `name` already
+ * carries, so a copy never shares its original's id. A copied Markdown file keeps `name`
+ * and gets its id in front matter instead (see addLinkTargetId), since a Markdown file's
+ * name is never read for one. The folder's .INDEX.yaml is reconciled and the listing
+ * refreshed; nothing is scrolled to, as the user is still editing.
+ *
+ * Resolves to the new file's path and the id its link should carry in its title ('' for a
+ * non-Markdown file, whose id is in its name), or null after reporting a failure through
+ * the app error dialog. Never rejects.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
+ */
+export async function createPastedFileOp(
+  folder: string,
+  name: string,
+  file: ClipboardFile,
+): Promise<{ path: string; id: string } | null> {
+  const markdown = isMarkdownFile(name);
+  const finalName = markdown ? name : withFileIdSuffix(stripFileIdSuffix(name), generateFileId());
+  const destPath = joinPath(folder, finalName);
+  try {
+    const error = await writeClipboardFile(file, destPath);
+    if (error) {
+      setAppError(`Failed to create "${finalName}": ${error}`);
+      return null;
+    }
+  } catch (err: unknown) {
+    setAppError(`Failed to create "${finalName}": ${toErrorMessage(err)}`);
+    return null;
+  }
+  const id = markdown ? await addLinkTargetId(destPath) : '';
+  // The file exists by now, so a failed index update is only logged: the link still goes in.
+  await api.reconcileIndexedFiles(folder, false).catch((err: unknown) => {
+    logger.warn(`[fileOps] Failed to update the index of ${folder} after creating ${finalName}:`, err);
+  });
+  refreshDirectory();
+  return { path: destPath, id };
 }
 
 /**

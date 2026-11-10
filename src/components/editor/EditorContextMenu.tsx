@@ -13,6 +13,8 @@ interface EditorContextMenuProps {
   onPaste: () => void;
   /** Inserts a link to the file the clipboard names; shown only when `contextMenu.pasteLink` is set. */
   onPasteMarkdownLink: () => void;
+  /** Saves the clipboard's file next to this one and links to it; shown only when `contextMenu.pasteFile` is set. */
+  onCreatePasteFile: () => void;
   /** Turns the selection into a Markdown link; shown only when `canMakeLink` and there is a selection. */
   onMakeLink: () => void;
   /** Whether "Make Link" is offered at all — editable Markdown editors only. */
@@ -75,6 +77,7 @@ export function EditorContextMenu({
   onCopy,
   onPaste,
   onPasteMarkdownLink,
+  onCreatePasteFile,
   onMakeLink,
   canMakeLink,
   onSelectAll,
@@ -109,7 +112,7 @@ export function EditorContextMenu({
       left: Math.max(VIEWPORT_MARGIN, Math.min(contextMenu.x, maxLeft)),
       top: Math.max(VIEWPORT_MARGIN, Math.min(contextMenu.y, maxTop)),
     });
-  }, [contextMenu.visible, contextMenu.x, contextMenu.y, contextMenu.spelling?.suggestions, contextMenu.submenu, contextMenu.pasteLink]);
+  }, [contextMenu.visible, contextMenu.x, contextMenu.y, contextMenu.spelling?.suggestions, contextMenu.submenu, contextMenu.pasteLink, contextMenu.pasteFile]);
 
   // Focus the menu container (not an item) when it opens, so it is keyboard-
   // operable without visually highlighting the first item for mouse users. Also
@@ -298,6 +301,18 @@ export function EditorContextMenu({
           data-testid="editor-paste-markdown-link"
         >
           Paste Link
+        </button>
+      )}
+      {contextMenu.pasteFile && (
+        <button
+          type="button"
+          role="menuitem"
+          tabIndex={-1}
+          onClick={onCreatePasteFile}
+          className={EDITOR_MENU_ITEM}
+          data-testid="editor-create-paste-file"
+        >
+          Create &amp; Paste File
         </button>
       )}
       {canMakeLink && contextMenu.hasSelection && (

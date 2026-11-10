@@ -21,7 +21,7 @@ export function generateTimestampFilename(extension: string): string {
  * and `String.fromCharCode(...bytes)` on a whole multi-MB image overflows the
  * argument stack, so neither extreme works for pasted screenshots.
  */
-function arrayBufferToBase64(arrayBuffer: ArrayBuffer): string {
+export function arrayBufferToBase64(arrayBuffer: ArrayBuffer): string {
   const bytes = new Uint8Array(arrayBuffer);
   const CHUNK_SIZE = 0x8000;
   const chunks: string[] = [];
@@ -29,6 +29,17 @@ function arrayBufferToBase64(arrayBuffer: ArrayBuffer): string {
     chunks.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK_SIZE)));
   }
   return btoa(chunks.join(''));
+}
+
+/**
+ * The file extension (with its dot) for a clipboard image's MIME type. Clipboard images
+ * are typically PNG, so anything unrecognised gets `.png`.
+ */
+export function imageExtForMime(mime: string): string {
+  if (mime === 'image/jpeg') return '.jpg';
+  if (mime === 'image/gif') return '.gif';
+  if (mime === 'image/webp') return '.webp';
+  return '.png';
 }
 
 export interface PasteFromClipboardResult {
@@ -77,13 +88,7 @@ async function pasteClipboardItem(
     const arrayBuffer = await blob.arrayBuffer();
     const base64 = arrayBufferToBase64(arrayBuffer);
 
-    // Determine extension from MIME type (clipboard images are typically PNG)
-    let ext = '.png';
-    if (imageType === 'image/jpeg') ext = '.jpg';
-    else if (imageType === 'image/gif') ext = '.gif';
-    else if (imageType === 'image/webp') ext = '.webp';
-
-    const fileName = generateTimestampFilename(ext);
+    const fileName = generateTimestampFilename(imageExtForMime(imageType));
     const filePath = joinPath(currentPath, fileName);
 
     const success = await writeFileBinary(filePath, base64);

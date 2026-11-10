@@ -46,6 +46,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getFileMtime: (filePath: string) => ipcRenderer.invoke('get-file-mtime', filePath),
   writeFileBinary: (filePath: string, base64Data: string) => ipcRenderer.invoke('write-file-binary', filePath, base64Data),
   createFile: (filePath: string, content: string) => ipcRenderer.invoke('create-file', filePath, content),
+  // Create & Paste File. See: (USER_GUIDE.md#inserting-links-to-other-files)
+  copyFileExclusive: (srcPath: string, destPath: string) => ipcRenderer.invoke('copy-file-exclusive', srcPath, destPath),
+  readClipboardFilePaths: () => ipcRenderer.invoke('read-clipboard-file-paths'),
   // Main also renames the file's sibling `.attach` folder. See: (file_attachments.md#rename-synchronization-srcmainfileutilts)
   // See: (USER_GUIDE.md#renaming-1)
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),

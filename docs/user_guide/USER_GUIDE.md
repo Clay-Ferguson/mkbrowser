@@ -283,6 +283,12 @@ You can also link to a **folder**. Clicking a folder link in the rendered Markdo
 [reference](../reference)
 ```
 
+**Create & Paste File** saves a file from the clipboard next to the Markdown file you are editing and links to it in one step. It appears in the editor's context menu whenever the clipboard holds a file: a file copied in your system's file manager (a PDF, an image, anything), or image data such as a screenshot or an image copied from a web page. A file copied in the file manager keeps its own name. Image data has no name, so MkBrowser asks for one, starting with just the extension (for example `.png`) so you type the name in front of it; leave it blank to get a timestamped name. The file is created in the same folder as the document, with an id added to its name automatically (`diagram` becomes `diagram--3D6B20DDF.png`), and the link is inserted at the cursor just as **Paste Link** would insert it: an image is shown inline, and anything else gets an ordinary link labelled with the name minus the id. If you copied a file in the file manager, **Paste Link** may appear as well: it links to the original file where it is, while **Create & Paste File** saves a copy beside your document.
+
+```
+![diagram.png](diagram--3D6B20DDF.png)
+```
+
 If the path contains spaces, the link target is wrapped in angle brackets (standard Markdown) so the spaces can stay as they are:
 
 ```

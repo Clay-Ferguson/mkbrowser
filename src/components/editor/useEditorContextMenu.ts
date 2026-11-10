@@ -12,7 +12,9 @@ import { objectTypeOptions, planObjectInsertion } from '../../shared/objects/use
 import { api } from '../../renderer/api';
 import { clipboardLinkCandidates, formatFileLink } from '../../renderer/linkUtil';
 import { resolveLinkTargetId } from '../../renderer/linkRepair';
-import { getFileName } from '../../renderer/pathUtil';
+import { getFileName, getParentPath } from '../../renderer/pathUtil';
+import { clipboardFileExt, defaultPastedFileName, findClipboardFile, type ClipboardFile } from '../../renderer/clipboardFile';
+import { createPastedFileOp } from '../../renderer/fileOpsUtil';
 
 /**
  * An existing file or folder named by the clipboard text, offered by "Paste Link".
@@ -45,6 +47,12 @@ export interface ContextMenuState {
    * or folder, which shows the "Paste Link" item. Cleared whenever the menu is opened afresh.
    */
   pasteLink?: PasteLinkTarget;
+  /**
+   * Set (shortly after the menu opens) when the clipboard holds a file — one copied in the
+   * file manager, or image bytes — which shows the "Create & Paste File" item. Cleared
+   * whenever the menu is opened afresh.
+   */
+  pasteFile?: ClipboardFile;
   /** Whether the editor had a non-empty selection when the menu opened — shows "Make Link". */
   hasSelection?: boolean;
 }
@@ -74,6 +82,15 @@ async function findClipboardLinkTarget(rootPath: string): Promise<PasteLinkTarge
     }
   }
   return null;
+}
+
+/** A "Create & Paste File" waiting on the user to name the file (see NameInputDialog). */
+export interface PendingPasteFile {
+  file: ClipboardFile;
+  /** The name the dialog starts with (see defaultPastedFileName). */
+  defaultName: string;
+  /** The extension the file is expected to have (`.png`), or ''. */
+  ext: string;
 }
 
 /** Replaces `view`'s selection with `text`, leaving the cursor after it, and focuses the editor. */
@@ -123,7 +140,7 @@ interface UseEditorContextMenuProps {
  *
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
- * top of the menu. Also exposes save-in-place, cut/copy/paste, "Paste Link" (when the clipboard names an existing file), select-all, timestamp/date
+ * top of the menu. Also exposes save-in-place, cut/copy/paste, "Paste Link" (when the clipboard names an existing file), "Create & Paste File" (when the clipboard holds a file), select-all, timestamp/date
  * insertion, the word-wrap and thesaurus on/off switches, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the user-defined object types from the Types Editor, and adds the picked one to the file's front matter).
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
@@ -139,6 +156,8 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   // A "Paste Link" to a file with no id, waiting on the user's choice of whether to add
   // one (see AddLinkIdDialog).
   const [pendingIdLink, setPendingIdLink] = useState<PasteLinkTarget | null>(null);
+  // A "Create & Paste File" waiting on the user's file name.
+  const [pendingPasteFile, setPendingPasteFile] = useState<PendingPasteFile | null>(null);
   const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
   const wordWrap = useAS(s => s.settings.wordWrap);
   // Only `BrowseFile` (single-file mode) mounts the synonym strip, and that is what
@@ -195,13 +214,17 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     const hasSelection = !!view && !view.state.selection.main.empty;
     setContextMenu({ visible: true, x, y, spelling, hasSelection });
 
-    // The clipboard check is async (a clipboard read plus a stat or two), so like the spelling
-    // suggestions it fills in after the menu is up — unless the menu has since closed or reopened
+    // The clipboard checks are async (a clipboard read plus a stat or two), so like the spelling
+    // suggestions they fill in after the menu is up — unless the menu has since closed or reopened
     // elsewhere.
     if (isMarkdown && editable) {
       void findClipboardLinkTarget(useAS.getState().rootPath).then((pasteLink) => {
         if (!pasteLink) return;
         setContextMenu(prev => (prev.visible && prev.x === x && prev.y === y ? { ...prev, pasteLink } : prev));
+      });
+      void findClipboardFile().then((pasteFile) => {
+        if (!pasteFile) return;
+        setContextMenu(prev => (prev.visible && prev.x === x && prev.y === y ? { ...prev, pasteFile } : prev));
       });
     }
 
@@ -337,6 +360,45 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   // dismissal links nothing and just hands focus back to the editor.
   const closeIdLinkDialog = () => {
     setPendingIdLink(null);
+    viewRef.current?.focus();
+  };
+
+  // Saves `file` as `name` plus a fresh id (see createPastedFileOp) in this file's folder,
+  // then inserts the link to it in place of the selection, just as "Paste Link" would — an
+  // image as an inline image.
+  const createAndLinkPastedFile = (file: ClipboardFile, name: string) => {
+    if (!filePath) return;
+    void createPastedFileOp(getParentPath(filePath), name, file).then((created) => {
+      const view = viewRef.current;
+      if (created && view) insertAtSelection(view, formatFileLink(filePath, created.path, false, created.id));
+      else view?.focus();
+    });
+  };
+
+  // "Create & Paste File" — saves the clipboard's file (see findClipboardFile) next to this
+  // file and links to it. A file copied in the file manager keeps its own name (minus any id
+  // it carried) with no questions asked; image bytes have no name, so the user is asked for
+  // one first (pendingPasteFile → handlePasteFileNamed).
+  // See: (USER_GUIDE.md#inserting-links-to-other-files)
+  const handleCreatePasteFile = () => {
+    const file = contextMenu.pasteFile;
+    closeContextMenu();
+    if (!file || !filePath) return;
+    if (file.kind === 'path') createAndLinkPastedFile(file, defaultPastedFileName(file));
+    else setPendingPasteFile({ file, defaultName: defaultPastedFileName(file), ext: clipboardFileExt(file) });
+  };
+
+  // The name dialog's choice for image bytes.
+  // See: (USER_GUIDE.md#inserting-links-to-other-files)
+  const handlePasteFileNamed = (name: string) => {
+    const pending = pendingPasteFile;
+    setPendingPasteFile(null);
+    if (pending) createAndLinkPastedFile(pending.file, name);
+  };
+
+  // Dismisses the name dialog without creating anything.
+  const closePasteFileDialog = () => {
+    setPendingPasteFile(null);
     viewRef.current?.focus();
   };
 
@@ -525,6 +587,10 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     handleCopy,
     handlePaste,
     handlePasteMarkdownLink,
+    handleCreatePasteFile,
+    pendingPasteFile,
+    handlePasteFileNamed,
+    closePasteFileDialog,
     handleMakeLink,
     canMakeLink: makeLink !== undefined,
     handleSelectAll,
