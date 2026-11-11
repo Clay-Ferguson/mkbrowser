@@ -216,6 +216,16 @@ html[data-font-size="xlarge"] {
 .prose a.md-link-web { color: var(--color-btn-accent-blue); }
 .prose a.md-link-web:hover { color: var(--color-btn-accent-blue-hover); }
 
+/* Markdown images flow inline, as on GitHub: Tailwind Preflight makes every <img> a block
+   and the Typography plugin adds 2em top/bottom margins, which stacked badge rows like
+   `![a](x.svg) ![b](y.svg)` one per line. An image alone in its paragraph still sits on
+   its own line, spaced by the paragraph's own margins. */
+.prose img {
+  display: inline;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .prose p,
 .prose li,
 .prose blockquote {
