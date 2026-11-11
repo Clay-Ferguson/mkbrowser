@@ -6,7 +6,7 @@ import { logger } from '../../shared/logUtil';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { isMarkdownFile } from '../../shared/fileTypes';
 import { saveSettings } from '../../renderer/config';
-import { useAS, setEnableThesaurus, setWordWrap, setShowPropsInEditor } from '../../store';
+import { useAS, setEnableThesaurus, setWordWrap, setShowPropsInEditor, setPasteToAttachmentsFolder } from '../../store';
 import { wordAt, isSpellCheckExempt, type SpellingSuggestion } from './spellChecker';
 import { objectTypeOptions, planObjectInsertion } from '../../shared/objects/userTypes';
 import { api } from '../../renderer/api';
@@ -91,6 +91,8 @@ export interface PendingPasteFile {
   defaultName: string;
   /** The extension the file is expected to have (`.png`), or ''. */
   ext: string;
+  /** The "Save in Attachments Folder" checkbox: save into the `attachments` subfolder. */
+  toAttachments: boolean;
 }
 
 /** Replaces `view`'s selection with `text`, leaving the cursor after it, and focuses the editor. */
@@ -160,6 +162,7 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   const [pendingPasteFile, setPendingPasteFile] = useState<PendingPasteFile | null>(null);
   const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
   const wordWrap = useAS(s => s.settings.wordWrap);
+  const pasteToAttachmentsFolder = useAS(s => s.settings.pasteToAttachmentsFolder);
   // Only `BrowseFile` (single-file mode) mounts the synonym strip, and that is what
   // `browseFileName` being set means. Offering the switch in a folder-listing inline editor
   // would turn the feature on with nowhere for the synonyms to appear.
@@ -363,12 +366,12 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     viewRef.current?.focus();
   };
 
-  // Saves `file` as `name` plus a fresh id (see createPastedFileOp) in this file's folder,
-  // then inserts the link to it in place of the selection, just as "Paste Link" would — an
-  // image as an inline image.
-  const createAndLinkPastedFile = (file: ClipboardFile, name: string) => {
+  // Saves `file` as `name` plus a fresh id (see createPastedFileOp) in this file's folder, or
+  // its `attachments` subfolder, then inserts the link to it in place of the selection, just
+  // as "Paste Link" would — an image as an inline image.
+  const createAndLinkPastedFile = (file: ClipboardFile, name: string, toAttachments: boolean) => {
     if (!filePath) return;
-    void createPastedFileOp(getParentPath(filePath), name, file).then((created) => {
+    void createPastedFileOp(getParentPath(filePath), name, file, toAttachments).then((created) => {
       const view = viewRef.current;
       if (created && view) insertAtSelection(view, formatFileLink(filePath, created.path, false, created.id));
       else view?.focus();
@@ -376,24 +379,40 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   };
 
   // "Create & Paste File" — saves the clipboard's file (see findClipboardFile) next to this
-  // file and links to it. A file copied in the file manager keeps its own name (minus any id
-  // it carried) with no questions asked; image bytes have no name, so the user is asked for
-  // one first (pendingPasteFile → handlePasteFileNamed).
+  // file, or in its `attachments` subfolder, and links to it. The name dialog always comes
+  // first (pendingPasteFile → handlePasteFileNamed), since it also asks where to save: a file
+  // copied in the file manager starts from its own name (minus any id it carried); image
+  // bytes have no name, so the dialog starts from just the extension.
   // See: (USER_GUIDE.md#inserting-links-to-other-files)
   const handleCreatePasteFile = () => {
     const file = contextMenu.pasteFile;
     closeContextMenu();
     if (!file || !filePath) return;
-    if (file.kind === 'path') createAndLinkPastedFile(file, defaultPastedFileName(file));
-    else setPendingPasteFile({ file, defaultName: defaultPastedFileName(file), ext: clipboardFileExt(file) });
+    setPendingPasteFile({
+      file,
+      defaultName: defaultPastedFileName(file),
+      ext: clipboardFileExt(file),
+      toAttachments: pasteToAttachmentsFolder,
+    });
   };
 
-  // The name dialog's choice for image bytes.
+  // The name dialog's "Save in Attachments Folder" checkbox.
+  const setPasteFileToAttachments = (toAttachments: boolean) => {
+    setPendingPasteFile(pending => pending && { ...pending, toAttachments });
+  };
+
+  // The name dialog's choice. The checkbox state is remembered for next time only once the
+  // file is created, so cancelling leaves the saved preference alone.
   // See: (USER_GUIDE.md#inserting-links-to-other-files)
   const handlePasteFileNamed = (name: string) => {
     const pending = pendingPasteFile;
     setPendingPasteFile(null);
-    if (pending) createAndLinkPastedFile(pending.file, name);
+    if (!pending) return;
+    if (pending.toAttachments !== pasteToAttachmentsFolder) {
+      setPasteToAttachmentsFolder(pending.toAttachments);
+      saveSettings();
+    }
+    createAndLinkPastedFile(pending.file, name, pending.toAttachments);
   };
 
   // Dismisses the name dialog without creating anything.
@@ -590,6 +609,7 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     handleCreatePasteFile,
     pendingPasteFile,
     handlePasteFileNamed,
+    setPasteFileToAttachments,
     closePasteFileDialog,
     handleMakeLink,
     canMakeLink: makeLink !== undefined,

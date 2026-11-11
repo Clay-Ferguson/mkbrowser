@@ -202,6 +202,14 @@ export interface AppSettings {
    * to every editor instance, live, via a compartment reconfigure.
    */
   wordWrap: boolean;
+  /**
+   * Whether the editor's "Create & Paste File" saves into an `attachments` subfolder of the
+   * edited file's folder rather than beside it — the last state of the name dialog's
+   * "Save in Attachments Folder" checkbox, remembered for next time. Off by default.
+   *
+   * See: (USER_GUIDE.md#inserting-links-to-other-files)
+   */
+  pasteToAttachmentsFolder: boolean;
 }
 
 /** Command-line switch main passes to the renderer (via `additionalArguments`) when unpackaged; see ElectronAPI.testHooksEnabled. */

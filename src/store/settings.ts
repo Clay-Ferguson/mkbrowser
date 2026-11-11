@@ -32,6 +32,8 @@ export interface SettingsSlice {
   // Enable / Disable Thesaurus (editor right-click menu). See: (USER_GUIDE.md#thesaurus)
   setEnableThesaurus: (enableThesaurus: boolean) => void;
   setWordWrap: (wordWrap: boolean) => void;
+  // Create & Paste File's "Save in Attachments Folder" checkbox. See: (USER_GUIDE.md#inserting-links-to-other-files)
+  setPasteToAttachmentsFolder: (pasteToAttachmentsFolder: boolean) => void;
   // Bookmarks (the Index Tree's Bookmarks menu and the entry menu's Add/Remove Bookmark). See: (USER_GUIDE.md#bookmarks)
   toggleBookmark: (filePath: string) => boolean;
   addBookmark: (filePath: string, name: string, isDirectory: boolean) => void;
@@ -122,6 +124,10 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
 
     /** Turn the editor's soft line wrapping on or off. */
     setWordWrap: (wordWrap) => patchSettings('wordWrap', wordWrap),
+
+    /** Remember whether "Create & Paste File" saves into the `attachments` subfolder. */
+    setPasteToAttachmentsFolder: (pasteToAttachmentsFolder) =>
+      patchSettings('pasteToAttachmentsFolder', pasteToAttachmentsFolder),
 
     /**
      * Toggle bookmark for a file path.
@@ -247,6 +253,10 @@ export function setEnableThesaurus(enableThesaurus: boolean): void {
 
 export function setWordWrap(wordWrap: boolean): void {
   getState().setWordWrap(wordWrap);
+}
+
+export function setPasteToAttachmentsFolder(pasteToAttachmentsFolder: boolean): void {
+  getState().setPasteToAttachmentsFolder(pasteToAttachmentsFolder);
 }
 
 export function toggleBookmark(filePath: string): boolean {

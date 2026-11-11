@@ -51,6 +51,7 @@ export const defaultSettings: AppSettings = {
   // See: (thesaurus_view.md#the-onoff-switch-enablethesaurus)
   enableThesaurus: false,
   wordWrap: true,
+  pasteToAttachmentsFolder: false,
 };
 
 /** Returns a fresh `AppSettings` with independent copies of all mutable arrays. */
@@ -247,6 +248,7 @@ const AppSettingsSchema = z
     imageSize: z.enum(['small', 'medium', 'large']).catch(defaultSettings.imageSize),
     enableThesaurus: z.boolean().catch(defaultSettings.enableThesaurus),
     wordWrap: z.boolean().catch(defaultSettings.wordWrap),
+    pasteToAttachmentsFolder: z.boolean().catch(defaultSettings.pasteToAttachmentsFolder),
   })
   .loose();
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import Dialog from './Dialog';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS, DLG_LABEL_CLASS } from '../../../renderer/styles';
 
@@ -37,6 +38,8 @@ interface NameInputDialogProps {
    * "Create & Paste File" suggests.
    */
   caretAtStart?: boolean;
+  /** Extra fields under the name input, e.g. Create & Paste File's "Save in Attachments Folder" checkbox. */
+  children?: ReactNode;
 }
 
 /**
@@ -57,6 +60,7 @@ function NameInputDialog({
   submitLabel = 'Create',
   note,
   caretAtStart = false,
+  children,
 }: NameInputDialogProps) {
   const [name, setName] = useState(defaultName);
   // Whether the user has edited the field; until then a changed defaultName replaces it.
@@ -106,6 +110,7 @@ function NameInputDialog({
           data-testid={inputTestId}
         />
         {note && <p className="mt-2 text-xs text-slate-400 break-all">{note}</p>}
+        {children}
         <div className="flex justify-end gap-3 mt-6">
           <button
             type="button"

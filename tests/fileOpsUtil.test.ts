@@ -1,6 +1,6 @@
 /**
  * Orchestration-layer tests for splitSelectedFile / joinSelectedFiles /
- * createAttachmentFileOp / pasteIntoFolder in fileOpsUtil.ts.
+ * createAttachmentFileOp / pasteIntoFolder / createPastedFileOp in fileOpsUtil.ts.
  *
  * The underlying algorithms (splitUtil.ts, joinUtil.ts) and the index
  * primitives (indexUtil.ts) are tested elsewhere; what lives here is the glue
@@ -41,6 +41,8 @@ vi.mock('../src/renderer/api', () => ({
     createFolder: vi.fn(),
     renameFile: vi.fn(),
     pathExists: vi.fn(),
+    isDirectory: vi.fn(),
+    copyFileExclusive: vi.fn(),
     deleteFile: vi.fn(),
     readIndexYaml: vi.fn(),
     insertIntoIndexYaml: vi.fn(),
@@ -48,7 +50,7 @@ vi.mock('../src/renderer/api', () => ({
   },
 }));
 
-import { splitSelectedFile, joinSelectedFiles, createAttachmentFileOp, pasteIntoFolder } from '../src/renderer/fileOpsUtil';
+import { splitSelectedFile, joinSelectedFiles, createAttachmentFileOp, pasteIntoFolder, createPastedFileOp } from '../src/renderer/fileOpsUtil';
 import type { FileEntry } from '../src/global';
 import { clearAllSelections, clearAllCutItems, setPendingEditFile, setPendingScrollToFile, getCurrentPath, getHasIndexFile, setAppError } from '../src/store';
 import { refreshDirectory } from '../src/renderer/directoryLoader';
@@ -452,5 +454,106 @@ describe('pasteIntoFolder (positional paste into a document)', () => {
     expect(setAppError).toHaveBeenCalledWith('Failed to update index after paste: disk full');
     expect(clearAllCutItems).not.toHaveBeenCalled();
     expect(refreshDirectory).toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createPastedFileOp — the editor's "Create & Paste File", optionally into `attachments/`
+// See: (USER_GUIDE.md#inserting-links-to-other-files)
+// ---------------------------------------------------------------------------
+
+describe('createPastedFileOp', () => {
+  const COPIED = { kind: 'path' as const, sourcePath: '/elsewhere/diagram.png' };
+  const ID_NAME = /^diagram--[0-9A-F]{9}\.png$/;
+
+  /** seedFs plus the calls only this op makes; `folders` are the paths that are directories. */
+  function seedPasteFs(initial: Record<string, string>, folders: string[] = []) {
+    const fs = seedFs(initial);
+    const dirs = new Set(folders);
+    vi.mocked(api.isDirectory).mockImplementation(async (p) => dirs.has(p));
+    vi.mocked(api.createFolder).mockImplementation(async (p) => {
+      fs.store[p] = '';
+      dirs.add(p);
+      return { success: true };
+    });
+    vi.mocked(api.copyFileExclusive).mockImplementation(async (src, dest) => {
+      if (dest in fs.store) return { success: false, error: 'A file/folder with this name already exists' };
+      fs.store[dest] = fs.store[src] ?? '';
+      return { success: true };
+    });
+    return fs;
+  }
+
+  it('saves beside the edited file by default', async () => {
+    const { store } = seedPasteFs({ '/elsewhere/diagram.png': 'bytes' });
+
+    const created = await createPastedFileOp('/docs', 'diagram.png', COPIED);
+
+    expect(created?.path.startsWith('/docs/')).toBe(true);
+    expect(created!.path.slice('/docs/'.length)).toMatch(ID_NAME);
+    expect(store[created!.path]).toBe('bytes');
+    expect(api.createFolder).not.toHaveBeenCalled();
+    expect(api.reconcileIndexedFiles).toHaveBeenCalledTimes(1);
+    expect(api.reconcileIndexedFiles).toHaveBeenCalledWith('/docs', false);
+    expect(refreshDirectory).toHaveBeenCalled();
+  });
+
+  it('creates the attachments folder and saves into it', async () => {
+    const { store } = seedPasteFs({ '/elsewhere/diagram.png': 'bytes' });
+
+    const created = await createPastedFileOp('/docs', 'diagram.png', COPIED, true);
+
+    expect(api.createFolder).toHaveBeenCalledWith('/docs/attachments');
+    expect(created?.path.startsWith('/docs/attachments/')).toBe(true);
+    expect(created!.path.slice('/docs/attachments/'.length)).toMatch(ID_NAME);
+    expect(store[created!.path]).toBe('bytes');
+    // Both the folder written to and its parent, which just gained `attachments`.
+    expect(api.reconcileIndexedFiles).toHaveBeenCalledWith('/docs/attachments', false);
+    expect(api.reconcileIndexedFiles).toHaveBeenCalledWith('/docs', false);
+    expect(setAppError).not.toHaveBeenCalled();
+  });
+
+  it('reuses an existing attachments folder', async () => {
+    seedPasteFs({ '/elsewhere/diagram.png': 'bytes', '/docs/attachments': '' }, ['/docs/attachments']);
+
+    const created = await createPastedFileOp('/docs', 'diagram.png', COPIED, true);
+
+    expect(api.createFolder).not.toHaveBeenCalled();
+    expect(created?.path.startsWith('/docs/attachments/')).toBe(true);
+  });
+
+  it('finds the folder when another create won the race', async () => {
+    const { store } = seedPasteFs({ '/elsewhere/diagram.png': 'bytes' }, ['/docs/attachments']);
+    vi.mocked(api.createFolder).mockImplementation(async (p) => {
+      store[p] = '';
+      return { success: false, error: 'A file/folder with this name already exists' };
+    });
+
+    const created = await createPastedFileOp('/docs', 'diagram.png', COPIED, true);
+
+    expect(created?.path.startsWith('/docs/attachments/')).toBe(true);
+    expect(setAppError).not.toHaveBeenCalled();
+  });
+
+  it('refuses when `attachments` is a file', async () => {
+    seedPasteFs({ '/elsewhere/diagram.png': 'bytes', '/docs/attachments': 'text' });
+
+    const created = await createPastedFileOp('/docs', 'diagram.png', COPIED, true);
+
+    expect(created).toBeNull();
+    expect(setAppError).toHaveBeenCalledWith('Cannot save into "attachments": a file with that name already exists');
+    expect(api.copyFileExclusive).not.toHaveBeenCalled();
+    expect(refreshDirectory).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed folder creation', async () => {
+    seedPasteFs({ '/elsewhere/diagram.png': 'bytes' });
+    vi.mocked(api.createFolder).mockResolvedValue({ success: false, error: 'Permission denied' });
+
+    const created = await createPastedFileOp('/docs', 'diagram.png', COPIED, true);
+
+    expect(created).toBeNull();
+    expect(setAppError).toHaveBeenCalledWith('Failed to create the "attachments" folder: Permission denied');
+    expect(api.copyFileExclusive).not.toHaveBeenCalled();
   });
 });

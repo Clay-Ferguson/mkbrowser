@@ -743,12 +743,48 @@ async function writeClipboardFile(file: ClipboardFile, destPath: string): Promis
 }
 
 /**
+ * The subfolder "Create & Paste File" saves into when "Save in Attachments Folder" is ticked:
+ * one shared folder beside the edited file, unlike a file's own `.attach` folder.
+ *
+ * See: (USER_GUIDE.md#inserting-links-to-other-files)
+ */
+export const ATTACHMENTS_FOLDER = 'attachments';
+
+/**
+ * Resolves to `folder`'s `attachments` subfolder, creating it when missing, or to null after
+ * reporting a failure through the app error dialog (including when the name is taken by a
+ * file). A create that loses a race with another one still finds the folder. Never rejects.
+ */
+async function ensureAttachmentsFolder(folder: string): Promise<string | null> {
+  const path = joinPath(folder, ATTACHMENTS_FOLDER);
+  try {
+    if (!(await api.pathExists(path))) {
+      const result = await api.createFolder(path);
+      if (!result.success && !(await api.pathExists(path))) {
+        setAppError(`Failed to create the "${ATTACHMENTS_FOLDER}" folder: ${result.error ?? 'unknown error'}`);
+        return null;
+      }
+    }
+    if (!(await api.isDirectory(path))) {
+      setAppError(`Cannot save into "${ATTACHMENTS_FOLDER}": a file with that name already exists`);
+      return null;
+    }
+  } catch (err: unknown) {
+    setAppError(`Failed to create the "${ATTACHMENTS_FOLDER}" folder: ${toErrorMessage(err)}`);
+    return null;
+  }
+  return path;
+}
+
+/**
  * The editor's "Create & Paste File": saves the clipboard's file (see findClipboardFile) as
- * `name` in `folder`, ready to be linked by id. Any other than a Markdown file gets a fresh
+ * `name` in `folder` — or, with `toAttachments`, in `folder`'s `attachments` subfolder
+ * (created on demand, see ATTACHMENTS_FOLDER) — ready to be linked by id. Any other than a Markdown file gets a fresh
  * id in its name — `diagram.png` → `diagram--<id>.png` — replacing any id `name` already
  * carries, so a copy never shares its original's id. A copied Markdown file keeps `name`
  * and gets its id in front matter instead (see addLinkTargetId), since a Markdown file's
- * name is never read for one. The folder's .INDEX.yaml is reconciled and the listing
+ * name is never read for one. The .INDEX.yaml of the folder written to (and of `folder`,
+ * which may have just gained the `attachments` subfolder) is reconciled and the listing
  * refreshed; nothing is scrolled to, as the user is still editing.
  *
  * Resolves to the new file's path and the id its link should carry in its title ('' for a
@@ -761,10 +797,13 @@ export async function createPastedFileOp(
   folder: string,
   name: string,
   file: ClipboardFile,
+  toAttachments = false,
 ): Promise<{ path: string; id: string } | null> {
+  const destFolder = toAttachments ? await ensureAttachmentsFolder(folder) : folder;
+  if (!destFolder) return null;
   const markdown = isMarkdownFile(name);
   const finalName = markdown ? name : withFileIdSuffix(stripFileIdSuffix(name), generateFileId());
-  const destPath = joinPath(folder, finalName);
+  const destPath = joinPath(destFolder, finalName);
   try {
     const error = await writeClipboardFile(file, destPath);
     if (error) {
@@ -777,9 +816,11 @@ export async function createPastedFileOp(
   }
   const id = markdown ? await addLinkTargetId(destPath) : '';
   // The file exists by now, so a failed index update is only logged: the link still goes in.
-  await api.reconcileIndexedFiles(folder, false).catch((err: unknown) => {
-    logger.warn(`[fileOps] Failed to update the index of ${folder} after creating ${finalName}:`, err);
-  });
+  for (const dir of destFolder === folder ? [folder] : [destFolder, folder]) {
+    await api.reconcileIndexedFiles(dir, false).catch((err: unknown) => {
+      logger.warn(`[fileOps] Failed to update the index of ${dir} after creating ${finalName}:`, err);
+    });
+  }
   refreshDirectory();
   return { path: destPath, id };
 }

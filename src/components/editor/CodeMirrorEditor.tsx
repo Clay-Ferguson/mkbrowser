@@ -29,6 +29,7 @@ import { EditorContextMenu } from './EditorContextMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import AddLinkIdDialog from '../dialogs/AddLinkIdDialog';
 import NameInputDialog from '../dialogs/common/NameInputDialog';
+import CheckboxField from '../dialogs/common/CheckboxField';
 import { normalizePastedFileName } from '../../renderer/clipboardFile';
 import { useUrlPaste } from './useUrlPaste';
 import { createFontSizeTheme } from './editorTheme';
@@ -511,6 +512,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     handleCreatePasteFile,
     pendingPasteFile,
     handlePasteFileNamed,
+    setPasteFileToAttachments,
     closePasteFileDialog,
     handleMakeLink,
     canMakeLink,
@@ -1092,7 +1094,16 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           onCancel={closePasteFileDialog}
           inputTestId="create-paste-file-name-input"
           createTestId="create-paste-file-create-button"
-        />
+        >
+          <div className="mt-3">
+            <CheckboxField
+              label="Save in Attachments Folder"
+              checked={pendingPasteFile.toAttachments}
+              onChange={setPasteFileToAttachments}
+              testId="create-paste-file-attachments-checkbox"
+            />
+          </div>
+        </NameInputDialog>
       )}
       {pendingUrlPaste && (
         <NameInputDialog

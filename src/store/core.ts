@@ -64,6 +64,7 @@ export const defaultSettings: AppSettings = {
   // See: (thesaurus_view.md#the-onoff-switch-enablethesaurus)
   enableThesaurus: false,
   wordWrap: true,
+  pasteToAttachmentsFolder: false,
 };
 
 /**
