@@ -22,6 +22,7 @@ import { saveSettings } from './config';
 import { pasteCutItems, runCutPasteExclusive, deleteSelectedItems, performSplitFile, performJoinFiles, orderPastedNames, findCutItemsFromDifferentFolders } from './edit';
 import { arrayBufferToBase64, pasteFromClipboard } from './clipboard';
 import { refreshDirectory } from './directoryLoader';
+import { reloadExpandedTreeFolder } from './treeNodes';
 import { getFileName, getParentPath, joinPath, isSamePath } from './pathUtil';
 import { logger, toErrorMessage } from '../shared/logUtil';
 import { generateTimestampFileName } from '../shared/timeUtil';
@@ -667,6 +668,7 @@ export async function makeFolderForFileOp(filePath: string): Promise<void> {
       if (!(await api.renameFile(attachPath, newAttachPath))) {
         setAppError(`Could not move "${attachName}" into "${folderName}".`);
         refreshDirectory();
+        await reloadExpandedTreeFolder(parentFolder);
         return;
       }
       renameItem(attachPath, newAttachPath, attachName);
@@ -675,6 +677,7 @@ export async function makeFolderForFileOp(filePath: string): Promise<void> {
     if (!(await api.renameFile(filePath, newFilePath))) {
       setAppError(`Could not move "${fileName}" into "${folderName}".`);
       refreshDirectory();
+      await reloadExpandedTreeFolder(parentFolder);
       return;
     }
     // Remaps bookmarks, calendar events, etc. to the moved file; true means a bookmark
@@ -685,9 +688,13 @@ export async function makeFolderForFileOp(filePath: string): Promise<void> {
 
     // Drops the moved file's (now stale) entry from the parent's index.
     await api.reconcileIndexedFiles(parentFolder, false);
+
+    // Show the new folder in the IndexTreeView (a no-op if the parent isn't expanded).
+    await reloadExpandedTreeFolder(parentFolder);
   } catch (err: unknown) {
     setAppError(`Failed to make folder for "${fileName}": ${toErrorMessage(err)}`);
     refreshDirectory();
+    await reloadExpandedTreeFolder(parentFolder);
     return;
   }
 
