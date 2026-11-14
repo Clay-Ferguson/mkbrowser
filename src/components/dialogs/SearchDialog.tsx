@@ -16,6 +16,16 @@ import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_SAVE, 
 const SEARCH_CHECKBOX_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-500 rounded disabled:opacity-50 disabled:cursor-not-allowed`;
 const SEARCH_RADIO_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-500`;
 
+/** What each Direction option means for the chosen Sort By. */
+const SORT_DIRECTION_HINTS: Record<SearchSortBy, { desc: string; asc: string }> = {
+  'modified-time': { desc: 'newest first', asc: 'oldest first' },
+  'created-time': { desc: 'newest first', asc: 'oldest first' },
+  'file-name': { desc: 'Z–A', asc: 'A–Z' },
+  custom: { desc: 'largest / latest first', asc: 'smallest / earliest first' },
+};
+
+const NO_SORT_EXPRESSION_TITLE = 'Enter a sort expression, or choose another Sort By.';
+
 interface SearchDialogProps {
   onSearch: (definition: SearchDefinition) => void;
   onSave: (definition: SearchDefinition) => void;
@@ -37,7 +47,7 @@ interface PendingConfirm {
  * saved search definitions (SearchDefinitionsPanel) and a right panel of search
  * options — the query, the target (file contents and/or names), the match type
  * (literal/wildcard/advanced), the EXIF / recent-files toggles, and result
- * sorting.
+ * sorting (including a Custom sort by a JavaScript expression).
  *
  * The form edits one SearchDefinition. Selecting a row in the list loads that
  * saved definition (its name is shown above the form); with no row selected the
@@ -55,6 +65,7 @@ interface PendingConfirm {
  *
  * See: (USER_GUIDE.md#using-search)
  * See: (USER_GUIDE.md#saving-search-definitions)
+ * See: (USER_GUIDE.md#custom-sort-order)
  */
 function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, onDeleteSearchDefinition, initialDefinition, searchDefinitions }: SearchDialogProps) {
   const [def, setDef] = useState(() =>
@@ -75,12 +86,17 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   const noTarget = !searchContents && !searchNames;
   const searchImageExif = def.searchImageExif ?? false;
   const mostRecent = def.mostRecent ?? false;
+  const sortExpression = def.sortExpression ?? '';
+  /** Sort By is Custom but there is no expression to sort by. */
+  const noSortExpression = sortBy === 'custom' && !sortExpression.trim();
   /** A change handler that sets one field of the definition being edited. */
   const set = <K extends keyof SearchDefinition>(key: K) => (value: SearchDefinition[K]) =>
     setDef((d) => ({ ...d, [key]: value }));
   const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   /** Syntax error found in the Advanced query on the last Search/Save, if any. */
   const [syntaxError, setSyntaxError] = useState<string | null>(null);
+  /** Problem found with the custom sort expression on the last Search/Save, if any. */
+  const [sortError, setSortError] = useState<string | null>(null);
   const queryInputRef = useRef<HTMLInputElement>(null);
   /** The Advanced-mode code editor's editable element (set by JsCodeInput). */
   const codeInputRef = useRef<HTMLElement>(null);
@@ -98,49 +114,70 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
     if (selected.name === saved?.name) return;
     confirmIfDirty(() => {
       setSyntaxError(null);
+      setSortError(null);
       setDef(initialSearchDefinition(selected, null));
       setSelectedName(selected.name);
     });
   };
 
-  /** For Advanced queries, records any syntax error and resolves false if there is one.
-   *  The main process parses the query with the same compiler the search uses (the
-   *  renderer can't: its CSP forbids eval, so `new Function` always throws here). */
+  /** For an Advanced query and a custom sort expression, records any syntax errors and
+   *  resolves false if there is one. The main process parses each with the same compiler
+   *  the search uses (the renderer can't: its CSP forbids eval, so `new Function` always
+   *  throws here). */
   const checkSyntax = (query: string): Promise<boolean> => {
-    if (matchType !== 'advanced' || !query) {
-      setSyntaxError(null);
-      return Promise.resolve(true);
-    }
-    return api.checkAdvancedQuerySyntax(query).then((error) => {
-      setSyntaxError(error);
-      return !error;
+    const sortExpr = sortExpression.trim();
+    return Promise.all([
+      matchType === 'advanced' && query ? api.checkAdvancedQuerySyntax(query) : null,
+      sortBy === 'custom' && sortExpr ? api.checkAdvancedQuerySyntax(sortExpr) : null,
+    ]).then(([queryError, sortSyntaxError]) => {
+      setSyntaxError(queryError);
+      setSortError(sortSyntaxError && `Syntax error: ${sortSyntaxError}`);
+      return !queryError && !sortSyntaxError;
     });
   };
+
+  /** The form as a definition to search with or save: the query and sort expression
+   *  trimmed, and an empty sort expression left out of the saved config. */
+  const toDefinition = (name: string, query: string): SearchDefinition => ({
+    ...def,
+    name,
+    searchText: query,
+    sortExpression: sortExpression.trim() || undefined,
+  });
 
   const handleCodeChange = (value: string) => {
     setSyntaxError(null);
     set('searchText')(value);
   };
 
+  const handleSortExpressionChange = (value: string) => {
+    setSortError(null);
+    set('sortExpression')(value);
+  };
+
   const handleSearch = () => {
     const query = searchQuery.trim();
-    if ((!query && !mostRecent) || noTarget) return;
+    if ((!query && !mostRecent) || noTarget || noSortExpression) return;
     void checkSyntax(query).then((ok) => {
       if (!ok) return;
       // The highlighter matches within single DOM text nodes, so it can't match
       // across a line break; highlight the query with its newlines flattened.
       const cleanedQuery = query.replace(/[\r\n]+/g, ' ');
       globalHighlight.setGlobalHighlightText(matchType === 'literal' ? cleanedQuery : '');
-      onSearch({ ...def, name: saved?.name ?? '', searchText: query });
+      onSearch(toDefinition(saved?.name ?? '', query));
     });
   };
 
   /** ＋ in the list: saves the current form under a new name and selects it. */
   const handleCreate = (name: string): Promise<boolean> => {
+    if (noSortExpression) {
+      setSortError(NO_SORT_EXPRESSION_TITLE);
+      return Promise.resolve(false);
+    }
     const query = searchQuery.trim();
     return checkSyntax(query).then((ok) => {
       if (!ok) return false;
-      onSave({ ...def, name, searchText: query });
+      onSave(toDefinition(name, query));
       setSelectedName(name);
       return true;
     });
@@ -163,10 +200,10 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   };
 
   const handleSave = () => {
-    if (!saved || !dirty) return;
+    if (!saved || !dirty || noSortExpression) return;
     const query = searchQuery.trim();
     void checkSyntax(query).then((ok) => {
-      if (ok) onSave({ ...def, name: saved.name, searchText: query });
+      if (ok) onSave(toDefinition(saved.name, query));
     });
   };
 
@@ -176,6 +213,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
       message: `Discard unsaved changes to "${saved.name}"?`,
       onConfirm: () => {
         setSyntaxError(null);
+        setSortError(null);
         setDef(initialSearchDefinition(saved, null));
       },
     });
@@ -341,6 +379,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                       <option value="modified-time">File Modification Time</option>
                       <option value="created-time">File Creation Time</option>
                       <option value="file-name">File Name</option>
+                      <option value="custom">Custom</option>
                     </select>
                   </div>
                   <div>
@@ -351,11 +390,31 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                       data-testid="sort-direction-select"
                       className={`${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`}
                     >
-                      <option value="desc">DESC (newest first)</option>
-                      <option value="asc">ASC (oldest first)</option>
+                      <option value="desc">DESC ({SORT_DIRECTION_HINTS[sortBy].desc})</option>
+                      <option value="asc">ASC ({SORT_DIRECTION_HINTS[sortBy].asc})</option>
                     </select>
                   </div>
                 </div>
+                {sortBy === 'custom' && (
+                  <div className="mt-3">
+                    <label className="block text-xs text-slate-400 mb-1">
+                      Sort expression (files with no value are listed last)
+                    </label>
+                    <JsCodeInput
+                      value={sortExpression}
+                      onChange={handleSortExpressionChange}
+                      onSubmit={handleSearch}
+                      placeholder="e.g. ts(p.due)  or  [p.priority, ts(p.due)]"
+                      testId="sort-expression-input"
+                      compact
+                    />
+                    {sortError && (
+                      <p className="text-xs text-red-400 mt-1 break-words" data-testid="sort-expression-error">
+                        {sortError}
+                      </p>
+                    )}
+                  </div>
+                )}
               </fieldset>
             </div>
           </div>
@@ -389,8 +448,10 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
             <button
               type="button"
               onClick={handleSave}
-              disabled={!dirty}
-              title={saved ? undefined : 'Click ＋ to save this as a new search'}
+              disabled={!dirty || noSortExpression}
+              title={saved
+                ? (noSortExpression ? NO_SORT_EXPRESSION_TITLE : undefined)
+                : 'Click ＋ to save this as a new search'}
               data-testid="search-dialog-save-button"
               className={BUTTON_CLASS_DLG_SAVE}
             >
@@ -399,7 +460,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
             <button
               type="button"
               onClick={handleSearch}
-              disabled={(!searchQuery.trim() && !mostRecent) || noTarget}
+              disabled={(!searchQuery.trim() && !mostRecent) || noTarget || noSortExpression}
+              title={noSortExpression ? NO_SORT_EXPRESSION_TITLE : undefined}
               data-testid="execute-search-button"
               className={BUTTON_CLASS_DLG_BLUE}
             >

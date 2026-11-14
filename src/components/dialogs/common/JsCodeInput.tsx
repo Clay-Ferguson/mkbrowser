@@ -14,33 +14,41 @@ interface JsCodeInputProps {
   testId?: string;
   /** Receives the editable element, so a Dialog can focus it via `initialFocusRef`. */
   focusRef?: RefObject<HTMLElement | null>;
+  /** Start one line tall (growing to 4) instead of ~8, for short expressions. */
+  compact?: boolean;
 }
 
 // Blend one-dark into the dialog's input styling (bg-slate-900, rounded border).
-const inputTheme = EditorView.theme({
-  '&': { backgroundColor: 'rgb(15 23 42)', fontSize: '16px' },
-  '&.cm-focused': { outline: 'none' },
-  // `lh` is the scroller's own line height, so this is ~8 rows tall (scrolling past 16).
-  '.cm-scroller': { fontFamily: MONO_FONT_STACK, minHeight: '8lh', maxHeight: '16lh' },
-});
+// `lh` is the scroller's own line height, so the default is ~8 rows tall
+// (scrolling past 16) and the compact one a single row (scrolling past 4).
+function makeInputTheme(minLines: number, maxLines: number) {
+  return EditorView.theme({
+    '&': { backgroundColor: 'rgb(15 23 42)', fontSize: '16px' },
+    '&.cm-focused': { outline: 'none' },
+    '.cm-scroller': { fontFamily: MONO_FONT_STACK, minHeight: `${minLines}lh`, maxHeight: `${maxLines}lh` },
+  });
+}
+const inputTheme = makeInputTheme(8, 16);
+const compactInputTheme = makeInputTheme(1, 4);
 
 /**
  * A plain, minimal CodeMirror editor with JavaScript syntax highlighting, used as a
- * small form field (e.g. the Advanced search expression). Deliberately unrelated to
+ * small form field (e.g. the Advanced search expression, or the custom sort
+ * expression with `compact`). Deliberately unrelated to
  * the full-featured file editor in `components/editor/`.
  *
  * See: (USER_GUIDE.md#advanced-search-predicates)
  */
-function JsCodeInput({ value, onChange, onSubmit, placeholder, testId, focusRef }: JsCodeInputProps) {
+function JsCodeInput({ value, onChange, onSubmit, placeholder, testId, focusRef, compact }: JsCodeInputProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   // Captured once; the mount effect intentionally uses first-render values.
-  const mountConfigRef = useRef({ value, placeholder, testId, focusRef });
+  const mountConfigRef = useRef({ value, placeholder, testId, focusRef, compact });
   const changeEvent = useEffectEvent((text: string) => onChange(text));
   const submitEvent = useEffectEvent(() => onSubmit());
 
   useEffect(() => {
-    const { value, placeholder, testId, focusRef } = mountConfigRef.current;
+    const { value, placeholder, testId, focusRef, compact } = mountConfigRef.current;
     const view = new EditorView({
       parent: hostRef.current!,
       doc: value,
@@ -53,7 +61,7 @@ function JsCodeInput({ value, onChange, onSubmit, placeholder, testId, focusRef 
         ]),
         javascript(),
         oneDark,
-        inputTheme,
+        compact ? compactInputTheme : inputTheme,
         EditorView.lineWrapping,
         ...(placeholder ? [placeholderExt(placeholder)] : []),
         ...(testId ? [EditorView.contentAttributes.of({ 'data-testid': testId })] : []),

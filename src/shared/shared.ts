@@ -24,8 +24,23 @@ export type IndexTreeWidth = 'hidden' | 'narrow' | 'medium' | 'wide';
  * See: (USER_GUIDE.md#using-search)
  */
 export type SearchMatchType = 'literal' | 'wildcard' | 'advanced';
-export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
+/**
+ * The result order's "Sort By" choice. 'custom' orders by the value of
+ * `SearchDefinition.sortExpression`, evaluated per file.
+ *
+ * See: (USER_GUIDE.md#custom-sort-order)
+ */
+export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name' | 'custom';
 export type SearchSortDirection = 'asc' | 'desc';
+/**
+ * One file's value under a custom sort expression: a number, a string, null
+ * (no value — sorts last in either direction), or an array of those for a
+ * multi-level sort, compared element by element.
+ *
+ * See: (USER_GUIDE.md#custom-sort-order)
+ */
+export type SortKeyScalar = number | string | null;
+export type SortKey = SortKeyScalar | SortKeyScalar[];
 
 /**
  * Canonical type for the file-I/O operations injected into the transactional
@@ -90,6 +105,13 @@ export interface SearchDefinition {
   sortBy: SearchSortBy;
   /** Ascending (oldest first) or descending (newest first). */
   sortDirection: SearchSortDirection;
+  /**
+   * The JavaScript expression whose per-file value orders the results; used
+   * only when `sortBy` is 'custom'.
+   *
+   * See: (USER_GUIDE.md#custom-sort-order)
+   */
+  sortExpression?: string;
   /** Whether to include image EXIF metadata in a content search. */
   searchImageExif?: boolean;
   /**
@@ -494,6 +516,13 @@ export interface SearchResult {
   nameMatch?: boolean;
   /** Set when the result is a folder (only a names-only search returns folders). */
   isDirectory?: boolean;
+  /** The file's value under a custom sort expression (custom sort only). */
+  sortKey?: SortKey;
+  /** `sortKey` formatted for display, dates from `ts()` shown as dates (custom sort only).
+   *
+   * See: (USER_GUIDE.md#custom-sort-order)
+   */
+  sortLabel?: string;
 }
 
 /** What a folder search returns over IPC: the results (capped, and ordered by

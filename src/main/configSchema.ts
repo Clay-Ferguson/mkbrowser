@@ -162,8 +162,9 @@ const SearchDefinitionSchema = z.preprocess(migrateLegacySearchKeys, z
     searchContents: z.boolean().catch(true),
     searchNames: z.boolean().catch(false),
     matchType: z.enum(['literal', 'wildcard', 'advanced']).catch('literal'),
-    sortBy: z.enum(['modified-time', 'created-time', 'file-name']).catch('modified-time'),
+    sortBy: z.enum(['modified-time', 'created-time', 'file-name', 'custom']).catch('modified-time'),
     sortDirection: z.enum(['asc', 'desc']).catch('desc'),
+    sortExpression: z.string().optional().catch(undefined),
     searchImageExif: z.boolean().optional(),
     mostRecent: z.boolean().optional(),
   })

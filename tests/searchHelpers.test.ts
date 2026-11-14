@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { compareSearchResults, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults } from '../src/store/search';
-import type { SearchDefinition } from '../src/shared/shared';
+import type { SearchDefinition, SortKey } from '../src/shared/shared';
 
 const r = (relativePath: string, modifiedTime?: number, createdTime?: number) =>
   ({ relativePath, modifiedTime, createdTime });
@@ -48,6 +48,49 @@ describe('compareSearchResults', () => {
     expect(order(items, 'modified-time', 'desc')).toEqual(['a/x.md', 'b/x.md']);
     expect(order(items, 'modified-time', 'asc')).toEqual(['a/x.md', 'b/x.md']);
     expect(order(items, 'file-name', 'asc')).toEqual(['a/x.md', 'b/x.md']);
+  });
+});
+
+describe('compareSearchResults — custom', () => {
+  const k = (relativePath: string, sortKey?: SortKey) => ({ relativePath, sortKey });
+  const orderCustom = (items: ReturnType<typeof k>[], direction: 'asc' | 'desc') =>
+    [...items].sort(compareSearchResults('custom', direction)).map(i => i.relativePath);
+
+  it('sorts numbers in both directions', () => {
+    const items = [k('b', 2), k('a', 1), k('c', 3)];
+    expect(orderCustom(items, 'asc')).toEqual(['a', 'b', 'c']);
+    expect(orderCustom(items, 'desc')).toEqual(['c', 'b', 'a']);
+  });
+
+  it('puts missing values last in both directions', () => {
+    const items = [k('none'), k('nul', null), k('one', 1), k('two', 2)];
+    expect(orderCustom(items, 'asc')).toEqual(['one', 'two', 'none', 'nul']);
+    expect(orderCustom(items, 'desc')).toEqual(['two', 'one', 'none', 'nul']);
+  });
+
+  it('compares strings ignoring case, with numeric runs by value', () => {
+    const items = [k('x', 'item 10'), k('y', 'Item 2'), k('z', 'apple')];
+    expect(orderCustom(items, 'asc')).toEqual(['z', 'y', 'x']);
+  });
+
+  it('puts numbers before strings', () => {
+    expect(orderCustom([k('s', 'a'), k('n', 99)], 'asc')).toEqual(['n', 's']);
+  });
+
+  it('compares arrays element by element, nulls (and missing elements) last at each position', () => {
+    const items = [
+      k('p2-late', [2, 200]),
+      k('p1-nodue', [1, null]),
+      k('p1-early', [1, 100]),
+      k('p1-late', [1, 200]),
+      k('p1-short', [1]),
+    ];
+    expect(orderCustom(items, 'asc')).toEqual(['p1-early', 'p1-late', 'p1-nodue', 'p1-short', 'p2-late']);
+    expect(orderCustom(items, 'desc')).toEqual(['p2-late', 'p1-late', 'p1-early', 'p1-nodue', 'p1-short']);
+  });
+
+  it('breaks ties by relative path', () => {
+    expect(orderCustom([k('b', 1), k('a', 1)], 'desc')).toEqual(['a', 'b']);
   });
 });
 
@@ -157,6 +200,13 @@ describe('isSearchDefinitionDirty', () => {
     expect(isSearchDefinitionDirty({ ...saved, searchText: 'bar' }, saved)).toBe(true);
     expect(isSearchDefinitionDirty({ ...saved, matchType: 'advanced' }, saved)).toBe(true);
     expect(isSearchDefinitionDirty({ ...saved, sortDirection: 'asc' }, saved)).toBe(true);
+  });
+
+  it('compares the sort expression trimmed, with a missing one equal to empty', () => {
+    expect(isSearchDefinitionDirty({ ...saved, sortExpression: '' }, saved)).toBe(false);
+    expect(isSearchDefinitionDirty({ ...saved, sortExpression: 'ts(p.due)' }, saved)).toBe(true);
+    const custom = { ...saved, sortBy: 'custom' as const, sortExpression: 'ts(p.due)' };
+    expect(isSearchDefinitionDirty({ ...custom, sortExpression: ' ts(p.due)\n' }, custom)).toBe(false);
   });
 });
 

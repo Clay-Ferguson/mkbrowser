@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { compileAdvancedQuery, getAdvancedQuerySyntaxError, AdvancedQueryTimeoutError, AdvancedQuerySyntaxError, AdvancedQueryRuntimeError, AdvancedQueryHost } from '../src/main/advancedQuery';
+import { compileAdvancedQuery, compileSortKeyExpression, getAdvancedQuerySyntaxError, AdvancedQueryTimeoutError, AdvancedQuerySyntaxError, AdvancedQueryRuntimeError, AdvancedQueryHost } from '../src/main/advancedQuery';
 
 /** Host whose $ matches when content includes the text; getProp reads from a map. */
 function makeHost(content = '', props: Record<string, unknown> = {}): AdvancedQueryHost {
@@ -237,5 +237,73 @@ describe('compile and evaluation semantics', () => {
     expect(run(makeHost('apple pie'))).toBe(true);
     expect(run(makeHost('banana'))).toBe(false);
     expect(run(makeHost('apple again'))).toBe(true);
+  });
+});
+
+describe('compileSortKeyExpression', () => {
+  const key = (expr: string, host = makeHost()) => compileSortKeyExpression(expr)(host).key;
+
+  it.each<[string, unknown]>([
+    ['42', 42],
+    ['"abc"', 'abc'],
+    ['true', 1],
+    ['false', 0],
+    ['new Date(5)', 5],
+    ['new Date("nonsense")', null],
+    ['undefined', null],
+    ['null', null],
+    ['NaN', null],
+    ['Infinity', null],
+    ['({ a: 1 })', null],
+    ['() => 1', null],
+    ['[3, "x", true, undefined, NaN, [1], {}]', [3, 'x', 1, null, null, null, null]],
+  ])('normalizes %s', (expr, expected) => {
+    expect(key(expr)).toEqual(expected);
+  });
+
+  it('reads front matter and dates through the same helpers as a query', () => {
+    const host = makeHost('', { due: '2000-01-01', priority: 2 });
+    expect(key('ts(p.due)', host)).toBe(946684800000);
+    expect(key('[p.priority, ts(p.due)]', host)).toEqual([2, 946684800000]);
+    expect(key('ts(p.missing)', host)).toBeNull();
+  });
+
+  it('records the timestamps ts() produced, so callers can show them as dates', () => {
+    const host = makeHost('', { due: '2000-01-01', priority: 2 });
+    const { dates } = compileSortKeyExpression('[p.priority, ts(p.due), ts("bad")]')(host);
+    expect([...dates]).toEqual([946684800000]);
+  });
+
+  it('accepts a trailing line comment', () => {
+    expect(key('7 // seven')).toBe(7);
+  });
+
+  it('reports a syntax error as AdvancedQuerySyntaxError naming the sort expression', () => {
+    expect(() => compileSortKeyExpression('p.due +')).toThrow(AdvancedQuerySyntaxError);
+    expect(() => compileSortKeyExpression('p.due +')).toThrow(/custom sort expression/);
+  });
+
+  it('reports a runtime error as AdvancedQueryRuntimeError, even when it throws a string', () => {
+    expect(() => key('p.a.b')).toThrow(AdvancedQueryRuntimeError);
+    // A thrown string must not be mistaken for a string sort key.
+    expect(() => key('(() => { throw "oops"; })()')).toThrow(/oops/);
+  });
+
+  it('times out on an infinite loop', () => {
+    expect(() => key('(() => { while (true) {} })()')).toThrow(AdvancedQueryTimeoutError);
+  });
+
+  it('times out on a getter loop hit while normalizing an array', () => {
+    expect(() => key('[1, 2].concat(Object.defineProperty([], 0, { get() { for (;;); }, enumerable: true }))'))
+      .toThrow(AdvancedQueryTimeoutError);
+  });
+
+  it('stays contained in the sandbox', () => {
+    expect(key('typeof process')).toBe('undefined');
+    expect(key('this.constructor.constructor("return typeof require")()')).toBe('undefined');
+  });
+
+  it('treats a sabotaged JSON as an error, never handing the host a sandbox object', () => {
+    expect(() => key('(JSON.stringify = () => ({}), 1)')).toThrow(AdvancedQueryRuntimeError);
   });
 });

@@ -1,5 +1,6 @@
 /**
- * Sandboxed compilation/evaluation of advanced-search query expressions.
+ * Sandboxed compilation/evaluation of advanced-search query expressions, and of
+ * custom sort expressions (which share the same sandbox and helpers).
  *
  * The user's advanced query is arbitrary JavaScript, but it must never be able
  * to touch the file system (or anything else in the main process). Instead of
@@ -26,6 +27,7 @@
  * See: (USER_GUIDE.md#advanced-search-predicates)
  */
 import vm from 'node:vm';
+import type { SortKey, SortKeyScalar } from '../shared/shared';
 
 /** Wall-clock budget for evaluating the query against ONE file. Generous — a
  * legitimate query over a 20 MB file finishes in well under this — but it turns
@@ -61,8 +63,8 @@ export class AdvancedQueryTimeoutError extends Error {
 
 /** Thrown by compileAdvancedQuery when the query is not a valid expression. */
 export class AdvancedQuerySyntaxError extends Error {
-  constructor(detail: string) {
-    super(`Invalid advanced search query: ${detail}`);
+  constructor(detail: string, what = 'advanced search query') {
+    super(`Invalid ${what}: ${detail}`);
     this.name = 'AdvancedQuerySyntaxError';
   }
 }
@@ -115,6 +117,36 @@ const BOOTSTRAP = `
 })();
 `;
 
+/** What a compiled expression produces: a match/no-match boolean (an advanced
+ * query) or a sort key (a custom sort expression). */
+type ScriptMode = 'predicate' | 'sortKey';
+
+/** Inside the sandbox, turns a caught value into a primitive error description.
+ * Shared by both script templates below. */
+const CATCH_TO_STRING = `e !== null && typeof e === 'object'
+        ? String(e.name) + ': ' + String(e.message)
+        : String(e)`;
+
+/**
+ * Sandbox-side normalization of a custom sort expression's value into a SortKey:
+ * finite numbers and strings pass through, booleans become 1/0, a Date becomes
+ * its timestamp, and anything else (undefined, null, NaN, objects) becomes null,
+ * "no value". An array is normalized element by element — one level only, so a
+ * nested array or object element is null.
+ *
+ * See: (USER_GUIDE.md#custom-sort-order)
+ */
+const SORT_KEY_NORMALIZE = `((v) => {
+      const one = (x) => {
+        if (typeof x === 'number') return Number.isFinite(x) ? x : null;
+        if (typeof x === 'string') return x;
+        if (typeof x === 'boolean') return x ? 1 : 0;
+        if (x instanceof Date) { const t = x.getTime(); return Number.isFinite(t) ? t : null; }
+        return null;
+      };
+      return Array.isArray(v) ? Array.prototype.map.call(v, one) : one(v);
+    })`;
+
 /**
  * Wraps the query in the sandboxed evaluation script and compiles it (without
  * running it). Returns the compiled script, or V8's syntax-error message.
@@ -130,26 +162,43 @@ const BOOTSTRAP = `
  * string there, under the timeout watchdog. Reading `.message` (or calling
  * String()) on a sandbox object from host code would run query-defined
  * getters/toString with no timeout — `throw { get message() { for(;;); } }`
- * would hang the main process. The script therefore only ever returns a
- * boolean (the result) or a string (the error description): both primitives.
+ * would hang the main process. A 'predicate' script therefore only ever returns
+ * a boolean (the result) or a string (the error description): both primitives.
+ *
+ * A 'sortKey' script can't use that split, since a string is a legitimate sort
+ * key. It normalizes the value inside the sandbox (see SORT_KEY_NORMALIZE) and
+ * always returns a JSON string: `["ok", key]` or `["err", message]`. The host
+ * only ever JSON.parses that string, so no sandbox object crosses over.
  */
-function compileQueryScript(queryStr: string): vm.Script | string {
-  const source = `(() => {
+function compileQueryScript(queryStr: string, mode: ScriptMode = 'predicate'): vm.Script | string {
+  const source = mode === 'predicate'
+    ? `(() => {
   try {
     return !!(${queryStr}
     );
   } catch (e) {
     try {
-      return e !== null && typeof e === 'object'
-        ? String(e.name) + ': ' + String(e.message)
-        : String(e);
+      return ${CATCH_TO_STRING};
     } catch {
       return 'Unknown error';
     }
   }
+})();`
+    : `(() => {
+  try {
+    const __sortKeyValue = (${queryStr}
+    );
+    return JSON.stringify(['ok', ${SORT_KEY_NORMALIZE}(__sortKeyValue)]);
+  } catch (e) {
+    try {
+      return JSON.stringify(['err', ${CATCH_TO_STRING}]);
+    } catch {
+      return '["err","Unknown error"]';
+    }
+  }
 })();`;
   try {
-    return new vm.Script(source, { filename: 'advanced-search-query' });
+    return new vm.Script(source, { filename: mode === 'predicate' ? 'advanced-search-query' : 'custom-sort-expression' });
   } catch (err) {
     // A compile error comes from V8's parser, not from query code, so it's a
     // host SyntaxError and safe to read.
@@ -170,21 +219,11 @@ export function getAdvancedQuerySyntaxError(queryStr: string): string | null {
 }
 
 /**
- * Compile an advanced query expression into a sandboxed evaluator.
- *
- * Throws AdvancedQuerySyntaxError on a syntactically invalid expression. The
- * returned function evaluates the expression against one file's helpers and
- * returns its truthiness; a runtime error in the query surfaces as
- * AdvancedQueryRuntimeError, and a timeout as AdvancedQueryTimeoutError.
- *
- * See: (USER_GUIDE.md#advanced-search-predicates)
+ * Builds the sandbox realm for a compiled script and returns a function that runs
+ * it against one file's helpers. The raw result is returned as-is (a primitive,
+ * per compileQueryScript); a timeout surfaces as AdvancedQueryTimeoutError.
  */
-export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost) => boolean {
-  // Compile FIRST so a syntax error throws before we bother building a context.
-  const result = compileQueryScript(queryStr);
-  if (typeof result === 'string') throw new AdvancedQuerySyntaxError(result);
-  const script = result;
-
+function createSandboxRunner(script: vm.Script): (host: AdvancedQueryHost) => unknown {
   // Rebound before each evaluation; the dispatcher below closes over it.
   let host: AdvancedQueryHost | null = null;
 
@@ -235,11 +274,10 @@ export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost
   (context as Record<string, unknown>).__hostCall = hostCall;
   vm.runInContext(BOOTSTRAP, context);
 
-  return (h: AdvancedQueryHost): boolean => {
+  return (h: AdvancedQueryHost): unknown => {
     host = h;
-    let result: unknown;
     try {
-      result = script.runInContext(context, { timeout: EVAL_TIMEOUT_MS });
+      return script.runInContext(context, { timeout: EVAL_TIMEOUT_MS });
     } catch (err) {
       if ((err as NodeJS.ErrnoException)?.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
         throw new AdvancedQueryTimeoutError();
@@ -248,7 +286,76 @@ export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost
     } finally {
       host = null;
     }
-    if (typeof result === 'string') throw new AdvancedQueryRuntimeError(result);
-    return result === true;
   };
+}
+
+/**
+ * Compile an advanced query expression into a sandboxed evaluator.
+ *
+ * Throws AdvancedQuerySyntaxError on a syntactically invalid expression. The
+ * returned function evaluates the expression against one file's helpers and
+ * returns its truthiness; a runtime error in the query surfaces as
+ * AdvancedQueryRuntimeError, and a timeout as AdvancedQueryTimeoutError.
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
+ */
+export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost) => boolean {
+  // Compile FIRST so a syntax error throws before we bother building a context.
+  const result = compileQueryScript(queryStr);
+  if (typeof result === 'string') throw new AdvancedQuerySyntaxError(result);
+  const run = createSandboxRunner(result);
+
+  return (h: AdvancedQueryHost): boolean => {
+    const value = run(h);
+    if (typeof value === 'string') throw new AdvancedQueryRuntimeError(value);
+    return value === true;
+  };
+}
+
+/** One file's evaluated custom sort expression. */
+export interface SortKeyResult {
+  key: SortKey;
+  /** Every finite timestamp `ts()` returned during the evaluation, so callers
+   * can tell which numbers in `key` are dates (for display). */
+  dates: Set<number>;
+}
+
+/**
+ * Compile a custom sort expression into a sandboxed evaluator that returns each
+ * file's sort key. Runs in the same sandbox, with the same helpers, as an
+ * advanced query. Throws AdvancedQuerySyntaxError on an invalid expression; a
+ * runtime error surfaces as AdvancedQueryRuntimeError, and a timeout as
+ * AdvancedQueryTimeoutError.
+ *
+ * See: (USER_GUIDE.md#custom-sort-order)
+ */
+export function compileSortKeyExpression(exprStr: string): (host: AdvancedQueryHost) => SortKeyResult {
+  const result = compileQueryScript(exprStr, 'sortKey');
+  if (typeof result === 'string') throw new AdvancedQuerySyntaxError(result, 'custom sort expression');
+  const run = createSandboxRunner(result);
+
+  return (h: AdvancedQueryHost): SortKeyResult => {
+    const dates = new Set<number>();
+    const ts = (dateStr: string): number => {
+      const t = h.ts(dateStr);
+      if (Number.isFinite(t)) dates.add(t);
+      return t;
+    };
+    const value = run({ ...h, ts });
+    // Always a string from the sandbox (see compileQueryScript), so parsing it
+    // creates only host-realm values.
+    const parsed: unknown = typeof value === 'string' ? JSON.parse(value) : null;
+    if (!Array.isArray(parsed) || parsed.length !== 2) {
+      throw new AdvancedQueryRuntimeError('Custom sort expression produced an unreadable value');
+    }
+    if (parsed[0] === 'err') throw new AdvancedQueryRuntimeError(String(parsed[1]));
+    return { key: toSortKey(parsed[1]), dates };
+  };
+}
+
+/** Coerces a JSON-parsed value to a SortKey (JSON already turned NaN into null). */
+function toSortKey(value: unknown): SortKey {
+  const scalar = (v: unknown): SortKeyScalar =>
+    typeof v === 'number' || typeof v === 'string' ? v : null;
+  return Array.isArray(value) ? value.map(scalar) : scalar(value);
 }

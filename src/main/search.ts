@@ -27,8 +27,8 @@ import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
 import { parseDateString, past, future, today } from '../shared/timeUtil';
 import { createContentSearcher, compareSearchResults } from '../shared/searchHelpers';
-import type { SearchDefinition, SearchMatchType } from '../shared/shared';
-import { compileAdvancedQuery, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
+import type { SearchDefinition, SearchMatchType, SortKey } from '../shared/shared';
+import { compileAdvancedQuery, compileSortKeyExpression, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
 import { escapeRegexExceptWildcard, buildExcludePredicate, wildcardToAnchoredRegex } from '../shared/pathPattern';
 import { mapWithConcurrency } from '../shared/asyncUtil';
@@ -119,6 +119,10 @@ export interface SearchResult {
   nameMatch?: boolean;
   /** Set when the result is a folder (only a names-only search returns folders). */
   isDirectory?: boolean;
+  /** The file's value under the custom sort expression (custom sort only). */
+  sortKey?: SortKey;
+  /** `sortKey` formatted for display (custom sort only); see formatSortLabel. */
+  sortLabel?: string;
 }
 
 /** Match predicate result */
@@ -260,6 +264,71 @@ export function createMatchPredicate(
       return { matches: matchCount > 0, matchCount };
     };
   }
+}
+
+/** One file's custom sort key, its display label, and the error (if the
+ * expression threw on this file, in which case the key is null). */
+interface SortKeyOutcome {
+  sortKey: SortKey;
+  sortLabel: string;
+  error?: string;
+}
+
+/** Formats a timestamp produced by `ts()` as a local `YYYY-MM-DD`, adding
+ * ` HH:MM` when the time is not midnight. */
+function formatSortDate(timestamp: number): string {
+  const d = new Date(timestamp);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return d.getHours() || d.getMinutes() ? `${date} ${pad(d.getHours())}:${pad(d.getMinutes())}` : date;
+}
+
+/**
+ * Display text for a sort key: numbers that came from `ts()` (listed in
+ * `dates`) as dates, other values as-is, no value as an em dash, and the parts
+ * of an array key joined with ` · `.
+ *
+ * See: (USER_GUIDE.md#custom-sort-order)
+ */
+export function formatSortLabel(key: SortKey, dates: ReadonlySet<number> = new Set()): string {
+  const one = (v: number | string | null): string =>
+    v === null ? '—' : typeof v === 'number' && dates.has(v) ? formatSortDate(v) : String(v);
+  return Array.isArray(key) ? key.map(one).join(' · ') : one(key);
+}
+
+/**
+ * Create an evaluator for a custom sort expression, which runs against one
+ * file's content with the same helpers as an advanced query ($, tag, p, ts,
+ * past, future, today). Exported for unit testing.
+ *
+ * The expression is compiled once here; a syntax error throws
+ * AdvancedQuerySyntaxError, failing the search. A runtime error on one file
+ * gives that file no value (null, which sorts last). A timeout aborts the
+ * search, and every later call fails at once (see createMatchPredicate).
+ *
+ * See: (USER_GUIDE.md#custom-sort-order)
+ */
+export function createSortKeyEvaluator(
+  exprStr: string,
+  cache: YamlCache = new Map(),
+): (content: string, filePath?: string) => SortKeyOutcome {
+  const evalFunction = compileSortKeyExpression(exprStr);
+  let timedOut: AdvancedQueryTimeoutError | null = null;
+
+  return (content: string, filePath?: string) => {
+    if (timedOut) throw timedOut;
+    const { $, tag } = createContentSearcher(content);
+    const getProp = createGetProp(cache, content, filePath);
+    try {
+      const { key, dates } = evalFunction({ $, tag, getProp, past, future, today, ts: parseDateString });
+      return { sortKey: key, sortLabel: formatSortLabel(key, dates) };
+    } catch (err) {
+      if (err instanceof AdvancedQueryTimeoutError) timedOut = err;
+      if (!(err instanceof AdvancedQueryRuntimeError)) throw err;
+      logger.debug('search: custom sort expression threw evaluating file', filePath ?? '(unknown)', err.message);
+      return { sortKey: null, sortLabel: formatSortLabel(null), error: err.message };
+    }
+  };
 }
 
 /**
@@ -408,6 +477,29 @@ async function buildResult(
 }
 
 /**
+ * The content a custom sort expression is evaluated against for a result whose
+ * contents the search never read (a name match, a names-only result, or a result
+ * of an empty-query search). Only .md/.txt files are read, with the same size
+ * bound as the content search; anything else — folders, other file types, or an
+ * unreadable or oversized file — is evaluated against no content, so `p.x` is
+ * simply undefined there.
+ */
+async function readSortKeyContent(result: SearchResult): Promise<string> {
+  if (result.isDirectory || !isContentCandidate(result.path, false)) return '';
+  try {
+    const stat = await fs.promises.stat(result.path);
+    if (stat.size > MAX_SEARCH_FILE_BYTES) {
+      logger.debug('search: skipping oversized file for custom sort', result.path, stat.size);
+      return '';
+    }
+    return await fs.promises.readFile(result.path, 'utf-8');
+  } catch (err) {
+    logger.debug('search: failed to read file for custom sort', result.path, err);
+    return '';
+  }
+}
+
+/**
  * The options of a folder search: the fields of a saved search that shape it
  * (all but its name and query), plus the ignored-path patterns and a signal
  * that cancels it. A whole SearchDefinition can be passed as-is.
@@ -450,6 +542,9 @@ export type SearchFolderOptions = Partial<Omit<SearchDefinition, 'name' | 'searc
  * - `sortBy` — result order (see compareSearchResults); decides which
  *   results survive the cap
  * - `sortDirection` — 'asc' or 'desc'
+ * - `sortExpression` — with `sortBy: 'custom'`, the JavaScript expression whose
+ *   per-file value orders the results (see createSortKeyEvaluator). Files the
+ *   search matched without reading are read afterwards to evaluate it.
  * - `signal` — cancels the search: it is checked after each crawl and
  *   before each file is stat'd, read or matched, and an abort rejects the search
  *   with the signal's reason. Partial results are never returned.
@@ -470,6 +565,7 @@ export async function searchFolderWithTotal(
     mostRecent = false,
     sortBy = 'modified-time',
     sortDirection = 'desc',
+    sortExpression = '',
     signal,
   }: SearchFolderOptions = {},
 ): Promise<{ results: SearchResult[]; totalMatches: number }> {
@@ -486,6 +582,28 @@ export async function searchFolderWithTotal(
     : !searchContents && matchType === 'wildcard'
       ? createFileNameGlobPredicate(query)
       : createMatchPredicate(query, matchType, yamlCache);
+
+  // Custom sort: compiled up front (like the query) so a bad expression fails
+  // the search before anything is crawled. Shares the YAML cache, so a file whose
+  // front matter the query already parsed isn't parsed again.
+  if (sortBy === 'custom' && !sortExpression.trim()) {
+    throw new Error('Sort By is Custom, but no sort expression was given.');
+  }
+  const baseSortKeyEvaluator = sortBy === 'custom' ? createSortKeyEvaluator(sortExpression, yamlCache) : null;
+  // Mirrors the query's every-file error tracking below.
+  let sortEvaluatedCount = 0;
+  let sortErrorCount = 0;
+  let firstSortError: string | undefined;
+  const withSortKey = (result: SearchResult, content: string): SearchResult => {
+    if (!baseSortKeyEvaluator) return result;
+    const { sortKey, sortLabel, error } = baseSortKeyEvaluator(content, result.path);
+    sortEvaluatedCount++;
+    if (error !== undefined) {
+      sortErrorCount++;
+      firstSortError ??= error;
+    }
+    return { ...result, sortKey, sortLabel };
+  };
 
   // Track advanced-query runtime errors. One file throwing is normal (the query
   // may assume front matter only some files have), but a query that threw on
@@ -724,7 +842,9 @@ export async function searchFolderWithTotal(
         const { matches, matchCount } = matchPredicate(content, filePath);
         if (!matches) return null;
 
-        return buildResult(folderPath, filePath, matchCount, resultStat);
+        // The content is in hand, so evaluate the custom sort key now rather
+        // than re-reading the file in the pass below.
+        return withSortKey(await buildResult(folderPath, filePath, matchCount, resultStat), content);
       },
     );
     for (const r of fileResults) {
@@ -736,11 +856,28 @@ export async function searchFolderWithTotal(
     throw new Error(`Advanced search query failed on every file it was evaluated against: ${firstError}`);
   }
 
+  // Custom sort keys for the results whose contents were never read above.
+  let sortable = results;
+  if (baseSortKeyEvaluator) {
+    sortable = await mapWithConcurrency(
+      results,
+      SEARCH_FILE_CONCURRENCY,
+      async (r): Promise<SearchResult> => {
+        if (r.sortKey !== undefined) return r;
+        signal?.throwIfAborted();
+        return withSortKey(r, await readSortKeyContent(r));
+      },
+    );
+    if (sortEvaluatedCount > 0 && sortErrorCount === sortEvaluatedCount) {
+      throw new Error(`Custom sort expression failed on every file it was evaluated against: ${firstSortError}`);
+    }
+  }
+
   // Sort by the user's chosen order, THEN cap, so the kept results are the ones
   // that order puts first — capping first would silently drop, say, the newest
   // matches from a "newest first" search.
-  results.sort(compareSearchResults(sortBy, sortDirection));
-  return { results: results.slice(0, SEARCH_RESULT_LIMIT), totalMatches: results.length };
+  sortable.sort(compareSearchResults(sortBy, sortDirection));
+  return { results: sortable.slice(0, SEARCH_RESULT_LIMIT), totalMatches: sortable.length };
 }
 
 /** {@link searchFolderWithTotal} without the total: just the capped, sorted results. */

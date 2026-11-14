@@ -4,7 +4,7 @@
  * live in `searchUtil.ts`.
  */
 
-import type { SearchDefinition, SearchSortBy, SearchSortDirection } from './shared';
+import type { SearchDefinition, SearchSortBy, SearchSortDirection, SortKey, SortKeyScalar } from './shared';
 import { HASHTAG_REGEX } from './regexPatterns';
 
 /** The fields of a search result that the result ordering reads. */
@@ -12,11 +12,44 @@ interface SortableSearchResult {
   relativePath: string;
   modifiedTime?: number;
   createdTime?: number;
+  sortKey?: SortKey;
 }
 
 /** Last path segment, for either separator. */
 function baseName(relativePath: string): string {
   return relativePath.split(/[\\/]/).pop() || relativePath;
+}
+
+/** Compares two non-null sort-key values: numbers numerically and before
+ * strings; strings case-insensitively, with digit runs compared as numbers. */
+function compareSortScalars(a: number | string, b: number | string): number {
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  if (typeof a === 'number') return -1;
+  if (typeof b === 'number') return 1;
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+/**
+ * Compares two custom sort keys, element by element (a scalar counts as a
+ * one-element array, and a shorter key counts as padded with nulls). `sign`
+ * applies the direction to values only: a null (no value) sorts after any value
+ * in either direction, both as a whole key and at any element.
+ */
+function compareSortKeys(a: SortKey | undefined, b: SortKey | undefined, sign: number): number {
+  const aa: SortKeyScalar[] = Array.isArray(a) ? a : [a ?? null];
+  const bb: SortKeyScalar[] = Array.isArray(b) ? b : [b ?? null];
+  const n = Math.max(aa.length, bb.length);
+  for (let i = 0; i < n; i++) {
+    const x = aa[i] ?? null;
+    const y = bb[i] ?? null;
+    if (x === null || y === null) {
+      if (x !== y) return x === null ? 1 : -1;
+      continue;
+    }
+    const cmp = compareSortScalars(x, y);
+    if (cmp) return sign * cmp;
+  }
+  return 0;
 }
 
 /**
@@ -27,7 +60,9 @@ function baseName(relativePath: string): string {
  * sorts with it for display.
  *
  * File-name order compares base names, ignoring case. Time order treats a
- * missing timestamp as 0 (oldest). Ties fall back to the relative path, so the
+ * missing timestamp as 0 (oldest). Custom order compares each result's
+ * `sortKey` (see compareSortKeys), keeping results with no value last in
+ * either direction. Ties fall back to the relative path, so the
  * order — and therefore which results survive the cap — is deterministic.
  *
  * See: (USER_GUIDE.md#search-results)
@@ -38,6 +73,9 @@ export function compareSearchResults(
 ): (a: SortableSearchResult, b: SortableSearchResult) => number {
   const sign = direction === 'asc' ? 1 : -1;
   return (a, b) => {
+    if (sortBy === 'custom') {
+      return compareSortKeys(a.sortKey, b.sortKey, sign) || a.relativePath.localeCompare(b.relativePath);
+    }
     let cmp: number;
     if (sortBy === 'file-name') {
       cmp = baseName(a.relativePath).localeCompare(baseName(b.relativePath), undefined, { sensitivity: 'base' });
@@ -119,7 +157,7 @@ export function initialSearchDefinition(
  * Whether the Search dialog's form differs from the saved definition it is
  * editing, i.e. whether Save would change anything. Both sides are normalized
  * the way the dialog loads and saves them (missing optional flags count as
- * false, the query is saved trimmed), so merely opening a saved search never
+ * false, the query and sort expression are saved trimmed), so merely opening a saved search never
  * reads as an unsaved change. The name is not compared: renames are saved
  * separately, straight from the definitions list.
  */
@@ -132,6 +170,7 @@ export function isSearchDefinitionDirty(form: SearchDefinition, saved: SearchDef
     || a.matchType !== b.matchType
     || a.sortBy !== b.sortBy
     || a.sortDirection !== b.sortDirection
+    || (a.sortExpression ?? '').trim() !== (b.sortExpression ?? '').trim()
     || a.searchImageExif !== b.searchImageExif
     || a.mostRecent !== b.mostRecent;
 }

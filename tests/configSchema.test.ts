@@ -106,6 +106,31 @@ describe('parseConfigYaml — settings tolerance', () => {
     expect(cfg?.settings?.searchDefinitions).toEqual([]);
   });
 
+  it('keeps a custom sort and its expression', () => {
+    const def = {
+      name: 'todos',
+      searchText: "p.type == 'todo'",
+      searchContents: true,
+      searchNames: false,
+      matchType: 'advanced',
+      sortBy: 'custom',
+      sortDirection: 'asc',
+      sortExpression: '[p.priority, ts(p.due)]',
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
+    expect(cfg?.settings?.searchDefinitions).toEqual([def]);
+  });
+
+  it('drops a non-string sortExpression without dropping the search', () => {
+    const def = {
+      name: 'todos', searchText: 'x', searchContents: true, searchNames: false,
+      matchType: 'literal', sortBy: 'custom', sortDirection: 'asc', sortExpression: 42,
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
+    expect(cfg?.settings?.searchDefinitions?.[0]).toMatchObject({ name: 'todos', sortBy: 'custom' });
+    expect(cfg?.settings?.searchDefinitions?.[0]?.sortExpression).toBeUndefined();
+  });
+
   it('drops a corrupt searchDefinition element but keeps the good ones', () => {
     const good = {
       name: 'recent',

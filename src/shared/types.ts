@@ -7,6 +7,7 @@ import type {
   SearchMatchType,
   SearchSortBy,
   SearchSortDirection,
+  SortKey,
   SearchDefinition,
   Bookmark,
   AppSettings,
@@ -242,6 +243,10 @@ export interface SearchResultItem {
   nameMatch?: boolean;
   /** Set when the result is a folder (only a names-only search returns folders). */
   isDirectory?: boolean;
+  /** The file's value under a custom sort expression (custom sort only). */
+  sortKey?: SortKey;
+  /** `sortKey` formatted for display; the results view shows it on the row. */
+  sortLabel?: string;
 }
 
 /**
@@ -262,6 +267,7 @@ export type {
   SearchMatchType,
   SearchSortBy,
   SearchSortDirection,
+  SortKey,
   SearchDefinition,
   Bookmark,
   AppSettings,

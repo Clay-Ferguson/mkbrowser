@@ -58,6 +58,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Using Search](#using-search)
   * [Search Results](#search-results)
   * [Advanced Search Predicates](#advanced-search-predicates)
+  * [Custom Sort Order](#custom-sort-order)
   * [Search Highlight](#search-highlight)
   * [Searching the Help Tab](#searching-the-help-tab)
   * [Saving Search Definitions](#saving-search-definitions)
@@ -773,7 +774,8 @@ A search always covers the folder you are currently browsing **and all of its su
         - **Advanced**: Use custom predicate functions (see below). Note that Advanced expressions are evaluated against file **contents only** — they never match on file names.
     - **Search Image EXIF**: Also searches the EXIF metadata (camera details, descriptions, and so on) of image files — `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`, `.tiff`, `.tif` and `.avif`. Only available when **File Contents** is checked.
     - **Recent Files**: Searches only the 500 most recently modified files. With **File Contents** checked, those are the 500 newest `.md` and `.txt` files (plus images when **Search Image EXIF** is checked), and any name and contents matching happen within them — so other file types, like a `.pdf`, aren't matched by name while this option is on. With only **File Names** checked, they are the 500 most recently modified files and folders of any type.
-    - **Order**: **Sort By** (File Modification Time, File Creation Time, or File Name) and **Direction** (DESC or ASC) set the order of the results. The order also decides which results are kept when a search finds more than 500 files (see [Search Results](#search-results)).
+    - **Order**: **Sort By** (File Modification Time, File Creation Time, File Name, or Custom) and **Direction** (DESC or ASC) set the order of the results. The order also decides which results are kept when a search finds more than 500 files (see [Search Results](#search-results)).
+        - **Custom**: Shows a **Sort expression** box where you enter a JavaScript expression, such as `ts(p.due)`, and the results are ordered by its value for each file. Custom works with every Search Mode, not just Advanced. See [Custom Sort Order](#custom-sort-order).
 4. Click **Search** (or press `Enter` in the search text box). The matching files are listed in the **Search Results** tab. Click a file in the list to open it **by itself** in the Browse view (the same single-file view you get from clicking a file in the **Index Tree**), so you can step through the results one at a time. Clicking a folder result instead shows that folder in its parent's listing. The **Edit** button on a result opens the file by itself in the same way, with its editor already open.
 
 ## Search Results
@@ -783,7 +785,7 @@ The top of the **Search Results** tab summarizes the search — the saved search
 - **Calendar**: Opens the Calendar tab showing just the results that are calendar items (files with a valid `due` date). This replaces whatever the calendar was showing before. Unlike a calendar opened from the Browse view, it does not update itself when files change — click **Calendar** again to refresh it.
 - **Refresh** (circular-arrow icon): Runs the same search again, so the list picks up files that were added, edited, renamed, or deleted since the search ran.
 
-Each result shows the file's path relative to the searched folder and how many times the query matched (or **name match** when it matched on the file name). Hover over a result to reveal its **Edit** button (Markdown and text files only) and **Delete** button. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
+Each result shows the file's path relative to the searched folder and how many times the query matched (or **name match** when it matched on the file name). With a [Custom sort](#custom-sort-order), each result also shows the value it was sorted by. Hover over a result to reveal its **Edit** button (Markdown and text files only) and **Delete** button. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
 
 A search returns **at most 500 results**. When more files match, the summary says **"Showing 500 of N files found"**, and the 500 shown are the first ones in your chosen sort order — for example, the 500 newest when sorting by modification time, newest first. Narrow the search or change the order to see others.
 
@@ -880,6 +882,31 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 *   **Errors on every file** usually mean a typo, such as `Tag(...)` instead of `tag(...)`. Instead of returning a misleading empty list, the search fails and shows the error.
 *   **Slow queries**: if a query takes more than one second on a single file (for example, an infinite loop), the search is stopped and reports a timeout.
 
+## Custom Sort Order
+Choosing **Custom** under **Order → Sort By** in the Search dialog lets you order the results by any value you can compute from a file — most usefully a front matter property. Enter a JavaScript expression in the **Sort expression** box; it is evaluated once for each result, and the results are ordered by its value. Press **Ctrl+Enter** in the box to search.
+
+The expression is written exactly like an [Advanced search predicate](#advanced-search-predicates) and has the same helpers: `p` (front matter properties), `ts()`, `$()`, `tag()`, `past()`, `future()` and `today()`. The difference is that a predicate answers *yes or no*, while a sort expression produces a *value*. Custom sorting works with any Search Mode — a Literal search for "meeting" can be sorted by due date just as well as an Advanced one.
+
+**Example — overdue to-dos, most overdue first.** If you have a `todo` [object type](#objects-and-custom-types) with a `due` date property:
+
+- Search Mode: Advanced
+- Query: `p.type == 'todo' && past(ts(p.due))`
+- Order → Sort By: Custom, Sort expression: `ts(p.due)`
+- Order → Direction: ASC
+
+**How values are compared:**
+*   **Numbers** are compared numerically. Use `ts()` to turn a date into a number, so that dates sort by time: `ts(p.due)`.
+*   **Text** is compared ignoring upper/lower case, with numbers inside the text compared by value (`item 2` comes before `item 10`).
+*   **True/false** values count as 1 and 0, so `tag('#urgent')` with DESC lists urgent files first.
+*   When values of different kinds are mixed, numbers come before text.
+*   **No value** — a missing property (`p.due` on a file without `due`), a date `ts()` can't read, or an error on that file — always sorts **last**, in both ASC and DESC. If the expression fails on *every* file, the search reports the error instead, as with a query.
+
+**Sorting by more than one value.** Return a list in square brackets to sort by the first value, then break ties with the next, and so on. For example, `[p.priority, ts(p.due)]` orders by `priority`, and files with the same priority by due date. Within a list, a missing value also sorts after the others at its position, whichever the direction.
+
+**The value on each result.** With a custom sort, each row in the Search Results tab shows the value it was sorted by, so you can see why it landed where it did. Dates produced by `ts()` are shown as dates (`2026-11-20`, plus the time when it isn't midnight); a missing value is shown as **—**; list values are separated by **·**.
+
+**Mistakes in the sort expression** are reported under the **Sort expression** box when you click **Search** or **Save**, just like the query. **Search** and **Save** stay disabled while Sort By is Custom and the box is empty.
+
 ## Search Highlight
 
 After a search, MkBrowser highlights every occurrence of the search term across all rendered Markdown content in the Browse view — not just in the Search Results tab. This makes it easy to spot matching text as you scroll through your files.
@@ -901,6 +928,8 @@ You can save frequently used searches for quick access later. The left side of t
 * **Load a saved search:** click its row. The row is highlighted, and the top of the right side shows **Editing "name"**. When no row is highlighted, the right side shows **Unsaved search**: a one-off search that you can still run.
 * **Change a saved search:** with its row selected, change the options, then click **Save** at the lower right. **Revert** discards your changes and goes back to the saved version. While there are unsaved changes, the footer says *Unsaved changes*. You are asked before those changes are thrown away by selecting a different row or closing the dialog.
 * **Rename or delete:** hover over a row and click **✎** to edit its name in place, or **✕** to delete it (you'll be asked to confirm). Both take effect immediately.
+
+A saved search keeps all of its options, including a [Custom sort](#custom-sort-order)'s sort expression.
 
 Clicking **Search** only runs the search. It never saves or changes a saved definition, so you can load a saved search, adjust it for a one-off run, and search without changing what's saved.
 
@@ -934,7 +963,7 @@ To list everything due in the next 7 days, create a search definition that has:
 - Search Mode: Advanced
 - Query: `future(ts(p.due), 7)`
 
-Change `future` to `past` to see what was due in the last 7 days, or use `today(ts(p.due))` for items due today. Then click **Calendar** on the Search Results tab to see them on the calendar.
+Change `future` to `past` to see what was due in the last 7 days, or use `today(ts(p.due))` for items due today. To list them in the order they come due, also set **Order → Sort By** to Custom with the sort expression `ts(p.due)` and **Direction** to ASC (see [Custom Sort Order](#custom-sort-order)). Then click **Calendar** on the Search Results tab to see them on the calendar.
 
 ### Search by Hashtag
 Clicking a hashtag in a rendered Markdown file runs a literal search for it, which is case-insensitive and also finds longer tags that start with it (clicking `#foo` also finds `#foobar`). **Ctrl+click** the hashtag to search for that exact tag instead, the same as the Advanced query `tag('#foo')`.

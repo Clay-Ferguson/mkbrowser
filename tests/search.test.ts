@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
-import { searchFolder, searchFolderWithTotal, createMatchPredicate, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/main/search';
+import { searchFolder, searchFolderWithTotal, createMatchPredicate, formatSortLabel, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/main/search';
 import { AdvancedQueryTimeoutError, AdvancedQuerySyntaxError } from '../src/main/advancedQuery';
 import { createContentSearcher } from '../src/shared/searchHelpers';
 import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/shared/timeUtil';
@@ -742,6 +742,106 @@ describe('content+names search', () => {
 // ═══════════════════════════════════════════════════════════════════
 // 6. Ignored Paths
 // ═══════════════════════════════════════════════════════════════════
+describe('custom sort', () => {
+  let dir: string;
+
+  const names = (results: { path: string }[]): string[] => results.map(r => path.basename(r.path));
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-custom-sort-'));
+    const write = (relPath: string, body: string) => {
+      const fp = path.join(dir, relPath);
+      fs.mkdirSync(path.dirname(fp), { recursive: true });
+      fs.writeFileSync(fp, body, 'utf-8');
+    };
+    write('late.md', '---\ntype: todo\ndue: 2026-03-01\npriority: 1\n---\nTODO late\n');
+    write('early.md', '---\ntype: todo\ndue: 2026-01-15 09:30\npriority: 2\n---\nTODO early\n');
+    write('undated.md', '---\ntype: todo\npriority: 1\n---\nTODO undated\n');
+    write('note.md', 'just a note, TODO\n');
+    write('todo-list.pdf', 'binary');
+    write('sub/todo-folder/inner.txt', 'nothing\n');
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('orders by a front matter date, files with no value last in both directions', async () => {
+    const opts = { matchType: 'advanced' as const, sortBy: 'custom' as const, sortExpression: 'ts(p.due)' };
+    const asc = await searchFolder(dir, "p.type == 'todo'", { ...opts, sortDirection: 'asc' });
+    expect(names(asc)).toEqual(['early.md', 'late.md', 'undated.md']);
+    const desc = await searchFolder(dir, "p.type == 'todo'", { ...opts, sortDirection: 'desc' });
+    expect(names(desc)).toEqual(['late.md', 'early.md', 'undated.md']);
+  });
+
+  it('labels each result with its value, dates from ts() as dates', async () => {
+    const results = await searchFolder(dir, "p.type == 'todo'", {
+      matchType: 'advanced', sortBy: 'custom', sortDirection: 'asc', sortExpression: '[p.priority, ts(p.due)]',
+    });
+    expect(results.map(r => [path.basename(r.path), r.sortLabel])).toEqual([
+      ['late.md', '1 · 2026-03-01'],
+      ['undated.md', '1 · —'],
+      ['early.md', '2 · 2026-01-15 09:30'],
+    ]);
+  });
+
+  it('works with a literal search', async () => {
+    const results = await searchFolder(dir, 'TODO', { sortBy: 'custom', sortDirection: 'desc', sortExpression: 'p.priority' });
+    expect(names(results)).toEqual(['early.md', 'late.md', 'undated.md', 'note.md']);
+  });
+
+  it('reads files matched by name only, and evaluates folders and other types with no content', async () => {
+    const results = await searchFolder(dir, 'todo', {
+      searchContents: false, searchNames: true, sortBy: 'custom', sortDirection: 'asc',
+      sortExpression: "p.due ?? 'zz-' + 'nodue'",
+    });
+    // Only the names match here (none of the .md files has 'todo' in its name).
+    expect(names(results).sort()).toEqual(['todo-folder', 'todo-list.pdf']);
+    expect(results.every(r => r.sortKey === 'zz-nodue')).toBe(true);
+  });
+
+  it('reads name-matched files in a contents+names search', async () => {
+    const results = await searchFolder(dir, 'early', {
+      searchContents: true, searchNames: true, sortBy: 'custom', sortDirection: 'asc', sortExpression: 'ts(p.due)',
+    });
+    expect(results.map(r => [path.basename(r.path), r.nameMatch, r.sortLabel])).toEqual([
+      ['early.md', true, '2026-01-15 09:30'],
+    ]);
+  });
+
+  it('fails the search when the expression fails on every file', async () => {
+    await expect(searchFolder(dir, 'TODO', { sortBy: 'custom', sortExpression: 'p.nope.deeper' }))
+      .rejects.toThrow(/Custom sort expression failed on every file/);
+  });
+
+  it('gives a file the expression fails on no value, without failing the search', async () => {
+    const results = await searchFolder(dir, 'TODO', {
+      sortBy: 'custom', sortDirection: 'asc', sortExpression: "p.type.length",
+    });
+    expect(names(results).slice(-1)).toEqual(['note.md']);
+    expect(results.at(-1)?.sortKey).toBeNull();
+  });
+
+  it('rejects a syntax error and a missing expression before searching', async () => {
+    await expect(searchFolder(dir, 'TODO', { sortBy: 'custom', sortExpression: 'ts(' }))
+      .rejects.toThrow(AdvancedQuerySyntaxError);
+    await expect(searchFolder(dir, 'TODO', { sortBy: 'custom', sortExpression: '  ' }))
+      .rejects.toThrow(/no sort expression/);
+  });
+
+  it('leaves results unlabelled for the built-in orders', async () => {
+    const results = await searchFolder(dir, 'TODO', { sortExpression: 'ts(p.due)' });
+    expect(results.every(r => r.sortKey === undefined && r.sortLabel === undefined)).toBe(true);
+  });
+
+  it('formatSortLabel shows non-date numbers and strings as-is', () => {
+    expect(formatSortLabel(3)).toBe('3');
+    expect(formatSortLabel('abc')).toBe('abc');
+    expect(formatSortLabel(null)).toBe('—');
+    expect(formatSortLabel([1, null, 'x'])).toBe('1 · — · x');
+  });
+});
+
 describe('ignored paths', () => {
   it('exact folder name exclusion: ignoredPaths=["skipme"] excludes skipme/ subtree', async () => {
     const results = await searchFolder(

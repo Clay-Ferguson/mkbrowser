@@ -25,11 +25,18 @@ import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
-import type { CalendarSource } from '../../shared/types';
+import type { CalendarSource, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, ENTRY_HEADER_ROW_PADDING, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import FileTypeIcon from '../FileTypeIcon';
 import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
+
+/** The summary's description of a built-in (non-custom) sort order. */
+function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection): string {
+  if (sortBy === 'file-name') return `file name (${direction === 'asc' ? 'A–Z' : 'Z–A'})`;
+  const what = sortBy === 'created-time' ? 'creation time' : 'modification time';
+  return `${what} (${direction === 'asc' ? 'oldest first' : 'newest first'})`;
+}
 
 /**
  * Displays the results of the most recent folder search as a sorted list of
@@ -305,7 +312,9 @@ function SearchResultsView() {
                   : <>{searchResults.length} file{searchResults.length !== 1 ? 's' : ''} found</>}
                 <span className="mx-2">•</span>
                 <span>
-                  Sorted by {searchSortBy === 'file-name' ? 'file name' : searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortBy === 'file-name' ? (searchSortDirection === 'asc' ? 'A–Z' : 'Z–A') : (searchSortDirection === 'asc' ? 'oldest first' : 'newest first')})
+                  {searchSortBy === 'custom'
+                    ? <>Sorted by <span className="font-mono text-green-400">{lastSearchDefinition?.sortExpression}</span> ({searchSortDirection === 'asc' ? 'ascending' : 'descending'})</>
+                    : <>Sorted by {describeSortOrder(searchSortBy, searchSortDirection)}</>}
                 </span>
               </>
             )}
@@ -371,6 +380,17 @@ function SearchResultsView() {
                       count that would read as misleadingly low next to the content
                       matches. Label it instead. Omitted for a Recent Files listing,
                       which has no query to match. */}
+                  {/* The value a custom sort ordered this result by. */}
+                  {result.sortLabel !== undefined && (
+                    <div
+                      className="text-sm text-slate-400 font-mono flex-shrink-0 max-w-[40%] truncate"
+                      title={`Sort value: ${result.sortLabel}`}
+                      data-testid="search-result-sort-value"
+                    >
+                      {result.sortLabel}
+                    </div>
+                  )}
+
                   {!isRecentFilesListing && (
                     <div className="text-sm text-slate-500 flex-shrink-0">
                       {result.nameMatch
