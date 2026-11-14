@@ -17,6 +17,8 @@ interface EntryPopupMenuProps {
   onCreateAttachment?: () => void;
   /** When omitted, the "Make Folder" item is hidden (folders). */
   onMakeFolder?: () => void;
+  /** When omitted, the "Remove Properties" item is hidden (anything but a Markdown file). */
+  onRemoveProperties?: () => void;
   /** Copies the entry's absolute path to the clipboard (same as the index tree's "Copy Path"). */
   onCopyPath: () => void;
   /** Drives the bookmark item's label between add and remove. */
@@ -48,6 +50,7 @@ export default function EntryPopupMenu({
   onAttachFromFile,
   onCreateAttachment,
   onMakeFolder,
+  onRemoveProperties,
   onCopyPath,
   isBookmarked,
   onToggleBookmark,
@@ -84,6 +87,13 @@ export default function EntryPopupMenu({
           label="Make Folder"
           data-testid="menu-entry-make-folder"
           onClick={() => { onMakeFolder(); onClose(); }}
+        />
+      )}
+      {onRemoveProperties && (
+        <PopupMenuItem
+          label="Remove Properties"
+          data-testid="menu-entry-remove-properties"
+          onClick={() => { onRemoveProperties(); onClose(); }}
         />
       )}
       <PopupMenuItem

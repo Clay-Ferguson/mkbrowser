@@ -5,11 +5,15 @@ import { getParentPath, getFileName, joinPath } from '../../../renderer/pathUtil
 import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE, HOVER_REVEAL, HOVER_REVEAL_PINNED } from '../../../renderer/styles';
 import { toggleBookmark, addBookmark, useAS, revealInTree, setHighlightItem, setBrowseFile } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
+import ConfirmDialog from '../../dialogs/ConfirmDialog';
+import AlertDialog from '../../dialogs/AlertDialog';
 import EntryPopupMenu from '../../menus/EntryPopupMenu';
 import type { AttachMenuProps } from './types';
 import { saveSettings } from '../../../renderer/config';
-import { makeFolderForFileOp } from '../../../renderer/fileOpsUtil';
+import { makeFolderForFileOp, removePropertiesFromFile } from '../../../renderer/fileOpsUtil';
 import { openSymlinkTarget } from '../../../renderer/symlinkOps';
+import { runOp } from '../../../renderer/runOp';
+import { isMarkdownFile } from '../../../shared/fileTypes';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
@@ -49,8 +53,8 @@ interface EntryActionBarProps {
  * buttons for: delete, reveal in folder tree, and move up/down (only in
  * indexed/document mode, when the move handlers are provided), plus a trailing
  * hamburger button opening EntryPopupMenu — which holds the remaining actions
- * (open symlink for a link, open with OS app, view file, bookmark, make folder, copy path, and the
- * three "Attach:" items) as text items, so the hover bar doesn't grow unbounded.
+ * (open symlink for a link, open with OS app, view file, bookmark, make folder, remove properties
+ * for a Markdown file, copy path, and the three "Attach:" items) as text items, so the hover bar doesn't grow unbounded.
  *
  * See: (file_attachments.md#entry-menu-the-three-attach-items-srccomponentsmenusentrypopupmenutsx)
  * See: (USER_GUIDE.md#delete)
@@ -85,6 +89,10 @@ export function EntryActionBar({
   // Open flag and anchor for the hamburger "More actions" menu (EntryPopupMenu). See: (popup_menus.md#step-2-add-the-trigger-button-and-menu-to-the-parent-component)
   const [showMenu, setShowMenu] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  // The per-file "Remove Properties" flow: confirm, then a summary alert — the same
+  // dialogs BrowseView shows for the toolbar's selection-based version.
+  const [showRemovePropsConfirm, setShowRemovePropsConfirm] = useState(false);
+  const [removePropsResult, setRemovePropsResult] = useState<string | null>(null);
 
   // Removing a bookmark is immediate; adding one opens a dialog so the user can give it a name.
   // See: (USER_GUIDE.md#adding-a-bookmark)
@@ -119,6 +127,14 @@ export function EntryActionBar({
     setBrowseFile(getParentPath(path), getFileName(path));
   };
 
+  // Clears this one file's front matter (except id), ignoring the checkbox selection.
+  const performRemoveProperties = () => {
+    setShowRemovePropsConfirm(false);
+    runOp(async () => {
+      await removePropertiesFromFile(path, setRemovePropsResult);
+    }, 'Failed to remove properties: ', setRemovePropsResult);
+  };
+
   // "Open Symlink": opens the link's original in the browse view, as the tree's item does.
   // See: (USER_GUIDE.md#opening-a-links-original)
   const handleOpenSymlink = linkTarget
@@ -134,6 +150,31 @@ export function EntryActionBar({
         onSave={handleBookmarkSave}
         onCancel={handleBookmarkCancel}
       />
+    )}
+    {/* Propagation stopped for the same reason as the popup menu below: these
+        render inside the entry header, whose click handlers must not see them. */}
+    {(showRemovePropsConfirm || removePropsResult !== null) && (
+      <div
+        className="contents"
+        onClick={(e) => e.stopPropagation()}
+        onContextMenu={(e) => e.stopPropagation()}
+      >
+        {showRemovePropsConfirm && (
+          <ConfirmDialog
+            message={`Remove all front matter properties (except id) from "${getFileName(path)}"?`}
+            onConfirm={performRemoveProperties}
+            onCancel={() => setShowRemovePropsConfirm(false)}
+          />
+        )}
+        {removePropsResult !== null && (
+          <AlertDialog
+            preserveWhitespace
+            title="Remove Properties"
+            message={removePropsResult}
+            onClose={() => setRemovePropsResult(null)}
+          />
+        )}
+      </div>
     )}
     <div data-testid="entry-action-bar" className={`flex items-center gap-1 ${className}`}>
       {/* While the popup menu is open the bar stays visible even if the pointer
@@ -233,6 +274,7 @@ export function EntryActionBar({
           onAttachFromFile={onAttachFromFile}
           onCreateAttachment={onCreateAttachment}
           onMakeFolder={isFolder ? undefined : () => { void makeFolderForFileOp(path); }}
+          onRemoveProperties={!isFolder && isMarkdownFile(getFileName(path)) ? () => setShowRemovePropsConfirm(true) : undefined}
           onCopyPath={() => void navigator.clipboard.writeText(path)}
           isBookmarked={isBookmarked}
           onToggleBookmark={handleBookmarkClick}

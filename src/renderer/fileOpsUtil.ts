@@ -882,7 +882,7 @@ export async function pasteFromClipboardOp(
  * @param onResult - Receives the user-facing summary once every file has been processed.
  */
 export async function removePropertiesFromSelected(
-  selectedItems: ItemData[],
+  selectedItems: Pick<ItemData, 'path' | 'name' | 'isDirectory'>[],
   onResult: (message: string) => void
 ): Promise<void> {
   const files = selectedItems.filter((item) => !item.isDirectory && isMarkdownFile(item.name));
@@ -918,4 +918,19 @@ export async function removePropertiesFromSelected(
   if (unchanged > 0) lines.push(`${unchanged} file(s) had no properties to remove.`);
   if (failed.length > 0) lines.push('', 'Skipped:', ...failed.map((f) => `  ${f}`));
   onResult(lines.join('\n'));
+}
+
+/**
+ * Single-file form of {@link removePropertiesFromSelected}, for an entry's own
+ * "Remove Properties" menu item: acts on the one Markdown file regardless of the
+ * checkbox selection, with the same summary reported through `onResult`.
+ *
+ * @param filePath - Absolute path of the Markdown file.
+ * @param onResult - Receives the user-facing summary.
+ */
+export async function removePropertiesFromFile(
+  filePath: string,
+  onResult: (message: string) => void
+): Promise<void> {
+  await removePropertiesFromSelected([{ path: filePath, name: getFileName(filePath), isDirectory: false }], onResult);
 }
