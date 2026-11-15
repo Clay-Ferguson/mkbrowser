@@ -9,12 +9,13 @@ import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { compileAdvancedQuery, compileSortKeyExpression, getAdvancedQuerySyntaxError, AdvancedQueryTimeoutError, AdvancedQuerySyntaxError, AdvancedQueryRuntimeError, AdvancedQueryHost } from '../src/main/advancedQuery';
 
-/** Host whose $ matches when content includes the text; getProp reads from a map. */
-function makeHost(content = '', props: Record<string, unknown> = {}): AdvancedQueryHost {
+/** Host whose $ matches when content includes the text; getProp and getFile read from maps. */
+function makeHost(content = '', props: Record<string, unknown> = {}, file: Record<string, unknown> = {}): AdvancedQueryHost {
   return {
     $: (t) => content.includes(t),
     tag: (t) => content.split(/\s+/).includes(t),
     getProp: (name) => props[name],
+    getFile: (name) => file[name],
     past: (ts) => !Number.isNaN(ts) && ts < Date.now(),
     future: (ts) => !Number.isNaN(ts) && ts > Date.now(),
     today: (ts) => !Number.isNaN(ts),
@@ -137,6 +138,24 @@ describe('helper bridge', () => {
     expect(evalQuery('p.meta.deep.x === 1', host)).toBe(true);
     expect(evalQuery('p.missing === undefined', host)).toBe(true);
     expect(evalQuery("p.title == 'Notes'", makeHost('', { title: 'Other' }))).toBe(false);
+  });
+
+  it('f returns string and number attributes intact', () => {
+    const host = makeHost('', {}, { content: 'Hello\n# Summary', size: 1234, modified: 946684800000, name: 'a.md', ext: '.md' });
+    expect(evalQuery('f.size === 1234', host)).toBe(true);
+    expect(evalQuery("f['size'] > 1000", host)).toBe(true);
+    expect(evalQuery("f.content.includes('Hello')", host)).toBe(true);
+    expect(evalQuery('/^# Summary/m.test(f.content)', host)).toBe(true);
+    expect(evalQuery("f.name === 'a.md' && f.ext === '.md'", host)).toBe(true);
+    expect(evalQuery('f.modified === 946684800000', host)).toBe(true);
+    expect(evalQuery('f.missing === undefined', host)).toBe(true);
+  });
+
+  it('f never hands the sandbox a non-primitive or non-finite host value', () => {
+    const host = makeHost('', {}, { obj: { a: 1 }, fn: () => 1, nan: Number.NaN, flag: true });
+    expect(evalQuery('f.obj === undefined && f.fn === undefined && f.nan === undefined && f.flag === undefined', host)).toBe(true);
+    expect(evalQuery('f[Symbol.toPrimitive] === undefined', host)).toBe(true);
+    expect(evalQuery('(() => { try { return f.constructor.constructor("return typeof process")() === "undefined"; } catch { return true; } })()', host)).toBe(true);
   });
 
   it('the old prop() function no longer exists', () => {
@@ -272,6 +291,15 @@ describe('compileSortKeyExpression', () => {
     const host = makeHost('', { due: '2000-01-01', priority: 2 });
     const { dates } = compileSortKeyExpression('[p.priority, ts(p.due), ts("bad")]')(host);
     expect([...dates]).toEqual([946684800000]);
+  });
+
+  it('reads file attributes through f, recording f.created/f.modified as dates', () => {
+    const host = makeHost('', {}, { size: 50, created: 1000, modified: 2000, name: 'b.md' });
+    expect(key('f.size', host)).toBe(50);
+    expect(key('f.name', host)).toBe('b.md');
+    const { key: k, dates } = compileSortKeyExpression('[f.size, f.created, f.modified]')(host);
+    expect(k).toEqual([50, 1000, 2000]);
+    expect([...dates].sort()).toEqual([1000, 2000]);
   });
 
   it('accepts a trailing line comment', () => {

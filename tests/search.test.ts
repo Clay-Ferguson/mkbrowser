@@ -842,6 +842,84 @@ describe('custom sort', () => {
   });
 });
 
+describe('the f file object', () => {
+  let dir: string;
+
+  const names = (results: { path: string }[]): string[] => results.map(r => path.basename(r.path));
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-file-object-'));
+    const write = (relPath: string, body: string) => {
+      const fp = path.join(dir, relPath);
+      fs.mkdirSync(path.dirname(fp), { recursive: true });
+      fs.writeFileSync(fp, body, 'utf-8');
+    };
+    write('small.md', 'FILE_OBJ tiny\n');
+    write('big.md', 'FILE_OBJ ' + 'x'.repeat(2000) + '\n# Summary\n');
+    write('2026-notes.txt', 'FILE_OBJ text file\n');
+    write('old.md', 'FILE_OBJ old\n');
+    const longAgo = new Date('2001-02-03T04:05:06Z');
+    fs.utimesSync(path.join(dir, 'old.md'), longAgo, longAgo);
+    write('todo-list.pdf', 'binary-ish content');
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('exposes content, size, times, name, path and ext to createMatchPredicate', () => {
+    const predicate = createMatchPredicate(
+      "f.content === 'abc' && f.size === 3 && f.created === 1000 && f.modified === 2001"
+        + " && f.name === 'Note.MD' && f.ext === '.md' && f.path === '/x/Note.MD'",
+      'advanced',
+    );
+    expect(predicate('abc', '/x/Note.MD', { size: 3, birthtimeMs: 1000.4, mtimeMs: 2000.6 }).matches).toBe(true);
+  });
+
+  it('leaves attributes undefined when there is no stat or path', () => {
+    const predicate = createMatchPredicate(
+      "f.size === undefined && f.modified === undefined && f.name === undefined && f.content === 'abc'",
+      'advanced',
+    );
+    expect(predicate('abc').matches).toBe(true);
+  });
+
+  it('filters by size, extension, name and a content regex', async () => {
+    expect(names(await searchFolder(dir, 'f.size > 1000', { matchType: 'advanced' }))).toEqual(['big.md']);
+    expect(names(await searchFolder(dir, "f.ext == '.txt' && f.name.startsWith('2026-')", { matchType: 'advanced' })))
+      .toEqual(['2026-notes.txt']);
+    expect(names(await searchFolder(dir, '/^# Summary/m.test(f.content)', { matchType: 'advanced' }))).toEqual(['big.md']);
+  });
+
+  it('filters by modification time, with and without the Recent Files window', async () => {
+    for (const mostRecent of [false, true]) {
+      const recent = await searchFolder(dir, "$('FILE_OBJ') && past(f.modified, 1)", { matchType: 'advanced', mostRecent });
+      expect(names(recent).sort()).toEqual(['2026-notes.txt', 'big.md', 'small.md']);
+      const old = await searchFolder(dir, "f.modified < ts('2002-01-01')", { matchType: 'advanced', mostRecent });
+      expect(names(old)).toEqual(['old.md']);
+    }
+  });
+
+  it('sorts by f.size, including results whose content the search never read', async () => {
+    const byContent = await searchFolder(dir, 'FILE_OBJ', { sortBy: 'custom', sortDirection: 'desc', sortExpression: 'f.size' });
+    expect(names(byContent)[0]).toBe('big.md');
+    expect(byContent.every(r => typeof r.sortKey === 'number')).toBe(true);
+
+    const byName = await searchFolder(dir, 'todo', {
+      searchContents: false, searchNames: true, sortBy: 'custom', sortExpression: 'f.size',
+    });
+    expect(names(byName)).toEqual(['todo-list.pdf']);
+    expect(byName[0].sortKey).toBe('binary-ish content'.length);
+  });
+
+  it('labels a sort by f.modified as a date', async () => {
+    const results = await searchFolder(dir, "f.name == 'old.md'", {
+      matchType: 'advanced', sortBy: 'custom', sortExpression: 'f.modified',
+    });
+    expect(results[0].sortLabel).toMatch(/^2001-02-0[23] \d\d:05$/);
+  });
+});
+
 describe('ignored paths', () => {
   it('exact folder name exclusion: ignoredPaths=["skipme"] excludes skipme/ subtree', async () => {
     const results = await searchFolder(

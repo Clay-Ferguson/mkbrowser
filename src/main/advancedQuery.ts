@@ -10,7 +10,7 @@
  * The sandbox works because NO host object is ever reachable from the query:
  * every known vm escape starts from a host reference (host `Function` via
  * `someHostObject.constructor.constructor`, etc.). The search helpers ($, tag,
- * p, ts, past, future, today) are defined *inside* the sandbox realm as thin wrappers
+ * p, f, ts, past, future, today) are defined *inside* the sandbox realm as thin wrappers
  * that call a single host dispatcher, and only primitives cross the boundary in
  * either direction (objects read through `p` are JSON round-tripped; host errors are
  * re-thrown as primitive strings). The sandbox's own intrinsics (its `Function`,
@@ -45,6 +45,9 @@ export interface AdvancedQueryHost {
   tag: (hashtag: string) => boolean;
   /** Top-level front-matter property `name` (backs the `p` object). */
   getProp: (name: string) => unknown;
+  /** File attribute `name` — content, size, created, modified, name, path or
+   * ext (backs the `f` object). Must return a string, number or undefined. */
+  getFile: (name: string) => unknown;
   past: (timestamp: number, lookbackDays?: number) => boolean;
   future: (timestamp: number, lookaheadDays?: number) => boolean;
   today: (timestamp: number) => boolean;
@@ -79,7 +82,7 @@ export class AdvancedQueryRuntimeError extends Error {
   }
 }
 
-/** Defines $, tag, p, ts, past, future, today inside the sandbox realm as wrappers
+/** Defines $, tag, p, f, ts, past, future, today inside the sandbox realm as wrappers
  * around the host dispatcher, then removes the dispatcher from the global so
  * query code can only reach it through these frozen wrappers. Runs once per
  * compiled query.
@@ -113,6 +116,12 @@ const BOOTSTRAP = `
       const v = call('getProp', key);
       return typeof v === 'string' ? JSON.parse(v) : v;
     },
+  }));
+  // f: the file itself — f.content, f.size, f.created, f.modified, f.name,
+  // f.path, f.ext. Every value is a primitive (string, number or undefined),
+  // so it arrives as-is with no JSON round-trip.
+  def('f', new Proxy(Object.create(null), {
+    get: (_t, key) => (typeof key === 'string' ? call('getFile', key) : undefined),
   }));
 })();
 `;
@@ -256,6 +265,13 @@ function createSandboxRunner(script: vm.Script): (host: AdvancedQueryHost) => un
           if (t === 'number' || t === 'boolean' || t === 'bigint') return v;
           return JSON.stringify(v);
         }
+        case 'getFile': {
+          // Only strings and finite numbers may cross; anything else (a host
+          // object, NaN) is reported as no value.
+          const v = h.getFile(String(a0));
+          if (typeof v === 'string') return v;
+          return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+        }
         default:
           return undefined;
       }
@@ -315,7 +331,7 @@ export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost
 /** One file's evaluated custom sort expression. */
 export interface SortKeyResult {
   key: SortKey;
-  /** Every finite timestamp `ts()` returned during the evaluation, so callers
+  /** Every finite timestamp `ts()`, `f.created` or `f.modified` returned during the evaluation, so callers
    * can tell which numbers in `key` are dates (for display). */
   dates: Set<number>;
 }
@@ -341,7 +357,13 @@ export function compileSortKeyExpression(exprStr: string): (host: AdvancedQueryH
       if (Number.isFinite(t)) dates.add(t);
       return t;
     };
-    const value = run({ ...h, ts });
+    // f.created / f.modified are timestamps too, so label them as dates.
+    const getFile = (name: string): unknown => {
+      const v = h.getFile(name);
+      if ((name === 'created' || name === 'modified') && typeof v === 'number' && Number.isFinite(v)) dates.add(v);
+      return v;
+    };
+    const value = run({ ...h, ts, getFile });
     // Always a string from the sandbox (see compileQueryScript), so parsing it
     // creates only host-realm values.
     const parsed: unknown = typeof value === 'string' ? JSON.parse(value) : null;

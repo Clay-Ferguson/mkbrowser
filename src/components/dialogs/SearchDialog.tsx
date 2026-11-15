@@ -286,7 +286,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                     value={searchQuery}
                     onChange={handleCodeChange}
                     onSubmit={handleSearch}
-                    placeholder="Functions: $, tag, p.name, ts, past, future, today"
+                    placeholder="Functions: $, tag, p.name, f.size, ts, past, future, today"
                     testId="search-query-input"
                     focusRef={codeInputRef}
                   />

@@ -175,6 +175,37 @@ function createGetProp(cache: YamlCache, content: string, filePath?: string): (n
 }
 
 /**
+ * Returns a `getFile(name)` function backing the advanced query's `f` object:
+ * the file's content and attributes. Dates are integer ms timestamps, so they
+ * work with past/future/today and compare with ts(). An attribute that isn't
+ * known (no stat, no path, a folder's size) is undefined.
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
+ */
+function createGetFile(content: string, filePath?: string, stat?: Partial<StatTimes>): (name: string) => unknown {
+  return (name: string): unknown => {
+    switch (name) {
+      case 'content':
+        return content;
+      case 'size':
+        return stat?.size;
+      case 'created':
+        return stat?.birthtimeMs === undefined ? undefined : Math.round(stat.birthtimeMs);
+      case 'modified':
+        return stat?.mtimeMs === undefined ? undefined : Math.round(stat.mtimeMs);
+      case 'name':
+        return filePath === undefined ? undefined : path.basename(filePath);
+      case 'path':
+        return filePath;
+      case 'ext':
+        return filePath === undefined ? undefined : path.extname(filePath).toLowerCase();
+      default:
+        return undefined;
+    }
+  };
+}
+
+/**
  * Create a predicate function that tests content against the query.
  * Exported for unit testing individual match predicates.
  *
@@ -184,7 +215,7 @@ export function createMatchPredicate(
   queryStr: string,
   type: SearchMatchType,
   cache: YamlCache = new Map()
-): (content: string, filePath?: string) => MatchResult {
+): (content: string, filePath?: string, stat?: Partial<StatTimes>) => MatchResult {
   if (type === 'advanced') {
     // Compile the user expression ONCE, when the predicate is created — not once
     // per file scanned. A syntax error throws AdvancedQuerySyntaxError, which
@@ -196,12 +227,13 @@ export function createMatchPredicate(
     // EVAL_TIMEOUT_MS of main-process time before the abort takes effect.
     let timedOut: AdvancedQueryTimeoutError | null = null;
 
-    return (content: string, filePath?: string) => {
+    return (content: string, filePath?: string, stat?: Partial<StatTimes>) => {
       if (timedOut) throw timedOut;
       const { $, tag, getMatchCount } = createContentSearcher(content);
       const getProp = createGetProp(cache, content, filePath);
+      const getFile = createGetFile(content, filePath, stat);
       try {
-        const matches = evalFunction({ $, tag, getProp, past, future, today, ts: parseDateString });
+        const matches = evalFunction({ $, tag, getProp, getFile, past, future, today, ts: parseDateString });
         const matchCount = getMatchCount();
         return {
           matches,
@@ -298,7 +330,7 @@ export function formatSortLabel(key: SortKey, dates: ReadonlySet<number> = new S
 
 /**
  * Create an evaluator for a custom sort expression, which runs against one
- * file's content with the same helpers as an advanced query ($, tag, p, ts,
+ * file's content with the same helpers as an advanced query ($, tag, p, f, ts,
  * past, future, today). Exported for unit testing.
  *
  * The expression is compiled once here; a syntax error throws
@@ -311,16 +343,17 @@ export function formatSortLabel(key: SortKey, dates: ReadonlySet<number> = new S
 export function createSortKeyEvaluator(
   exprStr: string,
   cache: YamlCache = new Map(),
-): (content: string, filePath?: string) => SortKeyOutcome {
+): (content: string, filePath?: string, stat?: Partial<StatTimes>) => SortKeyOutcome {
   const evalFunction = compileSortKeyExpression(exprStr);
   let timedOut: AdvancedQueryTimeoutError | null = null;
 
-  return (content: string, filePath?: string) => {
+  return (content: string, filePath?: string, stat?: Partial<StatTimes>) => {
     if (timedOut) throw timedOut;
     const { $, tag } = createContentSearcher(content);
     const getProp = createGetProp(cache, content, filePath);
+    const getFile = createGetFile(content, filePath, stat);
     try {
-      const { key, dates } = evalFunction({ $, tag, getProp, past, future, today, ts: parseDateString });
+      const { key, dates } = evalFunction({ $, tag, getProp, getFile, past, future, today, ts: parseDateString });
       return { sortKey: key, sortLabel: formatSortLabel(key, dates) };
     } catch (err) {
       if (err instanceof AdvancedQueryTimeoutError) timedOut = err;
@@ -477,25 +510,36 @@ async function buildResult(
 }
 
 /**
- * The content a custom sort expression is evaluated against for a result whose
- * contents the search never read (a name match, a names-only result, or a result
- * of an empty-query search). Only .md/.txt files are read, with the same size
- * bound as the content search; anything else — folders, other file types, or an
- * unreadable or oversized file — is evaluated against no content, so `p.x` is
- * simply undefined there.
+ * The content and stat a custom sort expression is evaluated against for a
+ * result whose contents the search never read (a name match, a names-only
+ * result, or a result of an empty-query search). Only .md/.txt files are read,
+ * with the same size bound as the content search; anything else — folders, other
+ * file types, or an unreadable or oversized file — is evaluated against no
+ * content, so `p.x` is simply undefined there. Every file is stat'd (for `f.size`
+ * etc.); a folder reuses the result's times and has no size.
  */
-async function readSortKeyContent(result: SearchResult): Promise<string> {
-  if (result.isDirectory || !isContentCandidate(result.path, false)) return '';
+async function readSortKeySource(result: SearchResult): Promise<{ content: string; stat?: Partial<StatTimes> }> {
+  if (result.isDirectory) {
+    return { content: '', stat: { mtimeMs: result.modifiedTime, birthtimeMs: result.createdTime } };
+  }
+  let stat: StatTimes | undefined;
   try {
-    const stat = await fs.promises.stat(result.path);
-    if (stat.size > MAX_SEARCH_FILE_BYTES) {
-      logger.debug('search: skipping oversized file for custom sort', result.path, stat.size);
-      return '';
-    }
-    return await fs.promises.readFile(result.path, 'utf-8');
+    const s = await fs.promises.stat(result.path);
+    stat = { mtimeMs: s.mtimeMs, birthtimeMs: s.birthtimeMs, size: s.size };
+  } catch (err) {
+    logger.debug('search: failed to stat file for custom sort', result.path, err);
+    return { content: '' };
+  }
+  if (!isContentCandidate(result.path, false)) return { content: '', stat };
+  if (stat.size > MAX_SEARCH_FILE_BYTES) {
+    logger.debug('search: skipping oversized file for custom sort', result.path, stat.size);
+    return { content: '', stat };
+  }
+  try {
+    return { content: await fs.promises.readFile(result.path, 'utf-8'), stat };
   } catch (err) {
     logger.debug('search: failed to read file for custom sort', result.path, err);
-    return '';
+    return { content: '', stat };
   }
 }
 
@@ -577,7 +621,7 @@ export async function searchFolderWithTotal(
   const results: SearchResult[] = [];
   const shouldExcludePath = buildExcludePredicate(ignoredPaths);
   const hasQuery = query.trim().length > 0;
-  const basePredicate: ((content: string, filePath?: string) => MatchResult) | null = !hasQuery
+  const basePredicate: ((content: string, filePath?: string, stat?: Partial<StatTimes>) => MatchResult) | null = !hasQuery
     ? null
     : !searchContents && matchType === 'wildcard'
       ? createFileNameGlobPredicate(query)
@@ -594,9 +638,9 @@ export async function searchFolderWithTotal(
   let sortEvaluatedCount = 0;
   let sortErrorCount = 0;
   let firstSortError: string | undefined;
-  const withSortKey = (result: SearchResult, content: string): SearchResult => {
+  const withSortKey = (result: SearchResult, content: string, stat?: Partial<StatTimes>): SearchResult => {
     if (!baseSortKeyEvaluator) return result;
-    const { sortKey, sortLabel, error } = baseSortKeyEvaluator(content, result.path);
+    const { sortKey, sortLabel, error } = baseSortKeyEvaluator(content, result.path, stat);
     sortEvaluatedCount++;
     if (error !== undefined) {
       sortErrorCount++;
@@ -612,11 +656,11 @@ export async function searchFolderWithTotal(
   let evaluatedCount = 0;
   let errorCount = 0;
   let firstError: string | undefined;
-  const matchPredicate = basePredicate && ((content: string, filePath?: string): MatchResult => {
+  const matchPredicate = basePredicate && ((content: string, filePath?: string, stat?: Partial<StatTimes>): MatchResult => {
     // Every name/content match goes through here, so this is also the
     // cancellation checkpoint for the CPU-only name passes.
     signal?.throwIfAborted();
-    const result = basePredicate(content, filePath);
+    const result = basePredicate(content, filePath, stat);
     evaluatedCount++;
     if (result.error !== undefined) {
       errorCount++;
@@ -819,6 +863,16 @@ export async function searchFolderWithTotal(
         if (isImage) {
           content = await extractExifText(filePath);
           if (!content) return null;
+          // The query's `f.size`/`f.modified`/… need the stat; a failure just
+          // leaves them undefined.
+          if (!resultStat) {
+            try {
+              const stat = await fs.promises.stat(filePath);
+              resultStat = { mtimeMs: stat.mtimeMs, birthtimeMs: stat.birthtimeMs, size: stat.size };
+            } catch (err) {
+              logger.debug('search: failed to stat image', filePath, err);
+            }
+          }
         } else {
           try {
             if (!resultStat) {
@@ -839,12 +893,12 @@ export async function searchFolderWithTotal(
           }
         }
 
-        const { matches, matchCount } = matchPredicate(content, filePath);
+        const { matches, matchCount } = matchPredicate(content, filePath, resultStat);
         if (!matches) return null;
 
         // The content is in hand, so evaluate the custom sort key now rather
         // than re-reading the file in the pass below.
-        return withSortKey(await buildResult(folderPath, filePath, matchCount, resultStat), content);
+        return withSortKey(await buildResult(folderPath, filePath, matchCount, resultStat), content, resultStat);
       },
     );
     for (const r of fileResults) {
@@ -865,7 +919,8 @@ export async function searchFolderWithTotal(
       async (r): Promise<SearchResult> => {
         if (r.sortKey !== undefined) return r;
         signal?.throwIfAborted();
-        return withSortKey(r, await readSortKeyContent(r));
+        const { content, stat } = await readSortKeySource(r);
+        return withSortKey(r, content, stat);
       },
     );
     if (sortEvaluatedCount > 0 && sortErrorCount === sortEvaluatedCount) {

@@ -803,6 +803,15 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 *   **`future(date, lookaheadDays?)`**: Returns `true` if the date is in the future. The optional `lookaheadDays` parameter limits results to timestamps within the specified number of days ahead (e.g., `future(ts(p.due), 30)` matches files whose `due` date is within the next 30 days).
 *   **`today(date)`**: Returns `true` if the date is today.
 *   **`p`**: The file's YAML front matter properties. `p.type` is the value of the `type` property, or `undefined` if the file doesn't have one. Nested properties use normal dot syntax (`p.author.name`), and a property whose name isn't a valid identifier uses brackets (`p['due-date']`).
+*   **`f`**: The file itself:
+    *   `f.content`: the file's full text (for an image searched by EXIF, its EXIF text, which is what `$()` searches). Unlike `$()`, you can use any string method or regular expression on it, including case-sensitive ones.
+    *   `f.size`: the size in bytes.
+    *   `f.created` / `f.modified`: the creation and last-modified times, as timestamps in milliseconds, so they work directly with `past()`, `future()` and `today()` (`past(f.modified, 7)`) and compare with `ts()` (`f.modified > ts('2026-01-01')`).
+    *   `f.name`: the file name, e.g. `notes.md`.
+    *   `f.path`: the file's full path.
+    *   `f.ext`: the lowercase extension with its dot, e.g. `.md`.
+
+    A value that isn't available (for example, the file couldn't be read for its size) is `undefined`.
 *   **`ts(dateString)`**: Converts a date/datetime string to a numeric timestamp in milliseconds, for use with `past()`, `future()`, and `today()` — e.g. `future(ts(p.due))`. Two formats are accepted: the app's `MM/DD/YYYY` convention (optional `HH:MM[:SS] AM/PM`) and ISO 8601 `YYYY-MM-DD` (optional 24-hour `HH:MM[:SS]`, separated by `T` or a space) — the form YAML front matter typically uses. Both are interpreted as local time; timezone suffixes are not supported. A missing property or any other format yields an invalid timestamp, for which `past()`/`future()`/`today()` all return `false`.
 
 **Examples:**
@@ -875,6 +884,22 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     ```javascript
     p.tags?.includes('urgent') && $('#deadline')
     ```
+*   Find files larger than 100 KB:
+    ```javascript
+    f.size > 100000
+    ```
+*   Find files modified in the last 7 days that mention "todo":
+    ```javascript
+    past(f.modified, 7) && $('todo')
+    ```
+*   Find text files (not Markdown) whose name starts with `2026-`:
+    ```javascript
+    f.ext == '.txt' && f.name.startsWith('2026-')
+    ```
+*   Find files with a level-1 or level-2 heading named "Summary", using a regular expression on the content:
+    ```javascript
+    /^#{1,2} Summary/m.test(f.content)
+    ```
 
 **When a query has a mistake:**
 *   **Syntax errors** (such as a missing parenthesis) are caught when you click **Search** or **Save**. The error is shown under the query box, and nothing runs or is saved until you fix it.
@@ -885,7 +910,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 ## Custom Sort Order
 Choosing **Custom** under **Order → Sort By** in the Search dialog lets you order the results by any value you can compute from a file — most usefully a front matter property. Enter a JavaScript expression in the **Sort expression** box; it is evaluated once for each result, and the results are ordered by its value. Press **Ctrl+Enter** in the box to search.
 
-The expression is written exactly like an [Advanced search predicate](#advanced-search-predicates) and has the same helpers: `p` (front matter properties), `ts()`, `$()`, `tag()`, `past()`, `future()` and `today()`. The difference is that a predicate answers *yes or no*, while a sort expression produces a *value*. Custom sorting works with any Search Mode — a Literal search for "meeting" can be sorted by due date just as well as an Advanced one.
+The expression is written exactly like an [Advanced search predicate](#advanced-search-predicates) and has the same helpers: `p` (front matter properties), `f` (the file itself, e.g. `f.size` or `f.modified`), `ts()`, `$()`, `tag()`, `past()`, `future()` and `today()`. The difference is that a predicate answers *yes or no*, while a sort expression produces a *value*. Custom sorting works with any Search Mode — a Literal search for "meeting" can be sorted by due date just as well as an Advanced one.
 
 **Example — overdue to-dos, most overdue first.** If you have a `todo` [object type](#objects-and-custom-types) with a `due` date property:
 
@@ -895,7 +920,7 @@ The expression is written exactly like an [Advanced search predicate](#advanced-
 - Order → Direction: ASC
 
 **How values are compared:**
-*   **Numbers** are compared numerically. Use `ts()` to turn a date into a number, so that dates sort by time: `ts(p.due)`.
+*   **Numbers** are compared numerically. Use `ts()` to turn a date into a number, so that dates sort by time: `ts(p.due)`. File sizes and times are already numbers: `f.size` sorts by size, `f.modified` by last-modified time.
 *   **Text** is compared ignoring upper/lower case, with numbers inside the text compared by value (`item 2` comes before `item 10`).
 *   **True/false** values count as 1 and 0, so `tag('#urgent')` with DESC lists urgent files first.
 *   When values of different kinds are mixed, numbers come before text.
