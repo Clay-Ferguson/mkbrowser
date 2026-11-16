@@ -233,14 +233,16 @@ describe('validateSearchDefinitionName', () => {
 
 describe('recentFilesSearchDefinition', () => {
   it('is an internal, empty-query, names-only Recent Files search, newest first', () => {
-    // Names-only so the listing covers every file type plus folders, not just
-    // the .md/.txt content candidates. See: (USER_GUIDE.md#recent-files)
+    // Names-only so the listing covers every file type, not just the .md/.txt
+    // content candidates; excludeFolders keeps folders out of it.
+    // See: (USER_GUIDE.md#recent-files)
     expect(recentFilesSearchDefinition()).toMatchObject({
       name: 'Recent Files',
       searchText: '',
       searchContents: false,
       searchNames: true,
       mostRecent: true,
+      excludeFolders: true,
       sortBy: 'modified-time',
       sortDirection: 'desc',
       internal: true,

@@ -114,7 +114,8 @@ export function newSearchDefinition(searchText = ''): SearchDefinition {
  * It searches names only (`searchContents: false`) on purpose. With File
  * Contents on, the Recent Files window is drawn only from content candidates
  * (.md/.txt), whereas the names-only path takes the newest entries of every
- * file type plus folders, which is what this listing is meant to show.
+ * file type, which is what this listing is meant to show. `excludeFolders`
+ * keeps folders (which the names-only path would otherwise include) out of it.
  *
  * `internal` marks it as never-to-be-saved; see saveSearchDefinitionToConfig.
  *
@@ -127,6 +128,7 @@ export function recentFilesSearchDefinition(): SearchDefinition {
     searchContents: false,
     searchNames: true,
     mostRecent: true,
+    excludeFolders: true,
     sortBy: 'modified-time',
     sortDirection: 'desc',
     internal: true,

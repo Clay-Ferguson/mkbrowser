@@ -410,6 +410,18 @@ describe('filename search', () => {
       expect(scienceDir).toBeDefined();
     });
 
+    it('excludeFolders leaves folders out of a names-only search', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'science', { matchType: 'literal', searchContents: false, searchNames: true, excludeFolders: true });
+      expect(results.find(r => r.relativePath === rel('topics', 'science'))).toBeUndefined();
+      expect(results.some(r => r.isDirectory)).toBe(false);
+    });
+
+    it('excludeFolders with mostRecent and no query lists only files', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, '', { searchContents: false, searchNames: true, mostRecent: true, excludeFolders: true });
+      expect(results.length).toBeGreaterThan(0);
+      expect(results.some(r => r.isDirectory)).toBe(false);
+    });
+
     it('directory results carry canonical paths — no trailing separator', async () => {
       // fdir's onlyDirs() emits every directory path WITH a trailing separator
       // ("/a/b/"). If that leaks into SearchResult.path, the result violates the

@@ -121,6 +121,14 @@ export interface SearchDefinition {
    */
   mostRecent?: boolean;
   /**
+   * Leave folders out of a names-only search (`searchNames` without
+   * `searchContents`), which otherwise lists folders as well as files. Not
+   * exposed in the Search dialog; set by Tools → Recent Files.
+   *
+   * See: (USER_GUIDE.md#recent-files)
+   */
+  excludeFolders?: boolean;
+  /**
    * Built into the app (e.g. Tools → Recent Files) rather than one of the
    * user's saved searches. Code that persists search definitions must refuse
    * one with this set, so it can never end up in the config file.

@@ -963,9 +963,9 @@ Once saved, your search definitions appear in the **Search** menu on the applica
 **Tip:** You can right-click a search menu item to open the Search dialog with that definition selected. This lets you review the search parameters before running it, or edit and save the definition.
 
 ## Recent Files
-**Tools → Recent Files** lists the 500 most recently modified files and folders under the current folder (including subfolders), newest first. It's a built-in search, so there's nothing to set up: the results open on the **Search Results** tab, labeled *Recent Files*, and the refresh button there re-runs it.
+**Tools → Recent Files** lists the 500 most recently modified files under the current folder (including subfolders), newest first. It's a built-in search, so there's nothing to set up: the results open on the **Search Results** tab, labeled *Recent Files*, and the refresh button there re-runs it.
 
-Every file type is included, not just Markdown and text files, along with folders. Paths matching your **Ignored Paths** setting are skipped, as in any search.
+Every file type is included, not just Markdown and text files. Folders are not listed. Paths matching your **Ignored Paths** setting are skipped, as in any search.
 
 Recent Files is not a saved search definition: it doesn't appear in the **Search** menu or the Search dialog's list, and it can't be saved or changed. To make a variation of it, see [Find Recent Edits](#find-recent-edits).
 

@@ -15,7 +15,8 @@
  *    drawn from the content files only. The name test is pure CPU, so it runs
  *    first and short-circuits: a name-matched file is never read. Folders are
  *    never matched in this mode.
- *  - searchNames only — "File Names": names only, but including folder names.
+ *  - searchNames only — "File Names": names only, but including folder names
+ *    (unless excludeFolders is set).
  * With neither flag set there is nothing to search, so the search returns no results.
  *
  * See: (USER_GUIDE.md#searching)
@@ -583,6 +584,9 @@ export type SearchFolderOptions = Partial<Omit<SearchDefinition, 'name' | 'searc
  *   In a contents search those are the 500 newest content files (.md/.txt, plus
  *   images with searchImageExif), and both name and content matching run inside
  *   that set; in a names-only search, the 500 newest files and folders.
+ * - `excludeFolders` — in a names-only search, leave folders out entirely (used
+ *   by Tools → Recent Files). No effect on contents searches, which never
+ *   return folders.
  * - `sortBy` — result order (see compareSearchResults); decides which
  *   results survive the cap
  * - `sortDirection` — 'asc' or 'desc'
@@ -607,6 +611,7 @@ export async function searchFolderWithTotal(
     ignoredPaths = [],
     searchImageExif = false,
     mostRecent = false,
+    excludeFolders = false,
     sortBy = 'modified-time',
     sortDirection = 'desc',
     sortExpression = '',
@@ -678,16 +683,21 @@ export async function searchFolderWithTotal(
       .withAbortSignal(abortSignal)
       .crawl(folderPath);
 
-    const dirsApi = new fdir()
-      .withFullPaths()
-      .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
-      .onlyDirs()
-      .withAbortSignal(abortSignal)
-      .crawl(folderPath);
+    // With excludeFolders, folders are never crawled, so they can't take up
+    // slots in the mostRecent window either.
+    const dirsPromise: Promise<string[]> = excludeFolders
+      ? Promise.resolve([])
+      : new fdir()
+        .withFullPaths()
+        .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
+        .onlyDirs()
+        .withAbortSignal(abortSignal)
+        .crawl(folderPath)
+        .withPromise();
 
     const [files, dirs] = await Promise.all([
       filesApi.withPromise(),
-      dirsApi.withPromise(),
+      dirsPromise,
     ]);
     // An aborted fdir crawl resolves early with partial output, so check here.
     signal?.throwIfAborted();
