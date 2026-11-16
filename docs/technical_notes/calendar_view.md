@@ -31,8 +31,9 @@ The calendar icon in the BrowseView toolbar (`data-testid="calendar-button"`, re
 `src/components/views/BrowseToolbar.tsx`) → `showFolderCalendar(currentPath)` in
 `src/renderer/calendarNav.ts`. That calls the store's `showCalendarForFolder` action, which
 in a single `set()` shows and selects the Calendar tab (so the spinner is visible at once),
-records `{ kind: 'folder', folder }` as the source, sets `calendarLoading`, and clears
-`calendarTargetDate`. It then calls `api.loadCalendarEvents(folder)` through `runOp`; a
+records `{ kind: 'folder', folder }` as the source, sets `calendarLoading`, resets
+`calendarViewTime` to today (so a date left over from a `due`-pill jump or Back/Next
+navigation never carries over), and clears `calendarTargetDate`. It then calls `api.loadCalendarEvents(folder)` through `runOp`; a
 failed scan is reported via `setAppError` and leaves an empty calendar. **Every click
 re-scans** and re-arms the watcher.
 

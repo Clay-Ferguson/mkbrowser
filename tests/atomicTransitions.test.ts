@@ -72,6 +72,18 @@ describe('atomic transitions', () => {
     expect(s.calendarLoading).toBe(true);
   });
 
+  it('showCalendarForFolder resets a stale viewed date to today and clears the highlight', () => {
+    const stale = new Date(2020, 0, 15);
+    useAS.setState({ calendarViewTime: stale, calendarTargetDate: stale });
+
+    const before = Date.now();
+    showCalendarForFolder(OLD_ROOT);
+
+    const s = useAS.getState();
+    expect(s.calendarViewTime.getTime()).toBeGreaterThanOrEqual(before);
+    expect(s.calendarTargetDate).toBeNull();
+  });
+
   it('revealInTree highlights, switches to the browser and queues the reveal together', () => {
     expect(countNotifications(() => revealInTree(NOTE))).toBe(1);
 

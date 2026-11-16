@@ -2051,7 +2051,7 @@ MkBrowser includes a built-in calendar view that displays scheduled items derive
 
 ## Opening the Calendar
 
-To open the calendar, click **Show Calendar** icon (at top of Browse View). MkBrowser will scan the folder you are currently browsing in the Browse View and populate the calendar with any files that contain calendar entries in their Front Matter YAML. The calendar remains open as its own tab and can be switched to at any time.
+To open the calendar, click **Show Calendar** icon (at top of Browse View). MkBrowser will scan the folder you are currently browsing in the Browse View and populate the calendar with any files that contain calendar entries in their Front Matter YAML. The calendar always opens on today's date. The calendar remains open as its own tab and can be switched to at any time.
 
 **Note:** The calendar is populated when you click **Show Calendar**. If you want to refresh the calendar data (for example, after adding new files), simply click **Show Calendar** again. The calendar also watches for file changes automatically — if you edit a file that has a calendar entry, the calendar updates in real time without requiring a manual refresh.
 
@@ -2094,7 +2094,7 @@ The calendar toolbar provides standard navigation controls:
 - **Back / Next** — Move backward or forward by the currently selected time unit (month, week, or day).
 - **Month / Week / Day / Agenda** — Switch between calendar view modes.
 
-Your current view mode and the date you are viewing are both remembered automatically. If you switch to the Browse View and return to the Calendar tab, the calendar will restore exactly where you left off.
+Your current view mode and the date you are viewing are both remembered automatically. If you switch to the Browse View and return to the Calendar tab, the calendar will restore exactly where you left off. Clicking **Show Calendar** again, however, always brings the calendar back to today.
 
 ## Jumping to a File
 

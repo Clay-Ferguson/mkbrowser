@@ -48,6 +48,10 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
      * update: the tab is shown and selected, the source recorded, and loading
      * started. The caller then loads the events and calls setCalendarEvents.
      *
+     * Always opens on today: `calendarViewTime` otherwise keeps whatever date a
+     * `due`-pill click (openCalendarAtDate) or Back/Next last left it on, and
+     * the Calendar button would reopen on that stale month.
+     *
      * See: (application_tabs.md#switching-views-from-code)
      * See: (calendar_view.md#folder-source--live)
      */
@@ -58,6 +62,7 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
         currentView: 'calendar',
         calendarSource: { kind: 'folder', folder },
         calendarLoading: true,
+        calendarViewTime: new Date(),
         calendarTargetDate: null,
       });
     },
