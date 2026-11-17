@@ -3,18 +3,16 @@ import ConfirmDialog from './ConfirmDialog';
 import Dialog from './common/Dialog';
 import SearchDefinitionsPanel from './SearchDefinitionsPanel';
 import CheckboxField from './common/CheckboxField';
-import RadioGroup from './common/RadioGroup';
 import JsCodeInput from './common/JsCodeInput';
-import type { SearchDefinition, SearchSortBy, SearchSortDirection } from '../../shared/types';
+import type { SearchDefinition, SearchMatchType, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import * as globalHighlight from '../../renderer/globalHighlight';
 import { api } from '../../renderer/api';
 import { initialSearchDefinition, isSearchDefinitionDirty } from '../../shared/searchHelpers';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_SAVE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../renderer/styles';
 
-// Search's checkbox/radio inputs use a blue-500 accent (vs the blue-600 default
-// in CheckboxField/RadioField), so override the input class to preserve it.
+// Search's checkbox inputs use a blue-500 accent (vs the blue-600 default
+// in CheckboxField), so override the input class to preserve it.
 const SEARCH_CHECKBOX_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-500 rounded disabled:opacity-50 disabled:cursor-not-allowed`;
-const SEARCH_RADIO_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-500`;
 
 /** What each Direction option means for the chosen Sort By. */
 const SORT_DIRECTION_HINTS: Record<SearchSortBy, { desc: string; asc: string }> = {
@@ -294,6 +292,45 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                 : <span className="normal-case font-normal italic text-slate-500">Unsaved search</span>}
             </div>
             <div className="flex flex-col flex-1 px-6 pb-6 overflow-y-auto min-h-0">
+              {/* Mode and Target share the top row; items-end lines up the bottom of
+                  the Target box with the bottom of the Mode drop-down. */}
+              <div className="flex items-end gap-6 mb-3 shrink-0">
+                <div>
+                  <label htmlFor="search-mode-select" className={DLG_LABEL_CLASS}>Mode</label>
+                  <select
+                    id="search-mode-select"
+                    value={matchType}
+                    onChange={(e) => set('matchType')(e.target.value as SearchMatchType)}
+                    data-testid="search-mode-select"
+                    className={`${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`}
+                  >
+                    <option value="literal" data-testid="search-type-literal">Literal</option>
+                    <option value="wildcard" data-testid="search-type-wildcard">Wild Card</option>
+                    <option value="advanced" data-testid="search-type-advanced">Advanced</option>
+                  </select>
+                </div>
+
+                <fieldset className="border border-slate-600 rounded-md px-3 pb-2 pt-1">
+                  <legend className="text-xs text-slate-400 px-2">Target</legend>
+                  <div className="flex items-center gap-6">
+                    <CheckboxField
+                      label="File Contents"
+                      checked={searchContents}
+                      onChange={set('searchContents')}
+                      testId="search-target-contents"
+                      inputClassName={SEARCH_CHECKBOX_CLASS}
+                    />
+                    <CheckboxField
+                      label="File Names"
+                      checked={searchNames}
+                      onChange={set('searchNames')}
+                      testId="search-target-names"
+                      inputClassName={SEARCH_CHECKBOX_CLASS}
+                    />
+                  </div>
+                </fieldset>
+              </div>
+
               <label className={DLG_LABEL_CLASS}>
                 {matchType === 'advanced'
                   ? 'JavaScript expression'
@@ -366,63 +403,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 mb-3 mt-3">
-                <CheckboxField
-                  label="Search Image EXIF"
-                  checked={searchImageExif}
-                  onChange={set('searchImageExif')}
-                  disabled={!searchContents}
-                  testId="search-image-exif"
-                  inputClassName={SEARCH_CHECKBOX_CLASS}
-                />
-                <CheckboxField
-                  label="Recent Files"
-                  checked={mostRecent}
-                  onChange={set('mostRecent')}
-                  testId="search-most-recent"
-                  inputClassName={SEARCH_CHECKBOX_CLASS}
-                />
-              </div>
-
-              <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
-                <legend className="text-xs text-slate-400 px-2">Search Target</legend>
-                <div className="flex items-center gap-6">
-                  <CheckboxField
-                    label="File Contents"
-                    checked={searchContents}
-                    onChange={set('searchContents')}
-                    testId="search-target-contents"
-                    inputClassName={SEARCH_CHECKBOX_CLASS}
-                  />
-                  <CheckboxField
-                    label="File Names"
-                    checked={searchNames}
-                    onChange={set('searchNames')}
-                    testId="search-target-names"
-                    inputClassName={SEARCH_CHECKBOX_CLASS}
-                  />
-                </div>
-                {/* Folders are only matched by a names-only search (see searchFolder). */}
-                <p className="text-xs text-slate-500 mt-2">
-                  Choose &apos;File Names&apos; by itself to include folder names in the search.
-                </p>
-              </fieldset>
-
-              <RadioGroup
-                legend="Search Mode"
-                name="matchType"
-                value={matchType}
-                onChange={set('matchType')}
-                className="mb-4"
-                inputClassName={SEARCH_RADIO_CLASS}
-                options={[
-                  { value: 'literal', label: 'Literal', testId: 'search-type-literal' },
-                  { value: 'wildcard', label: 'Wild Card', testId: 'search-type-wildcard' },
-                  { value: 'advanced', label: 'Advanced', testId: 'search-type-advanced' },
-                ]}
-              />
-
-              <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
+              <fieldset className="border border-slate-600 rounded-md p-3 mb-3 mt-3">
                 <legend className="text-xs text-slate-400 px-2">Order</legend>
                 <div className="flex gap-3">
                   <div>
@@ -473,6 +454,24 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                   </div>
                 )}
               </fieldset>
+
+              <div className="flex items-center gap-6">
+                <CheckboxField
+                  label="Search Image EXIF"
+                  checked={searchImageExif}
+                  onChange={set('searchImageExif')}
+                  disabled={!searchContents}
+                  testId="search-image-exif"
+                  inputClassName={SEARCH_CHECKBOX_CLASS}
+                />
+                <CheckboxField
+                  label="Recent Files"
+                  checked={mostRecent}
+                  onChange={set('mostRecent')}
+                  testId="search-most-recent"
+                  inputClassName={SEARCH_CHECKBOX_CLASS}
+                />
+              </div>
             </div>
           </div>
         </div>

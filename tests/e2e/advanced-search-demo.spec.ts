@@ -83,8 +83,8 @@ We'll click "New Search..." to open the search dialog where we can configure our
     await demoClick(newSearchOption);
 
     // The search dialog should now be open — select Advanced mode
-    const advancedOption = mainWindow.getByTestId('search-type-advanced');
-    await expect(advancedOption).toBeVisible({ timeout: 5000 });
+    const modeSelect = mainWindow.getByTestId('search-mode-select');
+    await expect(modeSelect).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'search-dialog-open');
     writeNarration(
       screenshotDir,
@@ -94,14 +94,14 @@ By default it may be in a simple search mode.
 We need to switch to Advanced mode so that we can use boolean expressions in our query.`
     );
 
-    await takeScreenshot(mainWindow, advancedOption, screenshotDir, step++, 'about-to-click-advanced');
+    await takeScreenshot(mainWindow, modeSelect, screenshotDir, step++, 'about-to-select-advanced');
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click the "Advanced" option to enable the full boolean query syntax.`
+      `We'll choose "Advanced" from the Mode drop-down to enable the full boolean query syntax.`
     );
 
-    await demoClick(advancedOption);
+    await modeSelect.selectOption('advanced');
 
     await mainWindow.waitForTimeout(500);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'advanced-mode-selected');

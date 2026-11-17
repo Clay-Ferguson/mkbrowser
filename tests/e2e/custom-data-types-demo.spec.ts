@@ -418,16 +418,16 @@ Let's click the search icon to open the search menu.`
 
     await demoClick(newSearchItem);
 
-    const advancedOption = mainWindow.getByTestId('search-type-advanced');
-    await expect(advancedOption).toBeVisible({ timeout: 5000 });
-    await takeScreenshot(mainWindow, advancedOption, screenshotDir, step++, 'highlight-advanced-mode');
+    const modeSelect = mainWindow.getByTestId('search-mode-select');
+    await expect(modeSelect).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, modeSelect, screenshotDir, step++, 'highlight-advanced-mode');
     writeNarration(
       screenshotDir,
       step++,
-      `We'll select "Advanced" mode, which lets us search with a JavaScript expression.`
+      `We'll select "Advanced" from the Mode drop-down, which lets us search with a JavaScript expression.`
     );
 
-    await demoClick(advancedOption);
+    await modeSelect.selectOption('advanced');
 
     const searchInput = mainWindow.getByTestId('search-query-input');
     await expect(searchInput).toBeVisible({ timeout: 5000 });
