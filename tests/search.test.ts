@@ -5,9 +5,9 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
-import { searchFolder, searchFolderWithTotal, createMatchPredicate, formatSortLabel, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/main/search';
+import { searchFolder, searchFolderWithTotal, createMatchPredicate, createSortKeyEvaluator, formatSortLabel, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/main/search';
 import { AdvancedQueryTimeoutError, AdvancedQuerySyntaxError } from '../src/main/advancedQuery';
-import { createContentSearcher } from '../src/shared/searchHelpers';
+import { createContentSearcher, exactHashtagQuery } from '../src/shared/searchHelpers';
 import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/shared/timeUtil';
 import { setupTestData, TEST_DATA_DIR, rel } from './fixtures/setup';
 
@@ -1481,43 +1481,77 @@ describe('advanced predicate with real helper implementations', () => {
   });
 });
 
-describe('tag() whole-hashtag matching', () => {
-  const content = [
-    '#todo first line',
-    'mid-line #todo and #todo-later and #todos',
-    'not a tag: foo#todo, and #Todo differs in case',
-  ].join('\n');
+describe('tag() front matter tag matching', () => {
+  const fm = (...tags: string[]) => () => tags;
 
-  it('counts only whole, exact tags', () => {
-    const { tag, getMatchCount } = createContentSearcher(content);
-    expect(tag('#todo')).toBe(true);
-    // Two whole #todo tags: line start and after whitespace. Not #todo-later,
-    // #todos, foo#todo (no whitespace before) or #Todo (different case).
+  it('matches a whole, exact tag name in the front matter tags list', () => {
+    const { tag, getMatchCount } = createContentSearcher('body', fm('todo', 'todo-later'));
+    expect(tag('todo')).toBe(true);
+    expect(tag('todo-later')).toBe(true);
+    expect(tag('todos')).toBe(false);
+    expect(tag('tod')).toBe(false);
     expect(getMatchCount()).toBe(2);
   });
 
-  it('accepts the tag with or without the leading #', () => {
-    expect(createContentSearcher(content).tag('todo-later')).toBe(true);
-    expect(createContentSearcher(content).tag('#todos')).toBe(true);
+  it('never matches a name written with a leading #', () => {
+    expect(createContentSearcher('', fm('todo')).tag('#todo')).toBe(false);
   });
 
-  it('is case-sensitive, like the Folder Analysis counts', () => {
-    expect(createContentSearcher(content).tag('#Todo')).toBe(true);
-    expect(createContentSearcher('#Todo only').tag('#todo')).toBe(false);
+  it('is case-sensitive', () => {
+    expect(createContentSearcher('', fm('Todo')).tag('Todo')).toBe(true);
+    expect(createContentSearcher('', fm('Todo')).tag('todo')).toBe(false);
   });
 
-  it('a tag that only appears as a prefix of longer tags is not found', () => {
-    expect(createContentSearcher('#foobar #foo-bar').tag('#foo')).toBe(false);
-    expect(createContentSearcher('').tag('')).toBe(false);
+  it('ignores hashtags written in the body text', () => {
+    expect(createContentSearcher('#todo in the body', fm()).tag('todo')).toBe(false);
+    expect(createContentSearcher('', fm()).tag('')).toBe(false);
   });
 
-  it('works inside an advanced query, e.g. from a Ctrl+clicked hashtag', () => {
-    const predicate = createMatchPredicate('tag("#todo")', 'advanced');
-    expect(predicate('#todo item').matches).toBe(true);
-    expect(predicate('#todos only').matches).toBe(false);
-    const combined = createMatchPredicate("tag('#urgent') && !tag('#done')", 'advanced');
-    expect(combined('#urgent').matches).toBe(true);
-    expect(combined('#urgent #done').matches).toBe(false);
+  it('reads the tags lazily, once, only when tag() is called', () => {
+    let calls = 0;
+    const getTags = () => { calls++; return ['a']; };
+    const searcher = createContentSearcher('a', getTags);
+    searcher.$('a');
+    expect(calls).toBe(0);
+    searcher.tag('a');
+    searcher.tag('b');
+    expect(calls).toBe(1);
+  });
+
+  it('works inside an advanced query against real front matter', () => {
+    const file = '---\ntags:\n  - purchased\n---\nmy test file\n';
+    expect(createMatchPredicate("tag('purchased')", 'advanced')(file).matches).toBe(true);
+    expect(createMatchPredicate("tag('#purchased')", 'advanced')(file).matches).toBe(false);
+    expect(createMatchPredicate("tag('purchase')", 'advanced')(file).matches).toBe(false);
+    // An inline hashtag alone is not a front matter tag.
+    expect(createMatchPredicate("tag('purchased')", 'advanced')('#purchased in the body').matches).toBe(false);
+    // Unquoted scalar entries (e.g. a year) are coerced to strings.
+    expect(createMatchPredicate("tag('2024')", 'advanced')('---\ntags: [2024]\n---\n').matches).toBe(true);
+    const combined = createMatchPredicate("tag('urgent') && !tag('done')", 'advanced');
+    expect(combined('---\ntags: [urgent]\n---\n').matches).toBe(true);
+    expect(combined('---\ntags: [urgent, done]\n---\n').matches).toBe(false);
+  });
+
+  it('works inside a custom sort expression', () => {
+    const evaluate = createSortKeyEvaluator("tag('urgent')");
+    expect(evaluate('---\ntags: [urgent]\n---\n').sortKey).toBe(1);
+    expect(evaluate('no front matter').sortKey).toBe(0);
+  });
+});
+
+describe('exactHashtagQuery (Ctrl+click on a Content Hashtag)', () => {
+  it('matches only the whole, case-sensitive hashtag in the file text', () => {
+    const predicate = createMatchPredicate(exactHashtagQuery('#todo'), 'advanced');
+    expect(predicate('#todo first').matches).toBe(true);
+    expect(predicate('mid-line #todo, then more').matches).toBe(true);
+    expect(predicate('#todos #todo-later #Todo x#todo').matches).toBe(false);
+  });
+
+  it('handles hyphens and escapes regex characters', () => {
+    expect(createMatchPredicate(exactHashtagQuery('#in-progress'), 'advanced')('a #in-progress b').matches).toBe(true);
+    expect(createMatchPredicate(exactHashtagQuery('#in-progress'), 'advanced')('a #in-progressive b').matches).toBe(false);
+    expect(createMatchPredicate(exactHashtagQuery('#a.b/c'), 'advanced')('#a.b/c').matches).toBe(true);
+    expect(createMatchPredicate(exactHashtagQuery('#a.b/c'), 'advanced')('#aXb/c').matches).toBe(false);
   });
 });
 
@@ -1525,40 +1559,40 @@ describe('tag() whole-hashtag matching', () => {
 
 describe('createContentSearcher', () => {
   it('$("hello") returns true when content contains "hello"', () => {
-    const { $ } = createContentSearcher('say hello to the world');
+    const { $ } = createContentSearcher('say hello to the world', () => []);
     expect($('hello')).toBe(true);
   });
 
   it('$("hello") returns false when content does not contain "hello"', () => {
-    const { $ } = createContentSearcher('goodbye cruel world');
+    const { $ } = createContentSearcher('goodbye cruel world', () => []);
     expect($('hello')).toBe(false);
   });
 
   it('case-insensitive: $("HELLO") matches content with "hello"', () => {
-    const { $ } = createContentSearcher('hello there');
+    const { $ } = createContentSearcher('hello there', () => []);
     expect($('HELLO')).toBe(true);
   });
 
   it('getMatchCount() returns 0 before any $() calls', () => {
-    const { getMatchCount } = createContentSearcher('anything');
+    const { getMatchCount } = createContentSearcher('anything', () => []);
     expect(getMatchCount()).toBe(0);
   });
 
   it('getMatchCount() accumulates across multiple $() calls', () => {
-    const { $, getMatchCount } = createContentSearcher('hello world hello');
+    const { $, getMatchCount } = createContentSearcher('hello world hello', () => []);
     $('hello'); // 2 occurrences
     $('world'); // 1 occurrence
     expect(getMatchCount()).toBe(3);
   });
 
   it('multiple occurrences: $("a") on "aaa" → getMatchCount() returns 3', () => {
-    const { $, getMatchCount } = createContentSearcher('aaa');
+    const { $, getMatchCount } = createContentSearcher('aaa', () => []);
     $('a');
     expect(getMatchCount()).toBe(3);
   });
 
   it('$("xyz") returns false and does not increment matchCount', () => {
-    const { $, getMatchCount } = createContentSearcher('no match here');
+    const { $, getMatchCount } = createContentSearcher('no match here', () => []);
     expect($('xyz')).toBe(false);
     expect(getMatchCount()).toBe(0);
   });
@@ -1566,7 +1600,7 @@ describe('createContentSearcher', () => {
   it('$("") returns false without hanging (empty-needle guard)', () => {
     // indexOf('', idx) always returns idx (never -1), so an unguarded counting
     // loop would spin forever — freezing the main process for `$('')`.
-    const { $, getMatchCount } = createContentSearcher('some content');
+    const { $, getMatchCount } = createContentSearcher('some content', () => []);
     expect($('')).toBe(false);
     expect(getMatchCount()).toBe(0);
   });

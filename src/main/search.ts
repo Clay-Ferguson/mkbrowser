@@ -31,6 +31,7 @@ import { createContentSearcher, compareSearchResults } from '../shared/searchHel
 import type { SearchDefinition, SearchMatchType, SortKey } from '../shared/shared';
 import { compileAdvancedQuery, compileSortKeyExpression, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
+import { getTagsFromFrontMatter } from '../shared/tagUtil';
 import { escapeRegexExceptWildcard, buildExcludePredicate, wildcardToAnchoredRegex } from '../shared/pathPattern';
 import { mapWithConcurrency } from '../shared/asyncUtil';
 import { logger } from '../shared/logUtil';
@@ -230,7 +231,7 @@ export function createMatchPredicate(
 
     return (content: string, filePath?: string, stat?: Partial<StatTimes>) => {
       if (timedOut) throw timedOut;
-      const { $, tag, getMatchCount } = createContentSearcher(content);
+      const { $, tag, getMatchCount } = createContentSearcher(content, () => getTagsFromFrontMatter(getYaml(cache, content, filePath)));
       const getProp = createGetProp(cache, content, filePath);
       const getFile = createGetFile(content, filePath, stat);
       try {
@@ -350,7 +351,7 @@ export function createSortKeyEvaluator(
 
   return (content: string, filePath?: string, stat?: Partial<StatTimes>) => {
     if (timedOut) throw timedOut;
-    const { $, tag } = createContentSearcher(content);
+    const { $, tag } = createContentSearcher(content, () => getTagsFromFrontMatter(getYaml(cache, content, filePath)));
     const getProp = createGetProp(cache, content, filePath);
     const getFile = createGetFile(content, filePath, stat);
     try {

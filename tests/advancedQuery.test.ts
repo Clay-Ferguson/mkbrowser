@@ -124,9 +124,9 @@ describe('helper bridge', () => {
   });
 
   it('tag crosses the bridge and returns the host result', () => {
-    const host = makeHost('notes #todo here');
-    expect(evalQuery("tag('#todo')", host)).toBe(true);
-    expect(evalQuery("tag('#done')", host)).toBe(false);
+    const host = makeHost('notes todo here');
+    expect(evalQuery("tag('todo')", host)).toBe(true);
+    expect(evalQuery("tag('done')", host)).toBe(false);
   });
 
   it('p returns primitives, nested objects, and arrays intact', () => {
@@ -212,7 +212,7 @@ describe('compile and evaluation semantics', () => {
 
   it('getAdvancedQuerySyntaxError reports a parse error and accepts what compiles', () => {
     expect(getAdvancedQuerySyntaxError('$$$invalid(((syntax')).toMatch(/Unexpected|missing/);
-    expect(getAdvancedQuerySyntaxError("$('apple') && tag('#fruit') // trailing comment")).toBeNull();
+    expect(getAdvancedQuerySyntaxError("$('apple') && tag('fruit') // trailing comment")).toBeNull();
     expect(getAdvancedQuerySyntaxError('{a: 1}')).toBeNull();
   });
 

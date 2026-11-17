@@ -30,7 +30,7 @@ let latestAnalysisId = 0;
 let latestGraphId = 0;
 
 /**
- * Counts the hashtags under `folderPath` and shows them in the Folder Analysis view.
+ * Counts the content hashtags and properties tags under `folderPath` and shows them in the Folder Analysis view.
  *
  * See: (USER_GUIDE.md#running-an-analysis)
  */
@@ -41,6 +41,7 @@ export function showFolderAnalysis(folderPath: string): void {
     if (id !== latestAnalysisId) return;
     setFolderAnalysis({
       hashtags: result.hashtags,
+      propertyTags: result.propertyTags,
       folderPath,
       totalFiles: result.totalFiles,
     });

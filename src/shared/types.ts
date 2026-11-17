@@ -155,8 +155,10 @@ export interface HashtagEntry {
  * See: (USER_GUIDE.md#the-analysis-tab)
  */
 export interface FolderAnalysisState {
-  /** Map of hashtag -> count */
+  /** Content hashtags (`#foo` in body text) -> occurrence count */
   hashtags: HashtagEntry[];
+  /** Properties tags (front matter `tags` names, no `#`) -> number of files */
+  propertyTags: HashtagEntry[];
   /** The folder path that was analyzed */
   folderPath: string;
   /** Total number of files scanned */

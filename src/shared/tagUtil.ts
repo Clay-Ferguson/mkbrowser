@@ -48,17 +48,26 @@ export function isYamlParseable(yamlStr: string): boolean {
   }
 }
 
+/**
+ * Returns the tag names in already-parsed front matter's `tags` list, or `[]` when
+ * there is no front matter or no `tags` array.
+ *
+ * See: (USER_GUIDE.md#tag-picker)
+ */
+export function getTagsFromFrontMatter(parsed: Record<string, unknown> | null): string[] {
+  if (!parsed || !Array.isArray(parsed.tags)) return [];
+  // Coerce scalar entries (numbers/booleans a user typed unquoted, e.g. `- 2024`)
+  // to strings so a tag toggle doesn't silently drop them from the rewritten list.
+  // Non-scalar entries (maps/sequences/null) are not meaningful tags and are skipped.
+  return parsed.tags
+    .filter(t => typeof t === 'string' || typeof t === 'number' || typeof t === 'boolean')
+    .map(t => String(t));
+}
+
 /** Parses the `tags` array from a raw YAML string, returning the tag names. Returns `[]` on parse error or missing tags. */
 export function getTagsFromYaml(yamlStr: string): string[] {
   try {
-    const parsed = loadYaml(yamlStr) as Record<string, unknown> | null;
-    if (!parsed || !Array.isArray(parsed.tags)) return [];
-    // Coerce scalar entries (numbers/booleans a user typed unquoted, e.g. `- 2024`)
-    // to strings so a tag toggle doesn't silently drop them from the rewritten list.
-    // Non-scalar entries (maps/sequences/null) are not meaningful tags and are skipped.
-    return parsed.tags
-      .filter(t => typeof t === 'string' || typeof t === 'number' || typeof t === 'boolean')
-      .map(t => String(t));
+    return getTagsFromFrontMatter(loadYaml(yamlStr) as Record<string, unknown> | null);
   } catch {
     return [];
   }

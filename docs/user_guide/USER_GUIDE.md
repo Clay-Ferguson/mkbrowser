@@ -77,7 +77,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [What Gets Scanned](#what-gets-scanned)
   * [Analysis Results](#analysis-results)
   * [The Analysis Tab](#the-analysis-tab)
-  * [Clicking a Hashtag](#clicking-a-hashtag)
+  * [Clicking a Tag](#clicking-a-tag)
 * [Folder Graph](#folder-graph)
   * [Launching the Graph](#launching-the-graph)
   * [Reading the Graph](#reading-the-graph)
@@ -797,8 +797,14 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 
 *   **`$('text')`**: Returns `true` if the file content contains the text "text" (case-insensitive).
     *   Example: `$('important')` finds files containing "important".
-*   **`tag('#name')`**: Returns `true` if the file content contains the hashtag `#name` as a whole tag — `tag('#todo')` matches `#todo` but not `#todos` or `#todo-later`. The `#` is optional (`tag('todo')` works too), and the match is case-sensitive. Tags are recognized exactly as the Folder Analysis counts them: a `#` at the start of a line or after whitespace, followed by a letter and then letters, digits, `_` or `-`.
-    *   Example: `tag('#urgent') && !tag('#done')` finds files tagged urgent but not done.
+*   **`tag('name')`**: Returns `true` if the file's front matter `tags` list contains `name` — the same tags the [Tag Picker](#tag-picker) adds. The whole name must match, case-sensitively: `tag('todo')` matches a `todo` tag but not `todos` or `todo-later`. Write the name **without** a `#`: tags are stored in front matter without one, so `tag('#todo')` never matches anything. Hashtags typed into the body text (`#todo`) are not tags in this sense; use `$('#todo')` to find those.
+    *   Example: `tag('urgent') && !tag('done')` finds files tagged urgent but not done, i.e. with front matter like:
+        ```markdown
+        ---
+        tags:
+          - urgent
+        ---
+        ```
 *   **`past(date, lookbackDays?)`**: Returns `true` if the date is in the past. The optional `lookbackDays` parameter limits results to timestamps within the specified number of days ago (e.g., `past(ts(p.due), 7)` matches files whose `due` date is within the last 7 days).
 *   **`future(date, lookaheadDays?)`**: Returns `true` if the date is in the future. The optional `lookaheadDays` parameter limits results to timestamps within the specified number of days ahead (e.g., `future(ts(p.due), 30)` matches files whose `due` date is within the next 30 days).
 *   **`today(date)`**: Returns `true` if the date is today.
@@ -880,9 +886,9 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
       - to-buy
     ---
     ```
-*   Combine a tag list check with a content search — files tagged `urgent` that also mention "deadline":
+*   Combine a tag check with a content search — files tagged `urgent` that also mention "deadline":
     ```javascript
-    p.tags?.includes('urgent') && $('#deadline')
+    tag('urgent') && $('deadline')
     ```
 *   Find files larger than 100 KB:
     ```javascript
@@ -922,7 +928,7 @@ The expression is written exactly like an [Advanced search predicate](#advanced-
 **How values are compared:**
 *   **Numbers** are compared numerically. Use `ts()` to turn a date into a number, so that dates sort by time: `ts(p.due)`. File sizes and times are already numbers: `f.size` sorts by size, `f.modified` by last-modified time.
 *   **Text** is compared ignoring upper/lower case, with numbers inside the text compared by value (`item 2` comes before `item 10`).
-*   **True/false** values count as 1 and 0, so `tag('#urgent')` with DESC lists urgent files first.
+*   **True/false** values count as 1 and 0, so `tag('urgent')` with DESC lists urgent files first.
 *   When values of different kinds are mixed, numbers come before text.
 *   **No value** — a missing property (`p.due` on a file without `due`), a date `ts()` can't read, or an error on that file — always sorts **last**, in both ASC and DESC. If the expression fails on *every* file, the search reports the error instead, as with a query.
 
@@ -991,7 +997,7 @@ To list everything due in the next 7 days, create a search definition that has:
 Change `future` to `past` to see what was due in the last 7 days, or use `today(ts(p.due))` for items due today. To list them in the order they come due, also set **Order → Sort By** to Custom with the sort expression `ts(p.due)` and **Direction** to ASC (see [Custom Sort Order](#custom-sort-order)). Then click **Calendar** on the Search Results tab to see them on the calendar.
 
 ### Search by Hashtag
-Clicking a hashtag in a rendered Markdown file runs a literal search for it, which is case-insensitive and also finds longer tags that start with it (clicking `#foo` also finds `#foobar`). **Ctrl+click** the hashtag to search for that exact tag instead, the same as the Advanced query `tag('#foo')`.
+Clicking a hashtag in a rendered Markdown file runs a literal search for it, which is case-insensitive and also finds longer tags that start with it (clicking `#foo` also finds `#foobar`). **Ctrl+click** the hashtag to search for that exact tag instead, the same as Ctrl+clicking a Content Hashtag in the [Analysis results](#clicking-a-tag).
 
 
 # Replace in Files
@@ -1033,7 +1039,10 @@ After the replacement completes, a dialog will show you:
 
 # Folder Analysis
 
-MkBrowser can analyze the contents of the current folder to provide useful statistics about your notes. Currently, the analysis extracts and counts all **hashtags** found across your Markdown and text files.
+MkBrowser can analyze the contents of the current folder to provide useful statistics about your notes. The analysis counts two kinds of tags across your Markdown and text files, separately, so you always know how many of each you have:
+
+- **Properties Tags** — the tags listed in a file's front matter `tags` property (the ones the [Tag Picker](#tag-picker) adds), such as `project`. These never include a `#`.
+- **Content Hashtags** — hashtags written in the text of a file, such as `#project`. These always include the `#`.
 
 ## Running an Analysis
 
@@ -1045,14 +1054,25 @@ MkBrowser can analyze the contents of the current folder to provide useful stati
 
 - All `.md` and `.txt` files in the current folder and all subfolders are included.
 - Files and folders matching your **Ignored Paths** setting (see Settings) are skipped.
-- The scan extracts hashtags — words starting with `#` followed by letters, numbers, underscores, or hyphens (e.g., `#project`, `#in-progress`, `#v2`).
+- **Properties Tags** are read from the `tags` list in each file's front matter:
+    ```markdown
+    ---
+    tags:
+      - project
+      - in-progress
+    ---
+    ```
+- **Content Hashtags** are words in the text starting with `#` followed by a letter, then letters, numbers, underscores, or hyphens (e.g., `#project`, `#in-progress`, `#v2`). The `#` must be at the start of a line or after a space. Only the text after the front matter is scanned.
 
 ## Analysis Results
 
 The Analysis view shows:
 
 - **Total files scanned**: The number of `.md` and `.txt` files that were processed.
-- **Hashtag list**: Every unique hashtag found, sorted by frequency (most common first). Each entry shows the hashtag name and its total number of occurrences across all scanned files.
+- **Properties Tags**: Every unique front matter tag, sorted by frequency (most common first). Each entry shows the tag and the number of **files** that list it.
+- **Content Hashtags**: Every unique hashtag found in the text, sorted the same way. Each entry shows the hashtag and its total number of **occurrences** across all scanned files, so a hashtag written three times in one file counts three times.
+
+The same word can appear in both lists. `#project` in the text and `project` in the front matter are counted separately.
 
 ## The Analysis Tab
 
@@ -1060,12 +1080,20 @@ After running an analysis, an **Analysis** tab appears in the tab bar at the top
 
 **Note:** The Analysis tab only appears after you've run at least one analysis. It is not shown on a fresh application start.
 
-## Clicking a Hashtag
+## Clicking a Tag
 
-In the Analysis results list, every hashtag is a clickable button:
+In the Analysis results, every entry in both lists is a clickable button that runs a search and switches to the Search Results tab.
 
-- **Click** a hashtag to run a literal search for its text and switch to the Search Results tab. Like any literal search, this matches the text anywhere (so `#foo` also finds `#foobar`), ignores case, and also matches file names.
-- **Ctrl+Click** a hashtag to search for exactly that tag instead: an advanced-mode `tag("#foo")` search, which finds only whole `#foo` tags in file contents — the same occurrences the Analysis counted. To combine a tag with other conditions, type a `tag(...)` expression yourself in the Search dialog's Advanced mode (see Advanced Search Predicates).
+**Properties Tags:**
+
+- **Click** a tag to run the advanced-mode search `tag("foo")`, which finds the files whose front matter `tags` list contains `foo`.
+
+**Content Hashtags:**
+
+- **Click** a hashtag to run a literal search for its text. Like any literal search, this matches the text anywhere (so `#foo` also finds `#foobar`), ignores case, and also matches file names.
+- **Ctrl+Click** a hashtag to search for exactly that hashtag instead: an advanced-mode search that finds only whole, case-matching `#foo` hashtags in file text (not `#foobar`).
+
+To combine a tag with other conditions, type a `tag(...)` expression yourself in the Search dialog's Advanced mode (see [Advanced Search Predicates](#advanced-search-predicates)).
 
 # Folder Graph
 

@@ -624,9 +624,12 @@ export interface HtmlExportResult {
   error?: string;
 }
 
-// Folder Analysis output: hashtag counts and the number of files scanned. See: (USER_GUIDE.md#analysis-results)
+// Folder Analysis output: content hashtag and properties tag counts, and the number of files scanned. See: (USER_GUIDE.md#analysis-results)
 export interface FolderAnalysisResult {
+  /** `#foo` hashtags in body text (with the `#`), counted per occurrence. */
   hashtags: Array<{ tag: string; count: number }>;
+  /** Names in front matter `tags` lists (no `#`), counted per file. */
+  propertyTags: Array<{ tag: string; count: number }>;
   totalFiles: number;
 }
 

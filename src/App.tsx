@@ -42,7 +42,7 @@ import {
   setAppError as setError,
 } from './store';
 import type { AppView, SearchDefinition } from './shared/types';
-import { newSearchDefinition } from './shared/searchHelpers';
+import { newSearchDefinition, exactHashtagQuery } from './shared/searchHelpers';
 import type { CalendarEventResult, AppConfig } from './shared/shared';
 import { toCalendarEvents } from './shared/calendarUtil';
 import { loadConfig } from './renderer/config';
@@ -311,17 +311,8 @@ function App() {
     void api.quit();
   };
 
-  const handleSearchHashtag = (hashtag: string, ctrlKey: boolean) => {
+  const runAnalysisSearch = (definition: SearchDefinition) => {
     if (!currentPath) return;
-    // A plain click is a literal search: case-insensitive, substring (so #foo
-    // also finds #foobar), and it matches file names too. Ctrl+click runs the
-    // advanced tag() search instead — whole tag, case-sensitive, contents only —
-    // which finds exactly the occurrences the Analysis tab counted. The tag is
-    // JSON-encoded so any character in it is a valid JS string literal.
-    const definition: SearchDefinition = {
-      ...newSearchDefinition(ctrlKey ? `tag(${JSON.stringify(hashtag)})` : hashtag),
-      matchType: ctrlKey ? 'advanced' : 'literal',
-    };
     void (async () => {
       try {
         if (await executeSearch(currentPath, definition)) setCurrentView('search-results');
@@ -329,6 +320,23 @@ function App() {
         setError('Search failed: ' + errorMessage(err));
       }
     })();
+  };
+
+  // A Content Hashtag from the Analysis tab (`#foo`, with the `#`). A plain click
+  // is a literal search: case-insensitive, substring (so #foo also finds
+  // #foobar), and it matches file names too. Ctrl+click finds only the whole,
+  // case-sensitive hashtag in the file text — the occurrences the Analysis counted.
+  const handleSearchHashtag = (hashtag: string, ctrlKey: boolean) => {
+    runAnalysisSearch(ctrlKey
+      ? { ...newSearchDefinition(exactHashtagQuery(hashtag)), matchType: 'advanced' }
+      : { ...newSearchDefinition(hashtag), matchType: 'literal' });
+  };
+
+  // A Properties Tag from the Analysis tab (a front matter `tags` name, no `#`):
+  // runs tag('name'), which finds the files whose front matter lists it. The name
+  // is JSON-encoded so any character in it is a valid JS string literal.
+  const handleSearchPropertyTag = (name: string) => {
+    runAnalysisSearch({ ...newSearchDefinition(`tag(${JSON.stringify(name)})`), matchType: 'advanced' });
   };
 
   // Folder selection prompt (first run or no folder configured)
@@ -464,7 +472,7 @@ function App() {
         {visitedViews.has('folder-analysis') && (
           <div {...viewProps('folder-analysis')}>
             <ErrorBoundary>
-              <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
+              <FolderAnalysisView onSearchHashtag={handleSearchHashtag} onSearchPropertyTag={handleSearchPropertyTag} />
             </ErrorBoundary>
           </div>
         )}

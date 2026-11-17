@@ -5,7 +5,6 @@
  */
 
 import type { SearchDefinition, SearchSortBy, SearchSortDirection, SortKey, SortKeyScalar } from './shared';
-import { HASHTAG_REGEX } from './regexPatterns';
 
 /** The fields of a search result that the result ordering reads. */
 interface SortableSearchResult {
@@ -209,23 +208,36 @@ export function parseIgnoredPaths(raw: string): string[] {
 }
 
 /**
+ * Builds an advanced query that matches files whose text contains `hashtag` (e.g.
+ * `#foo`) as a whole, case-sensitive hashtag: `#foo` but not `#foobar`,
+ * `#foo-bar` or `x#foo`. The boundaries mirror HASHTAG_REGEX, the rule Folder
+ * Analysis counts content hashtags with. Used by Ctrl+click on a Content Hashtag.
+ *
+ * See: (USER_GUIDE.md#clicking-a-tag)
+ */
+export function exactHashtagQuery(hashtag: string): string {
+  const escaped = hashtag.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+  return `/(?<![^\\s])${escaped}(?![\\w-])/.test(f.content)`;
+}
+
+/**
  * Creates the content-matching helpers for an advanced query against one file,
  * and tracks the total number of matches found:
  *  - `$(text)` — the content contains `text` (case-insensitive substring).
- *  - `tag(hashtag)` — the content contains exactly that hashtag as a whole tag:
- *    `tag('#foo')` (or `tag('foo')`) matches `#foo` but not `#foobar`. Tags are
- *    found with HASHTAG_REGEX, the same rule Folder Analysis counts with, and
- *    compared case-sensitively as Analysis does — so a tag's search hits line up
- *    with its count there.
+ *  - `tag(name)` — the file's front matter `tags` list contains exactly `name`
+ *    (case-sensitive, whole name). Tags are stored without a `#`, so
+ *    `tag('foo')` is the way to ask for one; `tag('#foo')` never matches.
  *
  * @param content - The text content to search within
+ * @param getTags - Returns the file's front matter tag names. Called lazily, on
+ *   the first tag() call only, so queries that never use tag() don't pay for it.
  * @returns The helpers and a match count getter
  *
  * See: (USER_GUIDE.md#using-search)
  */
-export function createContentSearcher(content: string): {
+export function createContentSearcher(content: string, getTags: () => readonly string[]): {
   $: (searchText: string) => boolean;
-  tag: (hashtag: string) => boolean;
+  tag: (name: string) => boolean;
   getMatchCount: () => number;
 } {
   const contentLower = content.toLowerCase();
@@ -253,21 +265,14 @@ export function createContentSearcher(content: string): {
     return false;
   };
 
-  // Occurrences of each hashtag in the content, built on the first tag() call
-  // (one scan, however many tags the query tests).
-  let tagCounts: Map<string, number> | null = null;
-  const tag = (hashtag: string): boolean => {
-    const wanted = hashtag.startsWith('#') ? hashtag : `#${hashtag}`;
-    if (!tagCounts) {
-      tagCounts = new Map();
-      // A private copy: HASHTAG_REGEX is a shared /g regex with mutable lastIndex.
-      for (const m of content.matchAll(new RegExp(HASHTAG_REGEX.source, 'g'))) {
-        tagCounts.set(m[0], (tagCounts.get(m[0]) ?? 0) + 1);
-      }
-    }
-    const count = tagCounts.get(wanted) ?? 0;
-    matchCount += count;
-    return count > 0;
+  // The file's front matter tags, read on the first tag() call (once, however
+  // many tags the query tests).
+  let tags: readonly string[] | null = null;
+  const tag = (name: string): boolean => {
+    tags ??= getTags();
+    const found = tags.includes(name);
+    if (found) matchCount += 1;
+    return found;
   };
 
   const getMatchCount = (): number => matchCount;

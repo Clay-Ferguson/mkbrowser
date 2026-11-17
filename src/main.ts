@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck } from './shared/shared';
+import type { AppConfig, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition, HtmlExportOptions, HtmlExportResult, HtmlExportTargetCheck, FolderAnalysisResult } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
 import { readDirectory, isFolderEmpty, deleteEmptyFolder, renameEntry, findSymlinks, createSymlink, isBrokenSymlink } from './main/fileUtil';
@@ -19,7 +19,7 @@ import { parseIgnoredPaths } from './shared/searchHelpers';
 import { searchFolderWithTotal } from './main/search';
 import { getAdvancedQuerySyntaxError } from './main/advancedQuery';
 import { createExclusiveSearchRunner, SearchCancelledError } from './main/searchRunner';
-import { analyzeFolderHashtags, type FolderAnalysisResult } from './main/folderAnalysis';
+import { analyzeFolderHashtags } from './main/folderAnalysis';
 import { loadCalendarEvents, loadCalendarEventsForFiles, type CalendarEventResult } from './main/calendarLoader';
 import { startCalendarWatcher, stopCalendarWatcher } from './main/calendarWatcher';
 import { scanFolderTree, type FolderGraphLinkData, type FolderGraphResult } from './main/folderGraph';
@@ -765,7 +765,7 @@ function setupIpcHandlers(): void {
   ipcMain.handle('check-advanced-query-syntax', (_event, query: string): string | null =>
     getAdvancedQuerySyntaxError(query));
 
-  // Analyze folder for hashtags in .md and .txt files
+  // Analyze folder for content hashtags and front matter tags in .md and .txt files
   // See: (USER_GUIDE.md#running-an-analysis)
   ipcMain.handle('analyze-folder-hashtags', async (_event, folderPath: string): Promise<FolderAnalysisResult> => {
     try {
@@ -773,7 +773,7 @@ function setupIpcHandlers(): void {
       return await analyzeFolderHashtags(folderPath, ignoredPaths);
     } catch (error) {
       logger.error('Error analyzing folder:', error);
-      return { hashtags: [], totalFiles: 0 };
+      return { hashtags: [], propertyTags: [], totalFiles: 0 };
     }
   });
 

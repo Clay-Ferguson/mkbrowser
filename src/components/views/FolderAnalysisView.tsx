@@ -1,24 +1,87 @@
-import { HashtagIcon } from '@heroicons/react/24/outline';
+import type { ComponentType, MouseEvent, SVGProps } from 'react';
+import { HashtagIcon, TagIcon } from '@heroicons/react/24/outline';
 import {
   useAS,
+  type HashtagEntry,
 } from '../../store';
 import { BUTTON_CLASS_ROW } from '../../renderer/styles';
 
 interface FolderAnalysisViewProps {
+  /** A Content Hashtag (`#foo`) was clicked; `ctrlKey` asks for the exact tag. */
   onSearchHashtag: (hashtag: string, ctrlKey: boolean) => void;
+  /** A Properties Tag (front matter `tags` name, no `#`) was clicked. */
+  onSearchPropertyTag: (name: string) => void;
+}
+
+interface TagSectionProps {
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  title: string;
+  /** One line under the heading saying what the counts mean and what a click does. */
+  hint: string;
+  entries: HashtagEntry[];
+  emptyText: string;
+  /** Count unit, singular and plural (e.g. occurrence / occurrences). */
+  unit: [string, string];
+  /** Tooltip for one entry's button. */
+  rowTitle: (tag: string) => string;
+  onClickTag: (tag: string, e: MouseEvent<HTMLButtonElement>) => void;
 }
 
 /**
- * Displays the results of a folder hashtag analysis: total files scanned and a
- * sorted list of every unique hashtag with its occurrence count. Each hashtag is
- * a clickable button (via the `onSearchHashtag` callback): a plain click runs a
- * literal search (substring, so #foo also finds #foobar, and file names match
- * too), and Ctrl+click runs an advanced tag("#foo") search for the whole tag.
+ * One titled list of the Analysis results — tags sorted by count, each a button
+ * that runs a search for it.
  *
  * See: (USER_GUIDE.md#analysis-results)
- * See: (USER_GUIDE.md#clicking-a-hashtag)
  */
-function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
+function TagSection({ icon: Icon, title, hint, entries, emptyText, unit, rowTitle, onClickTag }: TagSectionProps) {
+  return (
+    <div className="mb-6">
+      <h2 className="text-lg font-medium text-slate-200 flex items-center gap-2">
+        <Icon className="w-5 h-5 text-blue-400" />
+        {title}
+        <span className="text-sm text-slate-400 font-normal">({entries.length} unique)</span>
+      </h2>
+      <p className="text-sm text-slate-400 mt-1 mb-3">{hint}</p>
+
+      {entries.length === 0 ? (
+        <p className="text-slate-400 py-4">{emptyText}</p>
+      ) : (
+        <div className="space-y-1">
+          {entries.map((entry) => (
+            <button
+              key={entry.tag}
+              type="button"
+              onClick={(e) => onClickTag(entry.tag, e)}
+              className={BUTTON_CLASS_ROW}
+              title={rowTitle(entry.tag)}
+            >
+              <span className="text-blue-400 font-mono text-sm">{entry.tag}</span>
+              <span className="text-slate-400 text-sm tabular-nums">
+                {entry.count}
+                <span className="text-slate-500 ml-1">{entry.count === 1 ? unit[0] : unit[1]}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Displays the results of a folder analysis: total files scanned, then two
+ * separately counted lists, each sorted by count:
+ *  - **Properties Tags** — names in the front matter `tags` list (no `#`),
+ *    counted per file. A click runs an advanced tag("foo") search.
+ *  - **Content Hashtags** — `#foo` written in the body text, counted per
+ *    occurrence. A plain click runs a literal search (substring, so #foo also
+ *    finds #foobar, and file names match too); Ctrl+click searches for exactly
+ *    that whole hashtag.
+ *
+ * See: (USER_GUIDE.md#analysis-results)
+ * See: (USER_GUIDE.md#clicking-a-tag)
+ */
+function FolderAnalysisView({ onSearchHashtag, onSearchPropertyTag }: FolderAnalysisViewProps) {
   const folderAnalysis = useAS(s => s.folderAnalysis);
 
   if (!folderAnalysis) {
@@ -29,7 +92,7 @@ function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
     );
   }
 
-  const { hashtags, folderPath, totalFiles } = folderAnalysis;
+  const { hashtags, propertyTags, folderPath, totalFiles } = folderAnalysis;
 
   return (
     <main className="flex-1 min-h-0 overflow-y-auto pb-4">
@@ -39,43 +102,30 @@ function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
           <p className="text-sm font-mono text-btn-accent-amber truncate" title={folderPath}>{folderPath}</p>
           <p className="text-sm text-slate-400 mt-1">
             Scanned <span className="text-slate-200 font-medium">{totalFiles}</span> file{totalFiles !== 1 ? 's' : ''}
-            <span className="mx-2">•</span>
-            Click to search for the text
-            <span className="mx-2">•</span>
-            Ctrl+Click to search for the exact tag
           </p>
         </div>
 
-        {/* Hashtags section */}
-        <div className="mb-6">
-          <h2 className="text-lg font-medium text-slate-200 mb-3 flex items-center gap-2">
-            <HashtagIcon className="w-5 h-5 text-blue-400" />
-            Hashtags
-            <span className="text-sm text-slate-400 font-normal">({hashtags.length} unique)</span>
-          </h2>
+        <TagSection
+          icon={TagIcon}
+          title="Properties Tags"
+          hint="Tags in front matter, counted by file • Click to find the files with the tag"
+          entries={propertyTags}
+          emptyText="No front matter tags found in the scanned files."
+          unit={['file', 'files']}
+          rowTitle={(tag) => `Find files tagged ${tag}`}
+          onClickTag={(tag) => onSearchPropertyTag(tag)}
+        />
 
-          {hashtags.length === 0 ? (
-            <p className="text-slate-400 py-4">No hashtags found in the scanned files.</p>
-          ) : (
-            <div className="space-y-1">
-              {hashtags.map((entry) => (
-                <button
-                  key={entry.tag}
-                  type="button"
-                  onClick={(e) => onSearchHashtag(entry.tag, e.ctrlKey)}
-                  className={BUTTON_CLASS_ROW}
-                  title={`Search for ${entry.tag} (Ctrl+click for the exact tag)`}
-                >
-                  <span className="text-blue-400 font-mono text-sm">{entry.tag}</span>
-                  <span className="text-slate-400 text-sm tabular-nums">
-                    {entry.count}
-                    <span className="text-slate-500 ml-1">{entry.count === 1 ? 'occurrence' : 'occurrences'}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <TagSection
+          icon={HashtagIcon}
+          title="Content Hashtags"
+          hint="Hashtags in the text, counted by occurrence • Click to search for the text • Ctrl+Click to search for the exact hashtag"
+          entries={hashtags}
+          emptyText="No hashtags found in the text of the scanned files."
+          unit={['occurrence', 'occurrences']}
+          rowTitle={(tag) => `Search for ${tag} (Ctrl+click for the exact hashtag)`}
+          onClickTag={(tag, e) => onSearchHashtag(tag, e.ctrlKey)}
+        />
       </div>
     </main>
   );
