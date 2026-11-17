@@ -26,6 +26,11 @@ const SORT_DIRECTION_HINTS: Record<SearchSortBy, { desc: string; asc: string }> 
 
 const NO_SORT_EXPRESSION_TITLE = 'Enter a sort expression, or choose another Sort By.';
 
+const FRONT_MATTER_NEEDS_CONTENTS_TITLE = "Tags and Type are read from file contents, so they need 'File Contents' checked.";
+
+/** The Tags and Type inputs: the query input's look, plus a disabled state. */
+const FRONT_MATTER_INPUT_CLASS = `w-full ${DLG_INPUT_CLASS_BASE} font-mono text-base! border-slate-600 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`;
+
 interface SearchDialogProps {
   onSearch: (definition: SearchDefinition) => void;
   onSave: (definition: SearchDefinition) => void;
@@ -45,7 +50,7 @@ interface PendingConfirm {
 /**
  * The full search dialog, laid out like TagsEditorView: a left panel listing the
  * saved search definitions (SearchDefinitionsPanel) and a right panel of search
- * options — the query, the target (file contents and/or names), the match type
+ * options — the query, the front matter Tags and Type filters, the target (file contents and/or names), the match type
  * (literal/wildcard/advanced), the EXIF / recent-files toggles, and result
  * sorting (including a Custom sort by a JavaScript expression).
  *
@@ -87,6 +92,14 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   const searchImageExif = def.searchImageExif ?? false;
   const mostRecent = def.mostRecent ?? false;
   const sortExpression = def.sortExpression ?? '';
+  const tags = def.tags ?? '';
+  /** The Tags field will filter the search (it needs File Contents; see searchFolder). */
+  const hasTags = searchContents && tags.trim().length > 0;
+  const type = def.type ?? '';
+  /** The Type field will filter the search (it needs File Contents, like Tags). */
+  const hasType = searchContents && type.trim().length > 0;
+  /** There is something to search for: a query, tags, a type, or the Recent Files listing. */
+  const hasCriteria = searchQuery.trim().length > 0 || hasTags || hasType || mostRecent;
   /** Sort By is Custom but there is no expression to sort by. */
   const noSortExpression = sortBy === 'custom' && !sortExpression.trim();
   /** A change handler that sets one field of the definition being edited. */
@@ -136,12 +149,14 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
     });
   };
 
-  /** The form as a definition to search with or save: the query and sort expression
-   *  trimmed, and an empty sort expression left out of the saved config. */
+  /** The form as a definition to search with or save: the query, tags, type and sort
+   *  expression trimmed, and an empty tags, type or sort expression left out of the saved config. */
   const toDefinition = (name: string, query: string): SearchDefinition => ({
     ...def,
     name,
     searchText: query,
+    tags: tags.trim() || undefined,
+    type: type.trim() || undefined,
     sortExpression: sortExpression.trim() || undefined,
   });
 
@@ -157,7 +172,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
 
   const handleSearch = () => {
     const query = searchQuery.trim();
-    if ((!query && !mostRecent) || noTarget || noSortExpression) return;
+    if (!hasCriteria || noTarget || noSortExpression) return;
     void checkSyntax(query).then((ok) => {
       if (!ok) return;
       // The highlighter matches within single DOM text nodes, so it can't match
@@ -233,6 +248,14 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
     set('searchText')(e.target.value);
   };
 
+  const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    set('tags')(e.target.value);
+  };
+
+  const handleTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    set('type')(e.target.value);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -304,10 +327,44 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                   onChange={handleQueryChange}
                   onKeyDown={handleKeyDown}
                   data-testid="search-query-input"
-                  className={`w-full ${DLG_INPUT_CLASS_BASE} font-mono text-base! border-slate-600 focus:border-blue-500`}
+                  className={`w-full shrink-0 ${DLG_INPUT_CLASS_BASE} font-mono text-base! border-slate-600 focus:border-blue-500`}
                   placeholder={matchType === 'wildcard' ? (!searchContents ? '*.md' : 'intro*duction') : 'Enter search text...'}
                 />
               )}
+
+              {/* Front matter filters: Tags and Type, side by side at half width each. */}
+              <div className="flex gap-3 mt-3 shrink-0">
+                <div className="flex-1 min-w-0">
+                  <label className={`${DLG_LABEL_CLASS} truncate`}>
+                    Tags (comma-separated, <span className="font-mono">!tag</span> excludes)
+                  </label>
+                  <input
+                    type="text"
+                    value={tags}
+                    onChange={handleTagsChange}
+                    onKeyDown={handleKeyDown}
+                    disabled={!searchContents}
+                    title={searchContents ? undefined : FRONT_MATTER_NEEDS_CONTENTS_TITLE}
+                    data-testid="search-tags-input"
+                    className={FRONT_MATTER_INPUT_CLASS}
+                    placeholder="e.g. purchased, p1, !done"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className={`${DLG_LABEL_CLASS} truncate`}>Type</label>
+                  <input
+                    type="text"
+                    value={type}
+                    onChange={handleTypeChange}
+                    onKeyDown={handleKeyDown}
+                    disabled={!searchContents}
+                    title={searchContents ? undefined : FRONT_MATTER_NEEDS_CONTENTS_TITLE}
+                    data-testid="search-type-input"
+                    className={FRONT_MATTER_INPUT_CLASS}
+                    placeholder="e.g. todo"
+                  />
+                </div>
+              </div>
 
               <div className="flex items-center gap-6 mb-3 mt-3">
                 <CheckboxField
@@ -460,7 +517,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
             <button
               type="button"
               onClick={handleSearch}
-              disabled={(!searchQuery.trim() && !mostRecent) || noTarget || noSortExpression}
+              disabled={!hasCriteria || noTarget || noSortExpression}
               title={noSortExpression ? NO_SORT_EXPRESSION_TITLE : undefined}
               data-testid="execute-search-button"
               className={BUTTON_CLASS_DLG_BLUE}

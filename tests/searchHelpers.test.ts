@@ -4,7 +4,7 @@
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName } from '../src/shared/searchHelpers';
+import { compareSearchResults, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults } from '../src/store/search';
 import type { SearchDefinition, SortKey } from '../src/shared/shared';
@@ -172,6 +172,8 @@ describe('initialSearchDefinition', () => {
   it("uses a saved search's own options, filling in the missing flags", () => {
     expect(initialSearchDefinition(saved('*.md'), 'highlighted')).toEqual({
       ...saved('*.md'),
+      tags: '',
+      type: '',
       searchImageExif: false,
     });
   });
@@ -207,6 +209,87 @@ describe('isSearchDefinitionDirty', () => {
     expect(isSearchDefinitionDirty({ ...saved, sortExpression: 'ts(p.due)' }, saved)).toBe(true);
     const custom = { ...saved, sortBy: 'custom' as const, sortExpression: 'ts(p.due)' };
     expect(isSearchDefinitionDirty({ ...custom, sortExpression: ' ts(p.due)\n' }, custom)).toBe(false);
+  });
+});
+
+describe('isSearchDefinitionDirty — tags', () => {
+  const saved: SearchDefinition = { ...newSearchDefinition('foo'), name: 'saved' };
+  const { tags: _t, ...legacy } = saved;
+
+  it('treats missing tags as empty and compares them trimmed', () => {
+    expect(isSearchDefinitionDirty({ ...saved, tags: '' }, legacy)).toBe(false);
+    expect(isSearchDefinitionDirty({ ...saved, tags: 'p1' }, legacy)).toBe(true);
+    expect(isSearchDefinitionDirty({ ...saved, tags: ' p1 ' }, { ...saved, tags: 'p1' })).toBe(false);
+    expect(isSearchDefinitionDirty({ ...saved, tags: 'p1, p2' }, { ...saved, tags: 'p1' })).toBe(true);
+  });
+});
+
+describe('isSearchDefinitionDirty — type', () => {
+  const saved: SearchDefinition = { ...newSearchDefinition('foo'), name: 'saved' };
+  const { type: _t, ...legacy } = saved;
+
+  it('treats a missing type as empty and compares it trimmed', () => {
+    expect(isSearchDefinitionDirty({ ...saved, type: '' }, legacy)).toBe(false);
+    expect(isSearchDefinitionDirty({ ...saved, type: 'todo' }, legacy)).toBe(true);
+    expect(isSearchDefinitionDirty({ ...saved, type: ' todo ' }, { ...saved, type: 'todo' })).toBe(false);
+  });
+});
+
+describe('matchesTypeFilter', () => {
+  it('matches the root type property ignoring case and surrounding whitespace', () => {
+    expect(matchesTypeFilter({ type: 'todo' }, 'todo')).toBe(true);
+    expect(matchesTypeFilter({ type: ' ToDo ' }, ' TODO')).toBe(true);
+    expect(matchesTypeFilter({ type: 'todos' }, 'todo')).toBe(false);
+    expect(matchesTypeFilter({ type: 'person' }, 'todo')).toBe(false);
+  });
+
+  it('never matches a missing, non-string or nested type', () => {
+    expect(matchesTypeFilter(null, 'todo')).toBe(false);
+    expect(matchesTypeFilter({}, 'todo')).toBe(false);
+    expect(matchesTypeFilter({ type: ['todo'] }, 'todo')).toBe(false);
+    expect(matchesTypeFilter({ meta: { type: 'todo' } }, 'todo')).toBe(false);
+    expect(matchesTypeFilter(Object.create({ type: 'todo' }) as Record<string, unknown>, 'todo')).toBe(false);
+  });
+
+  it('an empty type matches every file', () => {
+    expect(matchesTypeFilter(null, '  ')).toBe(true);
+  });
+});
+
+describe('parseTagFilter', () => {
+  it('splits on commas, trims, lowercases and drops a leading #', () => {
+    expect(parseTagFilter(' purchased,  #P1 ,##Important')).toEqual({ include: ['purchased', 'p1', 'important'], exclude: [] });
+  });
+
+  it('treats a ! prefix as a tag that must be absent', () => {
+    expect(parseTagFilter('purchased, !returned, ! #Done')).toEqual({ include: ['purchased'], exclude: ['returned', 'done'] });
+  });
+
+  it('returns null when no tag is left', () => {
+    expect(parseTagFilter(undefined)).toBeNull();
+    expect(parseTagFilter('')).toBeNull();
+    expect(parseTagFilter(' , ,# , !')).toBeNull();
+  });
+});
+
+describe('matchesTagFilter', () => {
+  const filter = parseTagFilter('purchased, p1, !returned')!;
+
+  it('needs every included tag and none of the excluded ones', () => {
+    expect(matchesTagFilter(['p1', 'purchased', 'other'], filter)).toBe(true);
+    expect(matchesTagFilter(['purchased'], filter)).toBe(false);
+    expect(matchesTagFilter(['purchased', 'p1', 'returned'], filter)).toBe(false);
+    expect(matchesTagFilter([], filter)).toBe(false);
+  });
+
+  it('ignores case and a leading # on the file\'s tags, but matches whole names', () => {
+    expect(matchesTagFilter(['Purchased', '#P1'], filter)).toBe(true);
+    expect(matchesTagFilter(['purchased', 'p10'], filter)).toBe(false);
+  });
+
+  it('with only exclusions, matches untagged files', () => {
+    expect(matchesTagFilter([], parseTagFilter('!done')!)).toBe(true);
+    expect(matchesTagFilter(['done'], parseTagFilter('!done')!)).toBe(false);
   });
 });
 

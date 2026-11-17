@@ -112,6 +112,26 @@ export interface SearchDefinition {
    * See: (USER_GUIDE.md#custom-sort-order)
    */
   sortExpression?: string;
+  /**
+   * Front matter tags the matching files must have, as typed in the Search
+   * dialog's Tags field: a comma-delimited list such as `purchased, p1, !done`.
+   * Every listed tag must be present and every `!`-prefixed one absent; case and
+   * a leading `#` are ignored (see parseTagFilter). ANDed with the rest of the
+   * search, in every match type. Applies only when `searchContents` is on.
+   *
+   * See: (USER_GUIDE.md#using-search)
+   */
+  tags?: string;
+  /**
+   * The object type the matching files must have, as typed in the Search
+   * dialog's Type field: one type name, compared ignoring case and surrounding
+   * whitespace with the root `type` property of a Markdown file's front matter
+   * (see matchesTypeFilter). When set, only `.md` files are searched. ANDed with
+   * the rest of the search; applies only when `searchContents` is on.
+   *
+   * See: (USER_GUIDE.md#using-search)
+   */
+  type?: string;
   /** Whether to include image EXIF metadata in a content search. */
   searchImageExif?: boolean;
   /**

@@ -113,10 +113,17 @@ function SearchResultsView() {
   // with an empty query) whenever its definition is recorded.
   const hasSearched = lastSearchDefinition !== null;
 
-  // A Recent Files search with no query just lists files by modification time;
-  // its results carry a placeholder matchCount of 1, so don't show a count.
+  // A search with no query (a Recent Files listing, or a search by Tags alone)
+  // has nothing to count; its results carry a placeholder matchCount of 1, so
+  // don't show a count.
   // See: (USER_GUIDE.md#find-recent-edits)
-  const isRecentFilesListing = !!lastSearchDefinition?.mostRecent && !lastSearchDefinition.searchText.trim();
+  const isQuerylessListing = !!lastSearchDefinition && !lastSearchDefinition.searchText.trim();
+
+  // The Tags and Type filters the search applied (they only apply to contents searches).
+  // See: (USER_GUIDE.md#using-search)
+  const searchTags = lastSearchDefinition?.searchContents ? lastSearchDefinition.tags?.trim() ?? '' : '';
+  const searchType = lastSearchDefinition?.searchContents ? lastSearchDefinition.type?.trim() ?? '' : '';
+  const hasFilters = searchTags !== '' || searchType !== '';
 
   // Get the folder name for display
   const folderName = getFileName(searchFolder) || searchFolder;
@@ -303,7 +310,12 @@ function SearchResultsView() {
             {searchName && (
               <span className="text-purple-300 font-semibold mr-2">{searchName}:</span>
             )}
-            Searched for <span className="font-mono text-green-400">&quot;{searchQuery}&quot;</span>
+            Searched for{' '}
+            {(searchQuery || !hasFilters) && <span className="font-mono text-green-400">&quot;{searchQuery}&quot;</span>}
+            {searchQuery && hasFilters && ' with '}
+            {searchTags && <>tags <span className="font-mono text-green-400" data-testid="search-summary-tags">{searchTags}</span></>}
+            {searchTags && searchType && ' and '}
+            {searchType && <>type <span className="font-mono text-green-400" data-testid="search-summary-type">{searchType}</span></>}
             {searchResults.length > 0 && (
               <>
                 <span className="mx-2">•</span>
@@ -332,7 +344,7 @@ function SearchResultsView() {
           <div className="text-center py-12">
             <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
             <p className="text-slate-400">
-              {searchQuery ? <>No results found for &quot;{searchQuery}&quot;</> : 'No files found'}
+              {searchQuery || hasFilters ? 'No results found' : 'No files found'}
             </p>
           </div>
         ) : (
@@ -378,8 +390,8 @@ function SearchResultsView() {
                   {/* Match count. A name match short-circuits the content read, so
                       its matchCount counts occurrences within the file name — a
                       count that would read as misleadingly low next to the content
-                      matches. Label it instead. Omitted for a Recent Files listing,
-                      which has no query to match. */}
+                      matches. Label it instead. Omitted when the search had no query
+                      to match (Recent Files, or Tags alone). */}
                   {/* The value a custom sort ordered this result by. */}
                   {result.sortLabel !== undefined && (
                     <div
@@ -391,7 +403,7 @@ function SearchResultsView() {
                     </div>
                   )}
 
-                  {!isRecentFilesListing && (
+                  {!isQuerylessListing && (
                     <div className="text-sm text-slate-500 flex-shrink-0">
                       {result.nameMatch
                         ? 'name match'

@@ -14,22 +14,38 @@ interface JsCodeInputProps {
   testId?: string;
   /** Receives the editable element, so a Dialog can focus it via `initialFocusRef`. */
   focusRef?: RefObject<HTMLElement | null>;
-  /** Start one line tall (growing to 4) instead of ~8, for short expressions. */
+  /** Start one line tall (growing to 4) instead of ~8 (growing to 16), for short expressions. */
   compact?: boolean;
 }
 
-// Blend one-dark into the dialog's input styling (bg-slate-900, rounded border).
-// `lh` is the scroller's own line height, so the default is ~8 rows tall
-// (scrolling past 16) and the compact one a single row (scrolling past 4).
-function makeInputTheme(minLines: number, maxLines: number) {
+// Blend one-dark into the dialog's input styling (bg-slate-900, rounded slate-600
+// border). Heights are in lines (`lh`, one 16px line at CodeMirror's 1.4 line
+// height): the editor starts `lines` tall and grows with its text up to
+// `maxLines`, then scrolls.
+//
+// The editor element is itself the form's flex item (the host div is
+// `display: contents`), so `floorLines` is the least a cramped flex column (the
+// Search dialog's options panel, in a small window) can squeeze it to; between
+// that and `lines` its scroller scrolls. The floor adds the content's 4px top
+// and bottom padding and the 1px border, so `floorLines` lines stay fully visible.
+function makeInputTheme(floorLines: number, lines: number, maxLines: number) {
   return EditorView.theme({
-    '&': { backgroundColor: 'rgb(15 23 42)', fontSize: '16px' },
+    '&': {
+      backgroundColor: 'rgb(15 23 42)',
+      fontSize: '16px',
+      lineHeight: 1.4,
+      border: '1px solid var(--color-slate-600)',
+      borderRadius: '0.25rem',
+      overflow: 'hidden',
+      minHeight: `calc(${floorLines}lh + 10px)`,
+    },
     '&.cm-focused': { outline: 'none' },
-    '.cm-scroller': { fontFamily: MONO_FONT_STACK, minHeight: `${minLines}lh`, maxHeight: `${maxLines}lh` },
+    '.cm-scroller': { fontFamily: MONO_FONT_STACK, maxHeight: `${maxLines}lh` },
+    '.cm-content': { minHeight: `${lines}lh` },
   });
 }
-const inputTheme = makeInputTheme(8, 16);
-const compactInputTheme = makeInputTheme(1, 4);
+const inputTheme = makeInputTheme(3, 8, 16);
+const compactInputTheme = makeInputTheme(1, 1, 4);
 
 /**
  * A plain, minimal CodeMirror editor with JavaScript syntax highlighting, used as a
@@ -86,7 +102,9 @@ function JsCodeInput({ value, onChange, onSubmit, placeholder, testId, focusRef,
     }
   }, [value]);
 
-  return <div ref={hostRef} className="w-full rounded border border-slate-600 overflow-hidden" />;
+  // `contents`: the host only holds the editor, which carries the field's own
+  // box and sizing (see makeInputTheme).
+  return <div ref={hostRef} className="contents" />;
 }
 
 export default JsCodeInput;

@@ -131,6 +131,32 @@ describe('parseConfigYaml — settings tolerance', () => {
     expect(cfg?.settings?.searchDefinitions?.[0]?.sortExpression).toBeUndefined();
   });
 
+  it('keeps a search\'s tags, and drops non-string tags without dropping the search', () => {
+    const base = {
+      name: 'bought', searchText: '', searchContents: true, searchNames: false,
+      matchType: 'literal', sortBy: 'modified-time', sortDirection: 'desc',
+    };
+    const good = { ...base, tags: 'purchased, !returned' };
+    expect(parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [good] } })?.settings?.searchDefinitions)
+      .toEqual([good]);
+    const bad = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [{ ...base, tags: ['purchased'] }] } });
+    expect(bad?.settings?.searchDefinitions?.[0]).toMatchObject({ name: 'bought' });
+    expect(bad?.settings?.searchDefinitions?.[0]?.tags).toBeUndefined();
+  });
+
+  it('keeps a search\'s type, and drops a non-string type without dropping the search', () => {
+    const base = {
+      name: 'todos', searchText: '', searchContents: true, searchNames: false,
+      matchType: 'literal', sortBy: 'modified-time', sortDirection: 'desc',
+    };
+    const good = { ...base, type: 'todo' };
+    expect(parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [good] } })?.settings?.searchDefinitions)
+      .toEqual([good]);
+    const bad = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [{ ...base, type: 7 }] } });
+    expect(bad?.settings?.searchDefinitions?.[0]).toMatchObject({ name: 'todos' });
+    expect(bad?.settings?.searchDefinitions?.[0]?.type).toBeUndefined();
+  });
+
   it('drops a corrupt searchDefinition element but keeps the good ones', () => {
     const good = {
       name: 'recent',

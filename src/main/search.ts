@@ -27,7 +27,7 @@ import { fdir } from 'fdir';
 import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
 import { parseDateString, past, future, today } from '../shared/timeUtil';
-import { createContentSearcher, compareSearchResults } from '../shared/searchHelpers';
+import { createContentSearcher, compareSearchResults, parseTagFilter, matchesTagFilter, matchesTypeFilter } from '../shared/searchHelpers';
 import type { SearchDefinition, SearchMatchType, SortKey } from '../shared/shared';
 import { compileAdvancedQuery, compileSortKeyExpression, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
@@ -594,6 +594,14 @@ export type SearchFolderOptions = Partial<Omit<SearchDefinition, 'name' | 'searc
  * - `sortExpression` — with `sortBy: 'custom'`, the JavaScript expression whose
  *   per-file value orders the results (see createSortKeyEvaluator). Files the
  *   search matched without reading are read afterwards to evaluate it.
+ * - `tags` — the Tags field (see parseTagFilter): only files whose front matter
+ *   tags pass it can match, ANDed with the query (an empty query plus tags lists
+ *   every file that passes). Ignored without `searchContents`. Since tags live
+ *   in the content, every candidate is read, including name matches, and only
+ *   content candidates (.md/.txt, plus images) can match.
+ * - `type` — the Type field: only Markdown files whose front matter `type` is
+ *   this one (ignoring case; see matchesTypeFilter) can match, ANDed like
+ *   `tags`. Only `.md` files are searched then. Ignored without `searchContents`.
  * - `signal` — cancels the search: it is checked after each crawl and
  *   before each file is stat'd, read or matched, and an abort rejects the search
  *   with the signal's reason. Partial results are never returned.
@@ -616,6 +624,8 @@ export async function searchFolderWithTotal(
     sortBy = 'modified-time',
     sortDirection = 'desc',
     sortExpression = '',
+    tags = '',
+    type = '',
     signal,
   }: SearchFolderOptions = {},
 ): Promise<{ results: SearchResult[]; totalMatches: number }> {
@@ -627,6 +637,23 @@ export async function searchFolderWithTotal(
   const results: SearchResult[] = [];
   const shouldExcludePath = buildExcludePredicate(ignoredPaths);
   const hasQuery = query.trim().length > 0;
+  // The Tags and Type filters need file contents, so a names-only search
+  // ignores them (the Search dialog disables those fields then).
+  const tagFilter = searchContents ? parseTagFilter(tags) : null;
+  const typeFilter = searchContents ? type.trim() : '';
+  /** A Tags or Type filter is set: every candidate must be read to check it. */
+  const frontMatterFilter = tagFilter !== null || typeFilter !== '';
+  /** Whether the file whose contents are `content` passes the Tags and Type filters. */
+  const passesFrontMatterFilter = (content: string, filePath: string): boolean => {
+    if (!frontMatterFilter) return true;
+    const frontMatter = getYaml(yamlCache, content, filePath);
+    return (!tagFilter || matchesTagFilter(getTagsFromFrontMatter(frontMatter), tagFilter))
+      && matchesTypeFilter(frontMatter, typeFilter);
+  };
+  /** Whose contents a contents search reads: with a Type filter, Markdown files only. */
+  const isCandidate = (filePath: string): boolean => typeFilter
+    ? path.extname(filePath).toLowerCase() === '.md'
+    : isContentCandidate(filePath, searchImageExif);
   const basePredicate: ((content: string, filePath?: string, stat?: Partial<StatTimes>) => MatchResult) | null = !hasQuery
     ? null
     : !searchContents && matchType === 'wildcard'
@@ -787,7 +814,9 @@ export async function searchFolderWithTotal(
     // Other file types (.pdf, .zip, …) can match by name, so the crawl widens
     // past the content candidates — but only when there is a name test and no
     // window, since a window never includes them.
-    const broadCrawl = nameMatchActive && !mostRecent;
+    // A Tags or Type filter rules them out too: a file can only pass it once
+    // its contents have been read.
+    const broadCrawl = nameMatchActive && !mostRecent && !frontMatterFilter;
 
     const api = new fdir()
       .withFullPaths()
@@ -796,7 +825,7 @@ export async function searchFolderWithTotal(
         const fileName = path.basename(filePath);
         if (shouldExcludePath(fileName, filePath)) return false;
         if (broadCrawl) return true;
-        return isContentCandidate(filePath, searchImageExif);
+        return isCandidate(filePath);
       })
       .withAbortSignal(abortSignal)
       .crawl(folderPath);
@@ -805,7 +834,7 @@ export async function searchFolderWithTotal(
     // An aborted fdir crawl resolves early with partial output, so check here.
     signal?.throwIfAborted();
     const contentCandidates = broadCrawl
-      ? crawled.filter(fp => isContentCandidate(fp, searchImageExif))
+      ? crawled.filter(isCandidate)
       : crawled;
 
     // Build the window — the 500 most recently modified content candidates —
@@ -818,8 +847,10 @@ export async function searchFolderWithTotal(
     // Name pass. Pure CPU and zero I/O, so it runs before anything is read: every
     // hit here is a file the content pass below never has to open. Without a
     // candidateWindow, crawled includes the non-content file types (broadCrawl).
+    // With a Tags or Type filter a name hit still has to be read to check its
+    // front matter, so the name test moves into the read loop below instead.
     const nameHits = new Map<string, number>();
-    if (nameMatchActive && matchPredicate) {
+    if (nameMatchActive && matchPredicate && !frontMatterFilter) {
       for (const filePath of candidateWindow ? filesToSearch : crawled) {
         const { matches, matchCount } = matchPredicate(path.basename(filePath));
         if (matches) nameHits.set(filePath, matchCount);
@@ -855,8 +886,9 @@ export async function searchFolderWithTotal(
         const isImage = EXIF_IMAGE_EXTENSIONS.has(ext);
         const cachedStat = statCache?.get(filePath);
 
-        // No query — return all files (mostRecent mode with empty query)
-        if (!matchPredicate) {
+        // No query — return all files (mostRecent mode with empty query) —
+        // unless a Tags or Type filter means each file must be read to check it.
+        if (!matchPredicate && !frontMatterFilter) {
           return buildResult(folderPath, filePath, 1, cachedStat);
         }
 
@@ -901,6 +933,23 @@ export async function searchFolderWithTotal(
           } catch (err) {
             logger.debug('search: skipping unreadable file', filePath, err);
             return null;
+          }
+        }
+
+        if (!passesFrontMatterFilter(content, filePath)) return null;
+
+        // Tags/Type alone (no query): every file that passes them is a hit.
+        if (!matchPredicate) {
+          return withSortKey(await buildResult(folderPath, filePath, 1, resultStat), content, resultStat);
+        }
+
+        // The name half, deferred to here when there is a Tags or Type filter
+        // (see the name pass above): a name match still has to pass it.
+        if (frontMatterFilter && nameMatchActive) {
+          const nameMatch = matchPredicate(path.basename(filePath));
+          if (nameMatch.matches) {
+            const result = await buildResult(folderPath, filePath, nameMatch.matchCount, resultStat);
+            return withSortKey({ ...result, nameMatch: true }, content, resultStat);
           }
         }
 

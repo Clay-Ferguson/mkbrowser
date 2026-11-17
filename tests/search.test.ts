@@ -1539,6 +1539,137 @@ describe('tag() front matter tag matching', () => {
   });
 });
 
+describe('Tags filter (searchFolder tags option)', () => {
+  let dir: string;
+  const names = (results: { path: string }[]): string[] =>
+    results.map(r => path.basename(r.path)).sort();
+  const fm = (tags: string[], body: string) => `---\ntags:\n${tags.map(t => `  - ${t}\n`).join('')}---\n${body}\n`;
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-tags-filter-'));
+    const write = (relPath: string, body: string) => {
+      const fp = path.join(dir, relPath);
+      fs.mkdirSync(path.dirname(fp), { recursive: true });
+      fs.writeFileSync(fp, body, 'utf-8');
+    };
+    write('laptop.md', fm(['purchased', 'p1'], 'a laptop'));
+    write('sub/chair.md', fm(['Purchased'], 'a chair'));
+    write('lamp.md', fm(['purchased', 'returned'], 'a lamp'));
+    write('wishlist.md', fm(['wanted'], 'a laptop someday'));
+    write('plain.md', 'a laptop with no front matter\n');
+    write('notes.txt', fm(['purchased'], 'text file'));
+    write('laptop-receipt.pdf', 'not readable');
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('finds tagged files with an empty query', async () => {
+    const results = await searchFolder(dir, '', { tags: 'purchased' });
+    expect(names(results)).toEqual(['chair.md', 'lamp.md', 'laptop.md', 'notes.txt']);
+    expect(results.every(r => r.matchCount === 1)).toBe(true);
+  });
+
+  it('needs every listed tag, and excludes ! tags', async () => {
+    expect(names(await searchFolder(dir, '', { tags: 'purchased, p1' }))).toEqual(['laptop.md']);
+    expect(names(await searchFolder(dir, '', { tags: 'purchased, !returned' }))).toEqual(['chair.md', 'laptop.md', 'notes.txt']);
+    expect(names(await searchFolder(dir, '', { tags: '!purchased' }))).toEqual(['plain.md', 'wishlist.md']);
+  });
+
+  it('ignores case and a leading #', async () => {
+    expect(names(await searchFolder(dir, '', { tags: '#PURCHASED, #P1' }))).toEqual(['laptop.md']);
+  });
+
+  it('is ANDed with a literal query', async () => {
+    const results = await searchFolder(dir, 'laptop', { tags: 'purchased' });
+    expect(names(results)).toEqual(['laptop.md']);
+    expect(results[0].matchCount).toBe(1);
+  });
+
+  it('is ANDed with an advanced query', async () => {
+    expect(names(await searchFolder(dir, "!$('lamp')", { matchType: 'advanced', tags: 'purchased, !p1' })))
+      .toEqual(['chair.md', 'notes.txt']);
+  });
+
+  it('requires the tags of a file matched by name in a contents+names search', async () => {
+    // Without tags the .pdf and wishlist.md match too (by name / by content).
+    expect(names(await searchFolder(dir, 'laptop', { searchNames: true })))
+      .toEqual(['laptop-receipt.pdf', 'laptop.md', 'plain.md', 'wishlist.md']);
+    const results = await searchFolder(dir, 'laptop', { searchNames: true, tags: 'purchased' });
+    expect(names(results)).toEqual(['laptop.md']);
+    expect(results[0].nameMatch).toBe(true);
+    expect(names(await searchFolder(dir, 'chair', { searchNames: true, tags: 'p1' }))).toEqual([]);
+  });
+
+  it('is ignored by a names-only search', async () => {
+    expect(names(await searchFolder(dir, 'lamp', { searchContents: false, searchNames: true, tags: 'nope' })))
+      .toEqual(['lamp.md']);
+  });
+
+  it('applies within the Recent Files window', async () => {
+    expect(names(await searchFolder(dir, '', { mostRecent: true, tags: 'p1' }))).toEqual(['laptop.md']);
+  });
+
+  it('a blank tags value is no filter', async () => {
+    expect(names(await searchFolder(dir, 'laptop', { tags: ' , ' }))).toEqual(['laptop.md', 'plain.md', 'wishlist.md']);
+  });
+});
+
+describe('Type filter (searchFolder type option)', () => {
+  let dir: string;
+  const names = (results: { path: string }[]): string[] =>
+    results.map(r => path.basename(r.path)).sort();
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-type-filter-'));
+    const write = (relPath: string, body: string) => {
+      const fp = path.join(dir, relPath);
+      fs.mkdirSync(path.dirname(fp), { recursive: true });
+      fs.writeFileSync(fp, body, 'utf-8');
+    };
+    write('buy-milk.md', '---\ntype: todo\ntags: [p1]\n---\nbuy milk\n');
+    write('sub/call-bob.md', '---\ntype: ToDo\n---\ncall bob\n');
+    write('bob.md', '---\ntype: person\n---\nbob the person\n');
+    write('todo-notes.md', 'no front matter, just a todo\n');
+    write('todo.txt', '---\ntype: todo\n---\na text file\n');
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('finds Markdown files of the type, ignoring case, with an empty query', async () => {
+    const results = await searchFolder(dir, '', { type: 'TODO' });
+    expect(names(results)).toEqual(['buy-milk.md', 'call-bob.md']);
+  });
+
+  it('searches only .md files', async () => {
+    expect(names(await searchFolder(dir, 'text file', { type: 'todo' }))).toEqual([]);
+    expect(names(await searchFolder(dir, 'text file', {}))).toEqual(['todo.txt']);
+  });
+
+  it('is ANDed with the query and the tags', async () => {
+    expect(names(await searchFolder(dir, 'bob', { type: 'todo' }))).toEqual(['call-bob.md']);
+    expect(names(await searchFolder(dir, '', { type: 'todo', tags: 'p1' }))).toEqual(['buy-milk.md']);
+    expect(names(await searchFolder(dir, '', { type: 'todo', tags: '!p1' }))).toEqual(['call-bob.md']);
+  });
+
+  it('requires the type of a file matched by name in a contents+names search', async () => {
+    // todo-notes.md matches by name only; it has no type.
+    expect(names(await searchFolder(dir, 'notes', { searchNames: true }))).toEqual(['todo-notes.md']);
+    expect(names(await searchFolder(dir, 'notes', { searchNames: true, type: 'todo' }))).toEqual([]);
+    const results = await searchFolder(dir, 'call-', { searchNames: true, type: 'todo' });
+    expect(names(results)).toEqual(['call-bob.md']);
+    expect(results[0].nameMatch).toBe(true);
+  });
+
+  it('is ignored by a names-only search', async () => {
+    expect(names(await searchFolder(dir, 'bob', { searchContents: false, searchNames: true, type: 'nope' })))
+      .toEqual(['bob.md', 'call-bob.md']);
+  });
+});
+
 describe('exactHashtagQuery (Ctrl+click on a Content Hashtag)', () => {
   it('matches only the whole, case-sensitive hashtag in the file text', () => {
     const predicate = createMatchPredicate(exactHashtagQuery('#todo'), 'advanced');

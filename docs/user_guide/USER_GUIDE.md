@@ -762,7 +762,9 @@ MkBrowser includes a powerful search feature to help you find content across you
 A search always covers the folder you are currently browsing **and all of its subfolders**. Anything matching your [Files to Ignore](#files-to-ignore) setting is skipped.
 
 1. Click the **Search** button in the Browse view toolbar.
-2. Enter your search query. Literal and wildcard searches ignore upper/lower case. The **Search** button stays disabled while the query is empty, unless **Recent Files** is checked (see [Find Recent Edits](#find-recent-edits)).
+2. Enter your search query. Literal and wildcard searches ignore upper/lower case. The **Search** button stays disabled while the query is empty, unless **Tags** or a **Type** are entered or **Recent Files** is checked (see [Find Recent Edits](#find-recent-edits)).
+    - **Tags**: Optionally, list front matter tags (the ones the [Tag Picker](#tag-picker) adds) separated by commas, such as `purchased, p1, important`. Only files that have **every** listed tag are found. Put `!` in front of a tag to find only files that **don't** have it: `purchased, !returned` finds purchased files that were not returned. Upper/lower case and a leading `#` are ignored, but the whole tag name must match (`todo` doesn't match a `todos` tag). Tags are combined with everything else in the dialog — a file must match the query (in any Search Mode) *and* the tags — and you can leave the query empty to search by tags alone. Tags are read from the file contents, so this box is disabled unless **File Contents** is checked; when **File Names** is also checked, a file that matches by name must still have the tags.
+    - **Type**: Optionally, enter one [object type](#objects-and-custom-types) name, such as `todo`, to find only Markdown files whose front matter `type` property is that type. Upper/lower case is ignored (`Todo` finds `type: todo`), and only one type can be entered. When a type is entered, only `.md` files are searched (not `.txt` files or images). Like **Tags**, it is combined with the query and the tags, the query can be left empty, and it needs **File Contents** checked.
 3. Choose your search options:
     - **Search Target**: two checkboxes, which can be checked independently (at least one must be checked to search). **File Contents** alone is the default.
         - **File Contents**: A file is a match if your text is found in its **contents**. Contents are read from `.md` and `.txt` files (plus image EXIF metadata when that option is checked).
@@ -779,7 +781,7 @@ A search always covers the folder you are currently browsing **and all of its su
 4. Click **Search** (or press `Enter` in the search text box). The matching files are listed in the **Search Results** tab. Click a file in the list to open it **by itself** in the Browse view (the same single-file view you get from clicking a file in the **Index Tree**), so you can step through the results one at a time. Clicking a folder result instead shows that folder in its parent's listing. The **Edit** button on a result opens the file by itself in the same way, with its editor already open.
 
 ## Search Results
-The top of the **Search Results** tab summarizes the search — the saved search's name (if any), the query, how many files were found, and the sort order — and has three buttons:
+The top of the **Search Results** tab summarizes the search — the saved search's name (if any), the query, tags and type, how many files were found, and the sort order — and has three buttons:
 
 - **Graph**: Shows the results as a [Search-based Graph](#search-based-graph).
 - **Calendar**: Opens the Calendar tab showing just the results that are calendar items (files with a valid `due` date). This replaces whatever the calendar was showing before. Unlike a calendar opened from the Browse view, it does not update itself when files change — click **Calendar** again to refresh it.
@@ -797,7 +799,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 
 *   **`$('text')`**: Returns `true` if the file content contains the text "text" (case-insensitive).
     *   Example: `$('important')` finds files containing "important".
-*   **`tag('name')`**: Returns `true` if the file's front matter `tags` list contains `name` — the same tags the [Tag Picker](#tag-picker) adds. The whole name must match, case-sensitively: `tag('todo')` matches a `todo` tag but not `todos` or `todo-later`. Write the name **without** a `#`: tags are stored in front matter without one, so `tag('#todo')` never matches anything. Hashtags typed into the body text (`#todo`) are not tags in this sense; use `$('#todo')` to find those.
+*   **`tag('name')`**: Returns `true` if the file's front matter `tags` list contains `name` — the same tags the [Tag Picker](#tag-picker) adds. (For a simple tag search you don't need Advanced mode: use the dialog's **Tags** box — see [Using Search](#using-search).) The whole name must match, case-sensitively: `tag('todo')` matches a `todo` tag but not `todos` or `todo-later`. Write the name **without** a `#`: tags are stored in front matter without one, so `tag('#todo')` never matches anything. Hashtags typed into the body text (`#todo`) are not tags in this sense; use `$('#todo')` to find those.
     *   Example: `tag('urgent') && !tag('done')` finds files tagged urgent but not done, i.e. with front matter like:
         ```markdown
         ---
@@ -960,7 +962,7 @@ You can save frequently used searches for quick access later. The left side of t
 * **Change a saved search:** with its row selected, change the options, then click **Save** at the lower right. **Revert** discards your changes and goes back to the saved version. While there are unsaved changes, the footer says *Unsaved changes*. You are asked before those changes are thrown away by selecting a different row or closing the dialog.
 * **Rename or delete:** hover over a row and click **✎** to edit its name in place, or **✕** to delete it (you'll be asked to confirm). Both take effect immediately.
 
-A saved search keeps all of its options, including a [Custom sort](#custom-sort-order)'s sort expression.
+A saved search keeps all of its options, including its **Tags**, **Type** and a [Custom sort](#custom-sort-order)'s sort expression.
 
 Clicking **Search** only runs the search. It never saves or changes a saved definition, so you can load a saved search, adjust it for a one-off run, and search without changing what's saved.
 

@@ -5,6 +5,7 @@
  */
 
 import type { SearchDefinition, SearchSortBy, SearchSortDirection, SortKey, SortKeyScalar } from './shared';
+import { sameTypeName } from './objects/genericObject';
 
 /** The fields of a search result that the result ordering reads. */
 interface SortableSearchResult {
@@ -101,9 +102,73 @@ export function newSearchDefinition(searchText = ''): SearchDefinition {
     matchType: 'literal',
     sortBy: 'modified-time',
     sortDirection: 'desc',
+    tags: '',
+    type: '',
     searchImageExif: false,
     mostRecent: false,
   };
+}
+
+/**
+ * The parsed form of a search's Tags field: the tag names a file must have
+ * (`include`) and must not have (`exclude`), lowercased and without `#`.
+ *
+ * See: (USER_GUIDE.md#using-search)
+ */
+export interface TagFilter {
+  include: string[];
+  exclude: string[];
+}
+
+/**
+ * Parses a Tags field such as `purchased, #P1, !done`: comma-separated names,
+ * each trimmed, a leading `!` marking a tag that must be absent, leading `#`s
+ * dropped (tags are stored without one), and lowercased so matching ignores
+ * case. Empty entries are skipped. Returns null when no tag is left, meaning
+ * "no tag filter".
+ *
+ * See: (USER_GUIDE.md#using-search)
+ */
+export function parseTagFilter(raw: string | undefined): TagFilter | null {
+  if (!raw) return null;
+  const include: string[] = [];
+  const exclude: string[] = [];
+  for (const part of raw.split(',')) {
+    let name = part.trim();
+    const negated = name.startsWith('!');
+    if (negated) name = name.slice(1).trim();
+    name = name.replace(/^#+/, '').trim().toLowerCase();
+    if (!name) continue;
+    (negated ? exclude : include).push(name);
+  }
+  return include.length || exclude.length ? { include, exclude } : null;
+}
+
+/**
+ * Whether parsed front matter has the object type `type` (a search's Type
+ * field): its root `type` property is a string equal to `type`, ignoring case
+ * (type names are case-insensitive) and surrounding whitespace on both sides.
+ * An empty `type` matches every file.
+ *
+ * See: (USER_GUIDE.md#using-search)
+ */
+export function matchesTypeFilter(frontMatter: Record<string, unknown> | null, type: string): boolean {
+  const wanted = type.trim();
+  if (!wanted) return true;
+  // hasOwn, not `frontMatter.type`: never read an inherited property off parsed, untrusted data.
+  const raw = frontMatter && Object.hasOwn(frontMatter, 'type') ? frontMatter['type'] : undefined;
+  return typeof raw === 'string' && sameTypeName(raw.trim(), wanted);
+}
+
+/**
+ * Whether a file with front matter tags `fileTags` passes `filter`: it has every
+ * included tag and none of the excluded ones, comparing whole names ignoring case.
+ *
+ * See: (USER_GUIDE.md#using-search)
+ */
+export function matchesTagFilter(fileTags: readonly string[], filter: TagFilter): boolean {
+  const have = new Set(fileTags.map(t => t.replace(/^#+/, '').toLowerCase()));
+  return filter.include.every(t => have.has(t)) && !filter.exclude.some(t => have.has(t));
 }
 
 /**
@@ -149,6 +214,8 @@ export function initialSearchDefinition(
   if (!initial) return newSearchDefinition(highlightText ?? '');
   return {
     ...initial,
+    tags: initial.tags ?? '',
+    type: initial.type ?? '',
     searchImageExif: initial.searchImageExif ?? false,
     mostRecent: initial.mostRecent ?? false,
   };
@@ -172,6 +239,8 @@ export function isSearchDefinitionDirty(form: SearchDefinition, saved: SearchDef
     || a.sortBy !== b.sortBy
     || a.sortDirection !== b.sortDirection
     || (a.sortExpression ?? '').trim() !== (b.sortExpression ?? '').trim()
+    || (a.tags ?? '').trim() !== (b.tags ?? '').trim()
+    || (a.type ?? '').trim() !== (b.type ?? '').trim()
     || a.searchImageExif !== b.searchImageExif
     || a.mostRecent !== b.mostRecent;
 }
