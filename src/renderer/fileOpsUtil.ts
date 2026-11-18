@@ -879,7 +879,8 @@ export async function pasteFromClipboardOp(
  * Refreshes the directory view when anything changed.
  *
  * @param selectedItems - The selected items; only Markdown files are processed.
- * @param onResult - Receives the user-facing summary once every file has been processed.
+ * @param onResult - Receives a user-facing summary only when something went wrong (no
+ *   Markdown files selected, or some files were skipped); a clean run reports nothing.
  */
 export async function removePropertiesFromSelected(
   selectedItems: Pick<ItemData, 'path' | 'name' | 'isDirectory'>[],
@@ -914,16 +915,18 @@ export async function removePropertiesFromSelected(
 
   if (changed > 0) refreshDirectory();
 
+  // Success is silent — the refreshed view shows the result. Only report problems.
+  if (failed.length === 0) return;
   const lines = [`Removed properties from ${changed} file(s).`];
   if (unchanged > 0) lines.push(`${unchanged} file(s) had no properties to remove.`);
-  if (failed.length > 0) lines.push('', 'Skipped:', ...failed.map((f) => `  ${f}`));
+  lines.push('', 'Skipped:', ...failed.map((f) => `  ${f}`));
   onResult(lines.join('\n'));
 }
 
 /**
  * Single-file form of {@link removePropertiesFromSelected}, for an entry's own
  * "Remove Properties" menu item: acts on the one Markdown file regardless of the
- * checkbox selection, with the same summary reported through `onResult`.
+ * checkbox selection, reporting problems (only) through `onResult`.
  *
  * @param filePath - Absolute path of the Markdown file.
  * @param onResult - Receives the user-facing summary.

@@ -89,8 +89,8 @@ export function EntryActionBar({
   // Open flag and anchor for the hamburger "More actions" menu (EntryPopupMenu). See: (popup_menus.md#step-2-add-the-trigger-button-and-menu-to-the-parent-component)
   const [showMenu, setShowMenu] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-  // The per-file "Remove Properties" flow: confirm, then a summary alert — the same
-  // dialogs BrowseView shows for the toolbar's selection-based version.
+  // The per-file "Remove Properties" flow: confirm, then an alert only if something
+  // went wrong — the same dialogs BrowseView shows for the toolbar's selection-based version.
   const [showRemovePropsConfirm, setShowRemovePropsConfirm] = useState(false);
   const [removePropsResult, setRemovePropsResult] = useState<string | null>(null);
 
