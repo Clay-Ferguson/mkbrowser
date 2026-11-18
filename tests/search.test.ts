@@ -793,7 +793,7 @@ describe('custom sort', () => {
     expect(results.map(r => [path.basename(r.path), r.sortLabel])).toEqual([
       ['late.md', '1 · 2026-03-01'],
       ['undated.md', '1 · —'],
-      ['early.md', '2 · 2026-01-15 09:30'],
+      ['early.md', '2 · 2026-01-15 09:30 AM'],
     ]);
   });
 
@@ -817,7 +817,7 @@ describe('custom sort', () => {
       searchContents: true, searchNames: true, sortBy: 'custom', sortDirection: 'asc', sortExpression: 'ts(p.due)',
     });
     expect(results.map(r => [path.basename(r.path), r.nameMatch, r.sortLabel])).toEqual([
-      ['early.md', true, '2026-01-15 09:30'],
+      ['early.md', true, '2026-01-15 09:30 AM'],
     ]);
   });
 
@@ -928,7 +928,7 @@ describe('the f file object', () => {
     const results = await searchFolder(dir, "f.name == 'old.md'", {
       matchType: 'advanced', sortBy: 'custom', sortExpression: 'f.modified',
     });
-    expect(results[0].sortLabel).toMatch(/^2001-02-0[23] \d\d:05$/);
+    expect(results[0].sortLabel).toMatch(/^2001-02-0[23] \d\d:05 [AP]M$/);
   });
 });
 

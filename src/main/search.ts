@@ -26,7 +26,7 @@ import fs from 'node:fs';
 import { fdir } from 'fdir';
 import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
-import { parseDateString, past, future, today } from '../shared/timeUtil';
+import { parseDateString, past, future, today, formatDateTime12 } from '../shared/timeUtil';
 import { createContentSearcher, compareSearchResults, parseTagFilter, matchesTagFilter, matchesTypeFilter } from '../shared/searchHelpers';
 import type { SearchDefinition, SearchMatchType, SortKey } from '../shared/shared';
 import { compileAdvancedQuery, compileSortKeyExpression, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
@@ -117,7 +117,7 @@ export interface SearchResult {
   createdTime?: number;
   /** Set (in a contents+names search only) when this file matched on its NAME, meaning its
    * contents were never read — so matchCount counts occurrences within the file
-   * name, not within the body. The renderer shows "name match" rather than a count. */
+   * name, not within the body. */
   nameMatch?: boolean;
   /** Set when the result is a folder (only a names-only search returns folders). */
   isDirectory?: boolean;
@@ -308,25 +308,17 @@ interface SortKeyOutcome {
   error?: string;
 }
 
-/** Formats a timestamp produced by `ts()` as a local `YYYY-MM-DD`, adding
- * ` HH:MM` when the time is not midnight. */
-function formatSortDate(timestamp: number): string {
-  const d = new Date(timestamp);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  return d.getHours() || d.getMinutes() ? `${date} ${pad(d.getHours())}:${pad(d.getMinutes())}` : date;
-}
-
 /**
  * Display text for a sort key: numbers that came from `ts()` (listed in
- * `dates`) as dates, other values as-is, no value as an em dash, and the parts
+ * `dates`) as dates (`YYYY-MM-DD`, plus ` hh:mm AM/PM` when the time is not
+ * midnight — the same format the built-in time sorts show), other values as-is, no value as an em dash, and the parts
  * of an array key joined with ` · `.
  *
  * See: (USER_GUIDE.md#custom-sort-order)
  */
 export function formatSortLabel(key: SortKey, dates: ReadonlySet<number> = new Set()): string {
   const one = (v: number | string | null): string =>
-    v === null ? '—' : typeof v === 'number' && dates.has(v) ? formatSortDate(v) : String(v);
+    v === null ? '—' : typeof v === 'number' && dates.has(v) ? formatDateTime12(v, true) : String(v);
   return Array.isArray(key) ? key.map(one).join(' · ') : one(key);
 }
 

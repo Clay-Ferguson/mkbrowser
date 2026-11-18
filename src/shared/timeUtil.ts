@@ -307,6 +307,24 @@ export function generateTimestampFileName(): string {
 // two stay in sync.
 export const TIMESTAMP_FILENAME_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-(AM|PM)\.md$/;
 
+/**
+ * Formats a timestamp as a local `YYYY-MM-DD hh:mm AM/PM` (12-hour, zero-padded
+ * so values line up in a monospace column). With `omitMidnightTime`, a time of
+ * exactly 00:00 is left off and just the date is returned — for values that are
+ * dates rather than moments (e.g. a custom sort's `ts(p.due)`).
+ *
+ * See: (USER_GUIDE.md#search-results)
+ */
+export function formatDateTime12(ms: number, omitMidnightTime = false): string {
+  const d = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const hours = d.getHours();
+  const minutes = d.getMinutes();
+  if (omitMidnightTime && hours === 0 && minutes === 0) return date;
+  return `${date} ${pad(hours % 12 || 12)}:${pad(minutes)} ${hours < 12 ? 'AM' : 'PM'}`;
+}
+
 /** Returns the current date/time formatted as `MM/DD/YY HH:MM AM/PM`. */
 export function formatTimestamp(): string {
   const now = new Date();

@@ -6,6 +6,7 @@
 
 import type { SearchDefinition, SearchSortBy, SearchSortDirection, SortKey, SortKeyScalar } from './shared';
 import { sameTypeName } from './objects/genericObject';
+import { formatDateTime12 } from './timeUtil';
 
 /** The fields of a search result that the result ordering reads. */
 interface SortableSearchResult {
@@ -86,6 +87,35 @@ export function compareSearchResults(
     }
     return sign * cmp || a.relativePath.localeCompare(b.relativePath);
   };
+}
+
+/** Shown in the Order column when a result has no value for its sort. */
+const NO_ORDER_VALUE = '—';
+
+/**
+ * The text of a search result's "Order" column: the value the results were
+ * sorted by, so the column is never blank. File-name order shows the base name
+ * (what compareSearchResults compares), time orders show the timestamp, and
+ * custom order shows the expression's formatted value. A missing value (a stat
+ * that failed, a filesystem with no creation time, or a custom expression with
+ * no result) shows as an em dash.
+ *
+ * See: (USER_GUIDE.md#search-results)
+ */
+export function formatOrderValue(
+  result: SortableSearchResult & { sortLabel?: string },
+  sortBy: SearchSortBy,
+): string {
+  switch (sortBy) {
+    case 'custom':
+      return result.sortLabel || NO_ORDER_VALUE;
+    case 'file-name':
+      return baseName(result.relativePath);
+    case 'created-time':
+      return result.createdTime ? formatDateTime12(result.createdTime) : NO_ORDER_VALUE;
+    case 'modified-time':
+      return result.modifiedTime ? formatDateTime12(result.modifiedTime) : NO_ORDER_VALUE;
+  }
 }
 
 /**

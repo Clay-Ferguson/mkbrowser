@@ -769,7 +769,7 @@ A search always covers the folder you are currently browsing **and all of its su
     - **Search Target**: two checkboxes, which can be checked independently (at least one must be checked to search). **File Contents** alone is the default.
         - **File Contents**: A file is a match if your text is found in its **contents**. Contents are read from `.md` and `.txt` files (plus image EXIF metadata when that option is checked).
         - **File Names**: Alone, matches names only — including **folder** names as well as files of every type — and never reads any file contents.
-        - **Both**: A file is a match if your text is found in its **contents** *or* in its **file name**. The file-name half of the match applies to **every** file regardless of extension — so a `.pdf` or `.zip` whose name contains your text is found too. Folder names are not matched. Results that matched on the file name are labeled **name match**, and are sorted along with the others by your chosen sort order.
+        - **Both**: A file is a match if your text is found in its **contents** *or* in its **file name**. The file-name half of the match applies to **every** file regardless of extension — so a `.pdf` or `.zip` whose name contains your text is found too. Folder names are not matched. Results that matched on the file name are sorted along with the others by your chosen sort order.
     - **Search Mode**: 
         - **Literal**: Exact text match.
         - **Wildcard**: Use `*` to match any characters (e.g., `intro*duction`); in file contents each `*` spans up to 25 characters. With only **File Names** checked, the pattern must match the **whole** name, like a file glob: `*.md` finds names ending in `.md` (but not `notes.md.bak`), and `note-*` finds names starting with `note-`.
@@ -787,7 +787,13 @@ The top of the **Search Results** tab summarizes the search — the saved search
 - **Calendar**: Opens the Calendar tab showing just the results that are calendar items (files with a valid `due` date). This replaces whatever the calendar was showing before. Unlike a calendar opened from the Browse view, it does not update itself when files change — click **Calendar** again to refresh it.
 - **Refresh** (circular-arrow icon): Runs the same search again, so the list picks up files that were added, edited, renamed, or deleted since the search ran.
 
-Each result shows the file's path relative to the searched folder and how many times the query matched (or **name match** when it matched on the file name). With a [Custom sort](#custom-sort-order), each result also shows the value it was sorted by. Hover over a result to reveal its **Edit** button (Markdown and text files only) and **Delete** button. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
+The results are shown as a table with three columns:
+
+- **Name**: The file's (or folder's) path relative to the searched folder. Click a row to open it.
+- **Order**: The value the results were sorted by — the modification or creation time (as `YYYY-MM-DD hh:mm AM/PM`) for a time sort, the file name for a file-name sort, or the expression's value for a [Custom sort](#custom-sort-order). A result with no value (for example a file system that doesn't record creation times) shows **—**. A long value is cut off; hover over it to see all of it.
+- **Actions**: Hover over a row to reveal its **Edit** button (Markdown and text files only) and **Delete** button.
+
+The column headings stay at the top while you scroll. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
 
 A search returns **at most 500 results**. When more files match, the summary says **"Showing 500 of N files found"**, and the 500 shown are the first ones in your chosen sort order — for example, the 500 newest when sorting by modification time, newest first. Narrow the search or change the order to see others.
 
@@ -936,7 +942,7 @@ The expression is written exactly like an [Advanced search predicate](#advanced-
 
 **Sorting by more than one value.** Return a list in square brackets to sort by the first value, then break ties with the next, and so on. For example, `[p.priority, ts(p.due)]` orders by `priority`, and files with the same priority by due date. Within a list, a missing value also sorts after the others at its position, whichever the direction.
 
-**The value on each result.** With a custom sort, each row in the Search Results tab shows the value it was sorted by, so you can see why it landed where it did. Dates produced by `ts()` are shown as dates (`2026-11-20`, plus the time when it isn't midnight); a missing value is shown as **—**; list values are separated by **·**.
+**The value on each result.** With a custom sort, the **Order** column of the Search Results tab shows the value each row was sorted by, so you can see why it landed where it did. Dates produced by `ts()` are shown as dates (`2026-11-20`, plus the time — e.g. `2026-11-20 02:30 PM` — when it isn't midnight); a missing value is shown as **—**; list values are separated by **·**.
 
 **Mistakes in the sort expression** are reported under the **Sort expression** box when you click **Search** or **Save**, just like the query. **Search** and **Save** stay disabled while Sort By is Custom and the box is empty.
 

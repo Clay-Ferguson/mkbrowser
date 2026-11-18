@@ -4,7 +4,7 @@
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName } from '../src/shared/searchHelpers';
+import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults } from '../src/store/search';
 import type { SearchDefinition, SortKey } from '../src/shared/shared';
@@ -334,5 +334,33 @@ describe('recentFilesSearchDefinition', () => {
 
   it('returns a fresh object each call', () => {
     expect(recentFilesSearchDefinition()).not.toBe(recentFilesSearchDefinition());
+  });
+});
+
+describe('formatOrderValue', () => {
+  const t = new Date(2026, 0, 15, 9, 30).getTime();
+  const t2 = new Date(2026, 5, 1, 16, 5).getTime();
+  const res = { relativePath: 'notes/2026/todo.md', modifiedTime: t, createdTime: t2 };
+
+  it('shows the base name for a file-name sort', () => {
+    expect(formatOrderValue(res, 'file-name')).toBe('todo.md');
+    expect(formatOrderValue({ relativePath: 'a\\b\\c.txt' }, 'file-name')).toBe('c.txt');
+    expect(formatOrderValue({ relativePath: 'top.md' }, 'file-name')).toBe('top.md');
+  });
+
+  it('shows the sorted-by timestamp for time sorts', () => {
+    expect(formatOrderValue(res, 'modified-time')).toBe('2026-01-15 09:30 AM');
+    expect(formatOrderValue(res, 'created-time')).toBe('2026-06-01 04:05 PM');
+  });
+
+  it('shows the custom sort label', () => {
+    expect(formatOrderValue({ ...res, sortLabel: '1 · 2026-03-01' }, 'custom')).toBe('1 · 2026-03-01');
+  });
+
+  it('is never blank: a missing value shows as an em dash', () => {
+    expect(formatOrderValue({ relativePath: 'x.md' }, 'modified-time')).toBe('—');
+    expect(formatOrderValue({ relativePath: 'x.md', createdTime: 0 }, 'created-time')).toBe('—');
+    expect(formatOrderValue({ relativePath: 'x.md' }, 'custom')).toBe('—');
+    expect(formatOrderValue({ relativePath: 'x.md', sortLabel: '' }, 'custom')).toBe('—');
   });
 });

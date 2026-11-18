@@ -23,13 +23,30 @@ import {
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
+import { formatOrderValue } from '../../shared/searchHelpers';
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
 import type { CalendarSource, SearchSortBy, SearchSortDirection } from '../../shared/types';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, ENTRY_HEADER_ROW_PADDING, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import FileTypeIcon from '../FileTypeIcon';
 import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
+
+/** A results-table row (heading or result): a subgrid spanning all three columns. */
+const RESULTS_ROW = 'grid grid-cols-subgrid col-span-3';
+/** Vertical padding of a result row's cells: the same `py-0.5` as a Browse-view
+ * entry header (ENTRY_HEADER_ROW_PADDING), so a row is exactly that tall. It sits
+ * on the cells rather than the row so the column dividers run the full height. */
+const RESULT_CELL_PAD = 'py-0.5';
+/** The 1px light-gray line between columns. A left border adds width, not height. */
+const COLUMN_DIVIDER = 'border-l border-slate-600';
+const CELL_NAME = 'flex items-center gap-2 min-w-0 px-2';
+const CELL_ORDER = `flex items-center min-w-0 px-3 ${COLUMN_DIVIDER}`;
+const CELL_ACTIONS = `flex items-center px-2 ${COLUMN_DIVIDER}`;
+/** Horizontal lines between result rows, drawn as inset shadows rather than
+ * borders so they take no layout space (keeping each row the height of a
+ * Browse-view entry header). The last row also gets a bottom edge. */
+const ROW_DIVIDERS = 'shadow-[inset_0_1px_0_var(--color-slate-700)] last:shadow-[inset_0_1px_0_var(--color-slate-700),inset_0_-1px_0_var(--color-slate-700)]';
 
 /** The summary's description of a built-in (non-custom) sort order. */
 function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection): string {
@@ -39,13 +56,14 @@ function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection)
 }
 
 /**
- * Displays the results of the most recent folder search as a sorted list of
- * file cards. Clicking a file card opens that file on its own in the Browse view
- * (single-file mode, same as clicking a file in the index tree); clicking a
- * folder card browses the folder's parent, scrolled to the folder. Each card
- * shows the relative path and match count, and provides Edit (open the file
- * on its own in the Browse view, for editing) and Delete buttons, which appear
- * only while the pointer rests on the card.
+ * Displays the results of the most recent folder search as a sorted table with
+ * three columns: Name (icon and relative path), Order (the value the results
+ * were sorted by — see formatOrderValue), and Actions (Edit, which opens the
+ * file on its own in the Browse view for editing, and Delete; both appear only
+ * while the pointer rests on the row). Clicking a file row opens that file on
+ * its own in the Browse view (single-file mode, same as clicking a file in the
+ * index tree); clicking a folder row browses the folder's parent, scrolled to
+ * the folder.
  * The results can also be rendered two other ways: as a folder graph via the
  * "Graph" button, and — for the subset of results that are calendar files —
  * on the Calendar tab via the "Calendar" button. The refresh button re-runs the
@@ -112,12 +130,6 @@ function SearchResultsView() {
   // A search has run (even one that found nothing, or a Recent Files search
   // with an empty query) whenever its definition is recorded.
   const hasSearched = lastSearchDefinition !== null;
-
-  // A search with no query (a Recent Files listing, or a search by Tags alone)
-  // has nothing to count; its results carry a placeholder matchCount of 1, so
-  // don't show a count.
-  // See: (USER_GUIDE.md#find-recent-edits)
-  const isQuerylessListing = !!lastSearchDefinition && !lastSearchDefinition.searchText.trim();
 
   // The Tags and Type filters the search applied (they only apply to contents searches).
   // See: (USER_GUIDE.md#using-search)
@@ -348,8 +360,25 @@ function SearchResultsView() {
             </p>
           </div>
         ) : (
-          <div>
-            {/* Results list — rows touch, forming a table: each row draws its
+          // Results table: Name | Order | Actions. One grid owns the column
+          // tracks and every row (heading and results) is a subgrid spanning all
+          // three, so the columns line up across rows while each row stays its
+          // own element (click target, hover background, highlight outline).
+          // Order sizes to its widest value, capped at 40% of the width.
+          // See: (USER_GUIDE.md#search-results)
+          <div className="grid grid-cols-[minmax(0,1fr)_fit-content(40%)_max-content]" role="table" data-testid="search-results-table">
+            {/* Column headings — sticky, so they stay in view while a long
+                result list scrolls beneath them. */}
+            <div
+              className={`${RESULTS_ROW} sticky top-0 z-10 bg-slate-700 border-x border-t border-slate-700 text-xs font-semibold uppercase tracking-wider text-slate-300 select-none`}
+              role="row"
+            >
+              <div className={`${CELL_NAME} py-1.5`} role="columnheader">Name</div>
+              <div className={`${CELL_ORDER} py-1.5`} role="columnheader">Order</div>
+              <div className={`${CELL_ACTIONS} py-1.5`} role="columnheader">Actions</div>
+            </div>
+
+            {/* Result rows touch, forming the table body: each row draws its
                 left, top and right edges (the top edge doubling as the divider
                 from the row above) and only the last row adds a bottom edge. */}
             {searchResults.map((result) => {
@@ -362,59 +391,41 @@ function SearchResultsView() {
               // without changing the shared borders between rows.
               const highlightClass = highlighted
                 ? 'outline-2 -outline-offset-2 outline-purple-500' : '';
-              // The horizontal dividers are inset shadows rather than borders so
-              // they take no layout space, keeping each row exactly the height of
-              // a Browse-view entry header (see ENTRY_HEADER_ROW_PADDING). The
-              // side borders are kept: they add width, not height.
-              const dividerClass = 'shadow-[inset_0_1px_0_var(--color-slate-700)] last:shadow-[inset_0_1px_0_var(--color-slate-700),inset_0_-1px_0_var(--color-slate-700)]';
+              // The value these results were sorted by — never blank.
+              const orderValue = formatOrderValue(result, searchSortBy);
 
               return (
               <div
                 key={result.path}
                 onClick={() => handleResultClick(result.path, result.isDirectory === true)}
-                className={`group bg-slate-800/50 hover:bg-slate-700/60 border-x border-slate-700 ${dividerClass} ${highlightClass} ${ENTRY_HEADER_ROW_PADDING} transition-colors cursor-pointer`}
+                className={`${RESULTS_ROW} group bg-slate-800/50 hover:bg-slate-700/60 border-x border-slate-700 ${ROW_DIVIDERS} ${highlightClass} transition-colors cursor-pointer`}
+                role="row"
               >
-                <div className="flex items-center gap-2">
-                  {/* Folder or file-type icon */}
+                {/* Name: folder or file-type icon, then the relative path */}
+                <div className={`${CELL_NAME} ${RESULT_CELL_PAD}`} role="cell">
                   {result.isDirectory
                     ? <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
                     : <FileTypeIcon fileName={fileName} />}
+                  <span className="text-slate-200 break-all min-w-0" title={result.path}>{result.relativePath}</span>
+                </div>
 
-                  {/* File path */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-slate-200 flex flex-wrap items-center gap-x-2 gap-y-0.5 break-words" title={result.path}>
-                      <span className="break-all">{result.relativePath}</span>
-                    </div>
-                  </div>
+                {/* Order: the value this result was sorted by, truncated (with
+                    the full value as a tooltip) when it exceeds the column cap */}
+                <div className={`${CELL_ORDER} ${RESULT_CELL_PAD}`} role="cell">
+                  <span
+                    className="text-sm text-slate-400 font-mono truncate"
+                    title={orderValue}
+                    data-testid="search-result-sort-value"
+                  >
+                    {orderValue}
+                  </span>
+                </div>
 
-                  {/* Match count. A name match short-circuits the content read, so
-                      its matchCount counts occurrences within the file name — a
-                      count that would read as misleadingly low next to the content
-                      matches. Label it instead. Omitted when the search had no query
-                      to match (Recent Files, or Tags alone). */}
-                  {/* The value a custom sort ordered this result by. */}
-                  {result.sortLabel !== undefined && (
-                    <div
-                      className="text-sm text-slate-400 font-mono flex-shrink-0 max-w-[40%] truncate"
-                      title={`Sort value: ${result.sortLabel}`}
-                      data-testid="search-result-sort-value"
-                    >
-                      {result.sortLabel}
-                    </div>
-                  )}
-
-                  {!isQuerylessListing && (
-                    <div className="text-sm text-slate-500 flex-shrink-0">
-                      {result.nameMatch
-                        ? 'name match'
-                        : `${result.matchCount} match${result.matchCount !== 1 ? 'es' : ''}`}
-                    </div>
-                  )}
-
-                  {/* Action buttons, revealed only while the row is hovered so a
-                      long result list isn't cluttered with icons (same behavior
-                      as EntryActionBar in the Browse view). */}
-                  <div className={`${HOVER_REVEAL} flex items-center gap-2 flex-shrink-0`}>
+                {/* Actions, revealed only while the row is hovered so a long
+                    result list isn't cluttered with icons (same behavior as
+                    EntryActionBar in the Browse view). */}
+                <div className={`${CELL_ACTIONS} ${RESULT_CELL_PAD}`} role="cell">
+                  <div className={`${HOVER_REVEAL} flex items-center gap-2`}>
                   {/* Edit button — hidden (but still taking its space, so the
                       Delete buttons stay aligned) for results that can't be edited */}
                   <button

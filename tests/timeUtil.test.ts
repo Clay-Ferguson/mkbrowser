@@ -12,6 +12,7 @@ import {
   generateTimestampFolderName,
   generateTimestampFileName,
   formatTimestamp,
+  formatDateTime12,
   TIMESTAMP_FILENAME_RE,
   NO_TIMESTAMP,
 } from '../src/shared/timeUtil';
@@ -480,5 +481,28 @@ describe('formatDateWithDelta', () => {
   it('returns a value with no recognizable date unchanged', () => {
     expect(formatDateWithDelta('sometime next spring')).toBe('sometime next spring');
     expect(formatDateWithDelta('')).toBe('');
+  });
+});
+
+describe('formatDateTime12', () => {
+  // Local-time constructor, so the expectations hold in any timezone.
+  const at = (h: number, m: number) => new Date(2026, 10, 8, h, m).getTime();
+
+  it('formats as YYYY-MM-DD hh:mm AM/PM, zero-padded', () => {
+    expect(formatDateTime12(at(9, 5))).toBe('2026-11-08 09:05 AM');
+    expect(formatDateTime12(at(14, 30))).toBe('2026-11-08 02:30 PM');
+  });
+
+  it('shows midnight as 12 AM and noon as 12 PM', () => {
+    expect(formatDateTime12(at(0, 0))).toBe('2026-11-08 12:00 AM');
+    expect(formatDateTime12(at(0, 45))).toBe('2026-11-08 12:45 AM');
+    expect(formatDateTime12(at(12, 0))).toBe('2026-11-08 12:00 PM');
+    expect(formatDateTime12(at(23, 59))).toBe('2026-11-08 11:59 PM');
+  });
+
+  it('drops the time at exactly midnight only when asked to', () => {
+    expect(formatDateTime12(at(0, 0), true)).toBe('2026-11-08');
+    expect(formatDateTime12(at(0, 1), true)).toBe('2026-11-08 12:01 AM');
+    expect(formatDateTime12(at(12, 0), true)).toBe('2026-11-08 12:00 PM');
   });
 });

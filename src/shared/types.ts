@@ -241,13 +241,13 @@ export interface SearchResultItem {
   createdTime?: number; // File creation timestamp (milliseconds since epoch)
   /** Set (in 'content' mode only) when the file matched on its NAME, so its
    * contents were never read — matchCount counts occurrences within the file name
-   * rather than the body. The results view shows "name match" instead of a count. */
+   * rather than the body. */
   nameMatch?: boolean;
   /** Set when the result is a folder (only a names-only search returns folders). */
   isDirectory?: boolean;
   /** The file's value under a custom sort expression (custom sort only). */
   sortKey?: SortKey;
-  /** `sortKey` formatted for display; the results view shows it on the row. */
+  /** `sortKey` formatted for display, in the results' Order column (see formatOrderValue). */
   sortLabel?: string;
 }
 

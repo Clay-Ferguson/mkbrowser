@@ -537,16 +537,14 @@ export interface SearchResult {
   createdTime?: number;
   /** Set (in 'content' mode only) when the file matched on its NAME, so its
    * contents were never read — matchCount counts occurrences within the file name
-   * rather than the body. The results view shows "name match" instead of a count.
-   *
-   * See: (USER_GUIDE.md#search-results)
+   * rather than the body.
    */
   nameMatch?: boolean;
   /** Set when the result is a folder (only a names-only search returns folders). */
   isDirectory?: boolean;
   /** The file's value under a custom sort expression (custom sort only). */
   sortKey?: SortKey;
-  /** `sortKey` formatted for display, dates from `ts()` shown as dates (custom sort only).
+  /** `sortKey` formatted for the results' Order column, dates from `ts()` shown as dates (custom sort only).
    *
    * See: (USER_GUIDE.md#custom-sort-order)
    */
