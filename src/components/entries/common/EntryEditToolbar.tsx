@@ -1,7 +1,10 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Bars3Icon } from '@heroicons/react/24/outline';
+import { Bars3Icon, CubeIcon } from '@heroicons/react/24/outline';
 import { BUTTON_CLASS_SM_GREEN_MUTED, BUTTON_CLASS_SM_NEUTRAL_OUTLINED, BUTTON_CLASS_SM_PURPLE, ENTRY_EDITOR_ICON_BTN } from '../../../renderer/styles';
 import ActiveEditPopupMenu from '../../menus/ActiveEditPopupMenu';
+import InsertObjectPopupMenu from '../../menus/InsertObjectPopupMenu';
+import { useAS } from '../../../store';
+import { objectTypeOptions } from '../../../shared/objects/userTypes';
 
 interface EntryEditToolbarProps {
   /** Whether the editor is in expanded mode — the "Expanded Editor" item's check mark (ActiveEditPopupMenu). */
@@ -53,6 +56,15 @@ interface EntryEditToolbarProps {
    */
   onToggleThesaurus?: () => void;
 
+  /**
+   * Inserts an object of the picked type into the file's front matter, from the Insert Object
+   * (cube) button's menu (InsertObjectPopupMenu). Omit where objects don't apply (non-Markdown
+   * files); the button is then not shown.
+   *
+   * See: (USER_GUIDE.md#inserting-an-object-into-a-document)
+   */
+  onInsertObject?: (type: string) => void;
+
   /** Entry-specific buttons rendered first, before AI Rewrite (e.g. props/tags). */
   leftExtras?: ReactNode;
   /** Entry-specific buttons rendered between AI Rewrite and Cancel/Save (e.g. Ask AI). */
@@ -71,7 +83,12 @@ interface EntryEditToolbarProps {
  * hidden during an AI review. The expand/collapse toggle lives there as the
  * checkable "Expanded Editor" item.
  *
+ * Left of the hamburger, when `onInsertObject` is given (Markdown), sits the Insert Object
+ * (cube) button opening InsertObjectPopupMenu, the list of user-defined object types. It is
+ * hidden during an AI review too, since inserting would edit the document under review.
+ *
  * See: (USER_GUIDE.md#editing-files)
+ * See: (USER_GUIDE.md#inserting-an-object-into-a-document)
  * See: (popup_menus.md#menus-inside-clickable-rows)
  * See: (USER_GUIDE.md#how-to-use-rewrite)
  * See: (USER_GUIDE.md#expand-editor)
@@ -92,12 +109,18 @@ export function EntryEditToolbar({
   onCalendarInfo,
   thesaurusEnabled,
   onToggleThesaurus,
+  onInsertObject,
   leftExtras,
   middleExtras,
 }: EntryEditToolbarProps) {
   // Open flag and anchor for the "Editing actions" menu. See: (popup_menus.md#step-2-add-the-trigger-button-and-menu-to-the-parent-component)
   const [showMenu, setShowMenu] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  // Open flag and anchor for the Insert Object menu, and the types it lists (Types Editor).
+  const [showInsertObjectMenu, setShowInsertObjectMenu] = useState(false);
+  const insertObjectButtonRef = useRef<HTMLButtonElement>(null);
+  const typeDefs = useAS(s => s.typeDefs);
+  const objectTypes = objectTypeOptions(typeDefs);
 
   return (
     <>
@@ -118,6 +141,19 @@ export function EntryEditToolbar({
       {middleExtras}
       {showSaveCancel && (
         <>
+          {onInsertObject && (
+            <button
+              ref={insertObjectButtonRef}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowInsertObjectMenu(prev => !prev); }}
+              className={ENTRY_EDITOR_ICON_BTN}
+              title="Insert object"
+              aria-label="Insert object"
+              data-testid="insert-object-menu-button"
+            >
+              <CubeIcon className="w-5 h-5" />
+            </button>
+          )}
           <button
             ref={menuButtonRef}
             type="button"
@@ -166,6 +202,20 @@ export function EntryEditToolbar({
           onToggleExpandedEditor={onToggleExpandedEditor}
           thesaurusEnabled={thesaurusEnabled}
           onToggleThesaurus={onToggleThesaurus}
+        />
+      </div>
+    )}
+    {showInsertObjectMenu && showSaveCancel && onInsertObject && (
+      <div
+        className="contents"
+        onClick={(e) => e.stopPropagation()}
+        onContextMenu={(e) => e.stopPropagation()}
+      >
+        <InsertObjectPopupMenu
+          anchorRef={insertObjectButtonRef}
+          onClose={() => setShowInsertObjectMenu(false)}
+          objectTypes={objectTypes}
+          onInsertObject={onInsertObject}
         />
       </div>
     )}

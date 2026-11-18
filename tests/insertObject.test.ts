@@ -1,6 +1,7 @@
 /**
  * "Insert Object" in the editor: how the picked type's empty object is written into the file's
- * front matter (`planObjectInsertion`), when that is refused, and the context menu that offers it.
+ * front matter (`planObjectInsertion`), when that is refused, and the edit toolbar's menu that
+ * offers it (which the editor's context menu no longer does).
  */
 import { describe, it, expect } from 'vitest';
 import { createElement } from 'react';
@@ -11,6 +12,7 @@ import { parseFrontMatter } from '../src/shared/frontMatterUtil';
 import type { TypeDefinitions } from '../src/shared/shared';
 import { EditorContextMenu } from '../src/components/editor/EditorContextMenu';
 import type { ContextMenuState } from '../src/components/editor/useEditorContextMenu';
+import InsertObjectPopupMenu from '../src/components/menus/InsertObjectPopupMenu';
 
 /**
  * User-defined types as the Types Editor saves them. `person` carries descriptions and
@@ -200,7 +202,7 @@ describe('objectTypeOptions', () => {
 // The context menu
 // ---------------------------------------------------------------------------
 
-function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: TypeDefinitions = TYPE_DEFS, canMakeLink = false): string {
+function renderMenu(contextMenu: ContextMenuState, canMakeLink = false): string {
   const noop = () => {};
   return renderToStaticMarkup(createElement(EditorContextMenu, {
     contextMenu,
@@ -218,58 +220,61 @@ function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean, defs: Ty
     onSpellingSuggestion: noop,
     onInsertTimestamp: noop,
     onInsertDate: noop,
-    onOpenInsertObject: noop,
-    onInsertObject: noop,
-    objectTypes: objectTypeOptions(defs),
     onToggleWordWrap: noop,
     wordWrap: true,
-    isMarkdown,
   }));
 }
 
 describe('EditorContextMenu — Make Link', () => {
   it('is offered when links can be made and text is selected', () => {
-    expect(renderMenu({ visible: true, x: 0, y: 0, hasSelection: true }, true, TYPE_DEFS, true)).toContain('data-testid="editor-make-link"');
+    expect(renderMenu({ visible: true, x: 0, y: 0, hasSelection: true }, true)).toContain('data-testid="editor-make-link"');
   });
 
   it('is not offered without a selection', () => {
-    expect(renderMenu({ visible: true, x: 0, y: 0, hasSelection: false }, true, TYPE_DEFS, true)).not.toContain('Make Link');
+    expect(renderMenu({ visible: true, x: 0, y: 0, hasSelection: false }, true)).not.toContain('Make Link');
   });
 
   it('is not offered where links cannot be made', () => {
-    expect(renderMenu({ visible: true, x: 0, y: 0, hasSelection: true }, false, TYPE_DEFS, false)).not.toContain('Make Link');
+    expect(renderMenu({ visible: true, x: 0, y: 0, hasSelection: true }, false)).not.toContain('Make Link');
   });
 });
 
-describe('EditorContextMenu — Insert Object', () => {
-  it('offers Insert Object for a markdown file', () => {
-    const html = renderMenu({ visible: true, x: 0, y: 0 }, true);
-    expect(html).toContain('data-testid="editor-insert-object"');
-    expect(html).toContain('Insert Object');
+describe('EditorContextMenu — no Insert Object', () => {
+  it('no longer offers Insert Object (it moved to the edit toolbar)', () => {
+    const html = renderMenu({ visible: true, x: 0, y: 0 });
     expect(html).toContain('Insert Timestamp');
-    expect(html).not.toContain('data-testid="editor-insert-object-menu"');
+    expect(html).not.toContain('Insert Object');
   });
+});
 
-  it('does not offer it for a non-markdown file', () => {
-    expect(renderMenu({ visible: true, x: 0, y: 0 }, false)).not.toContain('Insert Object');
-  });
+// ---------------------------------------------------------------------------
+// The edit toolbar's Insert Object menu
+// ---------------------------------------------------------------------------
 
-  it('does not offer it when no types are defined', () => {
-    expect(renderMenu({ visible: true, x: 0, y: 0 }, true, {})).not.toContain('Insert Object');
-  });
+function renderInsertObjectMenu(defs: TypeDefinitions = TYPE_DEFS): string {
+  const noop = () => {};
+  return renderToStaticMarkup(createElement(InsertObjectPopupMenu, {
+    anchorRef: { current: null },
+    onClose: noop,
+    objectTypes: objectTypeOptions(defs),
+    onInsertObject: noop,
+  }));
+}
 
-  it('lists the object types, and nothing else, once Insert Object is clicked', () => {
-    const html = renderMenu({ visible: true, x: 0, y: 0, submenu: 'insertObject' }, true);
-    expect(html).toContain('data-testid="editor-insert-object-menu"');
-    expect(html).toContain('data-testid="editor-insert-object-person"');
-    expect(html).toContain('data-testid="editor-insert-object-book"');
+describe('InsertObjectPopupMenu', () => {
+  it('lists every object type by its description, or its name when it has none', () => {
+    const html = renderInsertObjectMenu();
+    expect(html).toContain('data-testid="insert-object-popup-menu"');
+    expect(html).toContain('data-testid="menu-insert-object-person"');
+    expect(html).toContain('data-testid="menu-insert-object-book"');
     expect(html).toContain('>A contact<');
-    expect(html).toContain('title="person"');
-    expect(html).not.toContain('Insert Timestamp');
-    expect(html).not.toContain('Cut');
+    expect(html).toContain('>book<');
+    expect(html).not.toContain('menu-insert-object-none');
   });
 
-  it('renders nothing while closed', () => {
-    expect(renderMenu({ visible: false, x: 0, y: 0, submenu: 'insertObject' }, true)).toBe('');
+  it('shows a disabled hint when no types are defined', () => {
+    const html = renderInsertObjectMenu({});
+    expect(html).toContain('data-testid="menu-insert-object-none"');
+    expect(html).toContain('disabled');
   });
 });

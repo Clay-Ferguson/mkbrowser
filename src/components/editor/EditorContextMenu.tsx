@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { EDITOR_MENU_ITEM, EDITOR_MENU_ITEM_ACCENT, Z_MODAL } from '../../renderer/styles';
 import type { ContextMenuState } from './useEditorContextMenu';
-import type { ObjectTypeOption } from '../../shared/objects/userTypes';
 
 interface EditorContextMenuProps {
   contextMenu: ContextMenuState;
@@ -23,18 +22,11 @@ interface EditorContextMenuProps {
   onSpellingSuggestion: (suggestion: string) => void;
   onInsertTimestamp: () => void;
   onInsertDate: () => void;
-  /** "Insert Object" clicked: switch the menu to the list of object types. */
-  onOpenInsertObject: () => void;
-  /** An object type picked from that list: add an empty object of it to the file's front matter. */
-  onInsertObject: (type: string) => void;
-  /** The user-defined object types (Types Editor), as listed after "Insert Object" is clicked. */
-  objectTypes: readonly ObjectTypeOption[];
   onToggleWordWrap: () => void;
   /** Current state of `settings.wordWrap`, shown as a check mark beside "Word Wrap". */
   wordWrap: boolean;
   /** Opens CodeMirror's search & replace panel at the top of the editor. */
   onSearchReplace: () => void;
-  isMarkdown?: boolean;
 }
 
 // Minimum gap (px) kept between the menu edge and the browser viewport on all sides.
@@ -44,18 +36,14 @@ const VIEWPORT_MARGIN = 8;
  * Floating context menu for the CodeMirror editor. Renders at the right-click coordinates,
  * clamped so it stays fully within the viewport. Includes Save (writes the file without
  * leaving edit mode), the Word Wrap toggle, Search & Replace, standard edit actions (cut/copy/paste, select all), timestamp/date
- * insertion, optional spell-check suggestions, and the Markdown-only Insert Object item. Closes on outside click, scroll, or
- * Escape.
- *
- * Insert Object does not act directly: it replaces the menu's items, in place, with the list
- * of registered object types (`contextMenu.submenu`), and picking one adds it to the front matter.
+ * insertion, and optional spell-check suggestions. Closes on outside click, scroll, or Escape.
+ * ("Insert Object" is not here: it is the edit toolbar's InsertObjectPopupMenu.)
  *
  * Not built on PopupMenu: a separate, older implementation with its own positioning and
  * dismissal, stacked with Z_MODAL rather than the popover top layer.
  *
  * See: (popup_menus.md#2-specific-menu-components--srccomponentsmenus)
  * See: (USER_GUIDE.md#inserting-links-to-other-files)
- * See: (USER_GUIDE.md#inserting-objects)
  */
 export function EditorContextMenu({
   contextMenu,
@@ -72,13 +60,9 @@ export function EditorContextMenu({
   onSpellingSuggestion,
   onInsertTimestamp,
   onInsertDate,
-  onOpenInsertObject,
-  onInsertObject,
-  objectTypes,
   onToggleWordWrap,
   wordWrap,
   onSearchReplace,
-  isMarkdown,
 }: EditorContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: contextMenu.x, top: contextMenu.y });
@@ -86,8 +70,8 @@ export function EditorContextMenu({
   // Clamp the menu inside the viewport once it has been measured, so a click
   // near the right/bottom edge does not push the menu off-screen. Runs before
   // paint to avoid a visible jump from the raw click position. Re-runs when the
-  // spelling suggestions arrive or the object-type list replaces the items, since
-  // both change the menu's size.
+  // spelling suggestions or clipboard-dependent items arrive, since they change the
+  // menu's size.
   useLayoutEffect(() => {
     if (!contextMenu.visible || !menuRef.current) return;
     const { width, height } = menuRef.current.getBoundingClientRect();
@@ -97,17 +81,15 @@ export function EditorContextMenu({
       left: Math.max(VIEWPORT_MARGIN, Math.min(contextMenu.x, maxLeft)),
       top: Math.max(VIEWPORT_MARGIN, Math.min(contextMenu.y, maxTop)),
     });
-  }, [contextMenu.visible, contextMenu.x, contextMenu.y, contextMenu.spelling?.suggestions, contextMenu.submenu, contextMenu.pasteLink, contextMenu.pasteFile]);
+  }, [contextMenu.visible, contextMenu.x, contextMenu.y, contextMenu.spelling?.suggestions, contextMenu.pasteLink, contextMenu.pasteFile]);
 
   // Focus the menu container (not an item) when it opens, so it is keyboard-
-  // operable without visually highlighting the first item for mouse users. Also
-  // re-focuses it when the object-type list replaces the items: the "Insert Object"
-  // button that had focus is gone by then, which would leave the keyboard nowhere.
+  // operable without visually highlighting the first item for mouse users.
   useEffect(() => {
     if (contextMenu.visible) {
       menuRef.current?.focus();
     }
-  }, [contextMenu.visible, contextMenu.submenu]);
+  }, [contextMenu.visible]);
 
   // Arrow/Home/End keyboard navigation within the menu — moves focus between menu items.
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -134,40 +116,6 @@ export function EditorContextMenu({
   if (!contextMenu.visible) return null;
 
   const menuClass = `fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-1 ${Z_MODAL} min-w-[140px] focus:outline-none [&_button:focus]:outline-none [&_button:focus-visible]:bg-slate-700`;
-
-  // "Insert Object" was clicked: the same floating menu, now listing the object types.
-  if (contextMenu.submenu === 'insertObject') {
-    return (
-      <div
-        ref={menuRef}
-        role="menu"
-        aria-label="Insert object"
-        tabIndex={-1}
-        onKeyDown={handleKeyDown}
-        className={menuClass}
-        style={{ left: position.left, top: position.top }}
-        onClick={(e) => e.stopPropagation()}
-        data-testid="editor-insert-object-menu"
-      >
-        <div className="px-4 py-1 text-xs text-slate-400 font-medium">Insert Object</div>
-        {objectTypes.map(({ type, label }) => (
-          <button
-            type="button"
-            key={type}
-            role="menuitem"
-            tabIndex={-1}
-            onClick={() => onInsertObject(type)}
-            // The label is the type's description; the tooltip names the type it inserts.
-            title={label === type ? undefined : type}
-            className={EDITOR_MENU_ITEM}
-            data-testid={`editor-insert-object-${type}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    );
-  }
 
   return (
     <div
@@ -344,19 +292,6 @@ export function EditorContextMenu({
         <span>Insert Date</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+D</span>
       </button>
-      {isMarkdown && objectTypes.length > 0 && (
-        <button
-          type="button"
-          role="menuitem"
-          tabIndex={-1}
-          onClick={onOpenInsertObject}
-          className={`${EDITOR_MENU_ITEM} flex items-center justify-between`}
-          data-testid="editor-insert-object"
-        >
-          <span>Insert Object</span>
-          <span className="text-slate-500 text-xs ml-4">▸</span>
-        </button>
-      )}
     </div>
   );
 }

@@ -6,9 +6,8 @@ import { logger } from '../../shared/logUtil';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { isMarkdownFile } from '../../shared/fileTypes';
 import { saveSettings } from '../../renderer/config';
-import { useAS, setWordWrap, setShowPropsInEditor, setPasteToAttachmentsFolder } from '../../store';
+import { useAS, setWordWrap, setPasteToAttachmentsFolder } from '../../store';
 import { wordAt, isSpellCheckExempt, type SpellingSuggestion } from './spellChecker';
-import { objectTypeOptions, planObjectInsertion } from '../../shared/objects/userTypes';
 import { api } from '../../renderer/api';
 import { clipboardLinkCandidates, formatFileLink } from '../../renderer/linkUtil';
 import { resolveLinkTargetId } from '../../renderer/linkRepair';
@@ -37,11 +36,6 @@ export interface ContextMenuState {
   x: number;
   y: number;
   spelling?: SpellingSuggestion;
-  /**
-   * Set once "Insert Object" has been clicked: the menu then shows the list of object types
-   * in place of its normal items. Cleared whenever the menu is opened afresh.
-   */
-  submenu?: 'insertObject';
   /**
    * Set (shortly after the menu opens) when the clipboard holds the path of an existing file
    * or folder, which shows the "Paste Link" item. Cleared whenever the menu is opened afresh.
@@ -114,12 +108,6 @@ interface UseEditorContextMenuProps {
   editable?: boolean;
   onSave?: () => void;
   /**
-   * Shows the front matter in this editor right away (reconfigures its front-matter
-   * compartment), ahead of the store setting catching up. Insert Object needs it before it
-   * writes there — see handleInsertObject.
-   */
-  revealFrontMatter?: () => void;
-  /**
    * Offered the clipboard text first on Paste; returns true when it took the paste over (a
    * URL headed for the "Insert link" dialog — see useUrlPaste), so Paste inserts nothing.
    */
@@ -134,18 +122,17 @@ interface UseEditorContextMenuProps {
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
  * top of the menu. Also exposes save-in-place, cut/copy/paste, "Paste Link" (when the clipboard names an existing file), "Create & Paste File" (when the clipboard holds a file), select-all, timestamp/date
- * insertion, the word-wrap on/off switch, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the user-defined object types from the Types Editor, and adds the picked one to the file's front matter).
+ * insertion, and the word-wrap on/off switch. ("Insert Object" lives on the edit toolbar instead —
+ * see useInsertObject.)
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
- * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
- * `canSave`, `wordWrap`).
+ * visibility/position state, all action handlers, and derived flags (`canSave`,
+ * `canMakeLink`, `wordWrap`).
  *
  * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
-export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = true, onSave, revealFrontMatter, interceptPaste, makeLink }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = true, onSave, interceptPaste, makeLink }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
-  // Why Insert Object refused (e.g. the file already holds an object of another type); shown in an alert.
-  const [insertObjectError, setInsertObjectError] = useState<string | null>(null);
   // A "Paste Link" to a file with no id, waiting on the user's choice of whether to add
   // one (see AddLinkIdDialog).
   const [pendingIdLink, setPendingIdLink] = useState<PasteLinkTarget | null>(null);
@@ -153,8 +140,6 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   const [pendingPasteFile, setPendingPasteFile] = useState<PendingPasteFile | null>(null);
   const wordWrap = useAS(s => s.settings.wordWrap);
   const pasteToAttachmentsFolder = useAS(s => s.settings.pasteToAttachmentsFolder);
-  // The user-defined object types (Types Editor) that "Insert Object" offers.
-  const typeDefs = useAS(s => s.typeDefs);
 
   const isMarkdown = !!filePath && isMarkdownFile(getFileName(filePath));
 
@@ -473,50 +458,6 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     view.focus();
   };
 
-  // "Insert Object" — swaps the open menu's items for the list of object types. The menu stays
-  // where it is; only its content changes.
-  // See: (USER_GUIDE.md#inserting-an-object-into-a-document)
-  const handleOpenInsertObject = () => {
-    setContextMenu(prev => ({ ...prev, submenu: 'insertObject' }));
-  };
-
-  // Makes the file's front matter an object of the picked type (a file holds at most one object,
-  // and it lives there): adds its `type:` line and every property the front matter doesn't have
-  // yet, with a blank value, creating the front matter if needed. Existing values are kept, so
-  // picking the type the file's object already is just fills in its missing properties. Refuses
-  // — with an alert, changing nothing — when the file already holds an object of another type.
-  //
-  // The front matter is shown first, in this editor (revealFrontMatter) and in the setting, so
-  // the user sees what was added; with it still hidden, the cursor guard would also clamp the
-  // cursor out of the new lines. The cursor ends up on the first property, ready for its value.
-  // See: (USER_GUIDE.md#inserting-an-object-into-a-document)
-  const handleInsertObject = (type: string) => {
-    const view = viewRef.current;
-    closeContextMenu();
-    if (!view) return;
-
-    const plan = planObjectInsertion(view.state.doc.toString(), typeDefs, type);
-    if (!plan.ok) {
-      setInsertObjectError(plan.error);
-      return;
-    }
-
-    revealFrontMatter?.();
-    setShowPropsInEditor(true);
-    saveSettings();
-    view.dispatch({
-      changes: { from: plan.from, to: plan.to, insert: plan.insert },
-      selection: { anchor: plan.cursor },
-      scrollIntoView: true,
-    });
-    view.focus();
-  };
-
-  const closeInsertObjectError = () => {
-    setInsertObjectError(null);
-    viewRef.current?.focus();
-  };
-
   // Flips `settings.wordWrap`. Every mounted editor re-syncs its line-wrapping compartment
   // from the store, so the change applies everywhere at once, not just to this editor.
   const handleToggleWordWrap = () => {
@@ -584,17 +525,11 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     handleSpellingSuggestion,
     handleInsertTimestamp,
     handleInsertDate,
-    handleOpenInsertObject,
-    handleInsertObject,
-    objectTypes: objectTypeOptions(typeDefs),
-    insertObjectError,
-    closeInsertObjectError,
     pendingIdLink,
     handleIdLinkChosen,
     closeIdLinkDialog,
     handleToggleWordWrap,
     wordWrap,
     handleSearchReplace,
-    isMarkdown,
   };
 }

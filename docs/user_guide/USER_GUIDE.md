@@ -298,7 +298,7 @@ If the path contains spaces, the link target is wrapped in angle brackets (stand
 
 ### Inserting Objects
 
-Right-click in the editor of a Markdown file and choose **Insert Object ▸** to turn the file into a record of one of your custom types (a contact, a book, …): the type's empty properties are added to the file's front matter. See [Objects and Custom Types](#objects-and-custom-types).
+While editing a Markdown file, click the **Insert Object** button (the cube icon on the editor's toolbar, just left of the **Editing actions** menu button) and pick a type to turn the file into a record of one of your custom types (a contact, a book, …): the type's empty properties are added to the file's front matter. See [Objects and Custom Types](#objects-and-custom-types).
 
 ### Editor Keyboard Shortcuts
 
@@ -1438,8 +1438,8 @@ The only property name you can't use is `type`, because that front-matter line s
 You can type an object's properties into the front matter by hand, but the easiest way is to let MkBrowser add them for you:
 
 1. Open a Markdown file for editing.
-2. **Right-click** anywhere inside the editor and choose **Insert Object ▸**.
-3. The menu changes to a list of your types (each shown by its description; hover over an item to see the type's name). Click the type you want.
+2. Click the **Insert Object** button — the cube icon on the editor's toolbar, just left of the **Editing actions** (☰) menu button.
+3. A menu lists your types, each shown by its description (or by its name when it has none). Click the type you want.
 
 MkBrowser adds the `type:` line followed by every property name of that type with an empty value, in the order you arranged them, at the **top of the file's front matter** (creating the front matter if the file has none). Where the cursor was doesn't matter. The front matter is shown in the editor (the same as clicking the **Show properties** button), and the cursor is placed on the first property so you can start typing. For a `person` type, a file that only had an `id` ends up looking like this:
 
@@ -1472,7 +1472,7 @@ address: |
 - the file **already holds an object of a different type** (its front matter already has a `type:` naming another type) — a file can hold only one object;
 - the front matter isn't valid YAML, or isn't written as one `key: value` per line.
 
-**Insert Object** appears only when editing Markdown files, and only once at least one type has been defined.
+The **Insert Object** button appears only when editing Markdown files. Until at least one type has been defined, its menu just says so and points you to the Types Editor.
 
 ## How Objects Are Displayed
 

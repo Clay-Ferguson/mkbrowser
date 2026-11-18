@@ -363,6 +363,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       onCancel={handleCancelEdit}
       onSave={handleSaveEdit}
       onCalendarInfo={() => setShowCalendarDialog(true)}
+      onInsertObject={(type) => editorRef.current?.insertObject(type)}
       leftExtras={
         <>
           <button

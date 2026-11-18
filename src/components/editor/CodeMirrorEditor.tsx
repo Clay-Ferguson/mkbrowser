@@ -26,6 +26,7 @@ import { createThesaurusPlugin } from '../../renderer/editor/editorThesaurusUtil
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
+import { useInsertObject } from './useInsertObject';
 import AlertDialog from '../dialogs/AlertDialog';
 import AddLinkIdDialog from '../dialogs/AddLinkIdDialog';
 import NameInputDialog from '../dialogs/common/NameInputDialog';
@@ -288,14 +289,24 @@ export interface CodeMirrorEditorHandle {
    * buffer, this includes keystrokes still inside the onChange debounce window.
    */
   getDoc(): string | null;
+  /**
+   * "Insert Object": makes the file's front matter an object of `type`, or shows an alert
+   * saying why it can't. Called from the edit toolbar's Insert Object menu (InsertObjectPopupMenu).
+   * See: (USER_GUIDE.md#inserting-an-object-into-a-document)
+   */
+  insertObject(type: string): void;
 }
 
 /**
  * Builds an imperative handle whose methods read `viewRef` lazily, so any instance works
  * for the editor's whole lifetime regardless of when the view is (re)created.
  */
-function createEditorHandle(viewRef: RefObject<EditorView | null>): CodeMirrorEditorHandle {
+function createEditorHandle(
+  viewRef: RefObject<EditorView | null>,
+  insertObject: (type: string) => void,
+): CodeMirrorEditorHandle {
   return {
+    insertObject,
     getSelection() {
       const view = viewRef.current;
       if (!view) return null;
@@ -477,9 +488,18 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   const goToLineCompleteEvent = useEffectEvent(() => onGoToLineComplete?.());
   const goToPositionCompleteEvent = useEffectEvent(() => onGoToPositionComplete?.());
 
+  // Insert Object writes into the front matter, so it has to be visible first: with the hide
+  // extensions still installed, the cursor guard would clamp the cursor out of the new lines.
+  const { insertObject, insertObjectError, closeInsertObjectError } = useInsertObject({
+    viewRef,
+    revealFrontMatter: () => {
+      viewRef.current?.dispatch({ effects: compartments.frontMatter.reconfigure(frontMatterExtensions(true)) });
+    },
+  });
+
   // The handle methods read viewRef lazily, so any instance works for the editor's whole
-  // lifetime (see createEditorHandle).
-  useImperativeHandle(ref, () => createEditorHandle(viewRef), []);
+  // lifetime (see createEditorHandle); only `insertObject` is passed in.
+  useImperativeHandle(ref, () => createEditorHandle(viewRef, insertObject), [insertObject]);
 
   // Renders the review button bar / amber border, and gates the context menu's Save. Derived
   // from the prop (not reviewingRef) so it participates in React rendering; reviewingRef guards
@@ -532,28 +552,17 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     handleSpellingSuggestion,
     handleInsertTimestamp,
     handleInsertDate,
-    handleOpenInsertObject,
-    handleInsertObject,
-    objectTypes,
-    insertObjectError,
-    closeInsertObjectError,
     pendingIdLink,
     handleIdLinkChosen,
     closeIdLinkDialog,
     handleToggleWordWrap,
     handleSearchReplace,
-    isMarkdown,
   } = useEditorContextMenu({
     viewRef,
     typoRef,
     filePath,
     editable: !readOnly && !reviewing,
     onSave: onSaveKeepEditing !== undefined && !reviewing ? handleContextMenuSave : undefined,
-    // Insert Object writes into the front matter, so it has to be visible first: with the hide
-    // extensions still installed, the cursor guard would clamp the cursor out of the new lines.
-    revealFrontMatter: () => {
-      viewRef.current?.dispatch({ effects: compartments.frontMatter.reconfigure(frontMatterExtensions(true)) });
-    },
     interceptPaste: beginUrlPaste,
     makeLink: linksEnabled ? beginMakeLink : undefined,
   });
@@ -1068,13 +1077,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         onSpellingSuggestion={handleSpellingSuggestion}
         onInsertTimestamp={handleInsertTimestamp}
         onInsertDate={handleInsertDate}
-        onOpenInsertObject={handleOpenInsertObject}
-        onInsertObject={handleInsertObject}
-        objectTypes={objectTypes}
         onToggleWordWrap={handleToggleWordWrap}
         wordWrap={wordWrap}
         onSearchReplace={handleSearchReplace}
-        isMarkdown={isMarkdown}
       />
       {insertObjectError && (
         <AlertDialog title="Insert Object" message={insertObjectError} onClose={closeInsertObjectError} />

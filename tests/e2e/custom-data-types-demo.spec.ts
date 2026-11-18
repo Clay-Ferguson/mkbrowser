@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Locator } from '@playwright/test';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, demoRightClick, insertText, activeView, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, activeView, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test — Custom Data Types (Objects)
@@ -13,7 +13,7 @@ import { takeScreenshot, writeNarration, demoClick, demoRightClick, insertText, 
  *      (name, birthday, cell_phone, email, address, website), then Save.
  *   3. Back in the Browse view, create a new Markdown file (light narration —
  *      other demos already cover file creation).
- *   4. Right-click in the editor and choose Insert Object ▸ Contact, then fill
+ *   4. Click the editor toolbar's Insert Object (cube) button and choose Contact, then fill
  *      in each property's value in the front matter YAML.
  *   5. Save the file and show the rendered object card.
  *   6. Run an Advanced search for `p.type=='contact'`, saved as "Contacts",
@@ -290,7 +290,7 @@ Now let's put it to use in a note.`
     await demoClick(mainWindow.getByTestId('create-file-dialog-create-button'));
     await mainWindow.waitForTimeout(1000);
 
-    // ── 11. Insert Object ▸ Contact from the editor context menu ─────
+    // ── 11. Insert Object ▸ Contact from the edit toolbar ─────────────
     const cmEditor = mainWindow.locator('.cm-editor').first();
     await expect(cmEditor).toBeVisible({ timeout: 10000 });
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'new-file-editor-open');
@@ -298,24 +298,22 @@ Now let's put it to use in a note.`
       screenshotDir,
       step++,
       `The new file is open in the editor.
-Rather than typing the contact's properties by hand, we'll right click inside the editor and let MkBrowser insert them for us.`
+Rather than typing the contact's properties by hand, we'll let MkBrowser insert them for us.`
     );
 
-    await demoRightClick(mainWindow.locator('.cm-content').first());
-
-    const insertObjectItem = mainWindow.getByTestId('editor-insert-object');
-    await expect(insertObjectItem).toBeVisible({ timeout: 5000 });
-    await takeScreenshot(mainWindow, insertObjectItem, screenshotDir, step++, 'highlight-insert-object');
+    const insertObjectButton = mainWindow.getByTestId('insert-object-menu-button');
+    await expect(insertObjectButton).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, insertObjectButton, screenshotDir, step++, 'highlight-insert-object');
     writeNarration(
       screenshotDir,
       step++,
-      `The editor's context menu now includes an "Insert Object" item, since we have at least one type defined.
+      `The editor's toolbar has an "Insert Object" button, the cube icon just left of the menu button.
 Let's click it to see our types.`
     );
 
-    await demoClick(insertObjectItem);
+    await demoClick(insertObjectButton);
 
-    const insertContactItem = mainWindow.getByTestId('editor-insert-object-contact');
+    const insertContactItem = mainWindow.getByTestId('menu-insert-object-contact');
     await expect(insertContactItem).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, insertContactItem, screenshotDir, step++, 'highlight-insert-contact');
     writeNarration(
