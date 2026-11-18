@@ -107,14 +107,33 @@ if ! command -v mermaid-filter &> /dev/null; then
         fi
         
         echo "Installing mermaid-filter..."
-        sudo npm install --global mermaid-filter
-        
+        # Only use sudo when npm's global install dir isn't writable by us.
+        # With nvm (or a user-level npm prefix) it lives under $HOME, so no sudo
+        # is needed -- and sudo would break it anyway: sudo resets PATH to its
+        # secure_path, so it can't find an nvm-installed npm/node at all.
+        NPM_BIN="$(command -v npm)"
+        NPM_PREFIX="$(npm prefix --global 2>/dev/null)"
+        NPM_GLOBAL_DIR="$NPM_PREFIX/lib/node_modules"
+        [ -d "$NPM_GLOBAL_DIR" ] || NPM_GLOBAL_DIR="$NPM_PREFIX"
+        if [ -n "$NPM_PREFIX" ] && [ -w "$NPM_GLOBAL_DIR" ]; then
+            "$NPM_BIN" install --global mermaid-filter
+        else
+            # Preserve our PATH so root resolves the same npm and node we do
+            sudo env "PATH=$PATH" "$NPM_BIN" install --global mermaid-filter
+        fi
+
         if [ $? -ne 0 ]; then
             echo "Error: Failed to install mermaid-filter."
             echo "You may need to install Chromium: sudo apt install chromium-browser"
             exit 1
         fi
-        echo "mermaid-filter installed successfully!"
+        hash -r
+        if ! command -v mermaid-filter &> /dev/null; then
+            echo "Warning: mermaid-filter was installed but is not on PATH ($NPM_PREFIX/bin)."
+            echo "Continuing without Mermaid support..."
+        else
+            echo "mermaid-filter installed successfully!"
+        fi
     else
         echo "Warning: Mermaid diagrams will not render without mermaid-filter."
         echo "Continuing without Mermaid support..."
