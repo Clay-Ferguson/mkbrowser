@@ -1867,7 +1867,7 @@ Once enabled, the **Rewrite** button appears in the editor toolbar whenever you 
    - Click **Cancel Rewrite** to discard the suggestions and keep your original text.
 6. After accepting, you can continue editing or click **Save** to write the file to disk.
 
-### AI Interjections (the `<ai>` tag)
+### AI Interjections
 
 Sometimes you don't just want the AI to polish what you wrote — you want to *tell it something* about the rewrite it's about to do: expand this part, add examples here, keep this paragraph short. You can do that inline, right where it matters, by placing an **`<ai>` interjection** in your content.
 

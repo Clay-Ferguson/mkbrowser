@@ -60,7 +60,7 @@ export function buildSystemPrompt(persona?: string): string {
  * inside `<content>` — one sitting outside the selection lands in `<context>`, which
  * {@link AI_REWRITE_CONTEXT_NOTE} tells the model to ignore.
  *
- * See: (USER_GUIDE.md#ai-interjections-the-ai-tag)
+ * See: (USER_GUIDE.md#ai-interjections)
  */
 export const AI_INTERJECTION_PROMPT = //
 `
