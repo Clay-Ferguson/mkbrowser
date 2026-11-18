@@ -39,6 +39,26 @@ interface FullscreenImageViewerProps {
   browse?: BrowseContext;
 }
 
+/** Percent of the window (vw / vh) the fitted image may occupy in each dimension. */
+const FIT_PCT_VW = 95;
+const FIT_PCT_VH = 95;
+
+/**
+ * Inline size for "Fitted View": the largest box with the image's aspect ratio that fits
+ * within 95vw × 95vh. Unlike max-width/max-height alone, this also *enlarges* images that
+ * are smaller than the window. Width is the limiting side when the image is relatively
+ * wider than the window; otherwise height is, so `min()` picks the right one and the
+ * other dimension follows from `aspect-ratio`.
+ */
+function fittedImageStyle(naturalW: number, naturalH: number): React.CSSProperties {
+  const ratio = naturalW / naturalH;
+  return {
+    width: `min(${FIT_PCT_VW}vw, calc(${FIT_PCT_VH}vh * ${ratio}))`,
+    height: 'auto',
+    aspectRatio: `${naturalW} / ${naturalH}`,
+  };
+}
+
 /**
  * Fullscreen image overlay with its own keyboard handling, navigation, and view
  * state (fitted vs. actual size). Mounted only while fullscreen is active, so its
@@ -157,6 +177,11 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
     })();
   };
 
+  // Natural size of the loaded image, keyed by URL so a stale size from the previous
+  // image (during Left/Right navigation) is never applied to the next one.
+  const [natural, setNatural] = useState<{ url: string; w: number; h: number } | null>(null);
+  const fittedStyle = natural && natural.url === imageUrl ? fittedImageStyle(natural.w, natural.h) : undefined;
+
   const sizeHint = isActualSize ? 'Click Image=Fitted' : 'Click Image=Actual Size';
 
   return (
@@ -220,11 +245,19 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
             />
           </div>
         ) : (
-          // Fitted: centered, constrained to viewport
+          // Fitted: centered, scaled up or down to the largest size that fits the window
+          // without distortion. Until the natural size is known, fall back to shrink-only.
           <div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
             <img
               src={imageUrl}
               alt={currentName}
+              style={fittedStyle}
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                  setNatural({ url: imageUrl, w: img.naturalWidth, h: img.naturalHeight });
+                }
+              }}
               className="max-w-[95vw] max-h-[95vh] object-contain cursor-zoom-in"
               onClick={(e) => {
                 e.stopPropagation();
