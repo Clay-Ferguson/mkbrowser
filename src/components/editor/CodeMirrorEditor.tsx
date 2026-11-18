@@ -157,9 +157,13 @@ const trimLinkTitle = (raw: string): string => raw.trim();
  * source code. Module-level so the mount effect can consult it while building the
  * extension list and again when deciding whether to load the dictionary.
  *
+ * Exported so the edit toolbar's Thesaurus item (useEditorChrome) can apply the same gate
+ * without reaching into the editor.
+ *
  * See: (thesaurus_view.md#wiring-into-codemirroreditor)
+ * See: (thesaurus_view.md#where-the-item-appears)
  */
-function isCodeLanguage(language: CodeMirrorEditorProps['language']): boolean {
+export function isCodeLanguage(language: CodeMirrorEditorProps['language']): boolean {
   return language === 'javascript' || language === 'typescript' || language === 'python' || language === 'shell';
 }
 
@@ -275,6 +279,11 @@ export interface CodeMirrorEditorHandle {
   /** Focuses the editor and places the cursor at the given character offset. */
   focusAtPosition(pos: number): void;
   /**
+   * Focuses the editor, leaving the cursor where it was. The edit toolbar's Thesaurus item
+   * relies on this to re-arm the idle plugin. See: (thesaurus_view.md#the-onoff-switch-enablethesaurus)
+   */
+  focus(): void;
+  /**
    * Returns the live document text, or null if the view is gone. Unlike the store's edit
    * buffer, this includes keystrokes still inside the onChange debounce window.
    */
@@ -299,6 +308,9 @@ function createEditorHandle(viewRef: RefObject<EditorView | null>): CodeMirrorEd
       if (!view) return;
       view.dispatch({ selection: { anchor: pos, head: pos } });
       view.focus();
+    },
+    focus() {
+      viewRef.current?.focus();
     },
     getDoc() {
       return viewRef.current?.state.doc.toString() ?? null;
@@ -528,9 +540,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     pendingIdLink,
     handleIdLinkChosen,
     closeIdLinkDialog,
-    handleToggleThesaurus,
-    canToggleThesaurus,
-    thesaurusEnabled,
     handleToggleWordWrap,
     handleSearchReplace,
     isMarkdown,
@@ -540,10 +549,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     filePath,
     editable: !readOnly && !reviewing,
     onSave: onSaveKeepEditing !== undefined && !reviewing ? handleContextMenuSave : undefined,
-    // The same gate the extension list below applies: the menu offers the thesaurus switch
-    // only on editors that actually have the plugin installed.
-    // See: (thesaurus_view.md#where-the-item-appears)
-    thesaurusCapable: !readOnly && !isCodeLanguage(language),
     // Insert Object writes into the front matter, so it has to be visible first: with the hide
     // extensions still installed, the cursor guard would clamp the cursor out of the new lines.
     revealFrontMatter: () => {
@@ -618,7 +623,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // The plugin itself no-ops unless this editor has focus, so the several editors a
       // folder listing can have mounted at once never compete over the pane. The enabled
       // flag is passed as a getter, not a value: this list is built once at mount, and the
-      // context-menu item that flips the flag belongs to this same editor.
+      // Thesaurus item that flips the flag (the edit toolbar's menu) works on this same editor.
       // See: (thesaurus_view.md#wiring-into-codemirroreditor)
       ...(cfg.readOnly || isCodeLanguage(cfg.language)
         ? []
@@ -1066,9 +1071,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         onOpenInsertObject={handleOpenInsertObject}
         onInsertObject={handleInsertObject}
         objectTypes={objectTypes}
-        onToggleThesaurus={handleToggleThesaurus}
-        canToggleThesaurus={canToggleThesaurus}
-        thesaurusEnabled={thesaurusEnabled}
         onToggleWordWrap={handleToggleWordWrap}
         wordWrap={wordWrap}
         onSearchReplace={handleSearchReplace}

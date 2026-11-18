@@ -166,11 +166,11 @@ Because entry components read their own state from the store by path and render 
 In `'browse'` mode the entry owns the entire pane, so a non-maximized editor would waste it. `BrowseFile` passes `alwaysExpandedEditor` to `MarkdownEntry` and `TextEntry`, which:
 
 1. forces the maximized layout regardless of the global `expandedEditor` setting, and
-2. hides the Expand/Collapse Editor toggle entirely, by passing `onToggleExpandedEditor={undefined}` to `EntryEditToolbar` (again: render-by-callback-presence).
+2. disables the "Expanded Editor" item in the edit toolbar's "Editing actions" menu (`ActiveEditPopupMenu`, shown checked), by passing `onToggleExpandedEditor={undefined}` to `EntryEditToolbar` — the menu disables items whose callback is omitted rather than hiding them.
 
 This is a **per-call prop, not a setting write.** It deliberately neither reads nor writes the persisted `settings.expandedEditor`, so a trip through single-file mode leaves the user's folder-listing preference untouched. An e2e phase guards exactly that leak — if you refactor this into a settings mutation, that test will catch you, and it should.
 
-**In `'expanded-edit'` mode the prop is not passed** (`alwaysExpandedEditor={browseFileMode === 'browse'}`). Nothing else has to change: the global setting is true by construction there, so `editorExpanded` / `maximized` come out the same way — and because the prop is absent, the toggle renders and the user can hand the pane back. That single line is the whole difference between the two modes.
+**In `'expanded-edit'` mode the prop is not passed** (`alwaysExpandedEditor={browseFileMode === 'browse'}`). Nothing else has to change: the global setting is true by construction there, so `editorExpanded` / `maximized` come out the same way — and because the prop is absent, the "Expanded Editor" menu item is enabled and the user can hand the pane back. That single line is the whole difference between the two modes.
 
 Layout note: the maximized entry expects a flexed ancestor, so `BrowseFile` conditionally applies a nested flex-column chain (`overflow-hidden flex flex-col` on `<main>`, `flex-1 min-h-0 flex flex-col` on the wrapper). This is the only place that chain exists. Plain-text files get it in *view* mode too, not just while editing — `TextEntry`'s CodeMirror otherwise caps itself at ~60% of the scroll area, which is right for a row in a list and wasteful for the one file that owns the view.
 

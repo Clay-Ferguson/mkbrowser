@@ -29,16 +29,6 @@ interface EditorContextMenuProps {
   onInsertObject: (type: string) => void;
   /** The user-defined object types (Types Editor), as listed after "Insert Object" is clicked. */
   objectTypes: readonly ObjectTypeOption[];
-  // Flips `settings.enableThesaurus`. See: (thesaurus_view.md#the-onoff-switch-enablethesaurus)
-  onToggleThesaurus: () => void;
-  /**
-   * Whether the thesaurus item is shown — only where the synonym strip can actually appear.
-   *
-   * See: (thesaurus_view.md#where-the-item-appears)
-   */
-  canToggleThesaurus: boolean;
-  /** Current state of `settings.enableThesaurus`, which is what the item's wording flips on. */
-  thesaurusEnabled: boolean;
   onToggleWordWrap: () => void;
   /** Current state of `settings.wordWrap`, shown as a check mark beside "Word Wrap". */
   wordWrap: boolean;
@@ -54,8 +44,7 @@ const VIEWPORT_MARGIN = 8;
  * Floating context menu for the CodeMirror editor. Renders at the right-click coordinates,
  * clamped so it stays fully within the viewport. Includes Save (writes the file without
  * leaving edit mode), the Word Wrap toggle, Search & Replace, standard edit actions (cut/copy/paste, select all), timestamp/date
- * insertion, optional spell-check suggestions, the thesaurus on/off switch, and
- * the Markdown-only Insert Object item. Closes on outside click, scroll, or
+ * insertion, optional spell-check suggestions, and the Markdown-only Insert Object item. Closes on outside click, scroll, or
  * Escape.
  *
  * Insert Object does not act directly: it replaces the menu's items, in place, with the list
@@ -67,7 +56,6 @@ const VIEWPORT_MARGIN = 8;
  * See: (popup_menus.md#2-specific-menu-components--srccomponentsmenus)
  * See: (USER_GUIDE.md#inserting-links-to-other-files)
  * See: (USER_GUIDE.md#inserting-objects)
- * See: (USER_GUIDE.md#thesaurus)
  */
 export function EditorContextMenu({
   contextMenu,
@@ -87,9 +75,6 @@ export function EditorContextMenu({
   onOpenInsertObject,
   onInsertObject,
   objectTypes,
-  onToggleThesaurus,
-  canToggleThesaurus,
-  thesaurusEnabled,
   onToggleWordWrap,
   wordWrap,
   onSearchReplace,
@@ -371,23 +356,6 @@ export function EditorContextMenu({
           <span>Insert Object</span>
           <span className="text-slate-500 text-xs ml-4">▸</span>
         </button>
-      )}
-      {/* The synonym strip's only control. Its own group: it changes a persisted setting
-          rather than touching the document, unlike everything above it. */}
-      {canToggleThesaurus && (
-        <>
-          <div className="border-t border-slate-600 my-1" />
-          <button
-            type="button"
-            role="menuitem"
-            tabIndex={-1}
-            onClick={onToggleThesaurus}
-            className={EDITOR_MENU_ITEM}
-            data-testid="editor-toggle-thesaurus"
-          >
-            {thesaurusEnabled ? 'Hide Thesaurus' : 'Show Thesaurus'}
-          </button>
-        </>
       )}
     </div>
   );

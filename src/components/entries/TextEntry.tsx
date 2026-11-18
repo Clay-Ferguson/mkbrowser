@@ -6,8 +6,7 @@ import {
   useAS,
   toggleItemExpanded,
 } from '../../store';
-import CodeMirrorEditor from '../editor/CodeMirrorEditor';
-import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
+import CodeMirrorEditor, { isCodeLanguage, type CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import AlertDialog from '../dialogs/AlertDialog';
 import {
   useEditableEntry,
@@ -62,6 +61,8 @@ function TextEntry(props: TextEntryProps) {
     // See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
     fillPaneWhenViewing: true,
     onCancel: edit.handleCancel,
+    editorRef,
+    thesaurusCapable: !isCodeLanguage(fileLanguage),
   });
   const { maximized } = chrome;
 

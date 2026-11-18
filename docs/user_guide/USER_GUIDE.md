@@ -314,12 +314,12 @@ While the code editor has focus, the following keyboard shortcuts are available:
 
 While you are writing, MkBrowser can show synonyms for the word your cursor is in, as a strip of clickable words along the bottom of the editor. It works entirely offline — no internet connection and no AI are involved.
 
-**Turning it on.** The thesaurus is **off by default**. To enable it, right-click inside the editor and choose **Enable Thesaurus**. The same menu item then reads **Disable Thesaurus** and turns it back off. The setting is remembered between sessions.
+**Turning it on.** The thesaurus is **off by default**. To enable it, click the **Editing actions** menu button (the ☰ button just left of **Cancel** / **Save** while editing) and choose **Thesaurus**. A check mark beside **Thesaurus** shows it is on; choose it again to turn it back off. The setting is remembered between sessions.
 
-The menu item appears only where the strip can actually be shown:
+The menu item is available (not greyed out) only where the strip can actually be shown:
 
 - You must be editing a file that you opened **by itself** — by clicking it in the **Index Tree** panel, by clicking it in the **Search Results** tab, or with **View File** in the file's menu. The strip is not shown for the inline editors in the normal folder listing.
-- The file must be prose (Markdown or text). Source-code files and read-only views don't offer it.
+- The file must be prose (Markdown or text). Source-code files don't offer it.
 
 **Using it.** Click a word, or just stop typing for a couple of seconds, and the synonyms for that word appear. Move the cursor to another word and the list follows along. There is nothing to press — the list refreshes on its own whenever you pause.
 
@@ -1939,7 +1939,7 @@ The setting is saved automatically. It remains active across sessions until you 
 
 ### Expand Editor
 
-When editing a file, a small **Expand editor** button (double-arrow icon) appears in the editor toolbar. Clicking it makes the code editor fill the entire browse area — all other file entries are hidden — giving you a distraction-free full-width editing surface. Click the button again (now showing collapse arrows) to return to the normal view with other entries visible.
+When editing a file, click the **Editing actions** menu button (the ☰ button just left of **Cancel** / **Save**) and choose **Expanded Editor**. The code editor then fills the entire browse area — all other file entries are hidden — giving you a distraction-free full-width editing surface. A check mark beside **Expanded Editor** shows it is on; choose it again to return to the normal view with other entries visible. The setting is remembered between sessions.
 
 This is especially useful when working on long files or when you need to see as much of the document as possible while editing.
 

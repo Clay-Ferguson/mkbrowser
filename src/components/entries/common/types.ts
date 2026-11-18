@@ -25,8 +25,8 @@ export interface BaseEntryProps {
   documentMode?: boolean;
   /**
    * Editable entries only (Markdown/Text). Forces the editor to open maximized
-   * regardless of the global `expandedEditor` setting, and hides the
-   * expand/collapse toggle. Used by BrowseFile, where the entry already owns
+   * regardless of the global `expandedEditor` setting, and disables the
+   * "Expanded Editor" menu toggle. Used by BrowseFile, where the entry already owns
    * the whole pane so a non-expanded editor would just waste it.
    *
    * Passed only in BrowseFile's `'browse'` mode. Its `'expanded-edit'` mode

@@ -24,7 +24,7 @@ export interface ViewSlice {
   navigateToBrowserPath: (path: string, scrollToFile?: string, view?: AppView) => void;
   setBrowseFile: (folderPath: string, fileName: string, mode?: BrowseFileMode) => void;
   clearBrowseFile: () => void;
-  // Expand editor button. See: (USER_GUIDE.md#expand-editor)
+  // "Expanded Editor" item in the edit menu. See: (USER_GUIDE.md#expand-editor)
   toggleExpandedEditor: (path: string) => void;
   // "Scroll to X once it renders" requests, consumed by the view that renders X. See: (scroll_management.md#pending-scroll-requests)
   clearPendingScrollToFile: () => void;
@@ -189,7 +189,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
 
     /**
      * Flip the persisted `expandedEditor` preference from the edit toolbar's
-     * expand/collapse button, and move the editor to match — in one update.
+     * "Editing actions" menu's "Expanded Editor" item, and move the editor to match — in one update.
      *
      * Turning it ON mid-edit hands `path` the whole pane (the same routing an
      * edit started from the listing gets); turning it OFF while that maximized

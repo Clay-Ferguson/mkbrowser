@@ -189,10 +189,15 @@ We've typed a new line at the end, and in a moment we'll save it.`
     );
 
     // The editor is ALWAYS maximized here — no toggling required, and the
-    // expand/collapse button is hidden because it would be a no-op. Assert the
-    // editor really does fill most of the pane: the failure mode if the flex
-    // class chain is wrong is a collapsed editor, not a missing one.
-    await expect(mainWindow.getByTestId('entry-editor-expand-toggle-button')).toHaveCount(0);
+    // "Expanded Editor" menu item is disabled (shown checked) because toggling
+    // would be a no-op. Assert the editor really does fill most of the pane:
+    // the failure mode if the flex class chain is wrong is a collapsed editor,
+    // not a missing one.
+    await demoClick(mainWindow.getByTestId('active-edit-menu-button'));
+    await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor')).toBeDisabled();
+    await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor').locator('svg')).toHaveCount(1);
+    await demoClick(mainWindow.getByTestId('active-edit-menu-button'));
+    await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor')).toHaveCount(0);
 
     await expect(async () => {
       const paneBox = await single.boundingBox();
@@ -303,7 +308,7 @@ Single-file browsing is a file-only gesture, and right clicking a file and choos
     // --- Phase 5: the folder listing kept its own editor preference ---------
     // Single-file mode forces expansion via a prop, NOT by writing the global
     // `expandedEditor` setting. So editing from the listing must still offer
-    // the expand/collapse toggle — if this fails, BrowseFile leaked its
+    // the (enabled) "Expanded Editor" menu item — if this fails, BrowseFile leaked its
     // always-expanded behavior into the user's saved preference.
     //
     // Phase 4's "Browse" already navigated into the seeded folder, so the
@@ -317,7 +322,10 @@ Single-file browsing is a file-only gesture, and right clicking a file and choos
     await demoClick(listingEntry.getByRole('heading', { name: 'Browse Target' }));
 
     await expect(mainWindow.getByTestId('entry-save-button')).toBeVisible({ timeout: 10000 });
-    await expect(mainWindow.getByTestId('entry-editor-expand-toggle-button')).toBeVisible();
+    await demoClick(mainWindow.getByTestId('active-edit-menu-button'));
+    await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor')).toBeEnabled();
+    await demoClick(mainWindow.getByTestId('active-edit-menu-button'));
+    await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor')).toHaveCount(0);
 
     await demoClick(mainWindow.getByTestId('entry-cancel-button'));
 

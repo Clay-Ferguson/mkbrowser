@@ -38,7 +38,7 @@ Once the feature is switched on, and while a file is open for editing in **singl
 
 Beyond that switch there is no gesture to invoke it. The user clicks a word (or simply stops typing), and after ~2 seconds of stillness the synonyms appear. The strip is mounted **only while editing** and only by `BrowseFile` — inline edits in the folder listing (`BrowseView`) render no strip at all.
 
-The feature is **off by default** and is turned on from an item in the editor's right-click menu — see [The On/Off Switch](#the-onoff-switch-enablethesaurus). While off, the strip renders nothing whatsoever.
+The feature is **off by default** and is turned on from the **Thesaurus** item in the edit toolbar's "Editing actions" menu — see [The On/Off Switch](#the-onoff-switch-enablethesaurus). While off, the strip renders nothing whatsoever.
 
 The data flows one way, across the whole three-process boundary:
 
@@ -58,9 +58,9 @@ Only the **word** travels through the store. The lookup itself happens in `Thesa
 
 ## The On/Off Switch (`enableThesaurus`)
 
-A **Show Thesaurus / Hide Thesaurus** item in the editor's right-click menu is the feature's master switch, backed by `settings.enableThesaurus` (a `boolean`, defaulting to **false**) and persisted to `config.yaml` like any other setting.
+A checkable **Thesaurus** item (check mark when on) in `ActiveEditPopupMenu` — the "Editing actions" hamburger on the edit toolbar (`EntryEditToolbar`) — is the feature's master switch, backed by `settings.enableThesaurus` (a `boolean`, defaulting to **false**) and persisted to `config.yaml` like any other setting.
 
-**Off means gone.** `ThesaurusView` returns `null`, so there is no strip in the DOM and the maximized editor keeps every pixel of the pane. That is exactly why the switch is in the context menu and not in the strip: a checkbox inside the strip has to keep a row of chrome on screen to stay clickable, and that row was dead space in the overwhelmingly common case of not using the thesaurus. (An earlier version did exactly that; the row is what motivated this design.)
+**Off means gone.** `ThesaurusView` returns `null`, so there is no strip in the DOM and the maximized editor keeps every pixel of the pane. That is exactly why the switch is in a menu and not in the strip: a checkbox inside the strip has to keep a row of chrome on screen to stay clickable, and that row was dead space in the overwhelmingly common case of not using the thesaurus. (An earlier version did exactly that; the row is what motivated this design.)
 
 Off is also off *upstream*, which matters because the idle plugin costs something on every keystroke:
 
@@ -72,14 +72,16 @@ Off is also off *upstream*, which matters because the idle plugin costs somethin
 
 **The flag is passed to the plugin as a getter, not a value.** `createThesaurusPlugin(setThesaurusWord, () => getSettings().enableThesaurus)` — the extension list is built **once at mount** and never reconfigured (see [Wiring Into `CodeMirrorEditor`](#wiring-into-codemirroreditor)), and the menu that flips the flag belongs to that very editor. A captured value would leave the setting inert until the next edit began. This is also the reason `schedule()` clears `lastReported` while disabled: the store's word was cleared too, so returning to the same word must not be suppressed as a repeat.
 
-There is no reactive channel from the store *into* the plugin, so re-enabling takes effect on the next cursor move, keystroke, **or focus change** rather than instantly. In practice the user never notices, because closing the menu hands focus back to the editor and `update()` schedules on `focusChanged` — enabling produces synonyms ~2s later with no further gesture. (`handleToggleThesaurus`'s `view?.focus()` is therefore load-bearing, not politeness.) Making the channel genuinely reactive would mean reconfiguring a compartment on a setting almost nobody toggles twice.
+There is no reactive channel from the store *into* the plugin, so re-enabling takes effect on the next cursor move, keystroke, **or focus change** rather than instantly. In practice the user never notices, because the toggle hands focus back to the editor (via `CodeMirrorEditorHandle.focus()`) and `update()` schedules on `focusChanged` — enabling produces synonyms ~2s later with no further gesture. (`handleToggleThesaurus`'s `editorRef.current?.focus()` in `useEditorChrome` is therefore load-bearing, not politeness.) Making the channel genuinely reactive would mean reconfiguring a compartment on a setting almost nobody toggles twice.
 
 ### Where the item appears
 
-`EditorContextMenu` renders it only when `canToggleThesaurus`, which is `thesaurusCapable && singleFileMode`:
+`ActiveEditPopupMenu` always lists the item, but enables it only when `useEditorChrome` supplies `onToggleThesaurus`, which it does when `thesaurusCapable && singleFileMode` (an omitted callback renders the item disabled, per that menu's never-empty convention). The check mark tracks `settings.enableThesaurus` either way.
 
-- **`thesaurusCapable`** — passed from `CodeMirrorEditor` as `!readOnly && !isCodeLanguage(language)`, *the same expression* that decides whether the plugin is in the extension list. Offering a switch for a plugin that was never installed would be a dead control.
-- **`singleFileMode`** — `browseFileName !== null`, read from the store inside `useEditorContextMenu`. Only `BrowseFile` mounts the strip, so in a folder-listing inline edit the setting would flip with nowhere for the synonyms to appear.
+- **`thesaurusCapable`** — passed to `useEditorChrome` by the entry: `!isCodeLanguage(fileLanguage)` from `TextEntry`, `true` from `MarkdownEntry`. This is *the same expression* that decides whether the editing `CodeMirrorEditor` puts the plugin in its extension list (`!readOnly && !isCodeLanguage(language)`, with `readOnly` always false while editing). Offering a switch for a plugin that was never installed would be a dead control.
+- **`singleFileMode`** — `browseFileName !== null`, read from the store inside `useEditorChrome`. Only `BrowseFile` mounts the strip, so in a folder-listing inline edit the setting would flip with nowhere for the synonyms to appear.
+
+The item is not in the editor's right-click menu (`EditorContextMenu`); it moved to the edit toolbar's menu.
 
 **The setting is persisted by the hook itself** via `saveSettings()` (`src/renderer/config.ts`), the same call every other settings writer uses.
 
@@ -335,7 +337,7 @@ One wrap flow occupying the full width of the pane, with no chrome of its own �
 | Word found nothing | `thesaurus-empty` |
 | Pills | `thesaurus-synonyms` (container) |
 
-The component takes **no props**. It reads `thesaurusWord` and `settings.enableThesaurus` from the store, and the switch that writes the latter lives in the editor's context menu (see [The On/Off Switch](#the-onoff-switch-enablethesaurus)), so there is nothing for `BrowseFile` to pass down.
+The component takes **no props**. It reads `thesaurusWord` and `settings.enableThesaurus` from the store, and the switch that writes the latter lives in the edit toolbar's "Editing actions" menu (see [The On/Off Switch](#the-onoff-switch-enablethesaurus)), so there is nothing for `BrowseFile` to pass down.
 
 **Stale handling.** While a new word's lookup is in flight, the *previous* result stays on screen (`result` still holds the old word) and is dimmed via `stale ? ' opacity-50' : ''`. A cursor crossing a sentence would otherwise blank the strip repeatedly, which is more distracting than briefly stale pills.
 
@@ -395,7 +397,7 @@ The pills carry `cursor-pointer`, a title, and a `hover:` that brightens the **b
 
 If an e2e spec is ever reinstated, these lessons from the old one still apply:
 
-- **Rely on the menu's focus handoff.** After **Show Thesaurus**, type straight into the document without clicking back into the editor first. Clicking would hide a regression in `handleToggleThesaurus`'s `view?.focus()`, which is also what re-arms the idle plugin on re-enable.
+- **Rely on the menu's focus handoff.** After checking **Thesaurus** in the "Editing actions" menu (`menu-active-edit-thesaurus`), type straight into the document without clicking back into the editor first. Clicking would hide a regression in `handleToggleThesaurus`'s `editorRef.current?.focus()`, which is also what re-arms the idle plugin on re-enable.
 - **Keep `enableThesaurus` out of the seed config.** `tests/e2e/fixtures/seed-config.yaml` does not set it, so the zod `.catch(default)` supplies **false** — exactly what a "nothing is there until you ask" assertion needs.
 - **Undo any pill insertion before ending the edit.** `TextEntry` ignores Escape while the buffer differs from the file, so a modified document strands an "ending the edit removes the strip" assertion. The Ctrl+Z doubles as a check that the insertion is an ordinary entry in CodeMirror's history.
 - **Assert on the lemma via the tooltip.** There is no lemma chip any more; the root shows up only in the `thesaurus-synonyms` container's `title`.
@@ -420,7 +422,7 @@ If an e2e spec is ever reinstated, these lessons from the old one still apply:
 6. The idle plugin reports only from the focused editor, and `sourceView` is set from that same report, so the editor a pill inserts into is always the one its word came from.
 7. A clicked pill only ever **adds** text. Nothing in this feature deletes or replaces any of the user's prose.
 8. `ThesaurusView` is mounted only while editing, only by `BrowseFile` — and renders nothing at all unless `settings.enableThesaurus` is true. It takes no props.
-9. With `settings.enableThesaurus` false, nothing is rendered, no timer is armed, no word is scanned, and no lookup is issued. The context menu is the only way back on, and it is offered only where the strip can appear (see [Where the item appears](#where-the-item-appears)).
+9. With `settings.enableThesaurus` false, nothing is rendered, no timer is armed, no word is scanned, and no lookup is issued. The "Editing actions" menu's Thesaurus item is the only way back on, and it is offered only where the strip can appear (see [Where the item appears](#where-the-item-appears)).
 10. Adding a package for this feature requires human authorization (`AGENTS.md`) — none is currently used.
 
 ## Code Locations
@@ -442,9 +444,10 @@ If an e2e spec is ever reinstated, these lessons from the old one still apply:
 | `src/store/core.ts` | Slice registration, `thesaurusWord: null` initial state, `enableThesaurus: false` default |
 | `src/store/index.ts` | Barrel re-export |
 | `src/renderer/editor/editorThesaurusUtil.ts` | Idle `ViewPlugin`, `thesaurusWordAtCursor`, `sourceView` + `synonymInsertPos` / `insertSynonymAfterWord` |
-| `src/components/editor/CodeMirrorEditor.tsx` | Extension wiring (~line 540), `isCodeLanguage` (~line 130), `thesaurusCapable` passed to the menu hook |
-| `src/components/editor/useEditorContextMenu.ts` | `handleToggleThesaurus` (flips + persists the setting), `canToggleThesaurus` |
-| `src/components/editor/EditorContextMenu.tsx` | The Show/Hide Thesaurus item (`editor-toggle-thesaurus`) |
+| `src/components/editor/CodeMirrorEditor.tsx` | Extension wiring (~line 620), exported `isCodeLanguage` (~line 165), `CodeMirrorEditorHandle.focus()` |
+| `src/components/entries/common/useEditorChrome.ts` | `handleToggleThesaurus` (flips + persists the setting, refocuses the editor), the `thesaurusCapable && singleFileMode` gate |
+| `src/components/entries/common/EntryEditToolbar.tsx` | Passes `thesaurusEnabled` / `onToggleThesaurus` to the menu |
+| `src/components/menus/ActiveEditPopupMenu.tsx` | The checkable Thesaurus item (`menu-active-edit-thesaurus`) |
 | `src/components/editor/ThesaurusView.tsx` | The strip and the pill click handler; renders `null` when disabled |
 | `src/components/views/BrowseFile.tsx` | Mounts the strip (~line 241) |
 | `src/components/editor/spellChecker.ts` | Source of the shared `wordAt` tokenizer |

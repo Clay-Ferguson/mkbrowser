@@ -6,7 +6,7 @@ import { logger } from '../../shared/logUtil';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { isMarkdownFile } from '../../shared/fileTypes';
 import { saveSettings } from '../../renderer/config';
-import { useAS, setEnableThesaurus, setWordWrap, setShowPropsInEditor, setPasteToAttachmentsFolder } from '../../store';
+import { useAS, setWordWrap, setShowPropsInEditor, setPasteToAttachmentsFolder } from '../../store';
 import { wordAt, isSpellCheckExempt, type SpellingSuggestion } from './spellChecker';
 import { objectTypeOptions, planObjectInsertion } from '../../shared/objects/userTypes';
 import { api } from '../../renderer/api';
@@ -114,15 +114,6 @@ interface UseEditorContextMenuProps {
   editable?: boolean;
   onSave?: () => void;
   /**
-   * Whether this editor is one the thesaurus plugin was installed into — live prose only,
-   * the same gate `CodeMirrorEditor` applies when building its extension list. False here
-   * hides the Show/Hide Thesaurus item, since toggling a setting no plugin is reading
-   * would do nothing.
-   *
-   * See: (thesaurus_view.md#where-the-item-appears)
-   */
-  thesaurusCapable?: boolean;
-  /**
    * Shows the front matter in this editor right away (reconfigures its front-matter
    * compartment), ahead of the store setting catching up. Insert Object needs it before it
    * writes there — see handleInsertObject.
@@ -143,15 +134,15 @@ interface UseEditorContextMenuProps {
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
  * top of the menu. Also exposes save-in-place, cut/copy/paste, "Paste Link" (when the clipboard names an existing file), "Create & Paste File" (when the clipboard holds a file), select-all, timestamp/date
- * insertion, the word-wrap and thesaurus on/off switches, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the user-defined object types from the Types Editor, and adds the picked one to the file's front matter).
+ * insertion, the word-wrap on/off switch, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the user-defined object types from the Types Editor, and adds the picked one to the file's front matter).
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
- * `canSave`, `canToggleThesaurus`, `thesaurusEnabled`, `wordWrap`).
+ * `canSave`, `wordWrap`).
  *
  * See: (USER_GUIDE.md#inserting-links-to-other-files)
  */
-export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = true, onSave, thesaurusCapable = false, revealFrontMatter, interceptPaste, makeLink }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = true, onSave, revealFrontMatter, interceptPaste, makeLink }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   // Why Insert Object refused (e.g. the file already holds an object of another type); shown in an alert.
   const [insertObjectError, setInsertObjectError] = useState<string | null>(null);
@@ -160,15 +151,8 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
   const [pendingIdLink, setPendingIdLink] = useState<PasteLinkTarget | null>(null);
   // A "Create & Paste File" waiting on the user's file name.
   const [pendingPasteFile, setPendingPasteFile] = useState<PendingPasteFile | null>(null);
-  const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
   const wordWrap = useAS(s => s.settings.wordWrap);
   const pasteToAttachmentsFolder = useAS(s => s.settings.pasteToAttachmentsFolder);
-  // Only `BrowseFile` (single-file mode) mounts the synonym strip, and that is what
-  // `browseFileName` being set means. Offering the switch in a folder-listing inline editor
-  // would turn the feature on with nowhere for the synonyms to appear.
-  // See: (single_file_browsing.md#the-deciding-state-browsefilename)
-  // See: (thesaurus_view.md#where-the-item-appears)
-  const singleFileMode = useAS(s => s.browseFileName !== null);
   // The user-defined object types (Types Editor) that "Insert Object" offers.
   const typeDefs = useAS(s => s.typeDefs);
 
@@ -533,23 +517,6 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     viewRef.current?.focus();
   };
 
-  // The thesaurus master switch (`settings.enableThesaurus`). It lives here rather than in
-  // the strip itself so that "off" can mean the strip renders nothing at all — a checkbox
-  // inside it would have to keep a row of chrome on screen to stay clickable.
-  //
-  // Handing focus back to the editor is not just tidiness — the idle plugin schedules on
-  // `focusChanged`, so it is what re-arms the countdown when the feature is switched on
-  // mid-edit. Synonyms appear a couple of seconds later with no further gesture.
-  // See: (thesaurus_view.md#the-onoff-switch-enablethesaurus)
-  // See: (USER_GUIDE.md#thesaurus)
-  const handleToggleThesaurus = () => {
-    const view = viewRef.current;
-    setEnableThesaurus(!thesaurusEnabled);
-    closeContextMenu();
-    view?.focus();
-    saveSettings();
-  };
-
   // Flips `settings.wordWrap`. Every mounted editor re-syncs its line-wrapping compartment
   // from the store, so the change applies everywhere at once, not just to this editor.
   const handleToggleWordWrap = () => {
@@ -625,9 +592,6 @@ export function useEditorContextMenu({ viewRef, typoRef, filePath, editable = tr
     pendingIdLink,
     handleIdLinkChosen,
     closeIdLinkDialog,
-    handleToggleThesaurus,
-    canToggleThesaurus: thesaurusCapable && singleFileMode,
-    thesaurusEnabled,
     handleToggleWordWrap,
     wordWrap,
     handleSearchReplace,

@@ -29,7 +29,7 @@ export interface SettingsSlice {
   setCalendarItemsFolder: (calendarItemsFolder: string) => void;
   setIndexTreeWidth: (indexTreeWidth: IndexTreeWidth) => void;
   setImageSize: (imageSize: ImageSize) => void;
-  // Enable / Disable Thesaurus (editor right-click menu). See: (USER_GUIDE.md#thesaurus)
+  // Thesaurus on/off ("Editing actions" menu on the edit toolbar). See: (USER_GUIDE.md#thesaurus)
   setEnableThesaurus: (enableThesaurus: boolean) => void;
   setWordWrap: (wordWrap: boolean) => void;
   // Create & Paste File's "Save in Attachments Folder" checkbox. See: (USER_GUIDE.md#inserting-links-to-other-files)

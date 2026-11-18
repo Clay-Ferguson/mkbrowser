@@ -229,6 +229,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     edit,
     alwaysExpandedEditor,
     onCancel: handleCancelEdit,
+    editorRef,
+    // Markdown is prose, so the editing editor always has the thesaurus plugin.
+    thesaurusCapable: true,
   });
   const { maximized, reviewing } = chrome;
 

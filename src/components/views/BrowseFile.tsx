@@ -73,13 +73,13 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
  * `browseFileMode` tells apart:
  *
  * - `'browse'` — the user asked to read this file on its own. The entry is
- *   forced expanded via `alwaysExpandedEditor` and the expand/collapse toggle
- *   is hidden, because toggling it would be a no-op. Deliberately independent
+ *   forced expanded via `alwaysExpandedEditor` and the "Expanded Editor" menu item
+ *   is disabled, because toggling it would be a no-op. Deliberately independent
  *   of the global `expandedEditor` setting: this mode neither reads nor writes
  *   it, so the user's preference for the folder listing survives a trip here.
  * - `'expanded-edit'` — an edit started in the folder listing while the user's
  *   `expandedEditor` preference was on, and that preference is what maximizes
- *   the entry. So `alwaysExpandedEditor` is NOT passed: the toggle appears, and
+ *   the entry. So `alwaysExpandedEditor` is NOT passed: the toggle is enabled, and
  *   collapsing it (or ending the edit) returns to the listing.
  *
  * Attachments: when the file has a sibling `<name>.attach` folder, that folder

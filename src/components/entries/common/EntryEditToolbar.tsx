@@ -1,15 +1,15 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { ArrowsPointingOutIcon, ArrowsPointingInIcon, Bars3Icon } from '@heroicons/react/24/outline';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 import { BUTTON_CLASS_SM_GREEN_MUTED, BUTTON_CLASS_SM_NEUTRAL_OUTLINED, BUTTON_CLASS_SM_PURPLE, ENTRY_EDITOR_ICON_BTN } from '../../../renderer/styles';
 import ActiveEditPopupMenu from '../../menus/ActiveEditPopupMenu';
 
 interface EntryEditToolbarProps {
-  /** Whether the editor is in expanded mode. */
+  /** Whether the editor is in expanded mode — the "Expanded Editor" item's check mark (ActiveEditPopupMenu). */
   expandedEditor: boolean;
   /**
-   * Toggle the expanded editor. Omit to hide the expand/collapse button
-   * entirely — for callers whose editor is always expanded and where the
-   * toggle would therefore be a no-op (see `alwaysExpandedEditor`).
+   * Toggle the expanded editor, from the "Editing actions" menu's "Expanded Editor" item.
+   * Omit for callers whose editor is always expanded and where the toggle would therefore
+   * be a no-op (see `alwaysExpandedEditor`); the item is then shown disabled.
    *
    * See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
    */
@@ -43,7 +43,17 @@ interface EntryEditToolbarProps {
    */
   onCalendarInfo?: () => void;
 
-  /** Entry-specific buttons rendered before the expand button (e.g. props/tags). */
+  /** Current `settings.enableThesaurus`, the "Thesaurus" item's check mark (ActiveEditPopupMenu). */
+  thesaurusEnabled: boolean;
+  /**
+   * Flips the thesaurus on/off, from the "Editing actions" menu. Omitted where the synonym
+   * strip can't appear; the item is then disabled. Supplied by useEditorChrome's toolbarProps.
+   *
+   * See: (thesaurus_view.md#where-the-item-appears)
+   */
+  onToggleThesaurus?: () => void;
+
+  /** Entry-specific buttons rendered first, before AI Rewrite (e.g. props/tags). */
   leftExtras?: ReactNode;
   /** Entry-specific buttons rendered between AI Rewrite and Cancel/Save (e.g. Ask AI). */
   middleExtras?: ReactNode;
@@ -51,15 +61,15 @@ interface EntryEditToolbarProps {
 
 /**
  * The shared edit-mode toolbar for editable entries (Text/Markdown). Renders
- * the expand/collapse editor button, the AI Rewrite button, and the
- * Cancel/Save pair — all of which were duplicated across TextEntry and
- * MarkdownEntry. Entry-specific buttons are supplied via the `leftExtras` and
+ * the AI Rewrite button, the "Editing actions" menu, and the Cancel/Save pair
+ * — all of which were duplicated across TextEntry and MarkdownEntry. Entry-specific buttons are supplied via the `leftExtras` and
  * `middleExtras` slots.
  *
  * Just left of Cancel/Save sits an "Editing actions" hamburger opening
  * ActiveEditPopupMenu — the edit-mode counterpart of EntryActionBar's
  * EntryPopupMenu, which isn't shown while editing. Like Cancel/Save it is
- * hidden during an AI review.
+ * hidden during an AI review. The expand/collapse toggle lives there as the
+ * checkable "Expanded Editor" item.
  *
  * See: (USER_GUIDE.md#editing-files)
  * See: (popup_menus.md#menus-inside-clickable-rows)
@@ -80,6 +90,8 @@ export function EntryEditToolbar({
   onCancel,
   onSave,
   onCalendarInfo,
+  thesaurusEnabled,
+  onToggleThesaurus,
   leftExtras,
   middleExtras,
 }: EntryEditToolbarProps) {
@@ -91,19 +103,6 @@ export function EntryEditToolbar({
     <>
     <div className="flex items-center gap-2">
       {leftExtras}
-      {onToggleExpandedEditor && (
-        <button
-          type="button"
-          onClick={onToggleExpandedEditor}
-          title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
-          className={ENTRY_EDITOR_ICON_BTN}
-          data-testid="entry-editor-expand-toggle-button"
-        >
-          {expandedEditor
-            ? <ArrowsPointingInIcon className="w-5 h-5" />
-            : <ArrowsPointingOutIcon className="w-5 h-5" />}
-        </button>
-      )}
       {showRewrite && (
         <button
           type="button"
@@ -163,6 +162,10 @@ export function EntryEditToolbar({
           anchorRef={menuButtonRef}
           onClose={() => setShowMenu(false)}
           onCalendarInfo={onCalendarInfo}
+          expandedEditor={expandedEditor}
+          onToggleExpandedEditor={onToggleExpandedEditor}
+          thesaurusEnabled={thesaurusEnabled}
+          onToggleThesaurus={onToggleThesaurus}
         />
       </div>
     )}

@@ -79,8 +79,26 @@ test.describe('Private: Expanded Editing', () => {
 
     const listing = mainWindow.getByTestId('browser-main-content');
     const single = mainWindow.getByTestId('browse-file-main-content');
-    const expandToggle = mainWindow.getByTestId('entry-editor-expand-toggle-button');
     const saveButton = mainWindow.getByTestId('entry-save-button');
+    // The expand/collapse toggle is the checkable "Expanded Editor" item in the
+    // edit toolbar's "Editing actions" menu (ActiveEditPopupMenu).
+    const editMenuButton = mainWindow.getByTestId('active-edit-menu-button');
+    const expandedItem = mainWindow.getByTestId('menu-active-edit-expanded-editor');
+    const toggleExpanded = async () => {
+      await demoClick(editMenuButton);
+      await demoClick(expandedItem);
+      await expect(expandedItem).toHaveCount(0);
+    };
+    // Opens the menu, checks the item's check mark (PopupMenuItem renders a
+    // CheckIcon svg only when selected), then closes the menu by clicking the
+    // hamburger again — not Escape, which the global close-editor handler sees.
+    const expectExpandedChecked = async (checked: boolean) => {
+      await demoClick(editMenuButton);
+      await expect(expandedItem).toBeEnabled();
+      await expect(expandedItem.locator('svg')).toHaveCount(checked ? 1 : 0);
+      await demoClick(editMenuButton);
+      await expect(expandedItem).toHaveCount(0);
+    };
 
     // The folders were created after the app read the directory, so refresh.
     await demoRefresh(mainWindow);
@@ -111,7 +129,7 @@ This folder holds two markdown files. Let's open one of them for editing.`
     await expect(listing).toBeVisible();
     await expect(single).toHaveCount(0);
     await expect(listing.getByText(siblingName, { exact: true })).toBeVisible();
-    await expect(expandToggle).toHaveAttribute('title', 'Expand editor');
+    await expectExpandedChecked(false);
 
     // Type into the buffer WITHOUT saving. Phase 2 checks it survives the swap.
     const unsavedLine = 'Typed before expanding.';
@@ -129,13 +147,13 @@ We've typed a line without saving. Now let's maximize the editor.`
     );
 
     // --- Phase 2: expanding swaps in BrowseFile -----------------------------
-    await demoClick(expandToggle);
+    await toggleExpanded();
 
     await expect(single).toBeVisible({ timeout: 10000 });
     await expect(listing).toHaveCount(0);
     // The toggle stays available here — unlike plain single-file browsing, this
     // pane was handed over by the user's preference, so they can hand it back.
-    await expect(expandToggle).toHaveAttribute('title', 'Collapse editor');
+    await expectExpandedChecked(true);
     // The unsaved buffer came through the remount intact.
     await expect(single.locator('.cm-content')).toContainText(unsavedLine);
 
@@ -162,11 +180,11 @@ We've typed a line without saving. Now let's maximize the editor.`
       step++,
       `The editor now owns the whole pane, and the line we typed came along with it.
 The breadcrumb path stays at the top so we can confirm which file we're editing; only the "Listing Hidden" note steps aside.
-The collapse button is still there whenever we want the folder listing back.`
+The Expanded Editor menu item is still there whenever we want the folder listing back.`
     );
 
     // --- Phase 3: collapsing returns to the listing, still editing ----------
-    await demoClick(expandToggle);
+    await toggleExpanded();
 
     await expect(listing).toBeVisible({ timeout: 10000 });
     await expect(single).toHaveCount(0);
@@ -179,7 +197,7 @@ The collapse button is still there whenever we want the folder listing back.`
     await expect(mainWindow.getByTestId('path-breadcrumb')).toBeVisible();
     // Collapsing wrote the preference back off — that is the whole point of the
     // toggle, and it is why Phase 4 has to turn it on again below.
-    await expect(expandToggle).toHaveAttribute('title', 'Expand editor');
+    await expectExpandedChecked(false);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'collapsed-back-to-listing');
     writeNarration(
@@ -191,7 +209,7 @@ The collapse button is still there whenever we want the folder listing back.`
     // Expand once more, then cancel from there. This discards the unsaved line
     // AND leaves the preference on, which is the starting state Phase 4 needs.
     // Cancelling is also an exit from the maximized editor in its own right.
-    await demoClick(expandToggle);
+    await toggleExpanded();
     await expect(single).toBeVisible({ timeout: 10000 });
     await demoClick(mainWindow.getByTestId('entry-cancel-button'));
     await expect(listing).toBeVisible({ timeout: 10000 });
