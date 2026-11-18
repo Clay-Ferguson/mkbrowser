@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { clsx } from 'clsx';
-import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
 import { api, ipcErrorMessage } from '../../renderer/api';
 import { saveAiConfig, saveSettings } from '../../renderer/config';
@@ -343,7 +343,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     })();
   };
   
-  // Edit-mode toolbar; its calendar icon (`edit-calendar-info`) opens EditCalendarDialog.
+  // Edit-mode toolbar; the "Calendar Info" item in its "Editing actions" hamburger menu
+  // (ActiveEditPopupMenu, `menu-active-edit-calendar-info`) opens EditCalendarDialog.
   // See: (calendar_view.md#calendarview-component)
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
@@ -358,6 +359,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       hasSelection={hasSelection}
       onCancel={handleCancelEdit}
       onSave={handleSaveEdit}
+      onCalendarInfo={() => setShowCalendarDialog(true)}
       leftExtras={
         <>
           <button
@@ -379,15 +381,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             {tagsVisible
               ? <TagIconSolid className="w-5 h-5" />
               : <TagIconOutline className="w-5 h-5" />}
-          </button>
-          <button
-            type="button"
-            data-testid="edit-calendar-info"
-            onClick={() => setShowCalendarDialog(true)}
-            title="Calendar Info"
-            className={ENTRY_EDITOR_ICON_BTN}
-          >
-            <CalendarIcon className="w-5 h-5" />
           </button>
         </>
       }

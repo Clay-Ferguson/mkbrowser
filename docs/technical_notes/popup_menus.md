@@ -43,6 +43,7 @@ Each menu has its own component file in `src/components/menus/`. Each one builds
 | `FilePopupMenu` | App logo in `AppTabButtons` | Recent folders; `style={{ maxWidth: '90vw' }}` for long paths |
 | `SystemPopupMenu` | Hamburger button in `AppTabButtons` | Opens settings/editor tabs |
 | `EntryPopupMenu` | Hamburger "More actions" button in `EntryActionBar` | `align="right"`; items hidden when their callback is omitted |
+| `ActiveEditPopupMenu` | Hamburger "Editing actions" button in `EntryEditToolbar`, left of Cancel/Save (edit mode only; hidden during an AI review) | `align="right"`; edit-mode counterpart of `EntryPopupMenu`; items disabled (not hidden) when their callback is omitted, so the menu is never empty |
 | `BookmarksPopupMenu` | Bookmarks button in `IndexTreeView` | Custom rows with hover action buttons; `disableClose` while its edit dialog is open |
 | `IndexTreeContextMenu` | Right-click on an index tree node in `IndexTreeView` | Uses `mousePosition` instead of `anchorRef` |
 

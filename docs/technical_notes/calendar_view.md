@@ -269,8 +269,9 @@ reads the state fields above via `useAS` selectors, and:
   with zero matches, an explicit "None of the search results are calendar items" hint.
 
 Other calendar-authoring entry points outside this view, all on a MarkdownEntry, open
-`EditCalendarDialog`: the calendar icon in the editor toolbar (edit mode only,
-`data-testid="edit-calendar-info"`), and a click on any `due`/`start`/`duration`/`rrule`
+`EditCalendarDialog`: the **Calendar Info** item in the editor toolbar's "Editing actions"
+hamburger menu (`ActiveEditPopupMenu`, edit mode only,
+`data-testid="menu-active-edit-calendar-info"`), and a click on any `due`/`start`/`duration`/`rrule`
 property pill (`CALENDAR_PROPS` in `src/shared/calendarUtil.ts`), which works outside edit
 mode too — in that case the dialog's save writes the front matter straight to disk.
 

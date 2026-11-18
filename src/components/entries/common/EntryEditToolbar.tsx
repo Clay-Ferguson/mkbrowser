@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
-import { ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
+import { useRef, useState, type ReactNode } from 'react';
+import { ArrowsPointingOutIcon, ArrowsPointingInIcon, Bars3Icon } from '@heroicons/react/24/outline';
 import { BUTTON_CLASS_SM_GREEN_MUTED, BUTTON_CLASS_SM_NEUTRAL_OUTLINED, BUTTON_CLASS_SM_PURPLE, ENTRY_EDITOR_ICON_BTN } from '../../../renderer/styles';
+import ActiveEditPopupMenu from '../../menus/ActiveEditPopupMenu';
 
 interface EntryEditToolbarProps {
   /** Whether the editor is in expanded mode. */
@@ -36,7 +37,13 @@ interface EntryEditToolbarProps {
   /** Save handler — persists the current editor content to disk. */
   onSave: () => void;
 
-  /** Entry-specific buttons rendered before the expand button (e.g. props/tags/calendar). */
+  /**
+   * Opens the Calendar Info dialog, from the "Editing actions" hamburger menu
+   * (ActiveEditPopupMenu). Omit for entries without calendar info; the item is then disabled.
+   */
+  onCalendarInfo?: () => void;
+
+  /** Entry-specific buttons rendered before the expand button (e.g. props/tags). */
   leftExtras?: ReactNode;
   /** Entry-specific buttons rendered between AI Rewrite and Cancel/Save (e.g. Ask AI). */
   middleExtras?: ReactNode;
@@ -49,7 +56,13 @@ interface EntryEditToolbarProps {
  * MarkdownEntry. Entry-specific buttons are supplied via the `leftExtras` and
  * `middleExtras` slots.
  *
+ * Just left of Cancel/Save sits an "Editing actions" hamburger opening
+ * ActiveEditPopupMenu — the edit-mode counterpart of EntryActionBar's
+ * EntryPopupMenu, which isn't shown while editing. Like Cancel/Save it is
+ * hidden during an AI review.
+ *
  * See: (USER_GUIDE.md#editing-files)
+ * See: (popup_menus.md#menus-inside-clickable-rows)
  * See: (USER_GUIDE.md#how-to-use-rewrite)
  * See: (USER_GUIDE.md#expand-editor)
  */
@@ -66,10 +79,16 @@ export function EntryEditToolbar({
   saving,
   onCancel,
   onSave,
+  onCalendarInfo,
   leftExtras,
   middleExtras,
 }: EntryEditToolbarProps) {
+  // Open flag and anchor for the "Editing actions" menu. See: (popup_menus.md#step-2-add-the-trigger-button-and-menu-to-the-parent-component)
+  const [showMenu, setShowMenu] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
   return (
+    <>
     <div className="flex items-center gap-2">
       {leftExtras}
       {onToggleExpandedEditor && (
@@ -101,6 +120,17 @@ export function EntryEditToolbar({
       {showSaveCancel && (
         <>
           <button
+            ref={menuButtonRef}
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowMenu(prev => !prev); }}
+            className={ENTRY_EDITOR_ICON_BTN}
+            title="Editing actions"
+            aria-label="Editing actions"
+            data-testid="active-edit-menu-button"
+          >
+            <Bars3Icon className="w-5 h-5" />
+          </button>
+          <button
             type="button"
             onClick={onCancel}
             disabled={saving}
@@ -121,5 +151,21 @@ export function EntryEditToolbar({
         </>
       )}
     </div>
+    {/* `showSaveCancel` also gates the menu, so a review starting while it's open closes it.
+        Propagation is stopped so menu clicks don't reach the entry header's handlers. */}
+    {showMenu && showSaveCancel && (
+      <div
+        className="contents"
+        onClick={(e) => e.stopPropagation()}
+        onContextMenu={(e) => e.stopPropagation()}
+      >
+        <ActiveEditPopupMenu
+          anchorRef={menuButtonRef}
+          onClose={() => setShowMenu(false)}
+          onCalendarInfo={onCalendarInfo}
+        />
+      </div>
+    )}
+    </>
   );
 }

@@ -292,12 +292,16 @@ Let's click on the file content to start editing it.`
 Next, let's use the calendar dialog to modify the time options for this calendar item.`
     );
 
-    // Open the Calendar Info dialog via the edit-calendar-info button.
-    const editCalendarInfoButton = mainWindow.getByTestId('edit-calendar-info');
-    await expect(editCalendarInfoButton).toBeVisible({ timeout: 5000 });
-    await takeScreenshot(mainWindow, editCalendarInfoButton, screenshotDir, step++, 'about-to-click-edit-calendar-info');
+    // Open the Calendar Info dialog via the editor's "Editing actions" hamburger menu.
+    const editMenuButton = mainWindow.getByTestId('active-edit-menu-button');
+    await expect(editMenuButton).toBeVisible({ timeout: 5000 });
+    await demoClick(editMenuButton);
 
-    await demoClick(editCalendarInfoButton);
+    const editCalendarInfoItem = mainWindow.getByTestId('menu-active-edit-calendar-info');
+    await expect(editCalendarInfoItem).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, editCalendarInfoItem, screenshotDir, step++, 'about-to-click-edit-calendar-info');
+
+    await demoClick(editCalendarInfoItem);
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'calendar-info-dialog-open');

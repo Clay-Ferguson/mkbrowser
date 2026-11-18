@@ -2116,6 +2116,8 @@ duration: 1.5
 
 If `start` and `duration` are omitted, the entry appears as an all-day event on the specified `due` date.
 
+Instead of typing these properties by hand, you can set them in the **Calendar Info** dialog. While you are editing a Markdown file, click the hamburger (**Editing actions**) button just left of **Cancel** and **Save**, then choose **Calendar Info**. The dialog's changes go into the editor, and they are written to the file when you click **Save**.
+
 ## Navigating the Calendar
 
 The calendar toolbar provides standard navigation controls:

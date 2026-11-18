@@ -67,7 +67,8 @@ test.describe('Private: Escape closes editor', () => {
     await demoClick(entryFor(plainFileName).getByRole('heading', { name: 'Escape Plain' }));
     await expect(saveButton).toBeVisible({ timeout: 10000 });
 
-    await demoClick(mainWindow.getByTestId('edit-calendar-info'));
+    await demoClick(mainWindow.getByTestId('active-edit-menu-button'));
+    await demoClick(mainWindow.getByTestId('menu-active-edit-calendar-info'));
     await expect(openDialog).toHaveCount(1, { timeout: 5000 });
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'calendar-dialog-open');
 
