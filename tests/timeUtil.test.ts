@@ -9,6 +9,7 @@ import {
   getDaysFromToday,
   formatDaysDisplay,
   formatDateWithDelta,
+  ymdPrefixDeltaString,
   generateTimestampFolderName,
   generateTimestampFileName,
   formatTimestamp,
@@ -482,6 +483,31 @@ describe('formatDateWithDelta', () => {
   it('returns a value with no recognizable date unchanged', () => {
     expect(formatDateWithDelta('sometime next spring')).toBe('sometime next spring');
     expect(formatDateWithDelta('')).toBe('');
+  });
+});
+
+describe('ymdPrefixDeltaString', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('gives the delta for a bare YYYY-MM-DD or one followed by a time', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 15, 12, 0, 0));
+    expect(ymdPrefixDeltaString('2026-10-15')).toBe('today');
+    expect(ymdPrefixDeltaString('2026-10-12 11:59 PM')).toBe('3 days ago');
+    expect(ymdPrefixDeltaString('2026-10-16 00:01:02')).toBe('tomorrow');
+    expect(ymdPrefixDeltaString('2027-12-19')).toBe('1y 2m 5d away');
+    expect(ymdPrefixDeltaString('2026-10-14T23:30:00')).toBe('yesterday');
+  });
+
+  it('returns undefined when the value does not start with a real date', () => {
+    expect(ymdPrefixDeltaString('')).toBeUndefined();
+    expect(ymdPrefixDeltaString('—')).toBeUndefined();
+    expect(ymdPrefixDeltaString('high')).toBeUndefined();
+    expect(ymdPrefixDeltaString('due 2026-10-15')).toBeUndefined();
+    expect(ymdPrefixDeltaString('2026-10-150')).toBeUndefined();
+    expect(ymdPrefixDeltaString('2026-02-31')).toBeUndefined();
   });
 });
 

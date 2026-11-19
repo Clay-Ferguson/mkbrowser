@@ -26,6 +26,7 @@ import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
 import { formatOrderValue, parseTagCategoryCols, sortByText, tagCategoryCellValue, tagCategoryLookup, priorityHighlight, type PriorityHighlight } from '../../shared/searchHelpers';
 import { toCalendarEvents } from '../../shared/calendarUtil';
+import { ymdPrefixDeltaString } from '../../shared/timeUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
 import type { CalendarSource, SearchColumnSort, SearchResultItem, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import { BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
@@ -619,6 +620,9 @@ function SearchResultsView() {
                 ? 'outline-2 -outline-offset-2 outline-purple-500' : '';
               // The value these results were sorted by — never blank.
               const orderValue = formatOrderValue(result, searchSortBy);
+              // Hover text: the value, plus how far away it is when it's a date.
+              const orderDelta = ymdPrefixDeltaString(orderValue);
+              const orderTitle = orderDelta ? `${orderValue}\n${orderDelta}` : orderValue;
 
               return (
               <div
@@ -655,7 +659,7 @@ function SearchResultsView() {
                   <div className={`${CELL_ORDER} ${RESULT_CELL_PAD}`} role="cell">
                     <span
                       className="text-sm text-slate-400 font-mono"
-                      title={orderValue}
+                      title={orderTitle}
                       data-testid="search-result-sort-value"
                     >
                       {orderValue}
