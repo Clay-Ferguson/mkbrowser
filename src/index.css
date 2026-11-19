@@ -235,8 +235,8 @@ html[data-font-size="xlarge"] {
 /* Markdown colours and heading sizes — the single source of truth shared by the
    CodeMirror editor (editorMarkdownHighlight.ts and editorHeadingUtil.ts reference these
    via var()) and the rendered Markdown (.prose rules below), so both views style headings
-   and inline code alike.
-   Values are one-dark's palette: coral, chalky, sage, cyan, malibu, violet. */
+   and inline code and italics alike.
+   Values are one-dark's palette: coral, chalky, sage, cyan, malibu, violet, whiskey. */
 :root {
   --md-heading-1: #e06c75;
   --md-heading-2: #e5c07b;
@@ -245,6 +245,7 @@ html[data-font-size="xlarge"] {
   --md-heading-5: #98c379;
   --md-heading-6: #61afef;
   --md-code: #98c379;
+  --md-emphasis: #d19a66;
 
   /* Heading sizes, relative to the surrounding text. */
   --md-heading-1-size: 2em;
@@ -260,6 +261,11 @@ html[data-font-size="xlarge"] {
 .prose :not(pre) > code {
   color: var(--md-code);
   font-weight: 600;
+}
+
+/* Italics (`*text*` / `_text_`), in the same warm hue the editor gives them. */
+.prose em {
+  color: var(--md-emphasis);
 }
 
 /* Heading colours, matching the editor's per-level ramp. */

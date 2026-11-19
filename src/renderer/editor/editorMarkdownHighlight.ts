@@ -43,9 +43,10 @@ const markdownSpecs = [
   { tag: tags.heading5, color: 'var(--md-heading-5)', fontWeight: 'bold' },
   { tag: tags.heading6, color: 'var(--md-heading-6)', fontWeight: 'bold' },
 
-  // Inline emphasis: one warm hue for both, told apart by weight vs. slant.
+  // Inline emphasis: one warm hue for both (one-dark's whiskey), told apart by weight vs.
+  // slant. Italics read the shared CSS variable so the rendered Markdown view matches.
   { tag: tags.strong, color: color.whiskey, fontWeight: 'bold' },
-  { tag: tags.emphasis, color: color.whiskey, fontStyle: 'italic' },
+  { tag: tags.emphasis, color: 'var(--md-emphasis)', fontStyle: 'italic' },
 
   // De-emphasized prose. Struck text keeps the line-through as its primary signal.
   { tag: tags.strikethrough, color: MUTED_FG, textDecoration: 'line-through' },
