@@ -790,10 +790,10 @@ The top of the **Search Results** tab summarizes the search — the saved search
 The results are shown as a table with these columns:
 
 - **Path**: The file's (or folder's) path relative to the searched folder. Click a row to open it.
-- **Sort value**: The value the results were sorted by. Its heading names what it holds, following the Search dialog's **Sort By** choice: **Modified** or **Created** (the time, as `YYYY-MM-DD hh:mm AM/PM`) or **Custom** (the expression's value for a [Custom sort](#custom-sort-order)). When sorting by **File Name** this column isn't shown, since the file name is already in the Path column. A result with no value (for example a file system that doesn't record creation times) shows **—**. A long value wraps onto more lines, so it is always shown in full.
+- **Sort value**: The value the results were sorted by. Its heading names what it holds, following the Search dialog's **Sort By** choice: **Modified** or **Created** (the time, as `YYYY-MM-DD hh:mm AM/PM`) or **Custom** (the expression's value for a [Custom sort](#custom-sort-order)). When sorting by **File Name** this column isn't shown, since the file name is already in the Path column. A result with no value (for example a file system that doesn't record creation times) shows **—**.
 - **Actions**: Hover over a row to reveal its **Edit** button (Markdown and text files only) and **Delete** button.
 
-The column headings stay at the top while you scroll. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
+Each column is as wide as its longest value, so paths and values are always shown in full on one line. When the table is wider than the window, scroll sideways to see the rest of it. The column headings stay at the top while you scroll. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
 
 A search returns **at most 500 results**. When more files match, the summary says **"Showing 500 of N files found"**, and the 500 shown are the first ones in your chosen sort order — for example, the 500 newest when sorting by modification time, newest first. Narrow the search or change the order to see others.
 

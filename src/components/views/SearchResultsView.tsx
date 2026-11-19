@@ -34,19 +34,26 @@ import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
 
 /** A results-table row (heading or result): a subgrid spanning every column. */
 const RESULTS_ROW = 'grid grid-cols-subgrid col-span-full';
-/** Column tracks: Path takes the rest; the sort-value column sizes to its widest
- * value, capped at 40% of the width (longer values wrap); Actions fits its icons. */
-const TABLE_COLUMNS_WITH_SORT = 'grid-cols-[minmax(0,1fr)_fit-content(40%)_max-content]';
+/** The results table never squeezes or wraps a column: every column is as wide as
+ * its widest value, and when they don't all fit, the view scrolls horizontally.
+ * `w-max min-w-full` makes the table its natural width, but never narrower than
+ * the content area, so on a wide window the Path track's `1fr` takes the spare
+ * width and the table still spans the page. New columns should use `max-content`
+ * tracks and `whitespace-nowrap` cells the same way. */
+const TABLE_WIDTH = 'w-max min-w-full';
+/** Column tracks: Path is at least its widest path (and takes any spare width);
+ * the sort-value and Actions columns fit their contents. */
+const TABLE_COLUMNS_WITH_SORT = 'grid-cols-[minmax(max-content,1fr)_max-content_max-content]';
 /** Column tracks without the sort-value column (a file-name sort). */
-const TABLE_COLUMNS_WITHOUT_SORT = 'grid-cols-[minmax(0,1fr)_max-content]';
+const TABLE_COLUMNS_WITHOUT_SORT = 'grid-cols-[minmax(max-content,1fr)_max-content]';
 /** Vertical padding of a result row's cells: the same `py-0.5` as a Browse-view
  * entry header (ENTRY_HEADER_ROW_PADDING), so a row is exactly that tall. It sits
  * on the cells rather than the row so the column dividers run the full height. */
 const RESULT_CELL_PAD = 'py-0.5';
 /** The 1px light-gray line between columns. A left border adds width, not height. */
 const COLUMN_DIVIDER = 'border-l border-slate-600';
-const CELL_PATH = 'flex items-center gap-2 min-w-0 px-2';
-const CELL_ORDER = `flex items-center min-w-0 px-3 ${COLUMN_DIVIDER}`;
+const CELL_PATH = 'flex items-center gap-2 px-2 whitespace-nowrap';
+const CELL_ORDER = `flex items-center px-3 whitespace-nowrap ${COLUMN_DIVIDER}`;
 const CELL_ACTIONS = `flex items-center px-2 ${COLUMN_DIVIDER}`;
 /** Horizontal lines between result rows, drawn as inset shadows rather than
  * borders so they take no layout space (keeping each row the height of a
@@ -334,7 +341,12 @@ function SearchResultsView() {
       )}
 
       {/* Main content */}
-      <main className="flex-1 min-h-0 overflow-y-auto">
+      {/* Scrolls both ways: vertically through a long result list, and
+          horizontally when the results table is wider than the window (its
+          columns never wrap). Being the one scroller for both axes keeps the
+          sticky column headings working and puts the horizontal scrollbar at the
+          bottom of the window rather than at the bottom of a long table. */}
+      <main className="flex-1 min-h-0 overflow-auto">
         <div className={`${getContentWidthClasses(contentWidth)} pt-2 pb-6`}>
         {/* Search summary: what was searched, then the result count and sort order */}
         {hasSearched && (
@@ -386,7 +398,7 @@ function SearchResultsView() {
           // line up across rows while each row stays its own element (click
           // target, hover background, highlight outline).
           // See: (USER_GUIDE.md#search-results)
-          <div className={`grid ${showSortColumn ? TABLE_COLUMNS_WITH_SORT : TABLE_COLUMNS_WITHOUT_SORT}`} role="table" data-testid="search-results-table">
+          <div className={`grid ${TABLE_WIDTH} ${showSortColumn ? TABLE_COLUMNS_WITH_SORT : TABLE_COLUMNS_WITHOUT_SORT}`} role="table" data-testid="search-results-table">
             {/* Column headings — sticky, so they stay in view while a long
                 result list scrolls beneath them. */}
             <div
@@ -428,15 +440,15 @@ function SearchResultsView() {
                   {result.isDirectory
                     ? <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
                     : <FileTypeIcon fileName={fileName} />}
-                  <span className="text-slate-200 break-all min-w-0" title={result.path}>{result.relativePath}</span>
+                  <span className="text-slate-200" title={result.path}>{result.relativePath}</span>
                 </div>
 
-                {/* Sort value: the value this result was sorted by, shown whole —
-                    a value wider than the column cap wraps onto more lines */}
+                {/* Sort value: the value this result was sorted by, shown whole
+                    on one line (the column widens to fit it) */}
                 {showSortColumn && (
                   <div className={`${CELL_ORDER} ${RESULT_CELL_PAD}`} role="cell">
                     <span
-                      className="text-sm text-slate-400 font-mono break-words min-w-0"
+                      className="text-sm text-slate-400 font-mono"
                       title={orderValue}
                       data-testid="search-result-sort-value"
                     >
