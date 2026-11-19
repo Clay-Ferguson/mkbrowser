@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MagnifyingGlassIcon, TrashIcon, PencilSquareIcon, ShareIcon, CalendarDaysIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, TrashIcon, ShareIcon, CalendarDaysIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { FolderIcon } from '@heroicons/react/24/solid';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/16/solid';
 import { api } from '../../renderer/api';
@@ -10,7 +10,6 @@ import {
   setHighlightedSearchResult,
   navigateToBrowserPath,
   setBrowseFile,
-  setPendingEditFile,
   deleteItems,
   setFolderGraph,
   setCurrentView,
@@ -29,10 +28,9 @@ import { formatOrderValue, parseTagCategoryCols, sortByText, tagCategoryCellValu
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
 import type { CalendarSource, SearchColumnSort, SearchResultItem, SearchSortBy, SearchSortDirection } from '../../shared/types';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
+import { BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import FileTypeIcon from '../FileTypeIcon';
-import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
 
 /** A results-table row (heading or result): a subgrid spanning every column. */
 const RESULTS_ROW = 'grid grid-cols-subgrid col-span-full';
@@ -230,9 +228,8 @@ function SortableHeading({ className, column, columnSort, title, testId, childre
  * see tagCategoryCellValue; worked out here from the live tag definitions, so
  * a tags.yaml edit shows without re-running the search; in a PRIORITY column
  * p1 cells are red and p2 cells yellow; PRIORITY and CATEGORY are headed
- * PRI. and CAT. to keep those columns narrow), and Actions (Edit, which opens the
- * file on its own in the Browse view for editing, and Delete; both appear only
- * while the pointer rests on the row). Clicking a file row opens that file on
+ * PRI. and CAT. to keep those columns narrow), and Actions (headed ACT, holding
+ * just Delete, which appears only while the pointer rests on the row). Clicking a file row opens that file on
  * its own in the Browse view (single-file mode, same as clicking a file in the
  * index tree); clicking a folder row browses the folder's parent, scrolled to
  * the folder. Clicking a row's Path cell instead browses the folder the result
@@ -356,24 +353,6 @@ function SearchResultsView() {
     e.stopPropagation();
     const fileName = getFileName(path);
     setDeleteTarget({ path, name: fileName });
-  };
-
-  // Edit: opens the file by itself with its editor already open. See: (USER_GUIDE.md#using-search)
-  const handleEditClick = (e: React.MouseEvent, resultPath: string) => {
-    e.stopPropagation();
-
-    // Track this as the highlighted search result
-    setHighlightedSearchResult({ path: resultPath });
-
-    // Extract the parent folder from the result path
-    const folderPath = getParentPath(resultPath);
-
-    // Set highlight and open the file on its own, as a plain click does
-    setHighlightItem(resultPath);
-    setBrowseFile(folderPath, getFileName(resultPath));
-
-    // Queue the edit; BrowseFile starts it once the file's entry is loaded
-    setPendingEditFile(resultPath);
   };
 
   const handleDeleteConfirm = () => {
@@ -625,7 +604,7 @@ function SearchResultsView() {
                   </SortableHeading>
                 );
               })}
-              <div className={`${CELL_ACTIONS} py-1.5`} role="columnheader">Actions</div>
+              <div className={`${CELL_ACTIONS} py-1.5`} role="columnheader">Act</div>
             </div>
 
             {/* Result rows touch, forming the table body: each row draws its
@@ -633,10 +612,7 @@ function SearchResultsView() {
                 from the row above) and only the last row adds a bottom edge. */}
             {displayedResults.map((result, index) => {
               const highlighted = isHighlighted(result.path);
-              // Edit opens the file's editor in the Browse view, which only
-              // Markdown and text files have — not folders, images, PDFs etc.
               const fileName = getFileName(result.path);
-              const editable = !result.isDirectory && (isMarkdownFile(fileName) || isTextFile(fileName));
               // The highlight is an inset outline so it can frame all four sides
               // without changing the shared borders between rows.
               const highlightClass = highlighted
@@ -711,19 +687,6 @@ function SearchResultsView() {
                     EntryActionBar in the Browse view). */}
                 <div className={`${CELL_ACTIONS} ${RESULT_CELL_PAD}`} role="cell">
                   <div className={`${HOVER_REVEAL} flex items-center gap-2`}>
-                  {/* Edit button — hidden (but still taking its space, so the
-                      Delete buttons stay aligned) for results that can't be edited */}
-                  <button
-                    type="button"
-                    onClick={(e) => handleEditClick(e, result.path)}
-                    disabled={!editable}
-                    aria-hidden={!editable}
-                    className={`${BUTTON_CLASS_BLUE}${editable ? '' : ' invisible'}`}
-                    title="Edit file"
-                  >
-                    <PencilSquareIcon className="w-5 h-5" />
-                  </button>
-
                   {/* Delete button */}
                   <button
                     type="button"
