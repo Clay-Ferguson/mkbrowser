@@ -83,6 +83,12 @@ const CELL_ACTIONS = `flex items-center px-2 ${COLUMN_DIVIDER}`;
  * borders so they take no layout space (keeping each row the height of a
  * Browse-view entry header). The last row also gets a bottom edge. */
 const ROW_DIVIDERS = 'shadow-[inset_0_1px_0_var(--color-slate-700)] last:shadow-[inset_0_1px_0_var(--color-slate-700),inset_0_-1px_0_var(--color-slate-700)]';
+/** The same row lines (ROW_DIVIDERS), for a cell with its own background: a
+ * row's inset shadow is painted beneath its cells, so a filled cell (a
+ * highlighted priority) would hide the lines unless it draws them itself. The
+ * last row's cells also draw its bottom edge. */
+const CELL_ROW_DIVIDER = 'shadow-[inset_0_1px_0_var(--color-slate-700)]';
+const CELL_ROW_DIVIDER_LAST = 'shadow-[inset_0_1px_0_var(--color-slate-700),inset_0_-1px_0_var(--color-slate-700)]';
 
 /** The sort-value column's heading: what its values are, which depends on the
  * Sort By choice. A file-name sort has no such column — the Name column already
@@ -513,7 +519,7 @@ function SearchResultsView() {
             {/* Result rows touch, forming the table body: each row draws its
                 left, top and right edges (the top edge doubling as the divider
                 from the row above) and only the last row adds a bottom edge. */}
-            {searchResults.map((result) => {
+            {searchResults.map((result, index) => {
               const highlighted = isHighlighted(result.path);
               // Edit opens the file's editor in the Browse view, which only
               // Markdown and text files have — not folders, images, PDFs etc.
@@ -579,7 +585,7 @@ function SearchResultsView() {
                   return (
                     <div
                       key={name}
-                      className={`${CELL_TAG_CATEGORY} ${RESULT_CELL_PAD} ${colors?.cell ?? ''}`}
+                      className={`${CELL_TAG_CATEGORY} ${RESULT_CELL_PAD} ${colors ? `${colors.cell} ${index === searchResults.length - 1 ? CELL_ROW_DIVIDER_LAST : CELL_ROW_DIVIDER}` : ''}`}
                       role="cell"
                       data-priority={highlight ?? undefined}
                     >
