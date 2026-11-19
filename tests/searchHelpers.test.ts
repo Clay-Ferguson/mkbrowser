@@ -5,7 +5,7 @@
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName, parseTagCategoryCols, unknownTagCategories, tagCategoryLookup, tagCategoryCellValue } from '../src/shared/searchHelpers';
+import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName, parseTagCategoryCols, unknownTagCategories, tagCategoryLookup, tagCategoryCellValue, priorityHighlight } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults } from '../src/store/search';
 import type { SearchDefinition, SortKey } from '../src/shared/shared';
@@ -285,6 +285,24 @@ describe('tagCategoryCellValue', () => {
 
   it('lists a repeated tag once', () => {
     expect(tagCategoryCellValue(['cooking', 'Cooking'], 'all', lookup)).toEqual(['cooking']);
+  });
+});
+
+describe('priorityHighlight', () => {
+  it('highlights p1 and p2 in a priority column, ignoring case', () => {
+    expect(priorityHighlight('PRIORITY', ['p1'])).toBe('p1');
+    expect(priorityHighlight('priority', ['P2'])).toBe('p2');
+  });
+
+  it('prefers p1 when a cell holds both', () => {
+    expect(priorityHighlight('Priority', ['p2', 'p1'])).toBe('p1');
+  });
+
+  it('leaves other priorities, empty cells and other columns alone', () => {
+    expect(priorityHighlight('priority', ['p3'])).toBeNull();
+    expect(priorityHighlight('priority', [])).toBeNull();
+    expect(priorityHighlight('status', ['p1'])).toBeNull();
+    expect(priorityHighlight('all', ['p1'])).toBeNull();
   });
 });
 

@@ -23,7 +23,7 @@ import {
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
-import { formatOrderValue, parseTagCategoryCols, tagCategoryCellValue, tagCategoryLookup } from '../../shared/searchHelpers';
+import { formatOrderValue, parseTagCategoryCols, tagCategoryCellValue, tagCategoryLookup, priorityHighlight, type PriorityHighlight } from '../../shared/searchHelpers';
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
 import type { CalendarSource, SearchSortBy, SearchSortDirection } from '../../shared/types';
@@ -65,6 +65,19 @@ const CELL_ORDER = `flex items-center px-3 whitespace-nowrap ${COLUMN_DIVIDER}`;
 const CELL_TAG_CATEGORY = CELL_ORDER;
 /** A tag category cell with no tags in that category. */
 const NO_TAGS = '—';
+/** A tag category cell's text, unless it is a highlighted priority. */
+const TAG_CELL_TEXT = 'text-slate-400';
+/**
+ * Opinionated colors for a PRIORITY column, so the most urgent files can be
+ * spotted while scanning down the list (see priorityHighlight): `p1` on red with
+ * white text, `p2` on yellow with near-black text — each well above 4.5:1
+ * contrast. The cell's text classes replace TAG_CELL_TEXT. Other priorities keep
+ * the plain look.
+ */
+const PRIORITY_CELL_CLASSES: Record<PriorityHighlight, { cell: string; text: string }> = {
+  p1: { cell: 'bg-red-700', text: 'text-white font-semibold' },
+  p2: { cell: 'bg-yellow-400', text: 'text-slate-900 font-semibold' },
+};
 const CELL_ACTIONS = `flex items-center px-2 ${COLUMN_DIVIDER}`;
 /** Horizontal lines between result rows, drawn as inset shadows rather than
  * borders so they take no layout space (keeping each row the height of a
@@ -87,11 +100,25 @@ function sortColumnTitle(sortBy: Exclude<SearchSortBy, 'file-name'>, customTitle
   return (sortBy === 'custom' && customTitle?.trim()) || SORT_COLUMN_TITLES[sortBy];
 }
 
-/** A tag category column's heading: the category's name as tags.yaml spells it
- * (matched ignoring case), else as the search typed it (e.g. an unknown name). */
-function tagColumnTitle(name: string, knownCategories: readonly string[]): string {
+/** Opinionated short headings for tag category columns whose values are short
+ * (`p1`, …), keyed by lowercased category name, so those columns stay as narrow
+ * as their values instead of being widened by a long heading. */
+const ABBREVIATED_TAG_COLUMN_TITLES: Record<string, string> = {
+  priority: 'PRI.',
+  category: 'CAT.',
+};
+
+/** A tag category column's full name: the category's name as tags.yaml spells
+ * it (matched ignoring case), else as the search typed it (e.g. an unknown name). */
+function tagColumnName(name: string, knownCategories: readonly string[]): string {
   const lower = name.toLowerCase();
   return knownCategories.find(c => c.toLowerCase() === lower) ?? name;
+}
+
+/** A tag category column's heading: its abbreviation, if it has one (see
+ * ABBREVIATED_TAG_COLUMN_TITLES), else its full name. */
+function tagColumnTitle(fullName: string): string {
+  return ABBREVIATED_TAG_COLUMN_TITLES[fullName.toLowerCase()] ?? fullName;
 }
 
 /** The summary's description of a built-in (non-custom) sort order. */
@@ -111,7 +138,9 @@ function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection)
  * tag category listed in the search's Tag Category Columns (each result's front
  * matter tags in that category, or for ALL, its tags in no other category —
  * see tagCategoryCellValue; worked out here from the live tag definitions, so
- * a tags.yaml edit shows without re-running the search), and Actions (Edit, which opens the
+ * a tags.yaml edit shows without re-running the search; in a PRIORITY column
+ * p1 cells are red and p2 cells yellow; PRIORITY and CATEGORY are headed
+ * PRI. and CAT. to keep those columns narrow), and Actions (Edit, which opens the
  * file on its own in the Browse view for editing, and Delete; both appear only
  * while the pointer rests on the row). Clicking a file row opens that file on
  * its own in the Browse view (single-file mode, same as clicking a file in the
@@ -470,11 +499,14 @@ function SearchResultsView() {
               {searchSortBy !== 'file-name' && (
                 <div className={`${CELL_ORDER} py-1.5`} role="columnheader" data-testid="search-sort-column-title">{sortColumnTitle(searchSortBy, lastSearchDefinition?.sortTitle)}</div>
               )}
-              {tagColumns.map((name) => (
-                <div key={name} className={`${CELL_TAG_CATEGORY} py-1.5`} role="columnheader" data-testid="search-tag-column-title">
-                  {tagColumnTitle(name, tagCategoryNames)}
-                </div>
-              ))}
+              {tagColumns.map((name) => {
+                const fullName = tagColumnName(name, tagCategoryNames);
+                return (
+                  <div key={name} className={`${CELL_TAG_CATEGORY} py-1.5`} role="columnheader" title={fullName} data-testid="search-tag-column-title">
+                    {tagColumnTitle(fullName)}
+                  </div>
+                );
+              })}
               <div className={`${CELL_ACTIONS} py-1.5`} role="columnheader">Actions</div>
             </div>
 
@@ -537,13 +569,21 @@ function SearchResultsView() {
                   </div>
                 )}
 
-                {/* Tag category columns: the result's tags in each listed category */}
+                {/* Tag category columns: the result's tags in each listed category,
+                    with p1/p2 in a PRIORITY column colored to stand out */}
                 {tagColumns.map((name) => {
                   const tags = tagCategoryCellValue(result.tags, name, tagLookup);
                   const text = tags.length > 0 ? tags.join(', ') : NO_TAGS;
+                  const highlight = priorityHighlight(name, tags);
+                  const colors = highlight ? PRIORITY_CELL_CLASSES[highlight] : null;
                   return (
-                    <div key={name} className={`${CELL_TAG_CATEGORY} ${RESULT_CELL_PAD}`} role="cell">
-                      <span className="text-sm text-slate-400 font-mono" data-testid="search-result-tag-cell">{text}</span>
+                    <div
+                      key={name}
+                      className={`${CELL_TAG_CATEGORY} ${RESULT_CELL_PAD} ${colors?.cell ?? ''}`}
+                      role="cell"
+                      data-priority={highlight ?? undefined}
+                    >
+                      <span className={`text-sm font-mono ${colors?.text ?? TAG_CELL_TEXT}`} data-testid="search-result-tag-cell">{text}</span>
                     </div>
                   );
                 })}

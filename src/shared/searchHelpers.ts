@@ -294,6 +294,23 @@ export function tagCategoryCellValue(
   return shown.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 }
 
+/** The priority levels a PRIORITY tag category column calls out with color. */
+export type PriorityHighlight = 'p1' | 'p2';
+
+/**
+ * Which highlight a tag category cell gets: in a column for the category named
+ * `priority` (ignoring case), `p1` when the cell holds a `p1` tag and otherwise
+ * `p2` for a `p2` tag (tags compared ignoring case), so the most urgent files
+ * stand out; null for any other cell.
+ *
+ * See: (USER_GUIDE.md#tag-category-columns)
+ */
+export function priorityHighlight(category: string, cellTags: readonly string[]): PriorityHighlight | null {
+  if (category.trim().toLowerCase() !== 'priority') return null;
+  const tags = new Set(cellTags.map(t => t.toLowerCase()));
+  return tags.has('p1') ? 'p1' : tags.has('p2') ? 'p2' : null;
+}
+
 /**
  * The built-in "Recent Files" search (Tools → Recent Files): the 500 most
  * recently modified entries under the folder, newest first, with no query.

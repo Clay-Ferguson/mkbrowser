@@ -967,6 +967,8 @@ The **Tag Category Columns** box in the Search dialog (just below **Order**) add
 - **An ordinary category** (any category except `all`) holds tags that a file should have only one of, so its column shows that one tag. For example, with a `PRIORITY` category holding `none`, `p1`, `p2`, `p3` and `p4`, entering `priority` adds a **PRIORITY** column showing `p2` for a file tagged `p2`. If a file has more than one tag from the category, all of them are shown, separated by commas.
 - **`all`** shows every tag on the file that is *not* in some other category, separated by commas. That includes tags that aren't defined in the Tags Editor at all.
 - A file with no tag for a column shows **—**, as do folders and files other than Markdown and text files.
+- **Short headings:** a `priority` column is headed **PRI.** and a `category` column **CAT.** (any upper/lower case), so these columns of short values stay as narrow as possible. Hover over the heading to see the full name.
+- **Priority colors:** in a column for a category named `priority` (any upper/lower case), a `p1` cell is shown in **red** and a `p2` cell in **yellow**, so your most urgent files stand out as you scan down the list. Other priorities look like any other cell.
 
 If you enter a name that isn't one of your tag categories, a note under the box names it, since it's probably a typo. You can still search, but that column will show **—** for every file.
 
