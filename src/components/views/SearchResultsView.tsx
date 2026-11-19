@@ -37,22 +37,24 @@ const RESULTS_ROW = 'grid grid-cols-subgrid col-span-full';
 /** The results table never squeezes or wraps a column: every column is as wide as
  * its widest value, and when they don't all fit, the view scrolls horizontally.
  * `w-max min-w-full` makes the table its natural width, but never narrower than
- * the content area, so on a wide window the Path track's `1fr` takes the spare
+ * the content area, so on a wide window the Name track's `1fr` takes the spare
  * width and the table still spans the page. New columns should use `max-content`
  * tracks and `whitespace-nowrap` cells the same way. */
 const TABLE_WIDTH = 'w-max min-w-full';
-/** Column tracks: Path is at least its widest path (and takes any spare width);
- * the sort-value and Actions columns fit their contents. */
-const TABLE_COLUMNS_WITH_SORT = 'grid-cols-[minmax(max-content,1fr)_max-content_max-content]';
+/** Column tracks: Path fits its widest folder path; Name is at least its widest
+ * name (and takes any spare width, so the name sits right next to its path); the
+ * sort-value and Actions columns fit their contents. */
+const TABLE_COLUMNS_WITH_SORT = 'grid-cols-[max-content_minmax(max-content,1fr)_max-content_max-content]';
 /** Column tracks without the sort-value column (a file-name sort). */
-const TABLE_COLUMNS_WITHOUT_SORT = 'grid-cols-[minmax(max-content,1fr)_max-content]';
+const TABLE_COLUMNS_WITHOUT_SORT = 'grid-cols-[max-content_minmax(max-content,1fr)_max-content]';
 /** Vertical padding of a result row's cells: the same `py-0.5` as a Browse-view
  * entry header (ENTRY_HEADER_ROW_PADDING), so a row is exactly that tall. It sits
  * on the cells rather than the row so the column dividers run the full height. */
 const RESULT_CELL_PAD = 'py-0.5';
 /** The 1px light-gray line between columns. A left border adds width, not height. */
 const COLUMN_DIVIDER = 'border-l border-slate-600';
-const CELL_PATH = 'flex items-center gap-2 px-2 whitespace-nowrap';
+const CELL_PATH = 'flex items-center px-2 whitespace-nowrap';
+const CELL_NAME = `flex items-center gap-2 px-2 whitespace-nowrap ${COLUMN_DIVIDER}`;
 const CELL_ORDER = `flex items-center px-3 whitespace-nowrap ${COLUMN_DIVIDER}`;
 const CELL_ACTIONS = `flex items-center px-2 ${COLUMN_DIVIDER}`;
 /** Horizontal lines between result rows, drawn as inset shadows rather than
@@ -61,7 +63,7 @@ const CELL_ACTIONS = `flex items-center px-2 ${COLUMN_DIVIDER}`;
 const ROW_DIVIDERS = 'shadow-[inset_0_1px_0_var(--color-slate-700)] last:shadow-[inset_0_1px_0_var(--color-slate-700),inset_0_-1px_0_var(--color-slate-700)]';
 
 /** The sort-value column's heading: what its values are, which depends on the
- * Sort By choice. A file-name sort has no such column — the Path column already
+ * Sort By choice. A file-name sort has no such column — the Name column already
  * shows the name. */
 const SORT_COLUMN_TITLES: Record<Exclude<SearchSortBy, 'file-name'>, string> = {
   'created-time': 'Created',
@@ -78,15 +80,17 @@ function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection)
 
 /**
  * Displays the results of the most recent folder search as a sorted table with
- * columns: Path (icon and relative path), the sort value (the value the
- * results were sorted by, headed Created, Modified or Custom to match the Sort
- * By choice — see formatOrderValue; left out of a file-name sort, whose value
- * the Path column already shows), and Actions (Edit, which opens the
+ * columns: Path (the folder part of the relative path, blank for a result
+ * directly in the searched folder), Name (icon and file or folder name), the
+ * sort value (the value the results were sorted by, headed Created, Modified or
+ * Custom to match the Sort By choice — see formatOrderValue; left out of a
+ * file-name sort, whose value the Name column already shows), and Actions (Edit, which opens the
  * file on its own in the Browse view for editing, and Delete; both appear only
  * while the pointer rests on the row). Clicking a file row opens that file on
  * its own in the Browse view (single-file mode, same as clicking a file in the
  * index tree); clicking a folder row browses the folder's parent, scrolled to
- * the folder.
+ * the folder. Clicking a row's Path cell instead browses the folder the result
+ * is in, scrolled to the result (the same as the index tree's Browse menu item).
  * The results can also be rendered two other ways: as a folder graph via the
  * "Graph" button, and — for the subset of results that are calendar files —
  * on the Calendar tab via the "Calendar" button. The refresh button re-runs the
@@ -154,8 +158,19 @@ function SearchResultsView() {
   // with an empty query) whenever its definition is recorded.
   const hasSearched = lastSearchDefinition !== null;
 
+  // Path cell: browses the folder the result is in (a full listing, never
+  // single-file mode), scrolled to and highlighting the result — the same as the
+  // index tree's "Browse" context-menu item. See: (USER_GUIDE.md#search-results)
+  const handlePathClick = (e: React.MouseEvent, resultPath: string) => {
+    // The row's own click would open the file by itself instead.
+    e.stopPropagation();
+    setHighlightedSearchResult({ path: resultPath });
+    setHighlightItem(resultPath);
+    navigateToBrowserPath(getParentPath(resultPath), resultPath);
+  };
+
   // A file-name sort gets no sort-value column: its value, the file name, is
-  // already in the Path column. See: (USER_GUIDE.md#search-results)
+  // already in the Name column. See: (USER_GUIDE.md#search-results)
   const showSortColumn = searchSortBy !== 'file-name';
 
   // The Tags and Type filters the search applied (they only apply to contents searches).
@@ -392,7 +407,7 @@ function SearchResultsView() {
             </p>
           </div>
         ) : (
-          // Results table: Path | sort value | Actions (no sort value for a
+          // Results table: Path | Name | sort value | Actions (no sort value for a
           // file-name sort). One grid owns the column tracks and every row
           // (heading and results) is a subgrid spanning them all, so the columns
           // line up across rows while each row stays its own element (click
@@ -406,6 +421,7 @@ function SearchResultsView() {
               role="row"
             >
               <div className={`${CELL_PATH} py-1.5`} role="columnheader">Path</div>
+              <div className={`${CELL_NAME} py-1.5`} role="columnheader">Name</div>
               {searchSortBy !== 'file-name' && (
                 <div className={`${CELL_ORDER} py-1.5`} role="columnheader" data-testid="search-sort-column-title">{SORT_COLUMN_TITLES[searchSortBy]}</div>
               )}
@@ -435,12 +451,25 @@ function SearchResultsView() {
                 className={`${RESULTS_ROW} group bg-slate-800/50 hover:bg-slate-700/60 border-x border-slate-700 ${ROW_DIVIDERS} ${highlightClass} transition-colors cursor-pointer`}
                 role="row"
               >
-                {/* Path: folder or file-type icon, then the relative path */}
-                <div className={`${CELL_PATH} ${RESULT_CELL_PAD}`} role="cell">
+                {/* Path: the folder part of the relative path (blank for a
+                    result directly in the searched folder). Clicking anywhere in
+                    the cell browses that folder rather than opening the result. */}
+                <div
+                  className={`${CELL_PATH} ${RESULT_CELL_PAD}`}
+                  role="cell"
+                  onClick={(e) => handlePathClick(e, result.path)}
+                  title={`Browse ${getParentPath(result.path)}`}
+                  data-testid="search-result-path"
+                >
+                  <span className="text-slate-400 hover:text-slate-200">{getParentPath(result.relativePath)}</span>
+                </div>
+
+                {/* Name: folder or file-type icon, then the file or folder name */}
+                <div className={`${CELL_NAME} ${RESULT_CELL_PAD}`} role="cell">
                   {result.isDirectory
                     ? <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
                     : <FileTypeIcon fileName={fileName} />}
-                  <span className="text-slate-200" title={result.path}>{result.relativePath}</span>
+                  <span className="text-slate-200" title={result.path} data-testid="search-result-name">{fileName}</span>
                 </div>
 
                 {/* Sort value: the value this result was sorted by, shown whole

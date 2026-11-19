@@ -789,8 +789,9 @@ The top of the **Search Results** tab summarizes the search — the saved search
 
 The results are shown as a table with these columns:
 
-- **Path**: The file's (or folder's) path relative to the searched folder. Click a row to open it.
-- **Sort value**: The value the results were sorted by. Its heading names what it holds, following the Search dialog's **Sort By** choice: **Modified** or **Created** (the time, as `YYYY-MM-DD hh:mm AM/PM`) or **Custom** (the expression's value for a [Custom sort](#custom-sort-order)). When sorting by **File Name** this column isn't shown, since the file name is already in the Path column. A result with no value (for example a file system that doesn't record creation times) shows **—**.
+- **Path**: The folder the file (or folder) is in, relative to the searched folder. It's blank for results directly in the searched folder. Click it to browse that folder, scrolled to the result (the same as **Browse** on the index tree's right-click menu).
+- **Name**: The file's (or folder's) name, with its icon. Click it, or anywhere else on the row outside the Path, to open the result: a file opens on its own, and a folder is shown in its parent folder's listing.
+- **Sort value**: The value the results were sorted by. Its heading names what it holds, following the Search dialog's **Sort By** choice: **Modified** or **Created** (the time, as `YYYY-MM-DD hh:mm AM/PM`) or **Custom** (the expression's value for a [Custom sort](#custom-sort-order)). When sorting by **File Name** this column isn't shown, since the file name is already in the Name column. A result with no value (for example a file system that doesn't record creation times) shows **—**.
 - **Actions**: Hover over a row to reveal its **Edit** button (Markdown and text files only) and **Delete** button.
 
 Each column is as wide as its longest value, so paths and values are always shown in full on one line. When the table is wider than the window, scroll sideways to see the rest of it. The column headings stay at the top while you scroll. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
