@@ -7,6 +7,7 @@
 import type { SearchDefinition, SearchSortBy, SearchSortDirection, SortKey, SortKeyScalar } from './shared';
 import { sameTypeName } from './objects/genericObject';
 import { formatDateTime12 } from './timeUtil';
+import { isAllTagCategory } from './tagUtil';
 
 /** The fields of a search result that the result ordering reads. */
 interface SortableSearchResult {
@@ -135,6 +136,7 @@ export function newSearchDefinition(searchText = ''): SearchDefinition {
     sortDirection: 'desc',
     tags: '',
     type: '',
+    tagCategoryCols: '',
     searchImageExif: false,
     mostRecent: false,
   };
@@ -202,6 +204,96 @@ export function matchesTagFilter(fileTags: readonly string[], filter: TagFilter)
   return filter.include.every(t => have.has(t)) && !filter.exclude.some(t => have.has(t));
 }
 
+/** Strips leading `#`s and lowercases a tag name, the form tags are compared in. */
+function normalizeTagName(tag: string): string {
+  return tag.replace(/^#+/, '').trim().toLowerCase();
+}
+
+/**
+ * Parses a search's Tag Category Columns field (`tagCategoryCols`), such as
+ * `priority, ALL`, into the category names it lists, in order: each trimmed,
+ * empty entries skipped, and a name repeated (ignoring case) kept only once.
+ *
+ * See: (USER_GUIDE.md#tag-category-columns)
+ */
+export function parseTagCategoryCols(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const part of raw.split(',')) {
+    const name = part.trim();
+    const key = name.toLowerCase();
+    if (!name || seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+  }
+  return names;
+}
+
+/**
+ * The names in `names` that are not tag categories: neither the special ALL
+ * category nor (ignoring case) one of `knownCategories`. Used to warn about a
+ * likely typo in the Tag Category Columns field.
+ *
+ * See: (USER_GUIDE.md#tag-category-columns)
+ */
+export function unknownTagCategories(names: readonly string[], knownCategories: readonly string[]): string[] {
+  const known = new Set(knownCategories.map(c => c.toLowerCase()));
+  return names.filter(n => !isAllTagCategory(n) && !known.has(n.toLowerCase()));
+}
+
+/**
+ * The tag-to-category map (`AppState.tagCategoryByTag`) keyed by normalized
+ * (lowercased, `#`-less) tag name, for tagCategoryCellValue's case-insensitive
+ * lookups. Values are the category names, lowercased.
+ */
+export function tagCategoryLookup(tagCategoryByTag: Readonly<Record<string, string>>): Map<string, string> {
+  const lookup = new Map<string, string>();
+  for (const [tag, category] of Object.entries(tagCategoryByTag)) {
+    const key = normalizeTagName(tag);
+    const existing = lookup.get(key);
+    // Same preference as tagCategoryByTag itself: a specific category beats "all".
+    if (existing === undefined || (isAllTagCategory(existing) && !isAllTagCategory(category))) {
+      lookup.set(key, category.toLowerCase());
+    }
+  }
+  return lookup;
+}
+
+/**
+ * The tags shown in one tag category column for one result, sorted, as they are
+ * spelled in its front matter. For an ordinary category: the file's tags in that
+ * category (normally just one, since such a category's tags are mutually
+ * exclusive; all of them if the file breaks that rule). For ALL: every tag on
+ * the file except those defined in some other (non-ALL) category, so tags not
+ * in tags.yaml at all are included. Comparison ignores case and a leading `#`.
+ *
+ * See: (USER_GUIDE.md#tag-category-columns)
+ */
+export function tagCategoryCellValue(
+  fileTags: readonly string[] | undefined,
+  category: string,
+  lookup: ReadonlyMap<string, string>,
+): string[] {
+  if (!fileTags || fileTags.length === 0) return [];
+  const all = isAllTagCategory(category);
+  const wanted = category.toLowerCase();
+  const seen = new Set<string>();
+  const shown: string[] = [];
+  for (const tag of fileTags) {
+    const key = normalizeTagName(tag);
+    if (!key || seen.has(key)) continue;
+    const tagCategory = lookup.get(key);
+    const include = all
+      ? tagCategory === undefined || isAllTagCategory(tagCategory)
+      : tagCategory === wanted;
+    if (!include) continue;
+    seen.add(key);
+    shown.push(tag.replace(/^#+/, '').trim());
+  }
+  return shown.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+}
+
 /**
  * The built-in "Recent Files" search (Tools → Recent Files): the 500 most
  * recently modified entries under the folder, newest first, with no query.
@@ -247,6 +339,7 @@ export function initialSearchDefinition(
     ...initial,
     tags: initial.tags ?? '',
     type: initial.type ?? '',
+    tagCategoryCols: initial.tagCategoryCols ?? '',
     searchImageExif: initial.searchImageExif ?? false,
     mostRecent: initial.mostRecent ?? false,
   };
@@ -256,7 +349,8 @@ export function initialSearchDefinition(
  * Whether the Search dialog's form differs from the saved definition it is
  * editing, i.e. whether Save would change anything. Both sides are normalized
  * the way the dialog loads and saves them (missing optional flags count as
- * false, the query, sort expression and sort title are saved trimmed), so merely opening a saved search never
+ * false, the query, sort expression, sort title, tags, type and tag category
+ * columns are saved trimmed), so merely opening a saved search never
  * reads as an unsaved change. The name is not compared: renames are saved
  * separately, straight from the definitions list.
  */
@@ -273,6 +367,7 @@ export function isSearchDefinitionDirty(form: SearchDefinition, saved: SearchDef
     || (a.sortTitle ?? '').trim() !== (b.sortTitle ?? '').trim()
     || (a.tags ?? '').trim() !== (b.tags ?? '').trim()
     || (a.type ?? '').trim() !== (b.type ?? '').trim()
+    || (a.tagCategoryCols ?? '').trim() !== (b.tagCategoryCols ?? '').trim()
     || a.searchImageExif !== b.searchImageExif
     || a.mostRecent !== b.mostRecent;
 }

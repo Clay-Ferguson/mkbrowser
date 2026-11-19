@@ -1642,6 +1642,61 @@ describe('Tags filter (searchFolder tags option)', () => {
   });
 });
 
+describe('tag category columns (searchFolder tagCategoryCols option)', () => {
+  let dir: string;
+  const fm = (tags: string[], body: string) => `---\ntags:\n${tags.map(t => `  - ${t}\n`).join('')}---\n${body}\n`;
+  const tagsByName = (results: { path: string; tags?: string[] }[]): Record<string, string[] | undefined> =>
+    Object.fromEntries(results.map(r => [path.basename(r.path), r.tags]));
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-tag-cols-'));
+    const write = (relPath: string, body: string) => {
+      const fp = path.join(dir, relPath);
+      fs.mkdirSync(path.dirname(fp), { recursive: true });
+      fs.writeFileSync(fp, body, 'utf-8');
+    };
+    write('task-one.md', fm(['p1', 'cooking'], 'TASKWORD one'));
+    write('task-two.md', fm(['p2'], 'nothing here'));
+    write('plain.md', 'TASKWORD with no front matter\n');
+    write('task-receipt.pdf', 'not readable');
+    fs.mkdirSync(path.join(dir, 'task-folder'));
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('leaves tags off the results when no columns are requested', async () => {
+    const results = await searchFolder(dir, 'TASKWORD', {});
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.every(r => r.tags === undefined)).toBe(true);
+    expect((await searchFolder(dir, 'TASKWORD', { tagCategoryCols: ' , ' })).every(r => r.tags === undefined)).toBe(true);
+  });
+
+  it('adds each content match\'s front matter tags', async () => {
+    expect(tagsByName(await searchFolder(dir, 'TASKWORD', { tagCategoryCols: 'priority' })))
+      .toEqual({ 'task-one.md': ['p1', 'cooking'], 'plain.md': [] });
+  });
+
+  it('reads the tags of files matched by name, never read by the search itself', async () => {
+    expect(tagsByName(await searchFolder(dir, 'task', { searchNames: true, tagCategoryCols: 'priority' })))
+      .toMatchObject({ 'task-two.md': ['p2'], 'task-receipt.pdf': [] });
+  });
+
+  it('works in a names-only search, folders and other files getting none', async () => {
+    expect(tagsByName(await searchFolder(dir, 'task', { searchContents: false, searchNames: true, tagCategoryCols: 'all' })))
+      .toEqual({ 'task-one.md': ['p1', 'cooking'], 'task-two.md': ['p2'], 'task-receipt.pdf': [], 'task-folder': [] });
+  });
+
+  it('works alongside a custom sort', async () => {
+    const results = await searchFolder(dir, 'task', {
+      searchNames: true, tagCategoryCols: 'priority', sortBy: 'custom', sortDirection: 'asc', sortExpression: 'f.name',
+    });
+    expect(tagsByName(results)['task-two.md']).toEqual(['p2']);
+    expect(results.every(r => r.sortKey !== undefined && r.tags !== undefined)).toBe(true);
+  });
+});
+
 describe('Type filter (searchFolder type option)', () => {
   let dir: string;
   const names = (results: { path: string }[]): string[] =>

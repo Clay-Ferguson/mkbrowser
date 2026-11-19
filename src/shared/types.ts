@@ -249,6 +249,8 @@ export interface SearchResultItem {
   sortKey?: SortKey;
   /** `sortKey` formatted for display, in the results' sort-value column (see formatOrderValue). */
   sortLabel?: string;
+  /** The file's front matter tags, for the tag category columns (set only when the search has some). */
+  tags?: string[];
 }
 
 /**
@@ -558,6 +560,11 @@ export interface AppState {
    * Tags not defined in tags.yaml are absent.
    */
   tagCategoryByTag: Record<string, string>;
+  /**
+   * Every tag category name in tags.yaml, in file order (including empty
+   * categories). Loaded alongside `tagCategoryByTag`.
+   */
+  tagCategoryNames: string[];
 
   /**
    * Application-level error message shown in App's AlertDialog, or null when

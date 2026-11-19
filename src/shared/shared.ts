@@ -140,6 +140,17 @@ export interface SearchDefinition {
    * See: (USER_GUIDE.md#using-search)
    */
   type?: string;
+  /**
+   * Tag category columns for the Search Results view, as typed in the Search
+   * dialog's "Tag Category Columns" field: a comma-delimited list of tag
+   * category names from tags.yaml (case-insensitive), e.g. `priority, all`.
+   * Each name adds a column showing the result's front matter tags in that
+   * category; `ALL` shows its tags that are in no other category. Display only:
+   * it never filters or orders the results.
+   *
+   * See: (USER_GUIDE.md#tag-category-columns)
+   */
+  tagCategoryCols?: string;
   /** Whether to include image EXIF metadata in a content search. */
   searchImageExif?: boolean;
   /**
@@ -557,6 +568,12 @@ export interface SearchResult {
    * See: (USER_GUIDE.md#custom-sort-order)
    */
   sortLabel?: string;
+  /** The file's front matter tags (`[]` when it has none or isn't a text file);
+   * set only when the search has tag category columns (`tagCategoryCols`).
+   *
+   * See: (USER_GUIDE.md#tag-category-columns)
+   */
+  tags?: string[];
 }
 
 /** What a folder search returns over IPC: the results (capped, and ordered by

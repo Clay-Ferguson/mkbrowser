@@ -168,6 +168,7 @@ const SearchDefinitionSchema = z.preprocess(migrateLegacySearchKeys, z
     sortTitle: z.string().optional().catch(undefined),
     tags: z.string().optional().catch(undefined),
     type: z.string().optional().catch(undefined),
+    tagCategoryCols: z.string().optional().catch(undefined),
     searchImageExif: z.boolean().optional(),
     mostRecent: z.boolean().optional(),
   })

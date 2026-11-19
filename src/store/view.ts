@@ -272,9 +272,9 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       set({ tagsRevision: get().tagsRevision + 1 }),
 
     /**
-     * Rebuild `tagCategoryByTag` from freshly loaded tag definitions. A tag listed in more
-     * than one category maps to its first non-"all" category, since that is the more
-     * specific label.
+     * Rebuild `tagCategoryByTag` and `tagCategoryNames` from freshly loaded tag
+     * definitions. A tag listed in more than one category maps to its first non-"all"
+     * category, since that is the more specific label.
      */
     setTagCategories: (categories) => {
       const map: Record<string, string> = {};
@@ -286,7 +286,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
           }
         }
       }
-      set({ tagCategoryByTag: map });
+      set({ tagCategoryByTag: map, tagCategoryNames: categories.map(c => c.name) });
     },
 
     /**

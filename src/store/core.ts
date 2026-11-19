@@ -119,6 +119,7 @@ const initialState: AppState = {
   directoryRefreshNonce: 0,
   tagsRevision: 0,
   tagCategoryByTag: {},
+  tagCategoryNames: [],
   appError: null,
   appMessage: null,
   linkIdMismatch: null,

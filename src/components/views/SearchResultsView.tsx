@@ -23,7 +23,7 @@ import {
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
-import { formatOrderValue } from '../../shared/searchHelpers';
+import { formatOrderValue, parseTagCategoryCols, tagCategoryCellValue, tagCategoryLookup } from '../../shared/searchHelpers';
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
 import type { CalendarSource, SearchSortBy, SearchSortDirection } from '../../shared/types';
@@ -41,12 +41,17 @@ const RESULTS_ROW = 'grid grid-cols-subgrid col-span-full';
  * width and the table still spans the page. New columns should use `max-content`
  * tracks and `whitespace-nowrap` cells the same way. */
 const TABLE_WIDTH = 'w-max min-w-full';
-/** Column tracks: Path fits its widest folder path; Name is at least its widest
- * name (and takes any spare width, so the name sits right next to its path); the
- * sort-value and Actions columns fit their contents. */
-const TABLE_COLUMNS_WITH_SORT = 'grid-cols-[max-content_minmax(max-content,1fr)_max-content_max-content]';
-/** Column tracks without the sort-value column (a file-name sort). */
-const TABLE_COLUMNS_WITHOUT_SORT = 'grid-cols-[max-content_minmax(max-content,1fr)_max-content]';
+/**
+ * The table's `grid-template-columns`. Path fits its widest folder path; Name is
+ * at least its widest name (and takes any spare width, so the name sits right
+ * next to its path); the sort-value column (absent for a file-name sort), one
+ * column per tag category, and Actions fit their contents. An inline style, not
+ * a Tailwind class, because the number of tag columns is only known at runtime.
+ */
+function tableColumnTracks(showSortColumn: boolean, tagColumnCount: number): string {
+  const fitted = (showSortColumn ? 1 : 0) + tagColumnCount + 1;
+  return ['max-content', 'minmax(max-content,1fr)', ...Array<string>(fitted).fill('max-content')].join(' ');
+}
 /** Vertical padding of a result row's cells: the same `py-0.5` as a Browse-view
  * entry header (ENTRY_HEADER_ROW_PADDING), so a row is exactly that tall. It sits
  * on the cells rather than the row so the column dividers run the full height. */
@@ -56,6 +61,10 @@ const COLUMN_DIVIDER = 'border-l border-slate-600';
 const CELL_PATH = 'flex items-center px-2 whitespace-nowrap';
 const CELL_NAME = `flex items-center gap-2 px-2 whitespace-nowrap ${COLUMN_DIVIDER}`;
 const CELL_ORDER = `flex items-center px-3 whitespace-nowrap ${COLUMN_DIVIDER}`;
+/** A tag category column's cell; laid out like the sort-value column. */
+const CELL_TAG_CATEGORY = CELL_ORDER;
+/** A tag category cell with no tags in that category. */
+const NO_TAGS = '—';
 const CELL_ACTIONS = `flex items-center px-2 ${COLUMN_DIVIDER}`;
 /** Horizontal lines between result rows, drawn as inset shadows rather than
  * borders so they take no layout space (keeping each row the height of a
@@ -78,6 +87,13 @@ function sortColumnTitle(sortBy: Exclude<SearchSortBy, 'file-name'>, customTitle
   return (sortBy === 'custom' && customTitle?.trim()) || SORT_COLUMN_TITLES[sortBy];
 }
 
+/** A tag category column's heading: the category's name as tags.yaml spells it
+ * (matched ignoring case), else as the search typed it (e.g. an unknown name). */
+function tagColumnTitle(name: string, knownCategories: readonly string[]): string {
+  const lower = name.toLowerCase();
+  return knownCategories.find(c => c.toLowerCase() === lower) ?? name;
+}
+
 /** The summary's description of a built-in (non-custom) sort order. */
 function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection): string {
   if (sortBy === 'file-name') return `file name (${direction === 'asc' ? 'A–Z' : 'Z–A'})`;
@@ -91,7 +107,11 @@ function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection)
  * directly in the searched folder), Name (icon and file or folder name), the
  * sort value (the value the results were sorted by, headed Created, Modified or
  * Custom — or a custom sort's own Column title — to match the Sort By choice — see formatOrderValue; left out of a
- * file-name sort, whose value the Name column already shows), and Actions (Edit, which opens the
+ * file-name sort, whose value the Name column already shows), one column per
+ * tag category listed in the search's Tag Category Columns (each result's front
+ * matter tags in that category, or for ALL, its tags in no other category —
+ * see tagCategoryCellValue; worked out here from the live tag definitions, so
+ * a tags.yaml edit shows without re-running the search), and Actions (Edit, which opens the
  * file on its own in the Browse view for editing, and Delete; both appear only
  * while the pointer rests on the row). Clicking a file row opens that file on
  * its own in the Browse view (single-file mode, same as clicking a file in the
@@ -107,6 +127,7 @@ function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection)
  * header says "Showing N of M".
  *
  * See: (USER_GUIDE.md#search-results)
+ * See: (USER_GUIDE.md#tag-category-columns)
  */
 function SearchResultsView() {
   const searchResults = useAS(s => s.searchResults);
@@ -120,6 +141,8 @@ function SearchResultsView() {
   const searchSortBy = useAS(s => s.searchSortBy);
   const searchSortDirection = useAS(s => s.searchSortDirection);
   const lastSearchDefinition = useAS(s => s.lastSearchDefinition);
+  const tagCategoryByTag = useAS(s => s.tagCategoryByTag);
+  const tagCategoryNames = useAS(s => s.tagCategoryNames);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -179,6 +202,12 @@ function SearchResultsView() {
   // A file-name sort gets no sort-value column: its value, the file name, is
   // already in the Name column. See: (USER_GUIDE.md#search-results)
   const showSortColumn = searchSortBy !== 'file-name';
+
+  // Tag category columns, between the sort-value column and Actions.
+  // See: (USER_GUIDE.md#tag-category-columns)
+  const tagColumns = parseTagCategoryCols(lastSearchDefinition?.tagCategoryCols);
+  const tagLookup = tagCategoryLookup(tagCategoryByTag);
+  const gridTemplateColumns = tableColumnTracks(showSortColumn, tagColumns.length);
 
   // The Tags and Type filters the search applied (they only apply to contents searches).
   // See: (USER_GUIDE.md#using-search)
@@ -423,13 +452,13 @@ function SearchResultsView() {
             </p>
           </div>
         ) : (
-          // Results table: Path | Name | sort value | Actions (no sort value for a
-          // file-name sort). One grid owns the column tracks and every row
+          // Results table: Path | Name | sort value | tag categories… | Actions
+          // (no sort value for a file-name sort). One grid owns the column tracks and every row
           // (heading and results) is a subgrid spanning them all, so the columns
           // line up across rows while each row stays its own element (click
           // target, hover background, highlight outline).
           // See: (USER_GUIDE.md#search-results)
-          <div className={`grid ${TABLE_WIDTH} ${showSortColumn ? TABLE_COLUMNS_WITH_SORT : TABLE_COLUMNS_WITHOUT_SORT}`} role="table" data-testid="search-results-table">
+          <div className={`grid ${TABLE_WIDTH}`} style={{ gridTemplateColumns }} role="table" data-testid="search-results-table">
             {/* Column headings — sticky, so they stay in view while a long
                 result list scrolls beneath them. */}
             <div
@@ -441,6 +470,11 @@ function SearchResultsView() {
               {searchSortBy !== 'file-name' && (
                 <div className={`${CELL_ORDER} py-1.5`} role="columnheader" data-testid="search-sort-column-title">{sortColumnTitle(searchSortBy, lastSearchDefinition?.sortTitle)}</div>
               )}
+              {tagColumns.map((name) => (
+                <div key={name} className={`${CELL_TAG_CATEGORY} py-1.5`} role="columnheader" data-testid="search-tag-column-title">
+                  {tagColumnTitle(name, tagCategoryNames)}
+                </div>
+              ))}
               <div className={`${CELL_ACTIONS} py-1.5`} role="columnheader">Actions</div>
             </div>
 
@@ -502,6 +536,17 @@ function SearchResultsView() {
                     </span>
                   </div>
                 )}
+
+                {/* Tag category columns: the result's tags in each listed category */}
+                {tagColumns.map((name) => {
+                  const tags = tagCategoryCellValue(result.tags, name, tagLookup);
+                  const text = tags.length > 0 ? tags.join(', ') : NO_TAGS;
+                  return (
+                    <div key={name} className={`${CELL_TAG_CATEGORY} ${RESULT_CELL_PAD}`} role="cell">
+                      <span className="text-sm text-slate-400 font-mono" data-testid="search-result-tag-cell">{text}</span>
+                    </div>
+                  );
+                })}
 
                 {/* Actions, revealed only while the row is hovered so a long
                     result list isn't cluttered with icons (same behavior as

@@ -59,6 +59,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Search Results](#search-results)
   * [Advanced Search Predicates](#advanced-search-predicates)
   * [Custom Sort Order](#custom-sort-order)
+  * [Tag Category Columns](#tag-category-columns)
   * [Search Highlight](#search-highlight)
   * [Searching the Help Tab](#searching-the-help-tab)
   * [Saving Search Definitions](#saving-search-definitions)
@@ -778,6 +779,7 @@ A search always covers the folder you are currently browsing **and all of its su
     - **Recent Files**: Searches only the 500 most recently modified files. With **File Contents** checked, those are the 500 newest `.md` and `.txt` files (plus images when **Search Image EXIF** is checked), and any name and contents matching happen within them — so other file types, like a `.pdf`, aren't matched by name while this option is on. With only **File Names** checked, they are the 500 most recently modified files and folders of any type.
     - **Order**: **Sort By** (File Modification Time, File Creation Time, File Name, or Custom) and **Direction** (DESC or ASC) set the order of the results. The order also decides which results are kept when a search finds more than 500 files (see [Search Results](#search-results)).
         - **Custom**: Shows a **Sort expression** box where you enter a JavaScript expression, such as `ts(p.due)`, and the results are ordered by its value for each file, plus an optional **Column title** box for the heading of that value's column in the results. Custom works with every Search Mode, not just Advanced. See [Custom Sort Order](#custom-sort-order).
+    - **Tag Category Columns**: Optionally, list [tag categories](#category-behavior) separated by commas, such as `priority, all`, to add a column for each one to the results, showing each file's tags in that category. See [Tag Category Columns](#tag-category-columns).
 4. Click **Search** (or press `Enter` in the search text box). The matching files are listed in the **Search Results** tab. Click a file in the list to open it **by itself** in the Browse view (the same single-file view you get from clicking a file in the **Index Tree**), so you can step through the results one at a time. Clicking a folder result instead shows that folder in its parent's listing. The **Edit** button on a result opens the file by itself in the same way, with its editor already open.
 
 ## Search Results
@@ -792,6 +794,7 @@ The results are shown as a table with these columns:
 - **Path**: The folder the file (or folder) is in, relative to the searched folder. It's blank for results directly in the searched folder. Click it to browse that folder, scrolled to the result (the same as **Browse** on the index tree's right-click menu).
 - **Name**: The file's (or folder's) name, with its icon. Click it, or anywhere else on the row outside the Path, to open the result: a file opens on its own, and a folder is shown in its parent folder's listing.
 - **Sort value**: The value the results were sorted by. Its heading names what it holds, following the Search dialog's **Sort By** choice: **Modified** or **Created** (the time, as `YYYY-MM-DD hh:mm AM/PM`) or the **Column title** you gave a [Custom sort](#custom-sort-order) (**Custom** if you left it blank), showing the expression's value. When sorting by **File Name** this column isn't shown, since the file name is already in the Name column. A result with no value (for example a file system that doesn't record creation times) shows **—**.
+- **Tag category columns**: One column for each category listed in the search's **Tag Category Columns** box, headed with the category's name, showing each result's tags in that category. See [Tag Category Columns](#tag-category-columns).
 - **Actions**: Hover over a row to reveal its **Edit** button (Markdown and text files only) and **Delete** button.
 
 Each column is as wide as its longest value, so paths and values are always shown in full on one line. When the table is wider than the window, scroll sideways to see the rest of it. The column headings stay at the top while you scroll. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
@@ -958,6 +961,17 @@ p.tags.includes('p3') ? "P3" : p.tags.includes('p2') ? "P2" : p.tags.includes('p
 
 **Mistakes in the sort expression** are reported under the **Sort expression** box when you click **Search** or **Save**, just like the query. **Search** and **Save** stay disabled while Sort By is Custom and the box is empty.
 
+## Tag Category Columns
+The **Tag Category Columns** box in the Search dialog (just below **Order**) adds columns to the [Search Results](#search-results) table that show each file's front matter tags, grouped by the [tag categories](#category-behavior) defined in the [Tags Editor](#managing-your-hashtag-library-tags-editor). List one or more category names, separated by commas, such as `priority` or `priority, status, all`. Upper/lower case is ignored. Each name adds one column, headed with the category's name, in the order you listed them. They appear after the other columns, with **Actions** staying on the far right.
+
+- **An ordinary category** (any category except `all`) holds tags that a file should have only one of, so its column shows that one tag. For example, with a `PRIORITY` category holding `none`, `p1`, `p2`, `p3` and `p4`, entering `priority` adds a **PRIORITY** column showing `p2` for a file tagged `p2`. If a file has more than one tag from the category, all of them are shown, separated by commas.
+- **`all`** shows every tag on the file that is *not* in some other category, separated by commas. That includes tags that aren't defined in the Tags Editor at all.
+- A file with no tag for a column shows **—**, as do folders and files other than Markdown and text files.
+
+If you enter a name that isn't one of your tag categories, a note under the box names it, since it's probably a typo. You can still search, but that column will show **—** for every file.
+
+The columns only add information to the results. They never change which files are found or their order (use the **Tags** box to filter by tags, or a [Custom sort](#custom-sort-order) to order by them). They work in every Search Mode, and with or without **File Contents** checked. If you change your tag categories in the Tags Editor, the columns update right away, without running the search again.
+
 ## Search Highlight
 
 After a search, MkBrowser highlights every occurrence of the search term across all rendered Markdown content in the Browse view — not just in the Search Results tab. This makes it easy to spot matching text as you scroll through your files.
@@ -980,7 +994,7 @@ You can save frequently used searches for quick access later. The left side of t
 * **Change a saved search:** with its row selected, change the options, then click **Save** at the lower right. **Revert** discards your changes and goes back to the saved version. While there are unsaved changes, the footer says *Unsaved changes*. You are asked before those changes are thrown away by selecting a different row or closing the dialog.
 * **Rename or delete:** hover over a row and click **✎** to edit its name in place, or **✕** to delete it (you'll be asked to confirm). Both take effect immediately.
 
-A saved search keeps all of its options, including its **Tags**, **Type** and a [Custom sort](#custom-sort-order)'s sort expression and column title.
+A saved search keeps all of its options, including its **Tags**, **Type**, a [Custom sort](#custom-sort-order)'s sort expression and column title, and its [Tag Category Columns](#tag-category-columns).
 
 Clicking **Search** only runs the search. It never saves or changes a saved definition, so you can load a saved search, adjust it for a one-off run, and search without changing what's saved.
 

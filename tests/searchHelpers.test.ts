@@ -1,10 +1,11 @@
 /**
  * Tests for the pure search helpers (compareSearchResults, newSearchDefinition,
- * initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName in
+ * initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName, the
+ * tag category column helpers in
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName } from '../src/shared/searchHelpers';
+import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName, parseTagCategoryCols, unknownTagCategories, tagCategoryLookup, tagCategoryCellValue } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults } from '../src/store/search';
 import type { SearchDefinition, SortKey } from '../src/shared/shared';
@@ -174,6 +175,7 @@ describe('initialSearchDefinition', () => {
       ...saved('*.md'),
       tags: '',
       type: '',
+      tagCategoryCols: '',
       searchImageExif: false,
     });
   });
@@ -216,6 +218,73 @@ describe('isSearchDefinitionDirty', () => {
     expect(isSearchDefinitionDirty({ ...saved, sortTitle: 'Due' }, saved)).toBe(true);
     const titled = { ...saved, sortBy: 'custom' as const, sortExpression: 'ts(p.due)', sortTitle: 'Due' };
     expect(isSearchDefinitionDirty({ ...titled, sortTitle: ' Due ' }, titled)).toBe(false);
+  });
+});
+
+describe('isSearchDefinitionDirty — tag category columns', () => {
+  const saved: SearchDefinition = { ...newSearchDefinition('foo'), name: 'saved' };
+
+  it('compares them trimmed, with a missing value equal to empty', () => {
+    const { tagCategoryCols: _c, ...legacy } = saved;
+    expect(isSearchDefinitionDirty(legacy, saved)).toBe(false);
+    expect(isSearchDefinitionDirty({ ...saved, tagCategoryCols: 'priority' }, saved)).toBe(true);
+    const withCols = { ...saved, tagCategoryCols: 'priority, all' };
+    expect(isSearchDefinitionDirty({ ...withCols, tagCategoryCols: ' priority, all ' }, withCols)).toBe(false);
+  });
+});
+
+describe('parseTagCategoryCols', () => {
+  it('splits, trims, drops empties, and de-dupes ignoring case (first spelling wins)', () => {
+    expect(parseTagCategoryCols(' priority , ,ALL, Priority,status ')).toEqual(['priority', 'ALL', 'status']);
+  });
+
+  it('returns [] for a missing or blank value', () => {
+    expect(parseTagCategoryCols(undefined)).toEqual([]);
+    expect(parseTagCategoryCols(' , ')).toEqual([]);
+  });
+});
+
+describe('unknownTagCategories', () => {
+  it('lists names that are neither ALL nor a known category, ignoring case', () => {
+    expect(unknownTagCategories(['PRIORITY', 'all', 'prioirty', 'Status'], ['priority', 'status', 'all']))
+      .toEqual(['prioirty']);
+    expect(unknownTagCategories(['All'], [])).toEqual([]);
+  });
+});
+
+describe('tagCategoryCellValue', () => {
+  // As AppState.tagCategoryByTag is built: a tag in both "all" and a specific
+  // category maps to the specific one.
+  const lookup = tagCategoryLookup({
+    none: 'PRIORITY', p1: 'PRIORITY', p2: 'PRIORITY',
+    open: 'Status', done: 'Status',
+    cooking: 'all', travel: 'all',
+  });
+
+  it('shows the file\'s tag in an exclusive category, ignoring case and a leading #', () => {
+    expect(tagCategoryCellValue(['cooking', 'P1'], 'priority', lookup)).toEqual(['P1']);
+    expect(tagCategoryCellValue(['#p2', 'done'], 'PRIORITY', lookup)).toEqual(['p2']);
+    expect(tagCategoryCellValue(['done'], 'status', lookup)).toEqual(['done']);
+  });
+
+  it('shows every tag when a file breaks the one-per-category rule', () => {
+    expect(tagCategoryCellValue(['p2', 'p1'], 'priority', lookup)).toEqual(['p1', 'p2']);
+  });
+
+  it('for ALL, shows every tag except those in another category, including undefined tags', () => {
+    expect(tagCategoryCellValue(['travel', 'p1', 'adhoc', 'done', 'cooking'], 'ALL', lookup))
+      .toEqual(['adhoc', 'cooking', 'travel']);
+  });
+
+  it('is empty with no tags, no tags in the category, or an unknown category', () => {
+    expect(tagCategoryCellValue(undefined, 'priority', lookup)).toEqual([]);
+    expect(tagCategoryCellValue([], 'all', lookup)).toEqual([]);
+    expect(tagCategoryCellValue(['cooking'], 'priority', lookup)).toEqual([]);
+    expect(tagCategoryCellValue(['p1'], 'nope', lookup)).toEqual([]);
+  });
+
+  it('lists a repeated tag once', () => {
+    expect(tagCategoryCellValue(['cooking', 'Cooking'], 'all', lookup)).toEqual(['cooking']);
   });
 });
 

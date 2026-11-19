@@ -27,7 +27,7 @@ import { fdir } from 'fdir';
 import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
 import { toTimestamp, past, future, today, formatDateTime12 } from '../shared/timeUtil';
-import { createContentSearcher, compareSearchResults, parseTagFilter, matchesTagFilter, matchesTypeFilter } from '../shared/searchHelpers';
+import { createContentSearcher, compareSearchResults, parseTagFilter, matchesTagFilter, matchesTypeFilter, parseTagCategoryCols } from '../shared/searchHelpers';
 import type { SearchDefinition, SearchMatchType, SortKey } from '../shared/shared';
 import { compileAdvancedQuery, compileSortKeyExpression, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
@@ -126,6 +126,8 @@ export interface SearchResult {
   sortKey?: SortKey;
   /** `sortKey` formatted for display (custom sort only); see formatSortLabel. */
   sortLabel?: string;
+  /** The file's front matter tags; set only when the search has tag category columns. */
+  tags?: string[];
 }
 
 /** Match predicate result */
@@ -518,8 +520,9 @@ async function buildResult(
 }
 
 /**
- * The content and stat a custom sort expression is evaluated against for a
- * result whose contents the search never read (a name match, a names-only
+ * The content and stat a custom sort expression is evaluated against (and the
+ * front matter tags for tag category columns are read from) for a result whose
+ * contents the search never read (a name match, a names-only
  * result, or a result of an empty-query search). Only .md/.txt files are read,
  * with the same size bound as the content search; anything else — folders, other
  * file types, or an unreadable or oversized file — is evaluated against no
@@ -608,6 +611,10 @@ export type SearchFolderOptions = Partial<Omit<SearchDefinition, 'name' | 'searc
  * - `type` — the Type field: only Markdown files whose front matter `type` is
  *   this one (ignoring case; see matchesTypeFilter) can match, ANDed like
  *   `tags`. Only `.md` files are searched then. Ignored without `searchContents`.
+ * - `tagCategoryCols` — the Tag Category Columns field (see
+ *   parseTagCategoryCols): when it lists any category, every result carries its
+ *   front matter `tags` (files the search matched without reading are read
+ *   afterwards, like a custom sort). Display only; never filters or orders.
  * - `signal` — cancels the search: it is checked after each crawl and
  *   before each file is stat'd, read or matched, and an abort rejects the search
  *   with the signal's reason. Partial results are never returned.
@@ -630,6 +637,7 @@ export async function searchFolderWithTotal(
     sortBy = 'modified-time',
     sortDirection = 'desc',
     sortExpression = '',
+    tagCategoryCols = '',
     tags = '',
     type = '',
     signal,
@@ -686,6 +694,16 @@ export async function searchFolderWithTotal(
       firstSortError ??= error;
     }
     return { ...result, sortKey, sortLabel };
+  };
+  // Tag category columns: the results carry their front matter tags, which the
+  // renderer sorts into the columns (so a tags.yaml edit shows up without a
+  // re-run). Shares the YAML cache, so front matter a filter or the query
+  // already parsed isn't parsed again. See: (USER_GUIDE.md#tag-category-columns)
+  const wantTags = parseTagCategoryCols(tagCategoryCols).length > 0;
+  /** Adds what is derived from a result's contents: its custom sort key and its tags. */
+  const withContentFields = (result: SearchResult, content: string, stat?: Partial<StatTimes>): SearchResult => {
+    const sorted = withSortKey(result, content, stat);
+    return wantTags ? { ...sorted, tags: getTagsFromFrontMatter(getYaml(yamlCache, content, result.path)) } : sorted;
   };
 
   // Track advanced-query runtime errors. One file throwing is normal (the query
@@ -946,7 +964,7 @@ export async function searchFolderWithTotal(
 
         // Tags/Type alone (no query): every file that passes them is a hit.
         if (!matchPredicate) {
-          return withSortKey(await buildResult(folderPath, filePath, 1, resultStat), content, resultStat);
+          return withContentFields(await buildResult(folderPath, filePath, 1, resultStat), content, resultStat);
         }
 
         // The name half, deferred to here when there is a Tags or Type filter
@@ -955,7 +973,7 @@ export async function searchFolderWithTotal(
           const nameMatch = matchPredicate(path.basename(filePath));
           if (nameMatch.matches) {
             const result = await buildResult(folderPath, filePath, nameMatch.matchCount, resultStat);
-            return withSortKey({ ...result, nameMatch: true }, content, resultStat);
+            return withContentFields({ ...result, nameMatch: true }, content, resultStat);
           }
         }
 
@@ -964,7 +982,7 @@ export async function searchFolderWithTotal(
 
         // The content is in hand, so evaluate the custom sort key now rather
         // than re-reading the file in the pass below.
-        return withSortKey(await buildResult(folderPath, filePath, matchCount, resultStat), content, resultStat);
+        return withContentFields(await buildResult(folderPath, filePath, matchCount, resultStat), content, resultStat);
       },
     );
     for (const r of fileResults) {
@@ -976,20 +994,23 @@ export async function searchFolderWithTotal(
     throw new Error(`Advanced search query failed on every file it was evaluated against: ${firstError}`);
   }
 
-  // Custom sort keys for the results whose contents were never read above.
+  // Custom sort keys and tags for the results whose contents were never read
+  // above (name matches, unfiltered listings, names-only searches).
   let sortable = results;
-  if (baseSortKeyEvaluator) {
+  if (baseSortKeyEvaluator || wantTags) {
     sortable = await mapWithConcurrency(
       results,
       SEARCH_FILE_CONCURRENCY,
       async (r): Promise<SearchResult> => {
-        if (r.sortKey !== undefined) return r;
+        const needsContent = (baseSortKeyEvaluator !== null && r.sortKey === undefined)
+          || (wantTags && r.tags === undefined);
+        if (!needsContent) return r;
         signal?.throwIfAborted();
         const { content, stat } = await readSortKeySource(r);
-        return withSortKey(r, content, stat);
+        return withContentFields(r, content, stat);
       },
     );
-    if (sortEvaluatedCount > 0 && sortErrorCount === sortEvaluatedCount) {
+    if (baseSortKeyEvaluator && sortEvaluatedCount > 0 && sortErrorCount === sortEvaluatedCount) {
       throw new Error(`Custom sort expression failed on every file it was evaluated against: ${firstSortError}`);
     }
   }

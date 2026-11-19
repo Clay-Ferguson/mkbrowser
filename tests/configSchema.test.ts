@@ -155,6 +155,19 @@ describe('parseConfigYaml — settings tolerance', () => {
     expect(bad?.settings?.searchDefinitions?.[0]?.tags).toBeUndefined();
   });
 
+  it('keeps a search\'s tag category columns, and drops a non-string value without dropping the search', () => {
+    const base = {
+      name: 'todos', searchText: '', searchContents: true, searchNames: false,
+      matchType: 'literal', sortBy: 'modified-time', sortDirection: 'desc',
+    };
+    const good = { ...base, tagCategoryCols: 'priority, all' };
+    expect(parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [good] } })?.settings?.searchDefinitions)
+      .toEqual([good]);
+    const bad = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [{ ...base, tagCategoryCols: ['priority'] }] } });
+    expect(bad?.settings?.searchDefinitions?.[0]).toMatchObject({ name: 'todos' });
+    expect(bad?.settings?.searchDefinitions?.[0]?.tagCategoryCols).toBeUndefined();
+  });
+
   it('keeps a search\'s type, and drops a non-string type without dropping the search', () => {
     const base = {
       name: 'todos', searchText: '', searchContents: true, searchNames: false,

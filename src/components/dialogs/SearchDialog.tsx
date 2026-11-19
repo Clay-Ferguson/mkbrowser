@@ -7,7 +7,8 @@ import JsCodeInput from './common/JsCodeInput';
 import type { SearchDefinition, SearchMatchType, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import * as globalHighlight from '../../renderer/globalHighlight';
 import { api } from '../../renderer/api';
-import { initialSearchDefinition, isSearchDefinitionDirty } from '../../shared/searchHelpers';
+import { initialSearchDefinition, isSearchDefinitionDirty, parseTagCategoryCols, unknownTagCategories } from '../../shared/searchHelpers';
+import { useAS } from '../../store';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_SAVE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../renderer/styles';
 
 // Search's checkbox inputs use a blue-500 accent (vs the blue-600 default
@@ -53,8 +54,10 @@ interface PendingConfirm {
  * The full search dialog, laid out like TagsEditorView: a left panel listing the
  * saved search definitions (SearchDefinitionsPanel) and a right panel of search
  * options — the query, the front matter Tags and Type filters, the target (file contents and/or names), the match type
- * (literal/wildcard/advanced), the EXIF / recent-files toggles, and result
- * sorting (including a Custom sort by a JavaScript expression).
+ * (literal/wildcard/advanced), the EXIF / recent-files toggles, result
+ * sorting (including a Custom sort by a JavaScript expression), and the Tag
+ * Category Columns the results view adds (with a warning naming any entry that
+ * isn't a tags.yaml category).
  *
  * The form edits one SearchDefinition. Selecting a row in the list loads that
  * saved definition (its name is shown above the form); with no row selected the
@@ -73,6 +76,7 @@ interface PendingConfirm {
  * See: (USER_GUIDE.md#using-search)
  * See: (USER_GUIDE.md#saving-search-definitions)
  * See: (USER_GUIDE.md#custom-sort-order)
+ * See: (USER_GUIDE.md#tag-category-columns)
  */
 function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, onDeleteSearchDefinition, initialDefinition, searchDefinitions }: SearchDialogProps) {
   const [def, setDef] = useState(() =>
@@ -101,6 +105,10 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   const type = def.type ?? '';
   /** The Type field will filter the search (it needs File Contents, like Tags). */
   const hasType = searchContents && type.trim().length > 0;
+  const tagCategoryCols = def.tagCategoryCols ?? '';
+  const tagCategoryNames = useAS(s => s.tagCategoryNames);
+  /** Entries in Tag Category Columns that aren't tags.yaml categories (likely typos). */
+  const unknownTagCols = unknownTagCategories(parseTagCategoryCols(tagCategoryCols), tagCategoryNames);
   /** There is something to search for: a query, tags, a type, or the Recent Files listing. */
   const hasCriteria = searchQuery.trim().length > 0 || hasTags || hasType || mostRecent;
   /** Sort By is Custom but there is no expression to sort by. */
@@ -153,7 +161,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   };
 
   /** The form as a definition to search with or save: the query, tags, type, sort
-   *  expression and sort title trimmed, and an empty one left out of the saved config. */
+   *  expression, sort title and tag category columns trimmed, and an empty one
+   *  left out of the saved config. */
   const toDefinition = (name: string, query: string): SearchDefinition => ({
     ...def,
     name,
@@ -162,6 +171,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
     type: type.trim() || undefined,
     sortExpression: sortExpression.trim() || undefined,
     sortTitle: sortTitle.trim() || undefined,
+    tagCategoryCols: tagCategoryCols.trim() || undefined,
   });
 
   const handleCodeChange = (value: string) => {
@@ -472,6 +482,30 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                   </div>
                 )}
               </fieldset>
+
+              {/* Tag Category Columns: extra results columns, one per tag category.
+                  Display only, so (unlike Tags and Type) it works without File Contents.
+                  See: (USER_GUIDE.md#tag-category-columns) */}
+              <div className="mb-3 shrink-0">
+                <label htmlFor="search-tag-category-cols-input" className={DLG_LABEL_CLASS}>
+                  Tag Category Columns (comma-separated tag categories, or ALL)
+                </label>
+                <input
+                  id="search-tag-category-cols-input"
+                  type="text"
+                  value={tagCategoryCols}
+                  onChange={(e) => set('tagCategoryCols')(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  data-testid="search-tag-category-cols-input"
+                  className={FRONT_MATTER_INPUT_CLASS}
+                  placeholder="e.g. priority, all"
+                />
+                {unknownTagCols.length > 0 && (
+                  <p className="text-xs text-amber-400 mt-1 break-words" data-testid="search-tag-category-cols-unknown">
+                    {unknownTagCols.length === 1 ? 'Not a tag category' : 'Not tag categories'}: {unknownTagCols.join(', ')}
+                  </p>
+                )}
+              </div>
 
               <div className="flex items-center gap-6">
                 <CheckboxField
