@@ -312,11 +312,19 @@ function SearchResultsView() {
       {hasSearched && (
         <header className="flex-shrink-0">
           <div className="flex items-center gap-3 px-4 py-2">
-            {/* Title: folder icon, then the searched folder's name */}
-            <div className="flex items-center gap-1.5 min-w-0" title={searchFolder}>
+            {/* Title: folder icon, then the searched folder's name. Clicking it
+                browses the searched folder, like a result's Path cell does for
+                the result's folder. See: (USER_GUIDE.md#search-results) */}
+            <button
+              type="button"
+              className="flex items-center gap-1.5 min-w-0 cursor-pointer"
+              onClick={() => navigateToBrowserPath(searchFolder)}
+              title={`Browse ${searchFolder}`}
+              data-testid="search-results-folder"
+            >
               <FolderIcon className="w-5 h-5 text-folder flex-shrink-0" />
               <span className="text-sm font-mono text-folder truncate">{folderName}</span>
-            </div>
+            </button>
             <div className="ml-auto flex-shrink-0 flex items-center gap-2">
               <button
                 type="button"

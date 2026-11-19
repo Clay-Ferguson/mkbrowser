@@ -781,7 +781,7 @@ A search always covers the folder you are currently browsing **and all of its su
 4. Click **Search** (or press `Enter` in the search text box). The matching files are listed in the **Search Results** tab. Click a file in the list to open it **by itself** in the Browse view (the same single-file view you get from clicking a file in the **Index Tree**), so you can step through the results one at a time. Clicking a folder result instead shows that folder in its parent's listing. The **Edit** button on a result opens the file by itself in the same way, with its editor already open.
 
 ## Search Results
-The top of the **Search Results** tab summarizes the search — the saved search's name (if any), the query, tags and type, how many files were found, and the sort order — and has three buttons:
+The top of the **Search Results** tab summarizes the search — the saved search's name (if any), the query, tags and type, how many files were found, and the sort order. The searched folder's name (with its folder icon) is shown in the top-left corner; click it to browse that folder in the Browse tab, so you can get back to where the search ran even after browsing elsewhere. The top of the tab also has three buttons:
 
 - **Graph**: Shows the results as a [Search-based Graph](#search-based-graph).
 - **Calendar**: Opens the Calendar tab showing just the results that are calendar items (files with a valid `due` date). This replaces whatever the calendar was showing before. Unlike a calendar opened from the Browse view, it does not update itself when files change — click **Calendar** again to refresh it.
