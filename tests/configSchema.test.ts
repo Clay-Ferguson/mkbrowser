@@ -116,6 +116,7 @@ describe('parseConfigYaml — settings tolerance', () => {
       sortBy: 'custom',
       sortDirection: 'asc',
       sortExpression: '[p.priority, ts(p.due)]',
+      sortTitle: 'Priority',
     };
     const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
     expect(cfg?.settings?.searchDefinitions).toEqual([def]);
@@ -129,6 +130,16 @@ describe('parseConfigYaml — settings tolerance', () => {
     const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
     expect(cfg?.settings?.searchDefinitions?.[0]).toMatchObject({ name: 'todos', sortBy: 'custom' });
     expect(cfg?.settings?.searchDefinitions?.[0]?.sortExpression).toBeUndefined();
+  });
+
+  it('drops a non-string sortTitle without dropping the search', () => {
+    const def = {
+      name: 'todos', searchText: 'x', searchContents: true, searchNames: false,
+      matchType: 'literal', sortBy: 'custom', sortDirection: 'asc', sortExpression: 'ts(p.due)', sortTitle: 7,
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
+    expect(cfg?.settings?.searchDefinitions?.[0]).toMatchObject({ name: 'todos', sortExpression: 'ts(p.due)' });
+    expect(cfg?.settings?.searchDefinitions?.[0]?.sortTitle).toBeUndefined();
   });
 
   it('keeps a search\'s tags, and drops non-string tags without dropping the search', () => {

@@ -210,6 +210,13 @@ describe('isSearchDefinitionDirty', () => {
     const custom = { ...saved, sortBy: 'custom' as const, sortExpression: 'ts(p.due)' };
     expect(isSearchDefinitionDirty({ ...custom, sortExpression: ' ts(p.due)\n' }, custom)).toBe(false);
   });
+
+  it('compares the sort title trimmed, with a missing one equal to empty', () => {
+    expect(isSearchDefinitionDirty({ ...saved, sortTitle: '' }, saved)).toBe(false);
+    expect(isSearchDefinitionDirty({ ...saved, sortTitle: 'Due' }, saved)).toBe(true);
+    const titled = { ...saved, sortBy: 'custom' as const, sortExpression: 'ts(p.due)', sortTitle: 'Due' };
+    expect(isSearchDefinitionDirty({ ...titled, sortTitle: ' Due ' }, titled)).toBe(false);
+  });
 });
 
 describe('isSearchDefinitionDirty — tags', () => {

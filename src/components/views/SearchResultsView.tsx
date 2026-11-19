@@ -64,12 +64,19 @@ const ROW_DIVIDERS = 'shadow-[inset_0_1px_0_var(--color-slate-700)] last:shadow-
 
 /** The sort-value column's heading: what its values are, which depends on the
  * Sort By choice. A file-name sort has no such column — the Name column already
- * shows the name. */
+ * shows the name. A custom sort uses its search's own column title when it has
+ * one (see sortColumnTitle). */
 const SORT_COLUMN_TITLES: Record<Exclude<SearchSortBy, 'file-name'>, string> = {
   'created-time': 'Created',
   'modified-time': 'Modified',
   custom: 'Custom',
 };
+
+/** The sort-value column's heading for a sort other than by file name: a custom
+ * sort's Column title from the Search dialog, else the Sort By choice's default. */
+function sortColumnTitle(sortBy: Exclude<SearchSortBy, 'file-name'>, customTitle: string | undefined): string {
+  return (sortBy === 'custom' && customTitle?.trim()) || SORT_COLUMN_TITLES[sortBy];
+}
 
 /** The summary's description of a built-in (non-custom) sort order. */
 function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection): string {
@@ -83,7 +90,7 @@ function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection)
  * columns: Path (the folder part of the relative path, blank for a result
  * directly in the searched folder), Name (icon and file or folder name), the
  * sort value (the value the results were sorted by, headed Created, Modified or
- * Custom to match the Sort By choice — see formatOrderValue; left out of a
+ * Custom — or a custom sort's own Column title — to match the Sort By choice — see formatOrderValue; left out of a
  * file-name sort, whose value the Name column already shows), and Actions (Edit, which opens the
  * file on its own in the Browse view for editing, and Delete; both appear only
  * while the pointer rests on the row). Clicking a file row opens that file on
@@ -432,7 +439,7 @@ function SearchResultsView() {
               <div className={`${CELL_PATH} py-1.5`} role="columnheader">Path</div>
               <div className={`${CELL_NAME} py-1.5`} role="columnheader">Name</div>
               {searchSortBy !== 'file-name' && (
-                <div className={`${CELL_ORDER} py-1.5`} role="columnheader" data-testid="search-sort-column-title">{SORT_COLUMN_TITLES[searchSortBy]}</div>
+                <div className={`${CELL_ORDER} py-1.5`} role="columnheader" data-testid="search-sort-column-title">{sortColumnTitle(searchSortBy, lastSearchDefinition?.sortTitle)}</div>
               )}
               <div className={`${CELL_ACTIONS} py-1.5`} role="columnheader">Actions</div>
             </div>

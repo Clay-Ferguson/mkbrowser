@@ -113,6 +113,14 @@ export interface SearchDefinition {
    */
   sortExpression?: string;
   /**
+   * The heading of the Search Results view's sort-value column for a custom sort
+   * (Sort By 'custom'), e.g. "Due", so the column says what it was sorted by.
+   * Empty or missing falls back to "Custom".
+   *
+   * See: (USER_GUIDE.md#custom-sort-order)
+   */
+  sortTitle?: string;
+  /**
    * Front matter tags the matching files must have, as typed in the Search
    * dialog's Tags field: a comma-delimited list such as `purchased, p1, !done`.
    * Every listed tag must be present and every `!`-prefixed one absent; case and

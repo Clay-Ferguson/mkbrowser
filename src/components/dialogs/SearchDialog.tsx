@@ -29,6 +29,10 @@ const FRONT_MATTER_NEEDS_CONTENTS_TITLE = "Tags and Type are read from file cont
 /** The Tags and Type inputs: the query input's look, plus a disabled state. */
 const FRONT_MATTER_INPUT_CLASS = `w-full ${DLG_INPUT_CLASS_BASE} font-mono text-base! border-slate-600 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`;
 
+/** The custom sort's Column title input: about 20 characters wide, since it only
+ *  heads a narrow results column (the title itself has no length limit). */
+const SORT_TITLE_INPUT_CLASS = `w-[24ch] max-w-full ${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`;
+
 interface SearchDialogProps {
   onSearch: (definition: SearchDefinition) => void;
   onSave: (definition: SearchDefinition) => void;
@@ -90,6 +94,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   const searchImageExif = def.searchImageExif ?? false;
   const mostRecent = def.mostRecent ?? false;
   const sortExpression = def.sortExpression ?? '';
+  const sortTitle = def.sortTitle ?? '';
   const tags = def.tags ?? '';
   /** The Tags field will filter the search (it needs File Contents; see searchFolder). */
   const hasTags = searchContents && tags.trim().length > 0;
@@ -147,8 +152,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
     });
   };
 
-  /** The form as a definition to search with or save: the query, tags, type and sort
-   *  expression trimmed, and an empty tags, type or sort expression left out of the saved config. */
+  /** The form as a definition to search with or save: the query, tags, type, sort
+   *  expression and sort title trimmed, and an empty one left out of the saved config. */
   const toDefinition = (name: string, query: string): SearchDefinition => ({
     ...def,
     name,
@@ -156,6 +161,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
     tags: tags.trim() || undefined,
     type: type.trim() || undefined,
     sortExpression: sortExpression.trim() || undefined,
+    sortTitle: sortTitle.trim() || undefined,
   });
 
   const handleCodeChange = (value: string) => {
@@ -451,6 +457,18 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                         {sortError}
                       </p>
                     )}
+                    <label className="block text-xs text-slate-400 mb-1 mt-3">
+                      Column title (heads the sort column in the results)
+                    </label>
+                    <input
+                      type="text"
+                      value={sortTitle}
+                      onChange={(e) => set('sortTitle')(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      data-testid="sort-title-input"
+                      className={SORT_TITLE_INPUT_CLASS}
+                      placeholder="e.g. Due"
+                    />
                   </div>
                 )}
               </fieldset>

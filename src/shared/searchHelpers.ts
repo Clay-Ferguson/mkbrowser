@@ -256,7 +256,7 @@ export function initialSearchDefinition(
  * Whether the Search dialog's form differs from the saved definition it is
  * editing, i.e. whether Save would change anything. Both sides are normalized
  * the way the dialog loads and saves them (missing optional flags count as
- * false, the query and sort expression are saved trimmed), so merely opening a saved search never
+ * false, the query, sort expression and sort title are saved trimmed), so merely opening a saved search never
  * reads as an unsaved change. The name is not compared: renames are saved
  * separately, straight from the definitions list.
  */
@@ -270,6 +270,7 @@ export function isSearchDefinitionDirty(form: SearchDefinition, saved: SearchDef
     || a.sortBy !== b.sortBy
     || a.sortDirection !== b.sortDirection
     || (a.sortExpression ?? '').trim() !== (b.sortExpression ?? '').trim()
+    || (a.sortTitle ?? '').trim() !== (b.sortTitle ?? '').trim()
     || (a.tags ?? '').trim() !== (b.tags ?? '').trim()
     || (a.type ?? '').trim() !== (b.type ?? '').trim()
     || a.searchImageExif !== b.searchImageExif

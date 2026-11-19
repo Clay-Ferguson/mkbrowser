@@ -777,7 +777,7 @@ A search always covers the folder you are currently browsing **and all of its su
     - **Search Image EXIF**: Also searches the EXIF metadata (camera details, descriptions, and so on) of image files — `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.bmp`, `.ico`, `.tiff`, `.tif` and `.avif`. Only available when **File Contents** is checked.
     - **Recent Files**: Searches only the 500 most recently modified files. With **File Contents** checked, those are the 500 newest `.md` and `.txt` files (plus images when **Search Image EXIF** is checked), and any name and contents matching happen within them — so other file types, like a `.pdf`, aren't matched by name while this option is on. With only **File Names** checked, they are the 500 most recently modified files and folders of any type.
     - **Order**: **Sort By** (File Modification Time, File Creation Time, File Name, or Custom) and **Direction** (DESC or ASC) set the order of the results. The order also decides which results are kept when a search finds more than 500 files (see [Search Results](#search-results)).
-        - **Custom**: Shows a **Sort expression** box where you enter a JavaScript expression, such as `ts(p.due)`, and the results are ordered by its value for each file. Custom works with every Search Mode, not just Advanced. See [Custom Sort Order](#custom-sort-order).
+        - **Custom**: Shows a **Sort expression** box where you enter a JavaScript expression, such as `ts(p.due)`, and the results are ordered by its value for each file, plus an optional **Column title** box for the heading of that value's column in the results. Custom works with every Search Mode, not just Advanced. See [Custom Sort Order](#custom-sort-order).
 4. Click **Search** (or press `Enter` in the search text box). The matching files are listed in the **Search Results** tab. Click a file in the list to open it **by itself** in the Browse view (the same single-file view you get from clicking a file in the **Index Tree**), so you can step through the results one at a time. Clicking a folder result instead shows that folder in its parent's listing. The **Edit** button on a result opens the file by itself in the same way, with its editor already open.
 
 ## Search Results
@@ -791,7 +791,7 @@ The results are shown as a table with these columns:
 
 - **Path**: The folder the file (or folder) is in, relative to the searched folder. It's blank for results directly in the searched folder. Click it to browse that folder, scrolled to the result (the same as **Browse** on the index tree's right-click menu).
 - **Name**: The file's (or folder's) name, with its icon. Click it, or anywhere else on the row outside the Path, to open the result: a file opens on its own, and a folder is shown in its parent folder's listing.
-- **Sort value**: The value the results were sorted by. Its heading names what it holds, following the Search dialog's **Sort By** choice: **Modified** or **Created** (the time, as `YYYY-MM-DD hh:mm AM/PM`) or **Custom** (the expression's value for a [Custom sort](#custom-sort-order)). When sorting by **File Name** this column isn't shown, since the file name is already in the Name column. A result with no value (for example a file system that doesn't record creation times) shows **—**.
+- **Sort value**: The value the results were sorted by. Its heading names what it holds, following the Search dialog's **Sort By** choice: **Modified** or **Created** (the time, as `YYYY-MM-DD hh:mm AM/PM`) or the **Column title** you gave a [Custom sort](#custom-sort-order) (**Custom** if you left it blank), showing the expression's value. When sorting by **File Name** this column isn't shown, since the file name is already in the Name column. A result with no value (for example a file system that doesn't record creation times) shows **—**.
 - **Actions**: Hover over a row to reveal its **Edit** button (Markdown and text files only) and **Delete** button.
 
 Each column is as wide as its longest value, so paths and values are always shown in full on one line. When the table is wider than the window, scroll sideways to see the rest of it. The column headings stay at the top while you scroll. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
@@ -925,13 +925,15 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 ## Custom Sort Order
 Choosing **Custom** under **Order → Sort By** in the Search dialog lets you order the results by any value you can compute from a file — most usefully a front matter property. Enter a JavaScript expression in the **Sort expression** box; it is evaluated once for each result, and the results are ordered by its value. Press **Ctrl+Enter** in the box to search.
 
+The **Column title** box below it names the column that shows each result's sort value on the Search Results tab — for example **Due** for `ts(p.due)` — so you can tell at a glance what the results are ordered by. Leave it blank and the column is headed **Custom**.
+
 The expression is written exactly like an [Advanced search predicate](#advanced-search-predicates) and has the same helpers: `p` (front matter properties), `f` (the file itself, e.g. `f.size` or `f.modified`), `ts()`, `$()`, `tag()`, `past()`, `future()` and `today()`. The difference is that a predicate answers *yes or no*, while a sort expression produces a *value*. Custom sorting works with any Search Mode — a Literal search for "meeting" can be sorted by due date just as well as an Advanced one.
 
 **Example — overdue to-dos, most overdue first.** If you have a `todo` [object type](#objects-and-custom-types) with a `due` date property:
 
 - Search Mode: Advanced
 - Query: `p.type == 'todo' && past(ts(p.due))`
-- Order → Sort By: Custom, Sort expression: `ts(p.due)`
+- Order → Sort By: Custom, Sort expression: `ts(p.due)`, Column title: `Due`
 - Order → Direction: ASC
 
 **Example — ordering by tags.** A sort expression can turn a file's tags into a value to sort on. If you mark priority with the tags `p1`, `p2` and `p3`, this labels each file with its highest priority tag:
@@ -940,7 +942,7 @@ The expression is written exactly like an [Advanced search predicate](#advanced-
 p.tags.includes('p3') ? "P3" : p.tags.includes('p2') ? "P2" : p.tags.includes('p1') ? "P1" : "n/a"
 ```
 
-`p.tags` is the file's front matter `tags` list, and `includes()` checks it for one tag; the `? :` chain returns the first label whose tag is present. With Direction DESC the results list **P3** files first, then **P2**, **P1**, and **n/a** (tagged, but with none of the three), and the **Custom** column shows each file's label. A file with no `tags` at all makes `p.tags.includes` fail, so it shows **—** and sorts last; write `p.tags?.includes(...)` (or use `tag('p3')` etc.) if you'd rather such files get **n/a** too.
+`p.tags` is the file's front matter `tags` list, and `includes()` checks it for one tag; the `? :` chain returns the first label whose tag is present. With Direction DESC the results list **P3** files first, then **P2**, **P1**, and **n/a** (tagged, but with none of the three), and the sort column (headed **Custom**, or the Column title you gave, such as **Priority**) shows each file's label. A file with no `tags` at all makes `p.tags.includes` fail, so it shows **—** and sorts last; write `p.tags?.includes(...)` (or use `tag('p3')` etc.) if you'd rather such files get **n/a** too.
 
 **How values are compared:**
 *   **Numbers** are compared numerically. Use `ts()` to turn a date into a number, so that dates sort by time: `ts(p.due)`. File sizes and times are already numbers: `f.size` sorts by size, `f.modified` by last-modified time.
@@ -952,7 +954,7 @@ p.tags.includes('p3') ? "P3" : p.tags.includes('p2') ? "P2" : p.tags.includes('p
 
 **Sorting by more than one value.** Return a list in square brackets to sort by the first value, then break ties with the next, and so on. For example, `[p.priority, ts(p.due)]` orders by `priority`, and files with the same priority by due date. Within a list, a missing value also sorts after the others at its position, whichever the direction.
 
-**The value on each result.** With a custom sort, the **Custom** column of the Search Results tab shows the value each row was sorted by, so you can see why it landed where it did. Dates produced by `ts()`, `f.created` or `f.modified` are shown as dates (`2026-11-20`, plus the time — e.g. `2026-11-20 02:30 PM` — when it isn't midnight), and a missing value is shown as **—**. A list shows all of its values in the one column, separated by **—**, with a missing value in the list shown as **(none)** — e.g. `3 — 2026-11-20 02:30 PM` or `(none) — 2026-11-20 02:30 PM`.
+**The value on each result.** With a custom sort, the sort column of the Search Results tab (headed with your **Column title**, or **Custom**) shows the value each row was sorted by, so you can see why it landed where it did. Dates produced by `ts()`, `f.created` or `f.modified` are shown as dates (`2026-11-20`, plus the time — e.g. `2026-11-20 02:30 PM` — when it isn't midnight), and a missing value is shown as **—**. A list shows all of its values in the one column, separated by **—**, with a missing value in the list shown as **(none)** — e.g. `3 — 2026-11-20 02:30 PM` or `(none) — 2026-11-20 02:30 PM`.
 
 **Mistakes in the sort expression** are reported under the **Sort expression** box when you click **Search** or **Save**, just like the query. **Search** and **Save** stay disabled while Sort By is Custom and the box is empty.
 
@@ -978,7 +980,7 @@ You can save frequently used searches for quick access later. The left side of t
 * **Change a saved search:** with its row selected, change the options, then click **Save** at the lower right. **Revert** discards your changes and goes back to the saved version. While there are unsaved changes, the footer says *Unsaved changes*. You are asked before those changes are thrown away by selecting a different row or closing the dialog.
 * **Rename or delete:** hover over a row and click **✎** to edit its name in place, or **✕** to delete it (you'll be asked to confirm). Both take effect immediately.
 
-A saved search keeps all of its options, including its **Tags**, **Type** and a [Custom sort](#custom-sort-order)'s sort expression.
+A saved search keeps all of its options, including its **Tags**, **Type** and a [Custom sort](#custom-sort-order)'s sort expression and column title.
 
 Clicking **Search** only runs the search. It never saves or changes a saved definition, so you can load a saved search, adjust it for a one-off run, and search without changing what's saved.
 
