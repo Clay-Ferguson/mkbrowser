@@ -203,7 +203,7 @@ function TreeFileRow({
     className += ` text-white ${ROW_HOVER}`;
   } //
   else if (node.isDirectory) {
-    className += ` text-btn-accent-amber ${ROW_HOVER}`;
+    className += ` text-folder ${ROW_HOVER}`;
   } //
   else if (isSh) {
     className += ` text-green-400 ${ROW_HOVER}`;
@@ -263,18 +263,18 @@ function TreeFileRow({
       >
         {node.isDirectory
           ? (node.isExpanded
-              ? <FolderOpenIcon className="w-5 h-5 text-btn-accent-amber" />
-              : <FolderIcon className="w-5 h-5 text-btn-accent-amber" />)
+              ? <FolderOpenIcon className="w-5 h-5 text-folder" />
+              : <FolderIcon className="w-5 h-5 text-folder" />)
           : <FileTypeIcon fileName={node.name} />
         }
       </span>
       <span className={nameClassName} title={withLinkFlyover(undefined, node.linkTarget, rootPath)}>{isAttach ? `*${ATTACH_SUFFIX}` : node.name}</span>
       {node.isBrokenLink ? <BrokenLinkBadge /> : node.isSymlink && <SymlinkBadge />}
       {/* Marks a file that owns attachments, which a click reveals as its `*.attach`
-          child. Amber like the folder icons, tying it to that folder row. */}
+          child. Folder-colored like the folder icons, tying it to that folder row. */}
       {node.hasAttachFolder && (
         <span className="shrink-0 flex items-center" title="Has attachments" data-testid="tree-attach-indicator">
-          <PaperClipIcon className="w-3.5 h-3.5 text-amber-500/80" />
+          <PaperClipIcon className="w-3.5 h-3.5 text-folder/80" />
         </span>
       )}
     </div>

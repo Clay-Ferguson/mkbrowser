@@ -24,8 +24,8 @@ export const STYLE_CSS = `
      web links light blue, links to files and folders the folder amber. */
   --link: #5d9eff;
   --link-hover: #90bcfe;
-  --file-link: #fbab0b;
-  --file-link-hover: #ffd295;
+  --file-link: #fbab0b;       /* = --color-folder in index.css */
+  --file-link-hover: #ffd295; /* = --color-folder-hover */
 }
 
 html { background: var(--bg); }

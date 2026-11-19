@@ -139,7 +139,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
       </button>
 
       {isAtRoot && (
-        <span className="text-btn-accent-amber font-medium">/</span>
+        <span className="text-folder font-medium">/</span>
       )}
 
       {segments.map(({ name: part, path: segmentPath }, index) => {
@@ -147,7 +147,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
         const isCurrent = index === segments.length - 1;
         return (
           <div key={segmentPath} className="flex items-center">
-            <span className="text-btn-accent-amber mx-1">/</span>
+            <span className="text-folder mx-1">/</span>
 
             <button
               type="button"

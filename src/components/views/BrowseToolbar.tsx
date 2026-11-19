@@ -310,7 +310,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
                 title="Create folder"
                 data-testid="create-folder-button"
               >
-                <FolderPlusIcon className="w-6 h-6 text-amber-500" />
+                <FolderPlusIcon className="w-6 h-6 text-folder" />
               </button>
             </>
           )}

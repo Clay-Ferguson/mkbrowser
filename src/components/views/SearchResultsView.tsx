@@ -312,9 +312,10 @@ function SearchResultsView() {
       {hasSearched && (
         <header className="flex-shrink-0">
           <div className="flex items-center gap-3 px-4 py-2">
-            {/* Title */}
-            <div className="text-sm font-mono text-btn-accent-amber truncate" title={searchFolder}>
-              {folderName}
+            {/* Title: folder icon, then the searched folder's name */}
+            <div className="flex items-center gap-1.5 min-w-0" title={searchFolder}>
+              <FolderIcon className="w-5 h-5 text-folder flex-shrink-0" />
+              <span className="text-sm font-mono text-folder truncate">{folderName}</span>
             </div>
             <div className="ml-auto flex-shrink-0 flex items-center gap-2">
               <button
@@ -448,7 +449,7 @@ function SearchResultsView() {
               <div
                 key={result.path}
                 onClick={() => handleResultClick(result.path, result.isDirectory === true)}
-                className={`${RESULTS_ROW} group bg-slate-800/50 hover:bg-slate-700/60 border-x border-slate-700 ${ROW_DIVIDERS} ${highlightClass} transition-colors cursor-pointer`}
+                className={`${RESULTS_ROW} group hover:bg-slate-700/60 border-x border-slate-700 ${ROW_DIVIDERS} ${highlightClass} transition-colors cursor-pointer`}
                 role="row"
               >
                 {/* Path: the folder part of the relative path (blank for a
@@ -461,13 +462,14 @@ function SearchResultsView() {
                   title={`Browse ${getParentPath(result.path)}`}
                   data-testid="search-result-path"
                 >
-                  <span className="text-slate-400 hover:text-slate-200">{getParentPath(result.relativePath)}</span>
+                  {/* Folder-colored text, like folders everywhere else, but no icon and no hover change */}
+                  <span className="text-folder">{getParentPath(result.relativePath)}</span>
                 </div>
 
                 {/* Name: folder or file-type icon, then the file or folder name */}
                 <div className={`${CELL_NAME} ${RESULT_CELL_PAD}`} role="cell">
                   {result.isDirectory
-                    ? <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                    ? <FolderIcon className="w-5 h-5 text-folder flex-shrink-0" />
                     : <FileTypeIcon fileName={fileName} />}
                   <span className="text-slate-200" title={result.path} data-testid="search-result-name">{fileName}</span>
                 </div>

@@ -99,7 +99,7 @@ function FolderAnalysisView({ onSearchHashtag, onSearchPropertyTag }: FolderAnal
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <p className="text-sm font-mono text-btn-accent-amber truncate" title={folderPath}>{folderPath}</p>
+          <p className="text-sm font-mono text-folder truncate" title={folderPath}>{folderPath}</p>
           <p className="text-sm text-slate-400 mt-1">
             Scanned <span className="text-slate-200 font-medium">{totalFiles}</span> file{totalFiles !== 1 ? 's' : ''}
           </p>

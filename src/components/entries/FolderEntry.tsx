@@ -94,7 +94,7 @@ function FolderEntry(props: FolderEntryProps) {
           draggable
           onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: true })}
         >
-          <FolderIcon className="w-5 h-5 text-btn-accent-amber" />
+          <FolderIcon className="w-5 h-5 text-folder" />
         </span>
         {isRenaming ? (
           <RenameInput
@@ -110,7 +110,7 @@ function FolderEntry(props: FolderEntryProps) {
           />
         ) : (
           <>
-            <span id={buildEntryHeaderId(entry.path)} className={clsx('font-medium truncate flex-shrink-0', indentFolder ? 'text-slate-400 italic' : 'text-btn-accent-amber')} title={withLinkFlyover(undefined, entry.linkTarget, rootPath)}>{indentFolder ? `*${ATTACH_SUFFIX}` : entry.name}</span>
+            <span id={buildEntryHeaderId(entry.path)} className={clsx('font-medium truncate flex-shrink-0', indentFolder ? 'text-slate-400 italic' : 'text-folder')} title={withLinkFlyover(undefined, entry.linkTarget, rootPath)}>{indentFolder ? `*${ATTACH_SUFFIX}` : entry.name}</span>
             {entry.isSymlink && <SymlinkBadge />}
             {aiHint && (
               <span className="text-slate-400 italic text-sm truncate min-w-0" title={aiHint}>{aiHint}</span>

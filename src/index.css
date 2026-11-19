@@ -74,8 +74,8 @@
   --color-btn-accent-green-hover: #88ce97;
   --color-btn-accent-purple: #b082f7;
   --color-btn-accent-purple-hover: #c5abf4;
-  --color-btn-accent-amber: #fbab0b;  /* folder-colored actions     */
-  --color-btn-accent-amber-hover: #ffd295;
+  --color-btn-accent-amber: var(--color-folder);  /* folder-colored actions: follows --color-folder */
+  --color-btn-accent-amber-hover: var(--color-folder-hover);
   --color-btn-accent-cyan: #0ed4f6;
   --color-btn-accent-cyan-hover: #94eaff;
 
@@ -105,6 +105,14 @@
   /* -- App tab bar (shell classes in styles.ts) -- */
   --color-tab-line: #64748b;          /* slate-500: tab outline + the bar's bottom line */
   --color-tab-active: #0f172a;        /* slate-900: must match the view content background */
+
+  /* -- Folder color: the single source for every folder icon and every folder
+        name/path shown as text (`text-folder`, `hover:text-folder-hover`).
+        Folder-colored buttons (btn-accent-amber) and file links follow it.
+        The exported-HTML stylesheet (main/htmlExport/exportStyles.ts) can't
+        read this, so it repeats the hex — keep them in sync. -- */
+  --color-folder: #fbab0b;
+  --color-folder-hover: #ffd295;
 }
 
 /* Base styling shared by EVERY <button> in the app (including ones that don't use a
@@ -209,10 +217,10 @@ html[data-font-size="xlarge"] {
   line-height: 1.75;
 }
 
-/* Link colors: local file/folder links use the folder amber (as in the breadcrumbs),
+/* Link colors: local file/folder links use the folder color (as in the breadcrumbs),
    web links a light blue. CustomAnchor tags each <a> with md-link-file / md-link-web. */
-.prose a.md-link-file { color: var(--color-btn-accent-amber); }
-.prose a.md-link-file:hover { color: var(--color-btn-accent-amber-hover); }
+.prose a.md-link-file { color: var(--color-folder); }
+.prose a.md-link-file:hover { color: var(--color-folder-hover); }
 .prose a.md-link-web { color: var(--color-btn-accent-blue); }
 .prose a.md-link-web:hover { color: var(--color-btn-accent-blue-hover); }
 

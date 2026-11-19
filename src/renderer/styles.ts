@@ -243,7 +243,7 @@ export const EDITOR_MENU_ITEM_DISABLED = `${EDITOR_MENU_ITEM_BASE} text-btn-labe
 /** Resting colors for a breadcrumb button (the drag-over state swaps in
  *  ENTRY_DROP_TARGET instead, so these are the "not a drop target" half). */
 export const BREADCRUMB_REVEAL_IDLE = 'text-btn-accent-purple hover:bg-btn-ghost-bg hover:border-btn-border';
-export const BREADCRUMB_SEGMENT_IDLE = 'text-btn-accent-amber hover:bg-btn-ghost-bg hover:border-btn-border';
+export const BREADCRUMB_SEGMENT_IDLE = 'text-folder hover:bg-btn-ghost-bg hover:border-btn-border';
 
 // --- App tab bar ---------------------------------------------------------
 // The tab shape is drawn by the shell (the div holding a tab's label and close
@@ -434,5 +434,5 @@ export const MENU_ROW_ACTIONS  = 'flex items-center gap-1 flex-shrink-0 opacity-
 export const MENU_ROW_ICON     = 'w-4 h-4 flex-shrink-0 ml-1.5';
 export const MENU_ACTION_ICON  = 'w-4.5 h-4.5';
 // Folder vs. file icon colors used in menu rows
-export const MENU_FOLDER_ICON  = 'text-btn-accent-amber';
+export const MENU_FOLDER_ICON  = 'text-folder';
 export const MENU_FILE_ICON    = 'text-btn-accent-blue';

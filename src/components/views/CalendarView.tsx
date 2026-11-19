@@ -91,7 +91,7 @@ function CalendarSourceHeader({ source, eventCount }: { source: CalendarSource; 
         title="Browse to this folder"
         data-testid="calendar-source-header"
       >
-        <span className="font-mono text-btn-accent-amber">{source.folder}</span>
+        <span className="font-mono text-folder">{source.folder}</span>
       </div>
     );
   }
