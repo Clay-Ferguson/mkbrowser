@@ -16,6 +16,14 @@ const ANCHOR_GAP = 4;
  * See: (popup_menus.md#positioning-behavior)
  */
 const VIEWPORT_MARGIN = 8;
+/**
+ * Smallest height in px a too-tall menu is squeezed into on one side of its
+ * anchor/cursor. If neither side has this much room, the menu instead takes the
+ * whole viewport height (covering the anchor) and scrolls there.
+ *
+ * See: (popup_menus.md#height-limit-and-scrolling)
+ */
+const MIN_SCROLL_HEIGHT = 160;
 
 // Props of the base menu container. See: (popup_menus.md#1-base-component--srccomponentsmenusbasepopupmenutsx)
 export interface PopupMenuProps {
@@ -72,7 +80,10 @@ export interface PopupMenuProps {
  */
 export default function PopupMenu({ anchorRef, mousePosition, onClose, disableClose = false, align = 'left', children, style: extraStyle, 'data-testid': dataTestId }: PopupMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  // maxHeight is set only when the menu is too tall for the room it was given;
+  // MENU_CONTAINER's overflow-y-auto then turns on its own vertical scrollbar.
+  // See: (popup_menus.md#height-limit-and-scrolling)
+  const [position, setPosition] = useState<{ top: number; left: number; maxHeight?: number } | null>(null);
 
   // Destructure to primitive coordinates so the positioning effect can depend on
   // the numbers rather than the mousePosition object's identity. A caller passing
@@ -100,9 +111,13 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   //
   // Reposition while open if the viewport resizes or scrolls, so the menu stays
   // anchored instead of detaching/overflowing. Scroll uses capture to also catch
-  // scrolling inside nested scrollable containers.
+  // scrolling inside nested scrollable containers (but not the menu's own
+  // scrolling, which can't move it). A ResizeObserver also repositions when the
+  // menu's own size changes: its content changing while open, or its vertical
+  // scrollbar appearing and widening it after maxHeight is first applied.
   // See: (popup_menus.md#rendering-layer-popover-api)
   // See: (popup_menus.md#positioning-behavior)
+  // See: (popup_menus.md#height-limit-and-scrolling)
   useLayoutEffect(() => {
     // Calculate position relative to anchor or mouse position, adjusting for viewport edges
     const updatePosition = () => {
@@ -112,18 +127,28 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
       const menuRect = menu.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
+      // The menu's full height as if uncapped. menuRect.height can't be used: once
+      // an earlier pass set maxHeight it reports the capped height. scrollHeight is
+      // content + padding even while capped; offsetHeight - clientHeight adds the
+      // borders (and a horizontal scrollbar, if any).
+      const naturalHeight = menu.scrollHeight + menu.offsetHeight - menu.clientHeight;
 
-      let top: number;
+      // `below` is the top edge when opening downward; `aboveBottom` is the bottom
+      // edge when flipped to open upward.
+      let below: number;
+      let aboveBottom: number;
       let left: number;
 
       if (mouseX !== undefined && mouseY !== undefined) {
-        top = mouseY;
+        below = mouseY;
+        aboveBottom = mouseY - ANCHOR_GAP;
         left = mouseX;
       } else {
         const anchor = anchorRef?.current;
         if (!anchor) return;
         const anchorRect = anchor.getBoundingClientRect();
-        top = anchorRect.bottom + ANCHOR_GAP;
+        below = anchorRect.bottom + ANCHOR_GAP;
+        aboveBottom = anchorRect.top - ANCHOR_GAP;
 
         // The menu has already been laid out at its natural (content-driven)
         // width by this point, so menuRect.width lets us anchor the right edge
@@ -149,18 +174,40 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
         left = VIEWPORT_MARGIN;
       }
 
-      // If menu overflows bottom, flip above the cursor/anchor
-      if (top + menuRect.height > viewportHeight - VIEWPORT_MARGIN) {
-        const flipFrom = mouseY !== undefined ? mouseY : (anchorRef?.current?.getBoundingClientRect().top ?? top);
-        top = flipFrom - menuRect.height - ANCHOR_GAP;
-      }
-
-      // If flipped above and still overflowing top, clamp to top edge
-      if (top < VIEWPORT_MARGIN) {
+      // Vertical placement: open downward if it fits, else flip upward if that
+      // fits. If neither fits, cap the height (the menu then scrolls internally)
+      // to the roomier side, keeping the anchor/cursor uncovered — unless even
+      // that side is cramped, in which case use the whole viewport height.
+      // See: (popup_menus.md#height-limit-and-scrolling)
+      const spaceBelow = viewportHeight - VIEWPORT_MARGIN - below;
+      const spaceAbove = aboveBottom - VIEWPORT_MARGIN;
+      let top: number;
+      let maxHeight: number | undefined;
+      if (naturalHeight <= spaceBelow) {
+        top = below;
+      } else if (naturalHeight <= spaceAbove) {
+        top = aboveBottom - naturalHeight;
+      } else if (Math.max(spaceBelow, spaceAbove) >= MIN_SCROLL_HEIGHT) {
+        if (spaceBelow >= spaceAbove) {
+          top = below;
+          maxHeight = spaceBelow;
+        } else {
+          top = VIEWPORT_MARGIN;
+          maxHeight = spaceAbove;
+        }
+      } else {
         top = VIEWPORT_MARGIN;
+        const fullHeight = viewportHeight - 2 * VIEWPORT_MARGIN;
+        // Only cap when it doesn't fit the full height either
+        if (naturalHeight > fullHeight) maxHeight = Math.max(fullHeight, 0);
       }
 
-      setPosition({ top, left });
+      setPosition({ top, left, maxHeight });
+    };
+
+    // Scroll events from the menu itself (its own scrollbar) don't move it.
+    const onScroll = (e: Event) => {
+      if (e.target !== menuRef.current) updatePosition();
     };
 
     const menu = menuRef.current;
@@ -173,15 +220,21 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
     }
     updatePosition();
     window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('scroll', onScroll, true);
+    // Re-setting identical values doesn't change the menu's size, so this can't loop.
+    const resizeObserver = new ResizeObserver(() => updatePosition());
+    if (menu) resizeObserver.observe(menu);
     return () => {
       window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('scroll', onScroll, true);
+      resizeObserver.disconnect();
     };
   }, [anchorRef, mouseX, mouseY, align]);
 
-  // Click-outside and Escape dismiss
+  // Click-outside and Escape dismiss. A mousedown on the menu's own scrollbar
+  // targets the menu element itself, so contains() keeps the menu open for it.
   // See: (popup_menus.md#dismiss-behavior)
+  // See: (popup_menus.md#height-limit-and-scrolling)
   useEffect(() => {
     if (disableClose) return;
     const handleMouseDown = (e: MouseEvent) => {
@@ -214,6 +267,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
       style={{
         top: position?.top,
         left: position?.left,
+        maxHeight: position?.maxHeight,
         // Neutralise the UA popover defaults (inset: 0; margin: auto) so our
         // computed top/left position the menu instead of stretching it edge-to-edge.
         right: 'auto',

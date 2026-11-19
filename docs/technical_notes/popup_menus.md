@@ -2,7 +2,7 @@
 
 ## Overview
 
-Popup menus are small dropdown menus that float over the page content. Most are opened by an icon button and appear just below it. Context menus (right-click) use the same component and appear at the mouse position instead. The menu moves itself so the viewport edges never cut it off, and it follows its anchor when the window is resized or scrolled. Clicking a menu item runs a callback and closes the menu. Clicking outside the menu or pressing Escape also closes it.
+Popup menus are small dropdown menus that float over the page content. Most are opened by an icon button and appear just below it. Context menus (right-click) use the same component and appear at the mouse position instead. The menu moves itself so the viewport edges never cut it off, scrolls internally when it has too many items to fit the window, and it follows its anchor when the window is resized or scrolled. Clicking a menu item runs a callback and closes the menu. Clicking outside the menu or pressing Escape also closes it.
 
 ## Architecture: Two Layers
 
@@ -182,9 +182,22 @@ The base `PopupMenu` computes `top`/`left` in a `useLayoutEffect`, after the men
 - **Anchor, `align="left"` (default)**: the menu's top-left corner sits 4px (`ANCHOR_GAP`) below the anchor's bottom-left corner. If that overflows the right edge, the menu's right edge is lined up with the anchor's right edge instead.
 - **Anchor, `align="right"`**: the menu's top-right corner sits 4px below the anchor's bottom-right corner. This suits buttons at the right end of a bar, such as the entry hamburger button.
 - **Mouse position**: the menu's top-left corner is placed at the cursor.
-- **Edge clamping** (all modes): the menu is kept at least 8px (`VIEWPORT_MARGIN`) inside the right and left viewport edges. If it overflows the bottom, it flips to sit above the anchor's top edge (or above the cursor) with a 4px gap, then is clamped 8px from the top.
-- **Repositioning**: while the menu is open, it recalculates on window `resize` and on `scroll`. The scroll listener uses capture so it also catches scrolling inside nested scroll containers.
+- **Edge clamping** (all modes): the menu is kept at least 8px (`VIEWPORT_MARGIN`) inside the right and left viewport edges. If it overflows the bottom, it flips to sit above the anchor's top edge (or above the cursor) with a 4px gap. If it fits on neither side, its height is capped and it scrolls (see Height Limit and Scrolling).
+- **Repositioning**: while the menu is open, it recalculates on window `resize` and on `scroll`. The scroll listener uses capture so it also catches scrolling inside nested scroll containers; scrolling of the menu itself is ignored. A `ResizeObserver` on the menu also recalculates when the menu's own size changes, such as its content changing while open or its vertical scrollbar appearing and widening it.
 - **No flicker**: the container stays `visibility: hidden` until its first position has been calculated.
+
+## Height Limit and Scrolling
+
+User-defined content (bookmarks, recent folders, etc.) can make a menu taller than the window. Rather than a fixed percentage cap, `PopupMenu` measures the real room available and sets an inline `maxHeight` only when the menu doesn't fit. `MENU_CONTAINER` has `overflow-y-auto`, so the capped menu shows its own vertical scrollbar, and `overscroll-contain`, so wheel scrolling past either end doesn't scroll the page behind it.
+
+The menu's uncapped height is measured as `scrollHeight + offsetHeight - clientHeight`, which stays correct after an earlier pass has already capped it. Placement is decided in this order:
+
+1. It fits below the anchor/cursor: open downward, no cap.
+2. It fits above: open upward, no cap.
+3. The roomier side has at least 160px (`MIN_SCROLL_HEIGHT`): open on that side, capped to that side's space, so the anchor/cursor stays uncovered.
+4. Otherwise (a very short window): start 8px from the top and cap to the full viewport height minus the margins, covering the anchor.
+
+Clicking or dragging the menu's scrollbar does not close the menu. The scrollbar is part of the menu element, so the `mousedown` target is inside the menu and the click-outside check (below) ignores it.
 
 ## Dismiss Behavior
 
@@ -203,7 +216,7 @@ Not handled by `PopupMenu`:
 
 The menu's style classes are constants in `src/renderer/styles.ts`, not literals in `PopupMenu.tsx`:
 
-- **`MENU_CONTAINER`**: `fixed bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px] max-w-xs`
+- **`MENU_CONTAINER`**: `fixed bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px] max-w-xs overflow-y-auto overscroll-contain`
 - **`MENU_ITEM_BASE`**: `w-full text-left py-2 text-sm transition-colors flex items-center gap-2`, plus `px-4` (or `px-3` when the item has a check column)
 - **`MENU_ITEM_ENABLED`**: `text-btn-neutral-fg hover:bg-btn-menu-hover cursor-pointer`
 - **`MENU_ITEM_DISABLED`**: `text-btn-label-off cursor-not-allowed`
