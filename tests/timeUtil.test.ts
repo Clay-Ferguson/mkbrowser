@@ -13,6 +13,7 @@ import {
   generateTimestampFileName,
   formatTimestamp,
   formatDateTime12,
+  toTimestamp,
   TIMESTAMP_FILENAME_RE,
   NO_TIMESTAMP,
 } from '../src/shared/timeUtil';
@@ -504,5 +505,22 @@ describe('formatDateTime12', () => {
     expect(formatDateTime12(at(0, 0), true)).toBe('2026-11-08');
     expect(formatDateTime12(at(0, 1), true)).toBe('2026-11-08 12:01 AM');
     expect(formatDateTime12(at(12, 0), true)).toBe('2026-11-08 12:00 PM');
+  });
+});
+
+describe('toTimestamp', () => {
+  it('passes a finite number through as an existing timestamp', () => {
+    expect(toTimestamp(1700000000000)).toBe(1700000000000);
+    expect(toTimestamp(0)).toBe(0);
+  });
+
+  it('is NaN for a non-finite number', () => {
+    expect(toTimestamp(Number.NaN)).toBeNaN();
+    expect(toTimestamp(Number.POSITIVE_INFINITY)).toBeNaN();
+  });
+
+  it('parses a string the same way parseDateString does', () => {
+    expect(toTimestamp('2026-01-15')).toBe(parseDateString('2026-01-15'));
+    expect(toTimestamp('nonsense')).toBeNaN();
   });
 });

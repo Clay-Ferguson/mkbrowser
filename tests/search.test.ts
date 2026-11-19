@@ -791,9 +791,9 @@ describe('custom sort', () => {
       matchType: 'advanced', sortBy: 'custom', sortDirection: 'asc', sortExpression: '[p.priority, ts(p.due)]',
     });
     expect(results.map(r => [path.basename(r.path), r.sortLabel])).toEqual([
-      ['late.md', '1 · 2026-03-01'],
-      ['undated.md', '1 · —'],
-      ['early.md', '2 · 2026-01-15 09:30 AM'],
+      ['late.md', '1 — 2026-03-01'],
+      ['undated.md', '1 — (none)'],
+      ['early.md', '2 — 2026-01-15 09:30 AM'],
     ]);
   });
 
@@ -850,7 +850,33 @@ describe('custom sort', () => {
     expect(formatSortLabel(3)).toBe('3');
     expect(formatSortLabel('abc')).toBe('abc');
     expect(formatSortLabel(null)).toBe('—');
-    expect(formatSortLabel([1, null, 'x'])).toBe('1 · — · x');
+    expect(formatSortLabel([1, null, 'x'])).toBe('1 — (none) — x');
+    expect(formatSortLabel([null, null])).toBe('(none) — (none)');
+  });
+
+  it('labels [p.priority, ts(f.created)] with both parts', () => {
+    const created = new Date(2026, 0, 2, 15, 4).getTime();
+    const { sortKey, sortLabel } = createSortKeyEvaluator('[p.priority, ts(f.created)]')(
+      '---\npriority: 3\n---\nbody', '/x/a.md', { birthtimeMs: created, mtimeMs: created });
+    expect(sortKey).toEqual([3, created]);
+    expect(sortLabel).toBe('3 — 2026-01-02 03:04 PM');
+  });
+
+  it('treats a zero creation time (not recorded by the filesystem) as no value', () => {
+    const { sortKey, sortLabel } = createSortKeyEvaluator('[p.priority, f.created]')(
+      '---\npriority: 3\n---\nbody', '/x/a.md', { birthtimeMs: 0, mtimeMs: 5 });
+    expect(sortKey).toEqual([3, null]);
+    expect(sortLabel).toBe('3 — (none)');
+  });
+
+  it('reads front matter behind a byte-order mark', () => {
+    const { sortKey } = createSortKeyEvaluator('p.priority')('﻿---\npriority: 4\n---\nbody', '/x/bom.md');
+    expect(sortKey).toBe(4);
+  });
+
+  it('shows a mapping-valued property as its JSON text', () => {
+    const { sortLabel } = createSortKeyEvaluator('p.priority')('---\npriority:\n  level: 2\n---\nbody', '/x/obj.md');
+    expect(sortLabel).toBe('{"level":2}');
   });
 });
 

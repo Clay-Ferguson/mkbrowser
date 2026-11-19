@@ -19,7 +19,7 @@ function makeHost(content = '', props: Record<string, unknown> = {}, file: Recor
     past: (ts) => !Number.isNaN(ts) && ts < Date.now(),
     future: (ts) => !Number.isNaN(ts) && ts > Date.now(),
     today: (ts) => !Number.isNaN(ts),
-    ts: (s) => (s === '2000-01-01' ? 946684800000 : Number.NaN),
+    ts: (v) => (typeof v === 'number' ? v : v === '2000-01-01' ? 946684800000 : Number.NaN),
   };
 }
 
@@ -273,9 +273,11 @@ describe('compileSortKeyExpression', () => {
     ['null', null],
     ['NaN', null],
     ['Infinity', null],
-    ['({ a: 1 })', null],
-    ['() => 1', null],
-    ['[3, "x", true, undefined, NaN, [1], {}]', [3, 'x', 1, null, null, null, null]],
+    // Any other value is shown (and sorted) as its string representation.
+    ['({ a: 1 })', '{"a":1}'],
+    ['() => 1', '() => 1'],
+    ['10n', '10'],
+    ['[3, "x", true, undefined, NaN, [1], {}]', [3, 'x', 1, null, null, '[1]', '{}']],
   ])('normalizes %s', (expr, expected) => {
     expect(key(expr)).toEqual(expected);
   });
@@ -300,6 +302,24 @@ describe('compileSortKeyExpression', () => {
     const { key: k, dates } = compileSortKeyExpression('[f.size, f.created, f.modified]')(host);
     expect(k).toEqual([50, 1000, 2000]);
     expect([...dates].sort()).toEqual([1000, 2000]);
+  });
+
+  it('shows a front-matter mapping or list as its JSON text', () => {
+    const host = makeHost('', { priority: { level: 2 }, tags: ['a', 'b'] });
+    expect(key('p.priority', host)).toBe('{"level":2}');
+    expect(key('[p.priority, p.tags]', host)).toEqual(['{"level":2}', '["a","b"]']);
+  });
+
+  it('ts() passes a timestamp through, so ts(f.created) is a date', () => {
+    const host = makeHost('', { priority: 2 }, { created: 1000 });
+    const { key: k, dates } = compileSortKeyExpression('[p.priority, ts(f.created), ts(new Date(7))]')(host);
+    expect(k).toEqual([2, 1000, 7]);
+    expect([...dates].sort()).toEqual([1000, 7]);
+    expect(key('ts(f.missing)', host)).toBeNull();
+  });
+
+  it('times out on a toJSON loop hit while stringifying an object', () => {
+    expect(() => key('({ toJSON() { for (;;); } })')).toThrow(AdvancedQueryTimeoutError);
   });
 
   it('accepts a trailing line comment', () => {

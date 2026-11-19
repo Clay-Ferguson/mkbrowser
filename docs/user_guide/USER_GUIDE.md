@@ -790,7 +790,7 @@ The top of the **Search Results** tab summarizes the search — the saved search
 The results are shown as a table with three columns:
 
 - **Name**: The file's (or folder's) path relative to the searched folder. Click a row to open it.
-- **Order**: The value the results were sorted by — the modification or creation time (as `YYYY-MM-DD hh:mm AM/PM`) for a time sort, the file name for a file-name sort, or the expression's value for a [Custom sort](#custom-sort-order). A result with no value (for example a file system that doesn't record creation times) shows **—**. A long value is cut off; hover over it to see all of it.
+- **Order**: The value the results were sorted by — the modification or creation time (as `YYYY-MM-DD hh:mm AM/PM`) for a time sort, the file name for a file-name sort, or the expression's value for a [Custom sort](#custom-sort-order). A result with no value (for example a file system that doesn't record creation times) shows **—**. A long value wraps onto more lines, so it is always shown in full.
 - **Actions**: Hover over a row to reveal its **Edit** button (Markdown and text files only) and **Delete** button.
 
 The column headings stay at the top while you scroll. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
@@ -820,13 +820,13 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 *   **`f`**: The file itself:
     *   `f.content`: the file's full text (for an image searched by EXIF, its EXIF text, which is what `$()` searches). Unlike `$()`, you can use any string method or regular expression on it, including case-sensitive ones.
     *   `f.size`: the size in bytes.
-    *   `f.created` / `f.modified`: the creation and last-modified times, as timestamps in milliseconds, so they work directly with `past()`, `future()` and `today()` (`past(f.modified, 7)`) and compare with `ts()` (`f.modified > ts('2026-01-01')`).
+    *   `f.created` / `f.modified`: the creation and last-modified times, as timestamps in milliseconds, so they work directly with `past()`, `future()` and `today()` (`past(f.modified, 7)`) and compare with `ts()` (`f.modified > ts('2026-01-01')`). On a drive that doesn't record creation times (some network and virtual drives), `f.created` is `undefined`.
     *   `f.name`: the file name, e.g. `notes.md`.
     *   `f.path`: the file's full path.
     *   `f.ext`: the lowercase extension with its dot, e.g. `.md`.
 
     A value that isn't available (for example, the file couldn't be read for its size) is `undefined`.
-*   **`ts(dateString)`**: Converts a date/datetime string to a numeric timestamp in milliseconds, for use with `past()`, `future()`, and `today()` — e.g. `future(ts(p.due))`. Two formats are accepted: the app's `MM/DD/YYYY` convention (optional `HH:MM[:SS] AM/PM`) and ISO 8601 `YYYY-MM-DD` (optional 24-hour `HH:MM[:SS]`, separated by `T` or a space) — the form YAML front matter typically uses. Both are interpreted as local time; timezone suffixes are not supported. A missing property or any other format yields an invalid timestamp, for which `past()`/`future()`/`today()` all return `false`.
+*   **`ts(dateString)`**: Converts a date/datetime string to a numeric timestamp in milliseconds (a value that is already a timestamp, such as `f.created`, is returned unchanged, so `ts(f.created)` works too), for use with `past()`, `future()`, and `today()` — e.g. `future(ts(p.due))`. Two formats are accepted: the app's `MM/DD/YYYY` convention (optional `HH:MM[:SS] AM/PM`) and ISO 8601 `YYYY-MM-DD` (optional 24-hour `HH:MM[:SS]`, separated by `T` or a space) — the form YAML front matter typically uses. Both are interpreted as local time; timezone suffixes are not supported. A missing property or any other format yields an invalid timestamp, for which `past()`/`future()`/`today()` all return `false`.
 
 **Examples:**
 *   Find files with "TODO" that are due in the future:
@@ -933,16 +933,25 @@ The expression is written exactly like an [Advanced search predicate](#advanced-
 - Order → Sort By: Custom, Sort expression: `ts(p.due)`
 - Order → Direction: ASC
 
+**Example — ordering by tags.** A sort expression can turn a file's tags into a value to sort on. If you mark priority with the tags `p1`, `p2` and `p3`, this labels each file with its highest priority tag:
+
+```js
+p.tags.includes('p3') ? "P3" : p.tags.includes('p2') ? "P2" : p.tags.includes('p1') ? "P1" : "n/a"
+```
+
+`p.tags` is the file's front matter `tags` list, and `includes()` checks it for one tag; the `? :` chain returns the first label whose tag is present. With Direction DESC the results list **P3** files first, then **P2**, **P1**, and **n/a** (tagged, but with none of the three), and the **Order** column shows each file's label. A file with no `tags` at all makes `p.tags.includes` fail, so it shows **—** and sorts last; write `p.tags?.includes(...)` (or use `tag('p3')` etc.) if you'd rather such files get **n/a** too.
+
 **How values are compared:**
 *   **Numbers** are compared numerically. Use `ts()` to turn a date into a number, so that dates sort by time: `ts(p.due)`. File sizes and times are already numbers: `f.size` sorts by size, `f.modified` by last-modified time.
 *   **Text** is compared ignoring upper/lower case, with numbers inside the text compared by value (`item 2` comes before `item 10`).
 *   **True/false** values count as 1 and 0, so `tag('urgent')` with DESC lists urgent files first.
+*   Any other value — such as a front matter property holding a nested mapping or list — is shown and compared as its text (e.g. `{"level":2}`).
 *   When values of different kinds are mixed, numbers come before text.
 *   **No value** — a missing property (`p.due` on a file without `due`), a date `ts()` can't read, or an error on that file — always sorts **last**, in both ASC and DESC. If the expression fails on *every* file, the search reports the error instead, as with a query.
 
 **Sorting by more than one value.** Return a list in square brackets to sort by the first value, then break ties with the next, and so on. For example, `[p.priority, ts(p.due)]` orders by `priority`, and files with the same priority by due date. Within a list, a missing value also sorts after the others at its position, whichever the direction.
 
-**The value on each result.** With a custom sort, the **Order** column of the Search Results tab shows the value each row was sorted by, so you can see why it landed where it did. Dates produced by `ts()` are shown as dates (`2026-11-20`, plus the time — e.g. `2026-11-20 02:30 PM` — when it isn't midnight); a missing value is shown as **—**; list values are separated by **·**.
+**The value on each result.** With a custom sort, the **Order** column of the Search Results tab shows the value each row was sorted by, so you can see why it landed where it did. Dates produced by `ts()`, `f.created` or `f.modified` are shown as dates (`2026-11-20`, plus the time — e.g. `2026-11-20 02:30 PM` — when it isn't midnight), and a missing value is shown as **—**. A list shows all of its values in the one column, separated by **—**, with a missing value in the list shown as **(none)** — e.g. `3 — 2026-11-20 02:30 PM` or `(none) — 2026-11-20 02:30 PM`.
 
 **Mistakes in the sort expression** are reported under the **Sort expression** box when you click **Search** or **Save**, just like the query. **Search** and **Save** stay disabled while Sort By is Custom and the box is empty.
 

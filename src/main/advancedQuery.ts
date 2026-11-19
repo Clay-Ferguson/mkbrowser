@@ -51,7 +51,8 @@ export interface AdvancedQueryHost {
   past: (timestamp: number, lookbackDays?: number) => boolean;
   future: (timestamp: number, lookaheadDays?: number) => boolean;
   today: (timestamp: number) => boolean;
-  ts: (dateStr: string) => number;
+  /** A date string, or a number that is already a timestamp, as ms (NaN if invalid). */
+  ts: (value: string | number) => number;
 }
 
 /** Thrown when the query exceeds EVAL_TIMEOUT_MS on a file. The same query will
@@ -102,9 +103,11 @@ const BOOTSTRAP = `
   def('past', (ts, days) => call('past', Number(ts), days === undefined ? undefined : Number(days)));
   def('future', (ts, days) => call('future', Number(ts), days === undefined ? undefined : Number(days)));
   def('today', (ts) => call('today', Number(ts)));
-  // ts: date string -> ms timestamp (local time). A missing value
-  // (undefined/null) is NaN, the "no date" sentinel.
-  def('ts', (v) => (v === undefined || v === null ? NaN : call('ts', String(v))));
+  // ts: date string -> ms timestamp (local time). A number is already a
+  // timestamp (e.g. f.created) and a Date gives its time, so ts(f.created) works.
+  // A missing value (undefined/null) is NaN, the "no date" sentinel.
+  def('ts', (v) => (v === undefined || v === null ? NaN
+    : call('ts', typeof v === 'number' ? v : v instanceof Date ? v.getTime() : String(v))));
   // p: front-matter property object — p.type reads the file's 'type' property.
   // A sandbox-realm Proxy (no host object involved). Strings and objects arrive
   // JSON-encoded (so no host object ever enters this realm) and are revived
@@ -139,19 +142,27 @@ const CATCH_TO_STRING = `e !== null && typeof e === 'object'
 /**
  * Sandbox-side normalization of a custom sort expression's value into a SortKey:
  * finite numbers and strings pass through, booleans become 1/0, a Date becomes
- * its timestamp, and anything else (undefined, null, NaN, objects) becomes null,
- * "no value". An array is normalized element by element — one level only, so a
- * nested array or object element is null.
+ * its timestamp, and undefined, null and non-finite numbers become null, "no
+ * value". Any other value (an object, such as a front-matter property holding a
+ * mapping, or a function) becomes its string representation — JSON where it has
+ * one, else String() — so it is still shown and sorted rather than dropped. An
+ * array is normalized element by element, one level only: a nested array
+ * element becomes its string representation too.
+ *
+ * Runs inside the sandbox, so a value's toJSON/toString runs under the timeout.
  *
  * See: (USER_GUIDE.md#custom-sort-order)
  */
 const SORT_KEY_NORMALIZE = `((v) => {
       const one = (x) => {
+        if (x === undefined || x === null) return null;
         if (typeof x === 'number') return Number.isFinite(x) ? x : null;
         if (typeof x === 'string') return x;
         if (typeof x === 'boolean') return x ? 1 : 0;
         if (x instanceof Date) { const t = x.getTime(); return Number.isFinite(t) ? t : null; }
-        return null;
+        let text;
+        try { text = JSON.stringify(x); } catch { text = undefined; }
+        return typeof text === 'string' ? text : String(x);
       };
       return Array.isArray(v) ? Array.prototype.map.call(v, one) : one(v);
     })`;
@@ -254,7 +265,7 @@ function createSandboxRunner(script: vm.Script): (host: AdvancedQueryHost) => un
         case 'today':
           return h.today(Number(a0));
         case 'ts':
-          return h.ts(String(a0));
+          return h.ts(typeof a0 === 'number' ? a0 : String(a0));
         case 'getProp': {
           const v = h.getProp(String(a0));
           if (v === null || v === undefined) return v;
@@ -352,8 +363,8 @@ export function compileSortKeyExpression(exprStr: string): (host: AdvancedQueryH
 
   return (h: AdvancedQueryHost): SortKeyResult => {
     const dates = new Set<number>();
-    const ts = (dateStr: string): number => {
-      const t = h.ts(dateStr);
+    const ts = (value: string | number): number => {
+      const t = h.ts(value);
       if (Number.isFinite(t)) dates.add(t);
       return t;
     };

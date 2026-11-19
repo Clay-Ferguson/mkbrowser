@@ -221,6 +221,19 @@ export function parseDateString(value: string): number {
   );
 }
 
+/**
+ * The advanced-search `ts()` helper: a date string parsed by parseDateString, or
+ * a number taken as an existing ms timestamp (so `ts(f.created)` is the same as
+ * `f.created`). Returns NO_TIMESTAMP (NaN) for an unparseable string or a
+ * non-finite number.
+ *
+ * See: (USER_GUIDE.md#advanced-search-predicates)
+ */
+export function toTimestamp(value: string | number): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : NO_TIMESTAMP;
+  return parseDateString(value);
+}
+
 /** Returns today's date formatted as `MM/DD/YY` (two-digit year). */
 export function formatDate(): string {
   const now = new Date();

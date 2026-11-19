@@ -364,7 +364,7 @@ function SearchResultsView() {
           // tracks and every row (heading and results) is a subgrid spanning all
           // three, so the columns line up across rows while each row stays its
           // own element (click target, hover background, highlight outline).
-          // Order sizes to its widest value, capped at 40% of the width.
+          // Order sizes to its widest value, capped at 40% of the width (longer values wrap).
           // See: (USER_GUIDE.md#search-results)
           <div className="grid grid-cols-[minmax(0,1fr)_fit-content(40%)_max-content]" role="table" data-testid="search-results-table">
             {/* Column headings — sticky, so they stay in view while a long
@@ -409,11 +409,11 @@ function SearchResultsView() {
                   <span className="text-slate-200 break-all min-w-0" title={result.path}>{result.relativePath}</span>
                 </div>
 
-                {/* Order: the value this result was sorted by, truncated (with
-                    the full value as a tooltip) when it exceeds the column cap */}
+                {/* Order: the value this result was sorted by, shown whole —
+                    a value wider than the column cap wraps onto more lines */}
                 <div className={`${CELL_ORDER} ${RESULT_CELL_PAD}`} role="cell">
                   <span
-                    className="text-sm text-slate-400 font-mono truncate"
+                    className="text-sm text-slate-400 font-mono break-words min-w-0"
                     title={orderValue}
                     data-testid="search-result-sort-value"
                   >

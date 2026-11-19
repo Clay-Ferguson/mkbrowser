@@ -26,7 +26,7 @@ import fs from 'node:fs';
 import { fdir } from 'fdir';
 import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
-import { parseDateString, past, future, today, formatDateTime12 } from '../shared/timeUtil';
+import { toTimestamp, past, future, today, formatDateTime12 } from '../shared/timeUtil';
 import { createContentSearcher, compareSearchResults, parseTagFilter, matchesTagFilter, matchesTypeFilter } from '../shared/searchHelpers';
 import type { SearchDefinition, SearchMatchType, SortKey } from '../shared/shared';
 import { compileAdvancedQuery, compileSortKeyExpression, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
@@ -65,7 +65,8 @@ function getYaml(cache: YamlCache, content: string, filePath?: string): Record<s
     // explicit; a falsy check would wrongly treat the cached `null` as a miss.
     if (cached !== undefined) return cached;
   }
-  const parts = splitFrontMatter(content);
+  // A leading byte-order mark would hide the opening `---` fence.
+  const parts = splitFrontMatter(content.replace(/^\uFEFF/, ''));
   let parsed: Record<string, unknown> | null = null;
   if (parts) {
     try {
@@ -192,7 +193,9 @@ function createGetFile(content: string, filePath?: string, stat?: Partial<StatTi
       case 'size':
         return stat?.size;
       case 'created':
-        return stat?.birthtimeMs === undefined ? undefined : Math.round(stat.birthtimeMs);
+        // 0 means the filesystem doesn't record creation times (e.g. some
+        // network/virtual mounts), so there is no value rather than 1970.
+        return !stat?.birthtimeMs ? undefined : Math.round(stat.birthtimeMs);
       case 'modified':
         return stat?.mtimeMs === undefined ? undefined : Math.round(stat.mtimeMs);
       case 'name':
@@ -235,7 +238,7 @@ export function createMatchPredicate(
       const getProp = createGetProp(cache, content, filePath);
       const getFile = createGetFile(content, filePath, stat);
       try {
-        const matches = evalFunction({ $, tag, getProp, getFile, past, future, today, ts: parseDateString });
+        const matches = evalFunction({ $, tag, getProp, getFile, past, future, today, ts: toTimestamp });
         const matchCount = getMatchCount();
         return {
           matches,
@@ -308,18 +311,29 @@ interface SortKeyOutcome {
   error?: string;
 }
 
+/** Order-column text for a custom sort key with no value. */
+const SORT_LABEL_NO_VALUE = '—';
+/** Between the parts of an array sort key's label. */
+const SORT_LABEL_SEPARATOR = ' — ';
+/** An array sort key's missing part (not `—`, which would read as a separator). */
+const SORT_LABEL_MISSING_PART = '(none)';
+
 /**
- * Display text for a sort key: numbers that came from `ts()` (listed in
- * `dates`) as dates (`YYYY-MM-DD`, plus ` hh:mm AM/PM` when the time is not
- * midnight — the same format the built-in time sorts show), other values as-is, no value as an em dash, and the parts
- * of an array key joined with ` · `.
+ * Display text for a sort key, shown whole in the results' Order column.
+ * Numbers that came from `ts()`, `f.created` or `f.modified` (listed in `dates`)
+ * are shown as dates (`YYYY-MM-DD`, plus ` hh:mm AM/PM` when the time is not
+ * midnight — the same format the built-in time sorts show); other values as-is.
+ * An array key's parts are joined with ` — `, a missing part shown as `(none)`
+ * so it can't be mistaken for the separator; a key with no value at all is `—`.
  *
  * See: (USER_GUIDE.md#custom-sort-order)
  */
 export function formatSortLabel(key: SortKey, dates: ReadonlySet<number> = new Set()): string {
-  const one = (v: number | string | null): string =>
-    v === null ? '—' : typeof v === 'number' && dates.has(v) ? formatDateTime12(v, true) : String(v);
-  return Array.isArray(key) ? key.map(one).join(' · ') : one(key);
+  const one = (v: number | string | null, missing: string): string =>
+    v === null ? missing : typeof v === 'number' && dates.has(v) ? formatDateTime12(v, true) : String(v);
+  return Array.isArray(key)
+    ? key.map(v => one(v, SORT_LABEL_MISSING_PART)).join(SORT_LABEL_SEPARATOR)
+    : one(key, SORT_LABEL_NO_VALUE);
 }
 
 /**
@@ -347,7 +361,7 @@ export function createSortKeyEvaluator(
     const getProp = createGetProp(cache, content, filePath);
     const getFile = createGetFile(content, filePath, stat);
     try {
-      const { key, dates } = evalFunction({ $, tag, getProp, getFile, past, future, today, ts: parseDateString });
+      const { key, dates } = evalFunction({ $, tag, getProp, getFile, past, future, today, ts: toTimestamp });
       return { sortKey: key, sortLabel: formatSortLabel(key, dates) };
     } catch (err) {
       if (err instanceof AdvancedQueryTimeoutError) timedOut = err;
