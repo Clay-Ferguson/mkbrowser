@@ -5,9 +5,9 @@
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName, parseTagCategoryCols, unknownTagCategories, tagCategoryLookup, tagCategoryCellValue, priorityHighlight } from '../src/shared/searchHelpers';
+import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName, parseTagCategoryCols, unknownTagCategories, tagCategoryLookup, tagCategoryCellValue, priorityHighlight, sortByText } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
-import { setSearchOutcome, removeSearchResult, clearSearchResults } from '../src/store/search';
+import { setSearchOutcome, removeSearchResult, clearSearchResults, setSearchColumnSort } from '../src/store/search';
 import type { SearchDefinition, SortKey } from '../src/shared/shared';
 
 const r = (relativePath: string, modifiedTime?: number, createdTime?: number) =>
@@ -139,11 +139,56 @@ describe('search store slice', () => {
     expect(useAS.getState().searchTotalMatches).toBe(1);
   });
 
+  it('setSearchColumnSort sorts for display only; a new search resets it', () => {
+    setSearchOutcome('/root', definition, { results: [result('/b.md'), result('/a.md')], totalMatches: 2 });
+    setSearchColumnSort({ column: 'name', direction: 'desc' });
+    expect(useAS.getState().searchColumnSort).toEqual({ column: 'name', direction: 'desc' });
+    // The results themselves keep the search's order.
+    expect(useAS.getState().searchResults.map(x => x.path)).toEqual(['/b.md', '/a.md']);
+    setSearchOutcome('/root', definition, { results: [result('/a.md')], totalMatches: 1 });
+    expect(useAS.getState().searchColumnSort).toBeNull();
+  });
+
+  it('clearSearchResults resets the column sort', () => {
+    setSearchColumnSort({ column: 'path', direction: 'asc' });
+    clearSearchResults();
+    expect(useAS.getState().searchColumnSort).toBeNull();
+  });
+
   it('clearSearchResults resets the total', () => {
     setSearchOutcome('/root', definition, { results: [result('/a.md')], totalMatches: 3 });
     clearSearchResults();
     expect(useAS.getState().searchTotalMatches).toBe(0);
     expect(useAS.getState().lastSearchDefinition).toBeNull();
+  });
+});
+
+describe('sortByText', () => {
+  const text = (r: { t: string }) => r.t;
+  const rows = (...ts: string[]) => ts.map((t, i) => ({ t, i }));
+
+  it('sorts ascending and descending, ignoring case', () => {
+    const input = rows('banana', 'Apple', 'cherry');
+    expect(sortByText(input, text, 'asc').map(r => r.t)).toEqual(['Apple', 'banana', 'cherry']);
+    expect(sortByText(input, text, 'desc').map(r => r.t)).toEqual(['cherry', 'banana', 'Apple']);
+  });
+
+  it('compares digit runs as numbers', () => {
+    expect(sortByText(rows('p10', 'p2', 'p1'), text, 'asc').map(r => r.t)).toEqual(['p1', 'p2', 'p10']);
+  });
+
+  it('keeps tied rows in their original order, in both directions', () => {
+    const input = rows('b', 'a', 'B', 'a');
+    expect(sortByText(input, text, 'asc').map(r => r.i)).toEqual([1, 3, 0, 2]);
+    expect(sortByText(input, text, 'desc').map(r => r.i)).toEqual([0, 2, 1, 3]);
+  });
+
+  it('returns a new array of the same row objects, leaving the input untouched', () => {
+    const input = rows('b', 'a');
+    const sorted = sortByText(input, text, 'asc');
+    expect(sorted).not.toBe(input);
+    expect(input.map(r => r.t)).toEqual(['b', 'a']);
+    expect(sorted[0]).toBe(input[1]);
   });
 });
 

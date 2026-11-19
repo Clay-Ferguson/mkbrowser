@@ -233,6 +233,17 @@ export interface FolderGraphState {
 /**
  * Search result from the file search
  */
+/**
+ * A Search Results column the user clicked to sort by. `column` is `'path'`,
+ * `'name'`, `'sort'` (the sort-value column) or `'tag:<category>'`.
+ *
+ * See: (USER_GUIDE.md#sorting-by-a-column)
+ */
+export interface SearchColumnSort {
+  column: string;
+  direction: SearchSortDirection;
+}
+
 export interface SearchResultItem {
   path: string;
   relativePath: string;
@@ -517,6 +528,16 @@ export interface AppState {
    * Sort direction applied to the current search results
    */
   searchSortDirection: SearchSortDirection;
+
+  /**
+   * The Search Results table's click-to-sort column, or null to show the results
+   * in the order the search produced (`searchResults` is never reordered — the
+   * view derives a sorted copy). In-memory display order only; reset by every
+   * new search.
+   *
+   * See: (USER_GUIDE.md#sorting-by-a-column)
+   */
+  searchColumnSort: SearchColumnSort | null;
 
   /**
    * The complete parameter set that produced the current search results, kept

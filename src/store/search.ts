@@ -1,4 +1,4 @@
-import type { HighlightedSearchResult, SearchDefinition, SearchResultItem } from '../shared/types';
+import type { HighlightedSearchResult, SearchColumnSort, SearchDefinition, SearchResultItem } from '../shared/types';
 import { getState } from './core';
 import type { StoreGet, StoreSet } from './core';
 
@@ -22,6 +22,7 @@ export interface SearchSlice {
   setHighlightedSearchResult: (result: HighlightedSearchResult | null) => void;
   setSearchOutcome: (folder: string, definition: SearchDefinition, outcome: SearchOutcomeData) => void;
   removeSearchResult: (path: string) => void;
+  setSearchColumnSort: (sort: SearchColumnSort | null) => void;
   clearSearchResults: () => void;
 }
 
@@ -50,6 +51,8 @@ export function createSearchSlice(set: StoreSet, get: StoreGet): SearchSlice {
         searchName: definition.name,
         searchSortBy: definition.sortBy,
         searchSortDirection: definition.sortDirection,
+        // A new search (Refresh included) starts in its own order.
+        searchColumnSort: null,
         lastSearchDefinition: definition,
       }),
 
@@ -61,6 +64,13 @@ export function createSearchSlice(set: StoreSet, get: StoreGet): SearchSlice {
       set({ searchResults, searchTotalMatches: Math.max(0, state.searchTotalMatches - 1) });
     },
 
+    /**
+     * Sort the results table by a clicked column, or null to go back to the
+     * search's own order. Display only: `searchResults` keeps the original order.
+     * See: (USER_GUIDE.md#sorting-by-a-column)
+     */
+    setSearchColumnSort: (sort) => set({ searchColumnSort: sort }),
+
     /** Clear search results. */
     clearSearchResults: () =>
       set({
@@ -71,6 +81,7 @@ export function createSearchSlice(set: StoreSet, get: StoreGet): SearchSlice {
         searchName: '',
         searchSortBy: 'modified-time',
         searchSortDirection: 'desc',
+        searchColumnSort: null,
         lastSearchDefinition: null,
       }),
   };
@@ -89,6 +100,10 @@ export function setSearchOutcome(folder: string, definition: SearchDefinition, o
 
 export function removeSearchResult(path: string): void {
   getState().removeSearchResult(path);
+}
+
+export function setSearchColumnSort(sort: SearchColumnSort | null): void {
+  getState().setSearchColumnSort(sort);
 }
 
 export function clearSearchResults(): void {

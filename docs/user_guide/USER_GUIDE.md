@@ -57,6 +57,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
 * [Searching](#searching)
   * [Using Search](#using-search)
   * [Search Results](#search-results)
+    * [Sorting by a Column](#sorting-by-a-column)
   * [Advanced Search Predicates](#advanced-search-predicates)
   * [Custom Sort Order](#custom-sort-order)
   * [Tag Category Columns](#tag-category-columns)
@@ -800,6 +801,13 @@ The results are shown as a table with these columns:
 Each column is as wide as its longest value, so paths and values are always shown in full on one line. When the table is wider than the window, scroll sideways to see the rest of it. The column headings stay at the top while you scroll. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
 
 A search returns **at most 500 results**. When more files match, the summary says **"Showing 500 of N files found"**, and the 500 shown are the first ones in your chosen sort order — for example, the 500 newest when sorting by modification time, newest first. Narrow the search or change the order to see others.
+
+### Sorting by a Column
+Click any column heading (except **Actions**) to sort the results by that column, A–Z. Click the same heading again to reverse the order. An arrow beside the heading shows which column the list is sorted by and in which direction (up for ascending, down for descending).
+
+Sorting only rearranges the results already shown — it doesn't run the search again, so it is instant, and with more than 500 matches it sorts the 500 shown rather than finding others. Values are compared as the text you see, ignoring upper/lower case and comparing numbers inside the text by value (so `p2` comes before `p10`); the **Modified** and **Created** columns sort by time. Results with the same value keep their order from the search.
+
+While the list is sorted by a column, an **Original Order** link appears at the top right, above the table. Click it to go back to the order the search itself produced. Running a new search, or clicking **Refresh**, also starts again in the search's own order.
 
 ## Advanced Search Predicates
 

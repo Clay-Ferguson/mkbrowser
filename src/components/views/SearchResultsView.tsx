@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MagnifyingGlassIcon, TrashIcon, PencilSquareIcon, ShareIcon, CalendarDaysIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { FolderIcon } from '@heroicons/react/24/solid';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/16/solid';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import {
@@ -18,16 +19,17 @@ import {
   setCalendarLoading,
   setCalendarTargetDate,
   setAppError,
+  setSearchColumnSort,
   useAS,
 } from '../../store';
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
-import { formatOrderValue, parseTagCategoryCols, tagCategoryCellValue, tagCategoryLookup, priorityHighlight, type PriorityHighlight } from '../../shared/searchHelpers';
+import { formatOrderValue, parseTagCategoryCols, sortByText, tagCategoryCellValue, tagCategoryLookup, priorityHighlight, type PriorityHighlight } from '../../shared/searchHelpers';
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
-import type { CalendarSource, SearchSortBy, SearchSortDirection } from '../../shared/types';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
+import type { CalendarSource, SearchColumnSort, SearchResultItem, SearchSortBy, SearchSortDirection } from '../../shared/types';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import FileTypeIcon from '../FileTypeIcon';
 import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
@@ -134,6 +136,88 @@ function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection)
   return `${what} (${direction === 'asc' ? 'oldest first' : 'newest first'})`;
 }
 
+/** Column ids for click-to-sort (see SearchColumnSort): the fixed columns, and a
+ * tag category column's id from its name as the search listed it. */
+const COL_PATH = 'path';
+const COL_NAME = 'name';
+const COL_SORT = 'sort';
+function tagColumnId(name: string): string {
+  return `tag:${name}`;
+}
+
+/** A tag category cell's text: its tags, comma-separated, or NO_TAGS. */
+function tagCellText(tags: readonly string[]): string {
+  return tags.length > 0 ? tags.join(', ') : NO_TAGS;
+}
+
+/**
+ * The text a click-to-sort column orders a result by: the cell's text as shown,
+ * except a Created/Modified column, whose shown time is 12-hour
+ * (`hh:mm AM/PM`) and so would not sort as text — it uses the timestamp itself
+ * (blank when missing, so those sort first ascending).
+ *
+ * See: (USER_GUIDE.md#sorting-by-a-column)
+ */
+function columnSortText(
+  result: SearchResultItem,
+  column: string,
+  sortBy: SearchSortBy,
+  tagLookup: ReadonlyMap<string, string>,
+): string {
+  if (column === COL_PATH) return getParentPath(result.relativePath);
+  if (column === COL_NAME) return getFileName(result.path);
+  if (column === COL_SORT) {
+    const time = sortBy === 'created-time' ? result.createdTime : sortBy === 'modified-time' ? result.modifiedTime : null;
+    if (time === null) return formatOrderValue(result, sortBy);
+    return time ? String(time).padStart(16, '0') : '';
+  }
+  return tagCellText(tagCategoryCellValue(result.tags, column.slice('tag:'.length), tagLookup));
+}
+
+/** The sort a click on `column`'s heading switches to: ascending for a new
+ * column, the other direction for the column already sorted by. */
+function nextColumnSort(current: SearchColumnSort | null, column: string): SearchColumnSort {
+  const direction = current?.column === column && current.direction === 'asc' ? 'desc' : 'asc';
+  return { column, direction };
+}
+
+interface SortableHeadingProps {
+  /** The heading cell's layout classes (the column's cell class plus padding). */
+  className: string;
+  column: string;
+  columnSort: SearchColumnSort | null;
+  title?: string;
+  testId?: string;
+  children: React.ReactNode;
+}
+
+/**
+ * A results-table column heading that sorts the table by its column when
+ * clicked (anywhere in the cell), again to reverse, with an arrow showing the
+ * direction while it is the sorted column. The inner button gives keyboard
+ * access; its click bubbles to the cell's handler.
+ *
+ * See: (USER_GUIDE.md#sorting-by-a-column)
+ */
+function SortableHeading({ className, column, columnSort, title, testId, children }: SortableHeadingProps) {
+  const direction = columnSort?.column === column ? columnSort.direction : null;
+  return (
+    <div
+      className={`${className} gap-1 cursor-pointer`}
+      role="columnheader"
+      aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}
+      title={title}
+      onClick={() => setSearchColumnSort(nextColumnSort(columnSort, column))}
+      data-testid={testId}
+      data-sort={direction ?? undefined}
+    >
+      <button type="button" className={`${BUTTON_CLASS_LINK} uppercase tracking-wider font-semibold`}>{children}</button>
+      {direction === 'asc' && <ChevronUpIcon className="w-4 h-4 flex-shrink-0" aria-hidden />}
+      {direction === 'desc' && <ChevronDownIcon className="w-4 h-4 flex-shrink-0" aria-hidden />}
+    </div>
+  );
+}
+
 /**
  * Displays the results of the most recent folder search as a sorted table with
  * columns: Path (the folder part of the relative path, blank for a result
@@ -176,6 +260,7 @@ function SearchResultsView() {
   const searchSortBy = useAS(s => s.searchSortBy);
   const searchSortDirection = useAS(s => s.searchSortDirection);
   const lastSearchDefinition = useAS(s => s.lastSearchDefinition);
+  const searchColumnSort = useAS(s => s.searchColumnSort);
   const tagCategoryByTag = useAS(s => s.tagCategoryByTag);
   const tagCategoryNames = useAS(s => s.tagCategoryNames);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
@@ -184,7 +269,9 @@ function SearchResultsView() {
 
   // Results arrive already in the chosen order: the main process sorts them
   // (with compareSearchResults) before applying the result cap, and deleting a
-  // result keeps the rest in place, so there is nothing to re-sort here.
+  // result keeps the rest in place. `searchResults` is never reordered, so it
+  // stays the "Original Order"; a clicked column heading only shows a sorted
+  // copy of it (computed below, once the tag lookup is known).
   // See: (USER_GUIDE.md#search-results)
   const truncated = searchTotalMatches > searchResults.length;
 
@@ -243,6 +330,12 @@ function SearchResultsView() {
   const tagColumns = parseTagCategoryCols(lastSearchDefinition?.tagCategoryCols);
   const tagLookup = tagCategoryLookup(tagCategoryByTag);
   const gridTemplateColumns = tableColumnTracks(showSortColumn, tagColumns.length);
+
+  // The rows in display order: the search's own order, or sorted by the clicked
+  // column's text. See: (USER_GUIDE.md#sorting-by-a-column)
+  const displayedResults = searchColumnSort
+    ? sortByText(searchResults, r => columnSortText(r, searchColumnSort.column, searchSortBy, tagLookup), searchColumnSort.direction)
+    : searchResults;
 
   // The Tags and Type filters the search applied (they only apply to contents searches).
   // See: (USER_GUIDE.md#using-search)
@@ -445,7 +538,8 @@ function SearchResultsView() {
         <div className={`${getContentWidthClasses(contentWidth)} pt-2 pb-6`}>
         {/* Search summary: what was searched, then the result count and sort order */}
         {hasSearched && (
-          <div className="text-sm text-slate-300 mb-4">
+          <div className="flex items-start gap-4 text-sm text-slate-300 mb-4">
+            <div className="min-w-0">
             {searchName && (
               <span className="text-purple-300 font-semibold mr-2">{searchName}:</span>
             )}
@@ -469,6 +563,21 @@ function SearchResultsView() {
                 </span>
               </>
             )}
+            </div>
+            {/* Back to the search's own order after sorting by a column. Kept
+                in the layout (just invisible) while unsorted, so clicking a
+                heading never shifts the table. See: (USER_GUIDE.md#sorting-by-a-column) */}
+            <button
+              type="button"
+              onClick={() => setSearchColumnSort(null)}
+              className={`${BUTTON_CLASS_LINK_BLUE} ml-auto flex-shrink-0 whitespace-nowrap ${searchColumnSort ? '' : 'invisible'}`}
+              aria-hidden={!searchColumnSort}
+              disabled={!searchColumnSort}
+              title="Show the results in the search's own order"
+              data-testid="search-original-order"
+            >
+              Original Order
+            </button>
           </div>
         )}
         {!hasSearched ? (
@@ -500,17 +609,20 @@ function SearchResultsView() {
               className={`${RESULTS_ROW} sticky top-0 z-10 bg-slate-700 border-x border-t border-slate-700 text-xs font-semibold uppercase tracking-wider text-slate-300 select-none`}
               role="row"
             >
-              <div className={`${CELL_PATH} py-1.5`} role="columnheader">Path</div>
-              <div className={`${CELL_NAME} py-1.5`} role="columnheader">Name</div>
-              {searchSortBy !== 'file-name' && (
-                <div className={`${CELL_ORDER} py-1.5`} role="columnheader" data-testid="search-sort-column-title">{sortColumnTitle(searchSortBy, lastSearchDefinition?.sortTitle)}</div>
+              {/* Every heading but Actions sorts the table by its column. */}
+              <SortableHeading className={`${CELL_PATH} py-1.5`} column={COL_PATH} columnSort={searchColumnSort}>Path</SortableHeading>
+              <SortableHeading className={`${CELL_NAME} py-1.5`} column={COL_NAME} columnSort={searchColumnSort}>Name</SortableHeading>
+              {showSortColumn && (
+                <SortableHeading className={`${CELL_ORDER} py-1.5`} column={COL_SORT} columnSort={searchColumnSort} testId="search-sort-column-title">
+                  {sortColumnTitle(searchSortBy, lastSearchDefinition?.sortTitle)}
+                </SortableHeading>
               )}
               {tagColumns.map((name) => {
                 const fullName = tagColumnName(name, tagCategoryNames);
                 return (
-                  <div key={name} className={`${CELL_TAG_CATEGORY} py-1.5`} role="columnheader" title={fullName} data-testid="search-tag-column-title">
+                  <SortableHeading key={name} className={`${CELL_TAG_CATEGORY} py-1.5`} column={tagColumnId(name)} columnSort={searchColumnSort} title={fullName} testId="search-tag-column-title">
                     {tagColumnTitle(fullName)}
-                  </div>
+                  </SortableHeading>
                 );
               })}
               <div className={`${CELL_ACTIONS} py-1.5`} role="columnheader">Actions</div>
@@ -519,7 +631,7 @@ function SearchResultsView() {
             {/* Result rows touch, forming the table body: each row draws its
                 left, top and right edges (the top edge doubling as the divider
                 from the row above) and only the last row adds a bottom edge. */}
-            {searchResults.map((result, index) => {
+            {displayedResults.map((result, index) => {
               const highlighted = isHighlighted(result.path);
               // Edit opens the file's editor in the Browse view, which only
               // Markdown and text files have — not folders, images, PDFs etc.
@@ -579,13 +691,13 @@ function SearchResultsView() {
                     with p1/p2 in a PRIORITY column colored to stand out */}
                 {tagColumns.map((name) => {
                   const tags = tagCategoryCellValue(result.tags, name, tagLookup);
-                  const text = tags.length > 0 ? tags.join(', ') : NO_TAGS;
+                  const text = tagCellText(tags);
                   const highlight = priorityHighlight(name, tags);
                   const colors = highlight ? PRIORITY_CELL_CLASSES[highlight] : null;
                   return (
                     <div
                       key={name}
-                      className={`${CELL_TAG_CATEGORY} ${RESULT_CELL_PAD} ${colors ? `${colors.cell} ${index === searchResults.length - 1 ? CELL_ROW_DIVIDER_LAST : CELL_ROW_DIVIDER}` : ''}`}
+                      className={`${CELL_TAG_CATEGORY} ${RESULT_CELL_PAD} ${colors ? `${colors.cell} ${index === displayedResults.length - 1 ? CELL_ROW_DIVIDER_LAST : CELL_ROW_DIVIDER}` : ''}`}
                       role="cell"
                       data-priority={highlight ?? undefined}
                     >

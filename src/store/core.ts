@@ -110,6 +110,7 @@ const initialState: AppState = {
   searchTotalMatches: 0,
   searchSortBy: 'modified-time',
   searchSortDirection: 'desc',
+  searchColumnSort: null,
   lastSearchDefinition: null,
   settings: defaultSettings,
   highlightItem: null,

@@ -121,6 +121,20 @@ export function formatOrderValue(
 }
 
 /**
+ * A copy of `rows` sorted by each row's text (`textOf`), for the Search Results
+ * table's click-to-sort columns. Case-insensitive, with digit runs compared as
+ * numbers (so `p2` comes before `p10`). The sort is stable, so rows with equal
+ * text keep their order in `rows` — the search's own order. `rows` itself is
+ * left untouched; the copy holds the same row objects.
+ *
+ * See: (USER_GUIDE.md#sorting-by-a-column)
+ */
+export function sortByText<T>(rows: readonly T[], textOf: (row: T) => string, direction: SearchSortDirection): T[] {
+  const sign = direction === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => sign * textOf(a).localeCompare(textOf(b), undefined, { numeric: true, sensitivity: 'base' }));
+}
+
+/**
  * A new, unnamed search with the Search dialog's default options.
  *
  * See: (USER_GUIDE.md#using-search)
