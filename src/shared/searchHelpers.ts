@@ -89,11 +89,12 @@ export function compareSearchResults(
   };
 }
 
-/** Shown in the Order column when a result has no value for its sort. */
+/** Shown in the sort-value column when a result has no value for its sort. */
 const NO_ORDER_VALUE = '—';
 
 /**
- * The text of a search result's "Order" column: the value the results were
+ * The text of a search result's sort-value column (headed Created, Modified,
+ * Name or Custom): the value the results were
  * sorted by, so the column is never blank. File-name order shows the base name
  * (what compareSearchResults compares), time orders show the timestamp, and
  * custom order shows the expression's formatted value. A missing value (a stat

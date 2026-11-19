@@ -247,7 +247,7 @@ export interface SearchResultItem {
   isDirectory?: boolean;
   /** The file's value under a custom sort expression (custom sort only). */
   sortKey?: SortKey;
-  /** `sortKey` formatted for display, in the results' Order column (see formatOrderValue). */
+  /** `sortKey` formatted for display, in the results' sort-value column (see formatOrderValue). */
   sortLabel?: string;
 }
 

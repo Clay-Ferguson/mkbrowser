@@ -32,21 +32,35 @@ import ConfirmDialog from '../dialogs/ConfirmDialog';
 import FileTypeIcon from '../FileTypeIcon';
 import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
 
-/** A results-table row (heading or result): a subgrid spanning all three columns. */
-const RESULTS_ROW = 'grid grid-cols-subgrid col-span-3';
+/** A results-table row (heading or result): a subgrid spanning every column. */
+const RESULTS_ROW = 'grid grid-cols-subgrid col-span-full';
+/** Column tracks: Path takes the rest; the sort-value column sizes to its widest
+ * value, capped at 40% of the width (longer values wrap); Actions fits its icons. */
+const TABLE_COLUMNS_WITH_SORT = 'grid-cols-[minmax(0,1fr)_fit-content(40%)_max-content]';
+/** Column tracks without the sort-value column (a file-name sort). */
+const TABLE_COLUMNS_WITHOUT_SORT = 'grid-cols-[minmax(0,1fr)_max-content]';
 /** Vertical padding of a result row's cells: the same `py-0.5` as a Browse-view
  * entry header (ENTRY_HEADER_ROW_PADDING), so a row is exactly that tall. It sits
  * on the cells rather than the row so the column dividers run the full height. */
 const RESULT_CELL_PAD = 'py-0.5';
 /** The 1px light-gray line between columns. A left border adds width, not height. */
 const COLUMN_DIVIDER = 'border-l border-slate-600';
-const CELL_NAME = 'flex items-center gap-2 min-w-0 px-2';
+const CELL_PATH = 'flex items-center gap-2 min-w-0 px-2';
 const CELL_ORDER = `flex items-center min-w-0 px-3 ${COLUMN_DIVIDER}`;
 const CELL_ACTIONS = `flex items-center px-2 ${COLUMN_DIVIDER}`;
 /** Horizontal lines between result rows, drawn as inset shadows rather than
  * borders so they take no layout space (keeping each row the height of a
  * Browse-view entry header). The last row also gets a bottom edge. */
 const ROW_DIVIDERS = 'shadow-[inset_0_1px_0_var(--color-slate-700)] last:shadow-[inset_0_1px_0_var(--color-slate-700),inset_0_-1px_0_var(--color-slate-700)]';
+
+/** The sort-value column's heading: what its values are, which depends on the
+ * Sort By choice. A file-name sort has no such column — the Path column already
+ * shows the name. */
+const SORT_COLUMN_TITLES: Record<Exclude<SearchSortBy, 'file-name'>, string> = {
+  'created-time': 'Created',
+  'modified-time': 'Modified',
+  custom: 'Custom',
+};
 
 /** The summary's description of a built-in (non-custom) sort order. */
 function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection): string {
@@ -57,8 +71,10 @@ function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection)
 
 /**
  * Displays the results of the most recent folder search as a sorted table with
- * three columns: Name (icon and relative path), Order (the value the results
- * were sorted by — see formatOrderValue), and Actions (Edit, which opens the
+ * columns: Path (icon and relative path), the sort value (the value the
+ * results were sorted by, headed Created, Modified or Custom to match the Sort
+ * By choice — see formatOrderValue; left out of a file-name sort, whose value
+ * the Path column already shows), and Actions (Edit, which opens the
  * file on its own in the Browse view for editing, and Delete; both appear only
  * while the pointer rests on the row). Clicking a file row opens that file on
  * its own in the Browse view (single-file mode, same as clicking a file in the
@@ -130,6 +146,10 @@ function SearchResultsView() {
   // A search has run (even one that found nothing, or a Recent Files search
   // with an empty query) whenever its definition is recorded.
   const hasSearched = lastSearchDefinition !== null;
+
+  // A file-name sort gets no sort-value column: its value, the file name, is
+  // already in the Path column. See: (USER_GUIDE.md#search-results)
+  const showSortColumn = searchSortBy !== 'file-name';
 
   // The Tags and Type filters the search applied (they only apply to contents searches).
   // See: (USER_GUIDE.md#using-search)
@@ -360,21 +380,23 @@ function SearchResultsView() {
             </p>
           </div>
         ) : (
-          // Results table: Name | Order | Actions. One grid owns the column
-          // tracks and every row (heading and results) is a subgrid spanning all
-          // three, so the columns line up across rows while each row stays its
-          // own element (click target, hover background, highlight outline).
-          // Order sizes to its widest value, capped at 40% of the width (longer values wrap).
+          // Results table: Path | sort value | Actions (no sort value for a
+          // file-name sort). One grid owns the column tracks and every row
+          // (heading and results) is a subgrid spanning them all, so the columns
+          // line up across rows while each row stays its own element (click
+          // target, hover background, highlight outline).
           // See: (USER_GUIDE.md#search-results)
-          <div className="grid grid-cols-[minmax(0,1fr)_fit-content(40%)_max-content]" role="table" data-testid="search-results-table">
+          <div className={`grid ${showSortColumn ? TABLE_COLUMNS_WITH_SORT : TABLE_COLUMNS_WITHOUT_SORT}`} role="table" data-testid="search-results-table">
             {/* Column headings — sticky, so they stay in view while a long
                 result list scrolls beneath them. */}
             <div
               className={`${RESULTS_ROW} sticky top-0 z-10 bg-slate-700 border-x border-t border-slate-700 text-xs font-semibold uppercase tracking-wider text-slate-300 select-none`}
               role="row"
             >
-              <div className={`${CELL_NAME} py-1.5`} role="columnheader">Name</div>
-              <div className={`${CELL_ORDER} py-1.5`} role="columnheader">Order</div>
+              <div className={`${CELL_PATH} py-1.5`} role="columnheader">Path</div>
+              {searchSortBy !== 'file-name' && (
+                <div className={`${CELL_ORDER} py-1.5`} role="columnheader" data-testid="search-sort-column-title">{SORT_COLUMN_TITLES[searchSortBy]}</div>
+              )}
               <div className={`${CELL_ACTIONS} py-1.5`} role="columnheader">Actions</div>
             </div>
 
@@ -401,25 +423,27 @@ function SearchResultsView() {
                 className={`${RESULTS_ROW} group bg-slate-800/50 hover:bg-slate-700/60 border-x border-slate-700 ${ROW_DIVIDERS} ${highlightClass} transition-colors cursor-pointer`}
                 role="row"
               >
-                {/* Name: folder or file-type icon, then the relative path */}
-                <div className={`${CELL_NAME} ${RESULT_CELL_PAD}`} role="cell">
+                {/* Path: folder or file-type icon, then the relative path */}
+                <div className={`${CELL_PATH} ${RESULT_CELL_PAD}`} role="cell">
                   {result.isDirectory
                     ? <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
                     : <FileTypeIcon fileName={fileName} />}
                   <span className="text-slate-200 break-all min-w-0" title={result.path}>{result.relativePath}</span>
                 </div>
 
-                {/* Order: the value this result was sorted by, shown whole —
+                {/* Sort value: the value this result was sorted by, shown whole —
                     a value wider than the column cap wraps onto more lines */}
-                <div className={`${CELL_ORDER} ${RESULT_CELL_PAD}`} role="cell">
-                  <span
-                    className="text-sm text-slate-400 font-mono break-words min-w-0"
-                    title={orderValue}
-                    data-testid="search-result-sort-value"
-                  >
-                    {orderValue}
-                  </span>
-                </div>
+                {showSortColumn && (
+                  <div className={`${CELL_ORDER} ${RESULT_CELL_PAD}`} role="cell">
+                    <span
+                      className="text-sm text-slate-400 font-mono break-words min-w-0"
+                      title={orderValue}
+                      data-testid="search-result-sort-value"
+                    >
+                      {orderValue}
+                    </span>
+                  </div>
+                )}
 
                 {/* Actions, revealed only while the row is hovered so a long
                     result list isn't cluttered with icons (same behavior as

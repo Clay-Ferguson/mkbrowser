@@ -787,10 +787,10 @@ The top of the **Search Results** tab summarizes the search — the saved search
 - **Calendar**: Opens the Calendar tab showing just the results that are calendar items (files with a valid `due` date). This replaces whatever the calendar was showing before. Unlike a calendar opened from the Browse view, it does not update itself when files change — click **Calendar** again to refresh it.
 - **Refresh** (circular-arrow icon): Runs the same search again, so the list picks up files that were added, edited, renamed, or deleted since the search ran.
 
-The results are shown as a table with three columns:
+The results are shown as a table with these columns:
 
-- **Name**: The file's (or folder's) path relative to the searched folder. Click a row to open it.
-- **Order**: The value the results were sorted by — the modification or creation time (as `YYYY-MM-DD hh:mm AM/PM`) for a time sort, the file name for a file-name sort, or the expression's value for a [Custom sort](#custom-sort-order). A result with no value (for example a file system that doesn't record creation times) shows **—**. A long value wraps onto more lines, so it is always shown in full.
+- **Path**: The file's (or folder's) path relative to the searched folder. Click a row to open it.
+- **Sort value**: The value the results were sorted by. Its heading names what it holds, following the Search dialog's **Sort By** choice: **Modified** or **Created** (the time, as `YYYY-MM-DD hh:mm AM/PM`) or **Custom** (the expression's value for a [Custom sort](#custom-sort-order)). When sorting by **File Name** this column isn't shown, since the file name is already in the Path column. A result with no value (for example a file system that doesn't record creation times) shows **—**. A long value wraps onto more lines, so it is always shown in full.
 - **Actions**: Hover over a row to reveal its **Edit** button (Markdown and text files only) and **Delete** button.
 
 The column headings stay at the top while you scroll. The result you last clicked is outlined in purple, so you can keep your place while stepping through the list.
@@ -939,7 +939,7 @@ The expression is written exactly like an [Advanced search predicate](#advanced-
 p.tags.includes('p3') ? "P3" : p.tags.includes('p2') ? "P2" : p.tags.includes('p1') ? "P1" : "n/a"
 ```
 
-`p.tags` is the file's front matter `tags` list, and `includes()` checks it for one tag; the `? :` chain returns the first label whose tag is present. With Direction DESC the results list **P3** files first, then **P2**, **P1**, and **n/a** (tagged, but with none of the three), and the **Order** column shows each file's label. A file with no `tags` at all makes `p.tags.includes` fail, so it shows **—** and sorts last; write `p.tags?.includes(...)` (or use `tag('p3')` etc.) if you'd rather such files get **n/a** too.
+`p.tags` is the file's front matter `tags` list, and `includes()` checks it for one tag; the `? :` chain returns the first label whose tag is present. With Direction DESC the results list **P3** files first, then **P2**, **P1**, and **n/a** (tagged, but with none of the three), and the **Custom** column shows each file's label. A file with no `tags` at all makes `p.tags.includes` fail, so it shows **—** and sorts last; write `p.tags?.includes(...)` (or use `tag('p3')` etc.) if you'd rather such files get **n/a** too.
 
 **How values are compared:**
 *   **Numbers** are compared numerically. Use `ts()` to turn a date into a number, so that dates sort by time: `ts(p.due)`. File sizes and times are already numbers: `f.size` sorts by size, `f.modified` by last-modified time.
@@ -951,7 +951,7 @@ p.tags.includes('p3') ? "P3" : p.tags.includes('p2') ? "P2" : p.tags.includes('p
 
 **Sorting by more than one value.** Return a list in square brackets to sort by the first value, then break ties with the next, and so on. For example, `[p.priority, ts(p.due)]` orders by `priority`, and files with the same priority by due date. Within a list, a missing value also sorts after the others at its position, whichever the direction.
 
-**The value on each result.** With a custom sort, the **Order** column of the Search Results tab shows the value each row was sorted by, so you can see why it landed where it did. Dates produced by `ts()`, `f.created` or `f.modified` are shown as dates (`2026-11-20`, plus the time — e.g. `2026-11-20 02:30 PM` — when it isn't midnight), and a missing value is shown as **—**. A list shows all of its values in the one column, separated by **—**, with a missing value in the list shown as **(none)** — e.g. `3 — 2026-11-20 02:30 PM` or `(none) — 2026-11-20 02:30 PM`.
+**The value on each result.** With a custom sort, the **Custom** column of the Search Results tab shows the value each row was sorted by, so you can see why it landed where it did. Dates produced by `ts()`, `f.created` or `f.modified` are shown as dates (`2026-11-20`, plus the time — e.g. `2026-11-20 02:30 PM` — when it isn't midnight), and a missing value is shown as **—**. A list shows all of its values in the one column, separated by **—**, with a missing value in the list shown as **(none)** — e.g. `3 — 2026-11-20 02:30 PM` or `(none) — 2026-11-20 02:30 PM`.
 
 **Mistakes in the sort expression** are reported under the **Sort expression** box when you click **Search** or **Save**, just like the query. **Search** and **Save** stay disabled while Sort By is Custom and the box is empty.
 

@@ -319,7 +319,7 @@ const SORT_LABEL_SEPARATOR = ' — ';
 const SORT_LABEL_MISSING_PART = '(none)';
 
 /**
- * Display text for a sort key, shown whole in the results' Order column.
+ * Display text for a sort key, shown whole in the results' Custom column.
  * Numbers that came from `ts()`, `f.created` or `f.modified` (listed in `dates`)
  * are shown as dates (`YYYY-MM-DD`, plus ` hh:mm AM/PM` when the time is not
  * midnight — the same format the built-in time sorts show); other values as-is.

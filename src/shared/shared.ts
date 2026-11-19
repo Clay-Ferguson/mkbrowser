@@ -544,7 +544,7 @@ export interface SearchResult {
   isDirectory?: boolean;
   /** The file's value under a custom sort expression (custom sort only). */
   sortKey?: SortKey;
-  /** `sortKey` formatted for the results' Order column, dates from `ts()` shown as dates (custom sort only).
+  /** `sortKey` formatted for the results' sort-value column, dates from `ts()` shown as dates (custom sort only).
    *
    * See: (USER_GUIDE.md#custom-sort-order)
    */
