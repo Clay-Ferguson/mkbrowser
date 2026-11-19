@@ -134,20 +134,26 @@
   }
 }
 
-/* Fat scrollbars - wider and easier to click */
+/* Fat scrollbars - wider and easier to click.
+   Track and thumb are rounded with --radius-lg, the same radius as popup menus'
+   rounded-lg (MENU_CONTAINER), so a menu's scrollbar matches its corners.
+   The scrollbar's own background is transparent so the area outside the
+   rounded track corners shows the scrolling element's background. */
 ::-webkit-scrollbar {
   width: 20px;
   height: 20px;
-  background-color: black;
+  background-color: transparent;
 }
 
 ::-webkit-scrollbar-track {
   background-color: rgb(41, 52, 68);
+  border-radius: var(--radius-lg);
 }
 
 ::-webkit-scrollbar-thumb {
   background-color: #444c56; /* darker gray */
   border: 1px solid #888;
+  border-radius: var(--radius-lg);
 }
 
 ::-webkit-scrollbar-thumb:hover {
