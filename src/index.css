@@ -138,26 +138,76 @@
    Track and thumb are rounded with --radius-lg, the same radius as popup menus'
    rounded-lg (MENU_CONTAINER), so a menu's scrollbar matches its corners.
    The scrollbar's own background is transparent so the area outside the
-   rounded track corners shows the scrolling element's background. */
+   rounded track corners shows the scrolling element's background.
+
+   --scrollbar-gap insets the bar from the scroll container's square edges so
+   the rounded corners don't butt against them: the vertical bar is inset at
+   top, bottom and right; the horizontal bar at left, right and bottom.
+   - Along the bar's axis the gap is a track margin (the thumb's travel range
+     shrinks with it).
+   - Across the bar's axis it's a transparent border on the track and thumb,
+     with background-clip: padding-box so the color stops short of it. The
+     transparent border is still part of the thumb, so the click target is
+     the full bar width. The bar is widened by the gap so the visible thumb
+     stays 20px. The thumb's visible outline is therefore an inset
+     box-shadow (drawn inside the border) rather than a real border.
+   - The outer radius on the gap side is widened by the gap so the visible
+     (inner) corner stays a circular --radius-lg instead of going elliptical. */
+:root {
+  --scrollbar-gap: 3px;
+}
+
+/* 20px of visible bar plus the gap, so the inset doesn't thin the bar/thumb. */
 ::-webkit-scrollbar {
-  width: 20px;
-  height: 20px;
+  width: calc(20px + var(--scrollbar-gap));
+  height: calc(20px + var(--scrollbar-gap));
   background-color: transparent;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-thumb {
+  border: 0 solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--radius-lg);
 }
 
 ::-webkit-scrollbar-track {
   background-color: rgb(41, 52, 68);
-  border-radius: var(--radius-lg);
+}
+
+::-webkit-scrollbar-track:vertical {
+  margin-top: var(--scrollbar-gap);
+  margin-bottom: var(--scrollbar-gap);
+}
+
+::-webkit-scrollbar-track:horizontal {
+  margin-left: var(--scrollbar-gap);
+  margin-right: var(--scrollbar-gap);
+}
+
+::-webkit-scrollbar-track:vertical,
+::-webkit-scrollbar-thumb:vertical {
+  border-right-width: var(--scrollbar-gap);
+  border-top-right-radius: calc(var(--radius-lg) + var(--scrollbar-gap)) var(--radius-lg);
+  border-bottom-right-radius: calc(var(--radius-lg) + var(--scrollbar-gap)) var(--radius-lg);
+}
+
+::-webkit-scrollbar-track:horizontal,
+::-webkit-scrollbar-thumb:horizontal {
+  border-bottom-width: var(--scrollbar-gap);
+  border-bottom-left-radius: var(--radius-lg) calc(var(--radius-lg) + var(--scrollbar-gap));
+  border-bottom-right-radius: var(--radius-lg) calc(var(--radius-lg) + var(--scrollbar-gap));
 }
 
 ::-webkit-scrollbar-thumb {
   background-color: #444c56; /* darker gray */
-  border: 1px solid #888;
-  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 0 1px #888;
 }
 
+/* background-color, not the `background` shorthand: the shorthand would reset
+   background-clip to border-box and paint over the gap on hover. */
 ::-webkit-scrollbar-thumb:hover {
-  background: #22262b;
+  background-color: #22262b;
 }
 
 ::-webkit-scrollbar-corner {
