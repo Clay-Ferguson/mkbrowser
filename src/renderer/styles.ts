@@ -163,9 +163,7 @@ export const BUTTON_CLASS_SM_RED = `${BTN} ${SIZE_SM} ${FILL_RED}`;
 export const BUTTON_CLASS_SM_GREEN = `${BTN} ${SIZE_SM} ${FILL_GREEN}`;
 export const BUTTON_CLASS_SM_PURPLE = `${BTN} ${SIZE_SM} ${FILL_PURPLE}`;
 export const BUTTON_CLASS_SM_NEUTRAL = `${BTN} ${SIZE_SM} ${FILL_NEUTRAL}`;
-/** Entry editor Cancel/Save: the "Up Level" outlined neutral, and a dimmer green
- *  carrying the same border so the pair matches. */
-export const BUTTON_CLASS_SM_NEUTRAL_OUTLINED = `${BTN} ${SIZE_SM} ${FILL_NEUTRAL_OUTLINED}`;
+/** Entry editor Save: a dimmer green carrying the neutral outline border. */
 export const BUTTON_CLASS_SM_GREEN_MUTED = `${BTN} ${SIZE_SM} ${FILL_GREEN_MUTED_OUTLINED}`;
 
 // --- Toolbar (selection bar) action buttons ------------------------------

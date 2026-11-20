@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Bars3Icon, CubeIcon } from '@heroicons/react/24/outline';
-import { BUTTON_CLASS_SM_GREEN_MUTED, BUTTON_CLASS_SM_NEUTRAL_OUTLINED, BUTTON_CLASS_SM_PURPLE, ENTRY_EDITOR_ICON_BTN } from '../../../renderer/styles';
+import { BUTTON_CLASS_SM_GREEN_MUTED, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_SM_RED, ENTRY_EDITOR_ICON_BTN } from '../../../renderer/styles';
 import ActiveEditPopupMenu from '../../menus/ActiveEditPopupMenu';
 import InsertObjectPopupMenu from '../../menus/InsertObjectPopupMenu';
 import { useAS } from '../../../store';
@@ -168,7 +168,7 @@ export function EntryEditToolbar({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className={BUTTON_CLASS_SM_NEUTRAL_OUTLINED}
+            className={BUTTON_CLASS_SM_RED}
             data-testid="entry-cancel-button"
           >
             Cancel
