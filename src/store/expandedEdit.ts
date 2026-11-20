@@ -33,7 +33,8 @@ import { getParentPath, getFileName, isSamePath } from '../renderer/pathUtil';
  *   folder, so they keep editing inline (a deliberate simplification).
  * - `browseFileName === null` means we are not already in single-file mode.
  *   Editing a file reached by 'browse' must leave its mode alone — that caller
- *   owns the pane on its own terms and hides the expand/collapse toggle.
+ *   owns the pane on its own terms (always expanded), so flipping the toggle
+ *   there only changes the preference.
  *
  * Note this deliberately does NOT scan the items map for "something is
  * editing". Such a scan is what produced the bug this design removes: the map

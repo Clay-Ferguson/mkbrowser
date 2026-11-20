@@ -6,19 +6,16 @@ interface ActiveEditPopupMenuProps {
   onClose: () => void;
   /** Opens the Calendar Info dialog. When omitted (non-Markdown files), the item is shown disabled. */
   onCalendarInfo?: () => void;
-  /**
-   * Whether the editor is currently maximized (`settings.expandedEditor`, or always-expanded
-   * single-file mode), shown as a check mark beside "Expanded Editor".
-   */
+  /** Current `settings.expandedEditor`, shown as a check mark beside "Expanded Editor". */
   expandedEditor: boolean;
   /**
-   * Flips the expanded-editor preference. Omitted where the editor is always expanded
-   * (`alwaysExpandedEditor`) and the toggle would be a no-op; the item is then shown disabled.
+   * Flips the expanded-editor preference. Always provided: the item is a plain setting toggle,
+   * so it is enabled in every editing context.
    *
    * See: (USER_GUIDE.md#expand-editor)
    * See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
    */
-  onToggleExpandedEditor?: () => void;
+  onToggleExpandedEditor: () => void;
   /** Current `settings.enableThesaurus`, shown as a check mark beside "Thesaurus". */
   thesaurusEnabled: boolean;
   /**
@@ -69,8 +66,7 @@ export default function ActiveEditPopupMenu({
         label="Expanded Editor"
         data-testid="menu-active-edit-expanded-editor"
         selected={expandedEditor}
-        disabled={!onToggleExpandedEditor}
-        onClick={() => { onToggleExpandedEditor?.(); onClose(); }}
+        onClick={() => { onToggleExpandedEditor(); onClose(); }}
       />
       <PopupMenuItem
         label="Thesaurus"

@@ -109,10 +109,13 @@ export function useEditorChrome({ path, edit, alwaysExpandedEditor, fillPaneWhen
     canRewrite: !reviewing && rewriteEnabled,
     /** Spread into EntryEditToolbar. */
     toolbarProps: {
-      expandedEditor: editorExpanded,
-      // Omitted when the editor is always expanded — the toggle would be a
-      // no-op, so the "Expanded Editor" menu item is disabled (shown checked).
-      onToggleExpandedEditor: alwaysExpandedEditor ? undefined : handleToggleExpandedEditor,
+      // The "Expanded Editor" menu item is a plain toggle of the persisted preference, so its
+      // check mark shows the setting itself and it is always enabled — even in single-file
+      // 'browse' mode, where `alwaysExpandedEditor` keeps this editor maximized either way and
+      // the toggle only changes the preference used by the folder listing.
+      // See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
+      expandedEditor,
+      onToggleExpandedEditor: handleToggleExpandedEditor,
       showSaveCancel: !reviewing,
       saving: edit.saving,
       thesaurusEnabled,

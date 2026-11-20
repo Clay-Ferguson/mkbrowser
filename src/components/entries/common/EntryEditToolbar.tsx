@@ -7,16 +7,15 @@ import { useAS } from '../../../store';
 import { objectTypeOptions } from '../../../shared/objects/userTypes';
 
 interface EntryEditToolbarProps {
-  /** Whether the editor is in expanded mode — the "Expanded Editor" item's check mark (ActiveEditPopupMenu). */
+  /** Current `settings.expandedEditor` — the "Expanded Editor" item's check mark (ActiveEditPopupMenu). */
   expandedEditor: boolean;
   /**
-   * Toggle the expanded editor, from the "Editing actions" menu's "Expanded Editor" item.
-   * Omit for callers whose editor is always expanded and where the toggle would therefore
-   * be a no-op (see `alwaysExpandedEditor`); the item is then shown disabled.
+   * Toggle the expanded-editor preference, from the "Editing actions" menu's "Expanded Editor"
+   * item. Always provided, so the item is always enabled.
    *
    * See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
    */
-  onToggleExpandedEditor?: () => void;
+  onToggleExpandedEditor: () => void;
 
   /** Whether to show the AI Rewrite button. */
   showRewrite: boolean;

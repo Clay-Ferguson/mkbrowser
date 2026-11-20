@@ -73,14 +73,15 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
  * `browseFileMode` tells apart:
  *
  * - `'browse'` — the user asked to read this file on its own. The entry is
- *   forced expanded via `alwaysExpandedEditor` and the "Expanded Editor" menu item
- *   is disabled, because toggling it would be a no-op. Deliberately independent
- *   of the global `expandedEditor` setting: this mode neither reads nor writes
- *   it, so the user's preference for the folder listing survives a trip here.
+ *   forced expanded via `alwaysExpandedEditor`. Deliberately independent of the
+ *   global `expandedEditor` setting: this mode neither reads nor writes it, so
+ *   the user's preference for the folder listing survives a trip here. The
+ *   "Expanded Editor" menu item stays enabled and still flips that preference
+ *   (its check mark shows the setting); it just doesn't change this layout.
  * - `'expanded-edit'` — an edit started in the folder listing while the user's
  *   `expandedEditor` preference was on, and that preference is what maximizes
- *   the entry. So `alwaysExpandedEditor` is NOT passed: the toggle is enabled, and
- *   collapsing it (or ending the edit) returns to the listing.
+ *   the entry. So `alwaysExpandedEditor` is NOT passed, and turning the toggle
+ *   off (or ending the edit) returns to the listing.
  *
  * Attachments: when the file has a sibling `<name>.attach` folder, that folder
  * row and its contents are rendered below the entry with the same components
@@ -109,7 +110,7 @@ function BrowseFile() {
 
   // See the two modes above. In 'expanded-edit' mode `settings.expandedEditor`
   // is true by construction, so the entry maximizes itself off the setting and
-  // the toggle stays live.
+  // turning the toggle off collapses it back into the listing.
   // See: (single_file_browsing.md#always-expanded-editing-alwaysexpandededitor)
   const alwaysExpandedEditor = browseFileMode === 'browse';
 

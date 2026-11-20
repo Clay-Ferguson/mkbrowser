@@ -456,12 +456,12 @@ export interface AppState {
    *
    * - `'browse'` — the user asked to read this file on its own (index tree
    *   click, the entry action bar's "View File"). The editor is forced expanded
-   *   via the `alwaysExpandedEditor` prop and the expand/collapse toggle is
-   *   hidden, independently of the global `expandedEditor` setting.
+   *   via the `alwaysExpandedEditor` prop, independently of the global
+   *   `expandedEditor` setting (the "Expanded Editor" toggle stays enabled and
+   *   flips that setting, but does not change this layout).
    * - `'expanded-edit'` — an edit started in the folder listing while
    *   `settings.expandedEditor` was on, so the maximized editor took over the
-   *   pane. The toggle IS shown here, and collapsing (or ending the edit)
-   *   returns to the listing.
+   *   pane. Turning the toggle off (or ending the edit) returns to the listing.
    *
    * Only meaningful while `browseFileName` is non-null. `setBrowseFile` always
    * writes it, so a value left behind by a previous single-file session can

@@ -188,14 +188,14 @@ Over on the right, "Listing Hidden" reminds you that you're looking at one file 
 We've typed a new line at the end, and in a moment we'll save it.`
     );
 
-    // The editor is ALWAYS maximized here — no toggling required, and the
-    // "Expanded Editor" menu item is disabled (shown checked) because toggling
-    // would be a no-op. Assert the editor really does fill most of the pane:
+    // The editor is ALWAYS maximized here — no toggling required. The
+    // "Expanded Editor" menu item is still enabled (it's a plain setting
+    // toggle), and its check mark reflects the setting, which is off. Assert the editor really does fill most of the pane:
     // the failure mode if the flex class chain is wrong is a collapsed editor,
     // not a missing one.
     await demoClick(mainWindow.getByTestId('active-edit-menu-button'));
-    await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor')).toBeDisabled();
-    await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor').locator('svg')).toHaveCount(1);
+    await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor')).toBeEnabled();
+    await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor').locator('svg')).toHaveCount(0);
     await demoClick(mainWindow.getByTestId('active-edit-menu-button'));
     await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor')).toHaveCount(0);
 
@@ -307,8 +307,8 @@ Single-file browsing is a file-only gesture, and right clicking a file and choos
 
     // --- Phase 5: the folder listing kept its own editor preference ---------
     // Single-file mode forces expansion via a prop, NOT by writing the global
-    // `expandedEditor` setting. So editing from the listing must still offer
-    // the (enabled) "Expanded Editor" menu item — if this fails, BrowseFile leaked its
+    // `expandedEditor` setting. So editing from the listing must still show
+    // the "Expanded Editor" menu item unchecked — if this fails, BrowseFile leaked its
     // always-expanded behavior into the user's saved preference.
     //
     // Phase 4's "Browse" already navigated into the seeded folder, so the
@@ -324,6 +324,7 @@ Single-file browsing is a file-only gesture, and right clicking a file and choos
     await expect(mainWindow.getByTestId('entry-save-button')).toBeVisible({ timeout: 10000 });
     await demoClick(mainWindow.getByTestId('active-edit-menu-button'));
     await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor')).toBeEnabled();
+    await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor').locator('svg')).toHaveCount(0);
     await demoClick(mainWindow.getByTestId('active-edit-menu-button'));
     await expect(mainWindow.getByTestId('menu-active-edit-expanded-editor')).toHaveCount(0);
 
