@@ -26,7 +26,7 @@ import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
 import { ALL_PROPERTIES, discoverPropertyNames, formatOrderValue, formatPropertyValue, parsePropertyCols, parseTagCategoryCols, propertyValue, sortByText, tagCategoryCellValue, tagCategoryLookup, priorityHighlight, type PriorityHighlight } from '../../shared/searchHelpers';
 import { toCalendarEvents } from '../../shared/calendarUtil';
-import { ymdPrefixDaysFromToday, ymdPrefixDeltaString } from '../../shared/timeUtil';
+import { datePrefixDaysFromToday, datePrefixDeltaString } from '../../shared/timeUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
 import type { CalendarSource, SearchColumnSort, SearchResultItem, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import { BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
@@ -88,7 +88,7 @@ const PRIORITY_CELL_CLASSES: Record<PriorityHighlight, { cell: string; text: str
 type DateTense = 'past' | 'today' | 'future';
 /**
  * Colors for a sort-value or property cell whose value starts with a
- * `YYYY-MM-DD` date (see dateTense), so upcoming dates stand out while
+ * `YYYY-MM-DD` or `MM/DD/YY(YY)` date (see dateTense), so upcoming dates stand out while
  * scanning down the list: future dates in green, past dates in the table's
  * ordinary gray, and today's date as a filled blue cell with light gray text
  * (the Name column's color). An empty `cell` leaves the cell unfilled. The text
@@ -122,9 +122,9 @@ function filledCellClass(cellClass: string | undefined, isLastRow: boolean): str
   return `${cellClass} ${isLastRow ? CELL_ROW_DIVIDER_LAST : CELL_ROW_DIVIDER}`;
 }
 
-/** The tense of a value that starts with a `YYYY-MM-DD` date, or undefined when it isn't a date. */
+/** The tense of a value that starts with a `YYYY-MM-DD` or `MM/DD/YY(YY)` date, or undefined when it isn't a date. */
 function dateTense(value: string): DateTense | undefined {
-  const days = ymdPrefixDaysFromToday(value);
+  const days = datePrefixDaysFromToday(value);
   if (days === undefined) return undefined;
   if (days === 0) return 'today';
   return days < 0 ? 'past' : 'future';
@@ -687,7 +687,7 @@ function SearchResultsView() {
               // The value these results were sorted by — never blank.
               const orderValue = formatOrderValue(result, searchSortBy);
               // Hover text: the value, plus how far away it is when it's a date.
-              const orderDelta = ymdPrefixDeltaString(orderValue);
+              const orderDelta = datePrefixDeltaString(orderValue);
               const orderTitle = orderDelta ? `${orderValue}\n${orderDelta}` : orderValue;
               // Date values are colored by whether they're past, today, or future.
               const orderTense = dateTense(orderValue);
@@ -760,7 +760,7 @@ function SearchResultsView() {
                     property; a date's hover text adds how far away it is */}
                 {propertyColumns.map((name) => {
                   const text = propertyCellText(result, name);
-                  const delta = ymdPrefixDeltaString(text);
+                  const delta = datePrefixDeltaString(text);
                   const tense = dateTense(text);
                   const dateColors = tense ? DATE_CELL_CLASSES[tense] : null;
                   return (

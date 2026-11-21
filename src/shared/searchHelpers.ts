@@ -6,7 +6,7 @@
 
 import type { SearchDefinition, SearchSortBy, SearchSortDirection, SortKey, SortKeyScalar } from './shared';
 import { sameTypeName } from './objects/genericObject';
-import { formatDateTime12 } from './timeUtil';
+import { datePrefixTimestamp, formatDateTime12 } from './timeUtil';
 import { isAllTagCategory } from './tagUtil';
 
 /** The fields of a search result that the result ordering reads. */
@@ -122,16 +122,33 @@ export function formatOrderValue(
 
 /**
  * A copy of `rows` sorted by each row's text (`textOf`), for the Search Results
- * table's click-to-sort columns. Case-insensitive, with digit runs compared as
- * numbers (so `p2` comes before `p10`). The sort is stable, so rows with equal
- * text keep their order in `rows` — the search's own order. `rows` itself is
- * left untouched; the copy holds the same row objects.
+ * table's click-to-sort columns. Text that starts with a date (see
+ * datePrefixTimestamp: `YYYY-MM-DD`, `MM/DD/YYYY` or `MM/DD/YY`, with an optional
+ * time) is compared as a date, so no column needs to be declared a date column.
+ * Dates always sort above text that isn't a date, in either direction, so blank
+ * (`—`) and other non-date values stay at the bottom. Other text is compared
+ * case-insensitively, with digit runs compared as numbers (so `p2` comes before
+ * `p10`). The sort is stable, so rows with equal values keep their order in
+ * `rows`: the search's own order. `rows` itself is left untouched; the copy
+ * holds the same row objects.
  *
  * See: (USER_GUIDE.md#sorting-by-a-column)
  */
 export function sortByText<T>(rows: readonly T[], textOf: (row: T) => string, direction: SearchSortDirection): T[] {
   const sign = direction === 'asc' ? 1 : -1;
-  return [...rows].sort((a, b) => sign * textOf(a).localeCompare(textOf(b), undefined, { numeric: true, sensitivity: 'base' }));
+  // Each row's text and date are worked out once, not on every comparison.
+  const keyed = rows.map(row => {
+    const text = textOf(row);
+    return { row, text, time: datePrefixTimestamp(text) };
+  });
+  keyed.sort((a, b) => {
+    const aIsDate = !Number.isNaN(a.time);
+    const bIsDate = !Number.isNaN(b.time);
+    if (aIsDate !== bIsDate) return aIsDate ? -1 : 1;
+    if (aIsDate) return sign * (a.time - b.time);
+    return sign * a.text.localeCompare(b.text, undefined, { numeric: true, sensitivity: 'base' });
+  });
+  return keyed.map(k => k.row);
 }
 
 /**

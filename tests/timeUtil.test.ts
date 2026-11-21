@@ -9,8 +9,9 @@ import {
   getDaysFromToday,
   formatDaysDisplay,
   formatDateWithDelta,
-  ymdPrefixDeltaString,
-  ymdPrefixDaysFromToday,
+  datePrefixDeltaString,
+  datePrefixDaysFromToday,
+  datePrefixTimestamp,
   generateTimestampFolderName,
   generateTimestampFileName,
   formatTimestamp,
@@ -487,7 +488,7 @@ describe('formatDateWithDelta', () => {
   });
 });
 
-describe('ymdPrefixDeltaString', () => {
+describe('datePrefixDeltaString', () => {
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -495,24 +496,24 @@ describe('ymdPrefixDeltaString', () => {
   it('gives the delta for a bare YYYY-MM-DD or one followed by a time', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 9, 15, 12, 0, 0));
-    expect(ymdPrefixDeltaString('2026-10-15')).toBe('today');
-    expect(ymdPrefixDeltaString('2026-10-12 11:59 PM')).toBe('3 days ago');
-    expect(ymdPrefixDeltaString('2026-10-16 00:01:02')).toBe('tomorrow');
-    expect(ymdPrefixDeltaString('2027-12-19')).toBe('1y 2m 5d away');
-    expect(ymdPrefixDeltaString('2026-10-14T23:30:00')).toBe('yesterday');
+    expect(datePrefixDeltaString('2026-10-15')).toBe('today');
+    expect(datePrefixDeltaString('2026-10-12 11:59 PM')).toBe('3 days ago');
+    expect(datePrefixDeltaString('2026-10-16 00:01:02')).toBe('tomorrow');
+    expect(datePrefixDeltaString('2027-12-19')).toBe('1y 2m 5d away');
+    expect(datePrefixDeltaString('2026-10-14T23:30:00')).toBe('yesterday');
   });
 
   it('returns undefined when the value does not start with a real date', () => {
-    expect(ymdPrefixDeltaString('')).toBeUndefined();
-    expect(ymdPrefixDeltaString('—')).toBeUndefined();
-    expect(ymdPrefixDeltaString('high')).toBeUndefined();
-    expect(ymdPrefixDeltaString('due 2026-10-15')).toBeUndefined();
-    expect(ymdPrefixDeltaString('2026-10-150')).toBeUndefined();
-    expect(ymdPrefixDeltaString('2026-02-31')).toBeUndefined();
+    expect(datePrefixDeltaString('')).toBeUndefined();
+    expect(datePrefixDeltaString('—')).toBeUndefined();
+    expect(datePrefixDeltaString('high')).toBeUndefined();
+    expect(datePrefixDeltaString('due 2026-10-15')).toBeUndefined();
+    expect(datePrefixDeltaString('2026-10-150')).toBeUndefined();
+    expect(datePrefixDeltaString('2026-02-31')).toBeUndefined();
   });
 });
 
-describe('ymdPrefixDaysFromToday', () => {
+describe('datePrefixDaysFromToday', () => {
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -520,21 +521,66 @@ describe('ymdPrefixDaysFromToday', () => {
   it('gives 0 for today, negative for past and positive for future dates', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 9, 15, 12, 0, 0));
-    expect(ymdPrefixDaysFromToday('2026-10-15')).toBe(0);
+    expect(datePrefixDaysFromToday('2026-10-15')).toBe(0);
     // A time earlier today is still today: only the calendar date counts.
-    expect(ymdPrefixDaysFromToday('2026-10-15 08:00 AM')).toBe(0);
-    expect(ymdPrefixDaysFromToday('2026-10-12 11:59 PM')).toBe(-3);
-    expect(ymdPrefixDaysFromToday('2026-10-14T23:30:00')).toBe(-1);
-    expect(ymdPrefixDaysFromToday('2026-10-16 00:01:02')).toBe(1);
-    expect(ymdPrefixDaysFromToday('2027-10-15')).toBe(365);
+    expect(datePrefixDaysFromToday('2026-10-15 08:00 AM')).toBe(0);
+    expect(datePrefixDaysFromToday('2026-10-12 11:59 PM')).toBe(-3);
+    expect(datePrefixDaysFromToday('2026-10-14T23:30:00')).toBe(-1);
+    expect(datePrefixDaysFromToday('2026-10-16 00:01:02')).toBe(1);
+    expect(datePrefixDaysFromToday('2027-10-15')).toBe(365);
+  });
+
+  it('accepts MM/DD/YYYY and MM/DD/YY, alone or followed by a space and more', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 15, 12, 0, 0));
+    expect(datePrefixDaysFromToday('10/15/2026')).toBe(0);
+    expect(datePrefixDaysFromToday('10/15/26')).toBe(0);
+    expect(datePrefixDaysFromToday('10/15/26 08:00 AM')).toBe(0);
+    expect(datePrefixDaysFromToday('10/12/2026 11:59 PM')).toBe(-3);
+    expect(datePrefixDaysFromToday('10/16/26 dentist')).toBe(1);
+    // One-digit month and day, as elsewhere in the app's MM/DD/YY convention.
+    expect(datePrefixDaysFromToday('1/5/27')).toBe(82);
+    expect(datePrefixDeltaString('10/14/2026')).toBe('yesterday');
   });
 
   it('returns undefined when the value does not start with a real date', () => {
-    expect(ymdPrefixDaysFromToday('')).toBeUndefined();
-    expect(ymdPrefixDaysFromToday('—')).toBeUndefined();
-    expect(ymdPrefixDaysFromToday('high')).toBeUndefined();
-    expect(ymdPrefixDaysFromToday('due 2026-10-15')).toBeUndefined();
-    expect(ymdPrefixDaysFromToday('2026-02-30')).toBeUndefined();
+    expect(datePrefixDaysFromToday('')).toBeUndefined();
+    expect(datePrefixDaysFromToday('—')).toBeUndefined();
+    expect(datePrefixDaysFromToday('high')).toBeUndefined();
+    expect(datePrefixDaysFromToday('due 2026-10-15')).toBeUndefined();
+    expect(datePrefixDaysFromToday('2026-02-30')).toBeUndefined();
+    expect(datePrefixDaysFromToday('due 10/15/2026')).toBeUndefined();
+    expect(datePrefixDaysFromToday('02/30/2026')).toBeUndefined();
+    expect(datePrefixDaysFromToday('13/01/2026')).toBeUndefined();
+    expect(datePrefixDaysFromToday('10/15/202')).toBeUndefined();
+    expect(datePrefixDaysFromToday('10/15/2026x')).toBeUndefined();
+  });
+});
+
+describe('datePrefixTimestamp', () => {
+  it('reads the date at midnight when no time follows', () => {
+    expect(datePrefixTimestamp('2026-10-15')).toBe(new Date(2026, 9, 15).getTime());
+    expect(datePrefixTimestamp('10/15/26 dentist')).toBe(new Date(2026, 9, 15).getTime());
+    expect(datePrefixTimestamp('10/15/2026')).toBe(new Date(2026, 9, 15).getTime());
+  });
+
+  it('adds a 12-hour, 24-hour or ISO time that follows the date', () => {
+    expect(datePrefixTimestamp('2026-10-15 08:05 PM')).toBe(new Date(2026, 9, 15, 20, 5).getTime());
+    expect(datePrefixTimestamp('2026-10-15 12:30 AM')).toBe(new Date(2026, 9, 15, 0, 30).getTime());
+    expect(datePrefixTimestamp('2026-10-15 12:30 PM')).toBe(new Date(2026, 9, 15, 12, 30).getTime());
+    expect(datePrefixTimestamp('2026-10-15T23:30:15')).toBe(new Date(2026, 9, 15, 23, 30, 15).getTime());
+    expect(datePrefixTimestamp('10/15/26 9:15am meeting')).toBe(new Date(2026, 9, 15, 9, 15).getTime());
+  });
+
+  it('treats an out-of-range time as midnight, keeping the date', () => {
+    expect(datePrefixTimestamp('2026-10-15 25:00')).toBe(new Date(2026, 9, 15).getTime());
+    expect(datePrefixTimestamp('2026-10-15 13:00 PM')).toBe(new Date(2026, 9, 15).getTime());
+  });
+
+  it('returns NO_TIMESTAMP when the value does not start with a real date', () => {
+    expect(datePrefixTimestamp('high')).toBeNaN();
+    expect(datePrefixTimestamp('02/30/2026')).toBeNaN();
+    expect(datePrefixTimestamp('2026-10-15x')).toBeNaN();
   });
 });
 

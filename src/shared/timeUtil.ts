@@ -301,36 +301,99 @@ export function formatDateWithDelta(value: string): string {
 }
 
 /** A leading `YYYY-MM-DD`, alone or followed by whitespace or an ISO 'T' and anything (e.g. a time). */
-const YMD_PREFIX_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[\sT]|$)/;
+const YMD_PREFIX_RE = /^(\d{4})-(\d{2})-(\d{2})(?=[\sT]|$)/;
 
 /**
- * How many calendar days from today a value's leading `YYYY-MM-DD` date is
- * (negative = past, 0 = today, positive = future). The date may stand alone or
- * be followed by a space or ISO 'T' and more (such as a time, which is ignored —
- * only the calendar date counts). Returns undefined when the value doesn't start
- * with a real calendar date.
+ * A leading `MM/DD/YYYY` or `MM/DD/YY` (the app's DATE_REGEX convention, so a
+ * one-digit month or day is fine too), alone or followed by whitespace and
+ * anything (e.g. a time). Capture groups: 1=month, 2=day, 3=year.
+ */
+const MDY_PREFIX_RE = /^(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\/(\d{4}|\d{2})(?=\s|$)/;
+
+/**
+ * An optional time right after a prefix date: a space or ISO 'T', then
+ * `H:MM`, `HH:MM` or `HH:MM:SS`, optionally followed by AM/PM. Capture groups:
+ * 1=hour, 2=minute, 3=seconds, 4=AM/PM.
+ */
+const TIME_AFTER_DATE_RE = /^[T\s]\s*(\d{1,2}):([0-5]\d)(?::([0-5]\d))?(?:\s*([AaPp][Mm])\b)?/;
+
+const MIDNIGHT: [number, number, number] = [0, 0, 0];
+
+/** The 24-hour [hours, minutes, seconds] at the start of `rest` (see TIME_AFTER_DATE_RE), or midnight when there is none or it is out of range. */
+function timeAfterDate(rest: string): [number, number, number] {
+  const match = rest.match(TIME_AFTER_DATE_RE);
+  if (!match) return MIDNIGHT;
+  let hours = parseInt(match[1] ?? '', 10);
+  const minutes = parseInt(match[2] ?? '', 10);
+  const seconds = match[3] ? parseInt(match[3], 10) : 0;
+  const ampm = match[4]?.toUpperCase();
+  if (ampm) {
+    if (hours < 1 || hours > 12) return MIDNIGHT;
+    if (ampm === 'PM' && hours !== 12) hours += 12;
+    else if (ampm === 'AM' && hours === 12) hours = 0;
+  } else if (hours > 23) {
+    return MIDNIGHT;
+  }
+  return [hours, minutes, seconds];
+}
+
+/**
+ * The timestamp of a value's leading `YYYY-MM-DD`, `MM/DD/YYYY` or `MM/DD/YY`
+ * date (a two-digit year means 20YY), plus the time right after it when there
+ * is one (`hh:mm AM/PM`, 24-hour `HH:MM[:SS]`, or after an ISO 'T'); without a
+ * readable time it is midnight. The date may stand alone or be followed by a
+ * space (or, for YYYY-MM-DD, an ISO 'T') and anything else. Returns
+ * NO_TIMESTAMP when the value doesn't start with a real calendar date.
+ *
+ * See: (USER_GUIDE.md#sorting-by-a-column)
+ */
+export function datePrefixTimestamp(value: string): number {
+  let year: number, month: number, day: number, rest: string;
+  const ymd = value.match(YMD_PREFIX_RE);
+  const mdy = ymd ? null : value.match(MDY_PREFIX_RE);
+  if (ymd) {
+    year = parseInt(ymd[1] ?? '', 10);
+    month = parseInt(ymd[2] ?? '', 10);
+    day = parseInt(ymd[3] ?? '', 10);
+    rest = value.slice(ymd[0].length);
+  } else if (mdy) {
+    const yearText = mdy[3] ?? '';
+    // Two-digit years mean 20YY, keyed off the digit count (see timestampFromMatch).
+    year = parseInt(yearText, 10) + (yearText.length === 2 ? 2000 : 0);
+    month = parseInt(mdy[1] ?? '', 10);
+    day = parseInt(mdy[2] ?? '', 10);
+    rest = value.slice(mdy[0].length);
+  } else {
+    return NO_TIMESTAMP;
+  }
+  // The time is in range (timeAfterDate checks it), so it can't roll the date
+  // over and validatedTimestamp's month/day check still judges the date alone.
+  return validatedTimestamp(year, month, day, ...timeAfterDate(rest));
+}
+
+/**
+ * How many calendar days from today a value's leading date is (negative =
+ * past, 0 = today, positive = future). The date is one datePrefixTimestamp
+ * reads; any time after it is ignored: only the calendar date counts. Returns
+ * undefined when the value doesn't start with a real calendar date.
  *
  * See: (USER_GUIDE.md#search-results)
  */
-export function ymdPrefixDaysFromToday(value: string): number | undefined {
-  const match = value.match(YMD_PREFIX_RE);
-  if (!match) return undefined;
-  const timestamp = validatedTimestamp(
-    parseInt(match[1] ?? '', 10), parseInt(match[2] ?? '', 10), parseInt(match[3] ?? '', 10), 0, 0, 0,
-  );
+export function datePrefixDaysFromToday(value: string): number | undefined {
+  const timestamp = datePrefixTimestamp(value);
   if (Number.isNaN(timestamp)) return undefined;
   return getDaysFromToday(timestamp);
 }
 
 /**
  * The time delta string ("today", "3 days ago", "1y 2m 5d away", …) for a value
- * that starts with a `YYYY-MM-DD` date (see ymdPrefixDaysFromToday). Returns
- * undefined when the value doesn't start with a real calendar date.
+ * that starts with a date (see datePrefixDaysFromToday). Returns undefined when
+ * the value doesn't start with a real calendar date.
  *
  * See: (USER_GUIDE.md#search-results)
  */
-export function ymdPrefixDeltaString(value: string): string | undefined {
-  const days = ymdPrefixDaysFromToday(value);
+export function datePrefixDeltaString(value: string): string | undefined {
+  const days = datePrefixDaysFromToday(value);
   return days === undefined ? undefined : formatDaysDisplay(days);
 }
 

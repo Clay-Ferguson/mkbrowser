@@ -183,6 +183,26 @@ describe('sortByText', () => {
     expect(sortByText(input, text, 'desc').map(r => r.i)).toEqual([0, 2, 1, 3]);
   });
 
+  it('compares values that start with a date as dates, whatever the format', () => {
+    const input = rows('12/25/2026', '2026-03-01', '11/5/26 dentist', '2026-11-05 09:00 AM');
+    expect(sortByText(input, text, 'asc').map(r => r.t))
+      .toEqual(['2026-03-01', '11/5/26 dentist', '2026-11-05 09:00 AM', '12/25/2026']);
+    expect(sortByText(input, text, 'desc').map(r => r.t))
+      .toEqual(['12/25/2026', '2026-11-05 09:00 AM', '11/5/26 dentist', '2026-03-01']);
+  });
+
+  it('orders times within the same day, including 12 AM/PM', () => {
+    const input = rows('2026-10-15 01:00 PM', '2026-10-15 12:30 AM', '2026-10-15 12:15 PM', '2026-10-15 09:00 AM');
+    expect(sortByText(input, text, 'asc').map(r => r.t))
+      .toEqual(['2026-10-15 12:30 AM', '2026-10-15 09:00 AM', '2026-10-15 12:15 PM', '2026-10-15 01:00 PM']);
+  });
+
+  it('keeps dates above non-date values in both directions', () => {
+    const input = rows('—', 'zebra', '2026-01-02', 'apple', '01/01/2026');
+    expect(sortByText(input, text, 'asc').map(r => r.t)).toEqual(['01/01/2026', '2026-01-02', '—', 'apple', 'zebra']);
+    expect(sortByText(input, text, 'desc').map(r => r.t)).toEqual(['2026-01-02', '01/01/2026', 'zebra', 'apple', '—']);
+  });
+
   it('returns a new array of the same row objects, leaving the input untouched', () => {
     const input = rows('b', 'a');
     const sorted = sortByText(input, text, 'asc');
