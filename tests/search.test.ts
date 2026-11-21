@@ -1775,6 +1775,17 @@ describe('Type filter (searchFolder type option)', () => {
     expect(names(results)).toEqual(['buy-milk.md', 'call-bob.md']);
   });
 
+  it('finds files of any of several comma-separated types (OR)', async () => {
+    expect(names(await searchFolder(dir, '', { type: 'todo, Person' })))
+      .toEqual(['bob.md', 'buy-milk.md', 'call-bob.md']);
+    expect(names(await searchFolder(dir, 'bob', { type: 'person,todo' }))).toEqual(['bob.md', 'call-bob.md']);
+    expect(names(await searchFolder(dir, '', { type: 'person, nope' }))).toEqual(['bob.md']);
+  });
+
+  it('treats a field of only commas as no type filter', async () => {
+    expect(names(await searchFolder(dir, 'text file', { type: ' , ' }))).toEqual(['todo.txt']);
+  });
+
   it('searches only .md files', async () => {
     expect(names(await searchFolder(dir, 'text file', { type: 'todo' }))).toEqual([]);
     expect(names(await searchFolder(dir, 'text file', {}))).toEqual(['todo.txt']);

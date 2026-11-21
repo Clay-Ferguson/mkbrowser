@@ -27,7 +27,7 @@ import { fdir } from 'fdir';
 import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
 import { toTimestamp, past, future, today, formatDateTime12 } from '../shared/timeUtil';
-import { createContentSearcher, compareSearchResults, parseTagFilter, matchesTagFilter, matchesTypeFilter, parseTagCategoryCols } from '../shared/searchHelpers';
+import { createContentSearcher, compareSearchResults, parseTagFilter, matchesTagFilter, parseTypeFilter, matchesTypeFilter, parseTagCategoryCols } from '../shared/searchHelpers';
 import type { SearchDefinition, SearchMatchType, SortKey } from '../shared/shared';
 import { compileAdvancedQuery, compileSortKeyExpression, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
@@ -610,9 +610,10 @@ export type SearchFolderOptions = Partial<Omit<SearchDefinition, 'name' | 'searc
  *   every file that passes). Ignored without `searchContents`. Since tags live
  *   in the content, every candidate is read, including name matches, and only
  *   content candidates (.md/.txt, plus images) can match.
- * - `type` — the Type field: only Markdown files whose front matter `type` is
- *   this one (ignoring case; see matchesTypeFilter) can match, ANDed like
- *   `tags`. Only `.md` files are searched then. Ignored without `searchContents`.
+ * - `type` — the Types field, a comma-delimited list (see parseTypeFilter):
+ *   only Markdown files whose front matter `type` is any one of these (ignoring
+ *   case; see matchesTypeFilter) can match, ANDed like `tags`. Only `.md` files
+ *   are searched then. Ignored without `searchContents`.
  * - `tagCategoryCols` — the Tag Category Columns field (see
  *   parseTagCategoryCols): when it lists any category, every result carries its
  *   front matter `tags` (files the search matched without reading are read
@@ -660,9 +661,11 @@ export async function searchFolderWithTotal(
   // The Tags and Type filters need file contents, so a names-only search
   // ignores them (the Search dialog disables those fields then).
   const tagFilter = searchContents ? parseTagFilter(tags) : null;
-  const typeFilter = searchContents ? type.trim() : '';
+  /** The Types field's type names (ORed); empty when there is no Types filter. */
+  const typeFilter = searchContents ? parseTypeFilter(type) : [];
+  const hasTypeFilter = typeFilter.length > 0;
   /** A Tags or Type filter is set: every candidate must be read to check it. */
-  const frontMatterFilter = tagFilter !== null || typeFilter !== '';
+  const frontMatterFilter = tagFilter !== null || hasTypeFilter;
   /** Whether the file whose contents are `content` passes the Tags and Type filters. */
   const passesFrontMatterFilter = (content: string, filePath: string): boolean => {
     if (!frontMatterFilter) return true;
@@ -671,7 +674,7 @@ export async function searchFolderWithTotal(
       && matchesTypeFilter(frontMatter, typeFilter);
   };
   /** Whose contents a contents search reads: with a Type filter, Markdown files only. */
-  const isCandidate = (filePath: string): boolean => typeFilter
+  const isCandidate = (filePath: string): boolean => hasTypeFilter
     ? path.extname(filePath).toLowerCase() === '.md'
     : isContentCandidate(filePath, searchImageExif);
   const basePredicate: ((content: string, filePath?: string, stat?: Partial<StatTimes>) => MatchResult) | null = !hasQuery

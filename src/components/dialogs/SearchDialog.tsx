@@ -7,7 +7,7 @@ import JsCodeInput from './common/JsCodeInput';
 import type { SearchDefinition, SearchMatchType, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import * as globalHighlight from '../../renderer/globalHighlight';
 import { api } from '../../renderer/api';
-import { initialSearchDefinition, invalidPropertyCols, isSearchDefinitionDirty, parseTagCategoryCols, unknownTagCategories } from '../../shared/searchHelpers';
+import { initialSearchDefinition, invalidPropertyCols, isSearchDefinitionDirty, parseTagCategoryCols, parseTypeFilter, unknownTagCategories } from '../../shared/searchHelpers';
 import { useAS } from '../../store';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_SAVE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../renderer/styles';
 
@@ -27,7 +27,7 @@ const NO_SORT_EXPRESSION_TITLE = 'Enter a sort expression, or choose another Sor
 
 const INVALID_PROPERTIES_TITLE = 'Fix the invalid names in Properties.';
 
-const FRONT_MATTER_NEEDS_CONTENTS_TITLE = "Tags and Type are read from file contents, so they need 'File Contents' checked.";
+const FRONT_MATTER_NEEDS_CONTENTS_TITLE = "Tags and Types are read from file contents, so they need 'File Contents' checked.";
 
 /** The Tags and Type inputs: the query input's look, plus a disabled state. */
 const FRONT_MATTER_INPUT_CLASS = `w-full ${DLG_INPUT_CLASS_BASE} font-mono text-base! border-slate-600 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`;
@@ -107,8 +107,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   /** The Tags field will filter the search (it needs File Contents; see searchFolder). */
   const hasTags = searchContents && tags.trim().length > 0;
   const type = def.type ?? '';
-  /** The Type field will filter the search (it needs File Contents, like Tags). */
-  const hasType = searchContents && type.trim().length > 0;
+  /** The Types field will filter the search (it needs File Contents, like Tags). */
+  const hasType = searchContents && parseTypeFilter(type).length > 0;
   const tagCategoryCols = def.tagCategoryCols ?? '';
   const tagCategoryNames = useAS(s => s.tagCategoryNames);
   /** Entries in Tag Category Columns that aren't tags.yaml categories (likely typos). */
@@ -417,7 +417,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <label className={`${DLG_LABEL_CLASS} truncate`}>Type</label>
+                  <label className={`${DLG_LABEL_CLASS} truncate`}>Types</label>
                   <input
                     type="text"
                     value={type}
@@ -427,7 +427,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                     title={searchContents ? undefined : FRONT_MATTER_NEEDS_CONTENTS_TITLE}
                     data-testid="search-type-input"
                     className={FRONT_MATTER_INPUT_CLASS}
-                    placeholder="e.g. todo"
+                    placeholder="e.g. todo, person"
                   />
                 </div>
               </div>

@@ -5,7 +5,7 @@
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName, parseTagCategoryCols, unknownTagCategories, tagCategoryLookup, tagCategoryCellValue, priorityHighlight, sortByText, parsePropertyCols, invalidPropertyCols, propertyValue, formatPropertyValue, discoverPropertyNames, ALL_PROPERTIES } from '../src/shared/searchHelpers';
+import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, parseTypeFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName, parseTagCategoryCols, unknownTagCategories, tagCategoryLookup, tagCategoryCellValue, priorityHighlight, sortByText, parsePropertyCols, invalidPropertyCols, propertyValue, formatPropertyValue, discoverPropertyNames, ALL_PROPERTIES } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults, setSearchColumnSort } from '../src/store/search';
 import type { SearchDefinition, SortKey } from '../src/shared/shared';
@@ -471,24 +471,43 @@ describe('isSearchDefinitionDirty — type', () => {
   });
 });
 
+describe('parseTypeFilter', () => {
+  it('splits on commas, trims and drops empty entries', () => {
+    expect(parseTypeFilter(' todo, Person ,,  ')).toEqual(['todo', 'Person']);
+    expect(parseTypeFilter('todo')).toEqual(['todo']);
+  });
+
+  it('an empty or comma-only field is no filter', () => {
+    expect(parseTypeFilter('')).toEqual([]);
+    expect(parseTypeFilter(' , , ')).toEqual([]);
+  });
+});
+
 describe('matchesTypeFilter', () => {
   it('matches the root type property ignoring case and surrounding whitespace', () => {
-    expect(matchesTypeFilter({ type: 'todo' }, 'todo')).toBe(true);
-    expect(matchesTypeFilter({ type: ' ToDo ' }, ' TODO')).toBe(true);
-    expect(matchesTypeFilter({ type: 'todos' }, 'todo')).toBe(false);
-    expect(matchesTypeFilter({ type: 'person' }, 'todo')).toBe(false);
+    expect(matchesTypeFilter({ type: 'todo' }, ['todo'])).toBe(true);
+    expect(matchesTypeFilter({ type: ' ToDo ' }, [' TODO'])).toBe(true);
+    expect(matchesTypeFilter({ type: 'todos' }, ['todo'])).toBe(false);
+    expect(matchesTypeFilter({ type: 'person' }, ['todo'])).toBe(false);
+  });
+
+  it('matches any one of several types (OR)', () => {
+    const types = parseTypeFilter('todo, person');
+    expect(matchesTypeFilter({ type: 'todo' }, types)).toBe(true);
+    expect(matchesTypeFilter({ type: 'Person' }, types)).toBe(true);
+    expect(matchesTypeFilter({ type: 'place' }, types)).toBe(false);
   });
 
   it('never matches a missing, non-string or nested type', () => {
-    expect(matchesTypeFilter(null, 'todo')).toBe(false);
-    expect(matchesTypeFilter({}, 'todo')).toBe(false);
-    expect(matchesTypeFilter({ type: ['todo'] }, 'todo')).toBe(false);
-    expect(matchesTypeFilter({ meta: { type: 'todo' } }, 'todo')).toBe(false);
-    expect(matchesTypeFilter(Object.create({ type: 'todo' }) as Record<string, unknown>, 'todo')).toBe(false);
+    expect(matchesTypeFilter(null, ['todo'])).toBe(false);
+    expect(matchesTypeFilter({}, ['todo'])).toBe(false);
+    expect(matchesTypeFilter({ type: ['todo'] }, ['todo'])).toBe(false);
+    expect(matchesTypeFilter({ meta: { type: 'todo' } }, ['todo'])).toBe(false);
+    expect(matchesTypeFilter(Object.create({ type: 'todo' }) as Record<string, unknown>, ['todo'])).toBe(false);
   });
 
-  it('an empty type matches every file', () => {
-    expect(matchesTypeFilter(null, '  ')).toBe(true);
+  it('an empty type list matches every file', () => {
+    expect(matchesTypeFilter(null, [])).toBe(true);
   });
 });
 

@@ -193,19 +193,32 @@ export function parseTagFilter(raw: string | undefined): TagFilter | null {
 }
 
 /**
- * Whether parsed front matter has the object type `type` (a search's Type
- * field): its root `type` property is a string equal to `type`, ignoring case
- * (type names are case-insensitive) and surrounding whitespace on both sides.
- * An empty `type` matches every file.
+ * Parses a search's Types field, a comma-delimited list of object type names
+ * such as `todo, person`, into its trimmed, non-empty names. An empty list means
+ * no type filter.
  *
  * See: (USER_GUIDE.md#using-search)
  */
-export function matchesTypeFilter(frontMatter: Record<string, unknown> | null, type: string): boolean {
-  const wanted = type.trim();
-  if (!wanted) return true;
+export function parseTypeFilter(text: string): string[] {
+  return text.split(',').map(t => t.trim()).filter(t => t.length > 0);
+}
+
+/**
+ * Whether parsed front matter has any of the object types `types` (a search's
+ * Types field, parsed by parseTypeFilter; the types are ORed): its root `type`
+ * property is a string equal to one of them, ignoring case (type names are
+ * case-insensitive) and surrounding whitespace on both sides. An empty `types`
+ * matches every file.
+ *
+ * See: (USER_GUIDE.md#using-search)
+ */
+export function matchesTypeFilter(frontMatter: Record<string, unknown> | null, types: readonly string[]): boolean {
+  if (types.length === 0) return true;
   // hasOwn, not `frontMatter.type`: never read an inherited property off parsed, untrusted data.
   const raw = frontMatter && Object.hasOwn(frontMatter, 'type') ? frontMatter['type'] : undefined;
-  return typeof raw === 'string' && sameTypeName(raw.trim(), wanted);
+  if (typeof raw !== 'string') return false;
+  const actual = raw.trim();
+  return types.some(wanted => sameTypeName(actual, wanted.trim()));
 }
 
 /**

@@ -131,8 +131,9 @@ export interface SearchDefinition {
    */
   tags?: string;
   /**
-   * The object type the matching files must have, as typed in the Search
-   * dialog's Type field: one type name, compared ignoring case and surrounding
+   * The object types the matching files may have, as typed in the Search
+   * dialog's Types field: a comma-delimited list of type names (see
+   * parseTypeFilter), ORed, each compared ignoring case and surrounding
    * whitespace with the root `type` property of a Markdown file's front matter
    * (see matchesTypeFilter). When set, only `.md` files are searched. ANDed with
    * the rest of the search; applies only when `searchContents` is on.
