@@ -33,6 +33,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Navigating with Bookmarks](#navigating-with-bookmarks)
   * [Renaming and Deleting Bookmarks](#renaming-and-deleting-bookmarks)
 * [Edit Menu Features](#edit-menu-features)
+  * [Bookmark](#bookmark)
   * [Undo Cut](#undo-cut)
   * [Select All](#select-all)
   * [Unselect All](#unselect-all)
@@ -508,6 +509,8 @@ Hover over any file or folder in the browse list, click its **More actions** (â˜
 1. A dialog appears asking you to give the bookmark a name. The item's filename is pre-filled as a default.
 2. Enter a name and click **Save** (or press `Enter`).
 
+To bookmark the folder you are currently browsing, open the **Edit** menu and choose **Bookmark** (the top item). The same naming dialog appears, pre-filled with the folder's name. The item is disabled when the current folder is already bookmarked.
+
 ## Removing a Bookmark
 
 For a bookmarked item, the same menu shows **Remove Bookmark** instead. Choosing it removes the bookmark immediately â€” no confirmation required.
@@ -528,6 +531,9 @@ Hover over any bookmark in the menu to reveal two icon buttons on the right:
 # Edit Menu Features
 
 The **Edit** menu provides a set of tools for managing and manipulating your files and selections. Below are the main features available:
+
+## Bookmark
+Bookmarks the folder you are currently browsing. A dialog lets you name the bookmark before saving it. See [Adding a Bookmark](#adding-a-bookmark).
 
 ## Undo Cut
 Restores items that were previously marked as "cut" (for moving) back to their original state, cancelling the pending move operation. Use this if you change your mind after cutting items but before pasting them. The **Undo Cut** button appears in the toolbar whenever you have items marked as cut.

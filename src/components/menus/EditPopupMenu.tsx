@@ -23,8 +23,8 @@ import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 // ---------------------------------------------------------------------------
 
 /**
- * Popup menu for the Edit toolbar button. Exposes file-level editing operations:
- * clipboard paste, selection management, split/join, find-and-replace, and clearing
+ * Popup menu for the Edit toolbar button. Exposes bookmarking the browsed folder
+ * and file-level editing operations: clipboard paste, selection management, split/join, find-and-replace, and clearing
  * front-matter properties from the selected files.
  * Each action callback is responsible for the actual operation; the menu only
  * wires up the items and closes itself after a selection.
@@ -36,6 +36,10 @@ import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 interface EditPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
+  /** Bookmarks the folder currently being browsed (opens BookmarkDialog to name it). */
+  onBookmarkFolder: () => void;
+  /** True when there is no browsed folder or it is already bookmarked. */
+  bookmarkFolderDisabled: boolean;
   onPasteFromClipboard: () => void;
   onSelectAll: () => void;
   onUnselectAll: () => void;
@@ -63,6 +67,8 @@ interface EditPopupMenuProps {
 export default function EditPopupMenu({
   anchorRef,
   onClose,
+  onBookmarkFolder,
+  bookmarkFolderDisabled,
   onPasteFromClipboard,
   onSelectAll,
   onUnselectAll,
@@ -80,6 +86,13 @@ export default function EditPopupMenu({
 }: EditPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
+      <PopupMenuItem
+        label="Bookmark"
+        data-testid="menu-bookmark-folder"
+        onClick={() => { onBookmarkFolder(); onClose(); }}
+        disabled={bookmarkFolderDisabled}
+      />
+      <PopupMenuDivider />
       <PopupMenuItem
         label="Paste from Clipboard"
         data-testid="menu-paste-clipboard"

@@ -22,6 +22,8 @@ export type BrowseOverlay =
   | { kind: 'cutOrphanConfirm' }
   /** `count` is the number of selected files to join, frozen when the dialog opens. */
   | { kind: 'joinOptions'; count: number }
-  | { kind: 'splitOptions' };
+  | { kind: 'splitOptions' }
+  /** `path` is the browsed folder, frozen when the dialog opens so a navigation meanwhile can't retarget it. */
+  | { kind: 'bookmarkFolder'; path: string };
 
 export const NO_OVERLAY: BrowseOverlay = { kind: 'none' };

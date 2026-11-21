@@ -78,7 +78,7 @@ export default function EntryPopupMenu({
         />
       )}
       <PopupMenuItem
-        label={isBookmarked ? 'Remove Bookmark' : 'Add Bookmark'}
+        label={isBookmarked ? 'Remove Bookmark' : 'Bookmark'}
         data-testid="menu-entry-bookmark"
         onClick={() => { onToggleBookmark(); onClose(); }}
       />

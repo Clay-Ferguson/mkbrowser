@@ -12,9 +12,12 @@ import HtmlExportDialog from '../dialogs/HtmlExportDialog';
 import JoinOptionsDialog from '../dialogs/JoinOptionsDialog';
 import SplitOptionsDialog from '../dialogs/SplitOptionsDialog';
 import AlertDialog from '../dialogs/AlertDialog';
+import BookmarkDialog from '../dialogs/BookmarkDialog';
+import { saveSettings } from '../../renderer/config';
 import BrowseToolbar from './BrowseToolbar';
 import BrowseEntryList from './BrowseEntryList';
 import {
+  addBookmark,
   cutSelectedItems,
   setCurrentPath,
   setIndexYaml,
@@ -375,6 +378,20 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
         <SplitOptionsDialog
           onSplit={handleSplit}
           onCancel={() => closeOverlay('splitOptions')}
+        />
+      )}
+
+      {/* Edit menu → "Bookmark": bookmarks the browsed folder. See: (USER_GUIDE.md#adding-a-bookmark) */}
+      {overlay.kind === 'bookmarkFolder' && (
+        <BookmarkDialog
+          path={overlay.path}
+          isFolder
+          onSave={(name) => {
+            closeOverlay('bookmarkFolder');
+            addBookmark(overlay.path, name, true);
+            saveSettings();
+          }}
+          onCancel={() => closeOverlay('bookmarkFolder')}
         />
       )}
 

@@ -115,6 +115,8 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
   const sortOrder = useAS(s => s.settings.sortOrder);
   const imageCols = useAS(s => s.settings.imageCols);
   const searchDefinitions = useAS(s => s.settings.searchDefinitions);
+  // Edit menu's "Bookmark" item is disabled when the browsed folder is already bookmarked.
+  const isCurrentFolderBookmarked = useAS(s => s.settings.bookmarks.some(b => b.path === s.currentPath));
   // The Image columns menu only lays out the folder's own images, so its button
   // is hidden when the folder being browsed has none.
   const hasImages = useAS(s => s.currentEntries.some((entry) => !entry.isDirectory && isImageFile(entry.name)));
@@ -449,6 +451,8 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder, onShowResult }: Brows
         <EditPopupMenu
           anchorRef={editButtonRef}
           onClose={() => closeMenu('edit')}
+          onBookmarkFolder={() => { if (currentPath) onOpenOverlay({ kind: 'bookmarkFolder', path: currentPath }); }}
+          bookmarkFolderDisabled={!currentPath || isCurrentFolderBookmarked}
           onPasteFromClipboard={handlePasteFromClipboard}
           onSelectAll={handleSelectAll}
           onUnselectAll={() => clearAllSelections()}
