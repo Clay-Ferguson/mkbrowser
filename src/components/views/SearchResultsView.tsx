@@ -24,7 +24,7 @@ import {
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
-import { formatOrderValue, parseTagCategoryCols, sortByText, tagCategoryCellValue, tagCategoryLookup, priorityHighlight, type PriorityHighlight } from '../../shared/searchHelpers';
+import { ALL_PROPERTIES, discoverPropertyNames, formatOrderValue, formatPropertyValue, parsePropertyCols, parseTagCategoryCols, propertyValue, sortByText, tagCategoryCellValue, tagCategoryLookup, priorityHighlight, type PriorityHighlight } from '../../shared/searchHelpers';
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { ymdPrefixDeltaString } from '../../shared/timeUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
@@ -46,11 +46,12 @@ const TABLE_WIDTH = 'w-max min-w-full';
  * The table's `grid-template-columns`. Path fits its widest folder path; Name is
  * at least its widest name (and takes any spare width, so the name sits right
  * next to its path); the sort-value column (absent for a file-name sort), one
- * column per tag category, and Actions fit their contents. An inline style, not
- * a Tailwind class, because the number of tag columns is only known at runtime.
+ * column per tag category, one per property, and Actions fit their contents.
+ * An inline style, not a Tailwind class, because the number of tag and property
+ * columns is only known at runtime.
  */
-function tableColumnTracks(showSortColumn: boolean, tagColumnCount: number): string {
-  const fitted = (showSortColumn ? 1 : 0) + tagColumnCount + 1;
+function tableColumnTracks(showSortColumn: boolean, extraColumnCount: number): string {
+  const fitted = (showSortColumn ? 1 : 0) + extraColumnCount + 1;
   return ['max-content', 'minmax(max-content,1fr)', ...Array<string>(fitted).fill('max-content')].join(' ');
 }
 /** Vertical padding of a result row's cells: the same `py-0.5` as a Browse-view
@@ -66,6 +67,10 @@ const CELL_ORDER = `flex items-center px-3 whitespace-nowrap ${COLUMN_DIVIDER}`;
 const CELL_TAG_CATEGORY = CELL_ORDER;
 /** A tag category cell with no tags in that category. */
 const NO_TAGS = '—';
+/** A property column's cell; laid out like the sort-value column. */
+const CELL_PROPERTY = CELL_ORDER;
+/** A property cell whose file has no value for that property. */
+const NO_VALUE = '—';
 /** A tag category cell's text, unless it is a highlighted priority. */
 const TAG_CELL_TEXT = 'text-slate-400';
 /**
@@ -135,13 +140,24 @@ function describeSortOrder(sortBy: SearchSortBy, direction: SearchSortDirection)
   return `${what} (${direction === 'asc' ? 'oldest first' : 'newest first'})`;
 }
 
-/** Column ids for click-to-sort (see SearchColumnSort): the fixed columns, and a
- * tag category column's id from its name as the search listed it. */
+/** Column ids for click-to-sort (see SearchColumnSort): the fixed columns, a
+ * tag category column's id from its name as the search listed it, and a
+ * property column's id from its property name. */
 const COL_PATH = 'path';
 const COL_NAME = 'name';
 const COL_SORT = 'sort';
 function tagColumnId(name: string): string {
   return `tag:${name}`;
+}
+const PROPERTY_COLUMN_PREFIX = 'prop:';
+function propertyColumnId(name: string): string {
+  return `${PROPERTY_COLUMN_PREFIX}${name}`;
+}
+
+/** A property cell's text: the result's value for the property (see
+ * formatPropertyValue), or NO_VALUE. See: (USER_GUIDE.md#property-columns) */
+function propertyCellText(result: SearchResultItem, name: string): string {
+  return formatPropertyValue(propertyValue(result.frontMatter, name)) ?? NO_VALUE;
 }
 
 /** A tag category cell's text: its tags, comma-separated, or NO_TAGS. */
@@ -170,6 +186,7 @@ function columnSortText(
     if (time === null) return formatOrderValue(result, sortBy);
     return time ? String(time).padStart(16, '0') : '';
   }
+  if (column.startsWith(PROPERTY_COLUMN_PREFIX)) return propertyCellText(result, column.slice(PROPERTY_COLUMN_PREFIX.length));
   return tagCellText(tagCategoryCellValue(result.tags, column.slice('tag:'.length), tagLookup));
 }
 
@@ -229,7 +246,10 @@ function SortableHeading({ className, column, columnSort, title, testId, childre
  * see tagCategoryCellValue; worked out here from the live tag definitions, so
  * a tags.yaml edit shows without re-running the search; in a PRIORITY column
  * p1 cells are red and p2 cells yellow; PRIORITY and CATEGORY are headed
- * PRI. and CAT. to keep those columns narrow), and Actions (headed ACT, holding
+ * PRI. and CAT. to keep those columns narrow), one column per front matter
+ * property listed in the search's Properties (or, for `*`, every property found
+ * in the results but `tags` — see discoverPropertyNames; a list or mapping
+ * value shows as `obj.`), and Actions (headed ACT, holding
  * just Delete, which appears only while the pointer rests on the row). Clicking a file row opens that file on
  * its own in the Browse view (single-file mode, same as clicking a file in the
  * index tree); clicking a folder row browses the folder's parent, scrolled to
@@ -245,6 +265,7 @@ function SortableHeading({ className, column, columnSort, title, testId, childre
  *
  * See: (USER_GUIDE.md#search-results)
  * See: (USER_GUIDE.md#tag-category-columns)
+ * See: (USER_GUIDE.md#property-columns)
  */
 function SearchResultsView() {
   const searchResults = useAS(s => s.searchResults);
@@ -327,7 +348,13 @@ function SearchResultsView() {
   // See: (USER_GUIDE.md#tag-category-columns)
   const tagColumns = parseTagCategoryCols(lastSearchDefinition?.tagCategoryCols);
   const tagLookup = tagCategoryLookup(tagCategoryByTag);
-  const gridTemplateColumns = tableColumnTracks(showSortColumn, tagColumns.length);
+  // Property columns, between the tag category columns and Actions. For `*`
+  // they come from the results in the search's own order (not a clicked
+  // column's order), so sorting by a column never moves the columns.
+  // See: (USER_GUIDE.md#property-columns)
+  const parsedPropertyCols = parsePropertyCols(lastSearchDefinition?.propertyCols);
+  const propertyColumns = parsedPropertyCols === ALL_PROPERTIES ? discoverPropertyNames(searchResults) : parsedPropertyCols;
+  const gridTemplateColumns = tableColumnTracks(showSortColumn, tagColumns.length + propertyColumns.length);
 
   // The rows in display order: the search's own order, or sorted by the clicked
   // column's text. See: (USER_GUIDE.md#sorting-by-a-column)
@@ -576,7 +603,7 @@ function SearchResultsView() {
             </p>
           </div>
         ) : (
-          // Results table: Path | Name | sort value | tag categories… | Actions
+          // Results table: Path | Name | sort value | tag categories… | properties… | Actions
           // (no sort value for a file-name sort). One grid owns the column tracks and every row
           // (heading and results) is a subgrid spanning them all, so the columns
           // line up across rows while each row stays its own element (click
@@ -605,6 +632,11 @@ function SearchResultsView() {
                   </SortableHeading>
                 );
               })}
+              {propertyColumns.map((name) => (
+                <SortableHeading key={name} className={`${CELL_PROPERTY} py-1.5`} column={propertyColumnId(name)} columnSort={searchColumnSort} title={name} testId="search-property-column-title">
+                  {name}
+                </SortableHeading>
+              ))}
               <div className={`${CELL_ACTIONS} py-1.5`} role="columnheader">Act</div>
             </div>
 
@@ -682,6 +714,24 @@ function SearchResultsView() {
                       data-priority={highlight ?? undefined}
                     >
                       <span className={`text-sm font-mono ${colors?.text ?? TAG_CELL_TEXT}`} data-testid="search-result-tag-cell">{text}</span>
+                    </div>
+                  );
+                })}
+
+                {/* Property columns: the result's front matter value for each
+                    property; a date's hover text adds how far away it is */}
+                {propertyColumns.map((name) => {
+                  const text = propertyCellText(result, name);
+                  const delta = ymdPrefixDeltaString(text);
+                  return (
+                    <div key={name} className={`${CELL_PROPERTY} ${RESULT_CELL_PAD}`} role="cell">
+                      <span
+                        className={`text-sm font-mono ${TAG_CELL_TEXT}`}
+                        title={delta ? `${text}\n${delta}` : text}
+                        data-testid="search-result-property-cell"
+                      >
+                        {text}
+                      </span>
                     </div>
                   );
                 })}

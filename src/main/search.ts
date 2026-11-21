@@ -128,6 +128,8 @@ export interface SearchResult {
   sortLabel?: string;
   /** The file's front matter tags; set only when the search has tag category columns. */
   tags?: string[];
+  /** The file's parsed front matter (`{}` when none); set only when the search has property columns. */
+  frontMatter?: Record<string, unknown>;
 }
 
 /** Match predicate result */
@@ -615,6 +617,9 @@ export type SearchFolderOptions = Partial<Omit<SearchDefinition, 'name' | 'searc
  *   parseTagCategoryCols): when it lists any category, every result carries its
  *   front matter `tags` (files the search matched without reading are read
  *   afterwards, like a custom sort). Display only; never filters or orders.
+ * - `propertyCols` — the Properties field (see parsePropertyCols): when it is
+ *   set, every result carries its parsed front matter (`frontMatter`), read
+ *   afterwards when needed just like `tags`. Display only; never filters or orders.
  * - `signal` — cancels the search: it is checked after each crawl and
  *   before each file is stat'd, read or matched, and an abort rejects the search
  *   with the signal's reason. Partial results are never returned.
@@ -638,6 +643,7 @@ export async function searchFolderWithTotal(
     sortDirection = 'desc',
     sortExpression = '',
     tagCategoryCols = '',
+    propertyCols = '',
     tags = '',
     type = '',
     signal,
@@ -700,10 +706,21 @@ export async function searchFolderWithTotal(
   // re-run). Shares the YAML cache, so front matter a filter or the query
   // already parsed isn't parsed again. See: (USER_GUIDE.md#tag-category-columns)
   const wantTags = parseTagCategoryCols(tagCategoryCols).length > 0;
-  /** Adds what is derived from a result's contents: its custom sort key and its tags. */
+  // Property columns: the results carry their whole parsed front matter, which
+  // the renderer picks the columns' values from (and, for `*`, the columns
+  // themselves). See: (USER_GUIDE.md#property-columns)
+  const wantFrontMatter = propertyCols.trim() !== '';
+  /** Adds what is derived from a result's contents: its custom sort key, its tags and its front matter. */
   const withContentFields = (result: SearchResult, content: string, stat?: Partial<StatTimes>): SearchResult => {
     const sorted = withSortKey(result, content, stat);
-    return wantTags ? { ...sorted, tags: getTagsFromFrontMatter(getYaml(yamlCache, content, result.path)) } : sorted;
+    if (!wantTags && !wantFrontMatter) return sorted;
+    const frontMatter = getYaml(yamlCache, content, result.path);
+    return {
+      ...sorted,
+      ...(wantTags ? { tags: getTagsFromFrontMatter(frontMatter) } : {}),
+      // Front matter that is a lone scalar or a list (not a mapping) has no properties.
+      ...(wantFrontMatter ? { frontMatter: typeof frontMatter === 'object' && frontMatter !== null && !Array.isArray(frontMatter) ? frontMatter : {} } : {}),
+    };
   };
 
   // Track advanced-query runtime errors. One file throwing is normal (the query
@@ -994,16 +1011,17 @@ export async function searchFolderWithTotal(
     throw new Error(`Advanced search query failed on every file it was evaluated against: ${firstError}`);
   }
 
-  // Custom sort keys and tags for the results whose contents were never read
-  // above (name matches, unfiltered listings, names-only searches).
+  // Custom sort keys, tags and front matter for the results whose contents were
+  // never read above (name matches, unfiltered listings, names-only searches).
   let sortable = results;
-  if (baseSortKeyEvaluator || wantTags) {
+  if (baseSortKeyEvaluator || wantTags || wantFrontMatter) {
     sortable = await mapWithConcurrency(
       results,
       SEARCH_FILE_CONCURRENCY,
       async (r): Promise<SearchResult> => {
         const needsContent = (baseSortKeyEvaluator !== null && r.sortKey === undefined)
-          || (wantTags && r.tags === undefined);
+          || (wantTags && r.tags === undefined)
+          || (wantFrontMatter && r.frontMatter === undefined);
         if (!needsContent) return r;
         signal?.throwIfAborted();
         const { content, stat } = await readSortKeySource(r);

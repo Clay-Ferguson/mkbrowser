@@ -262,6 +262,8 @@ export interface SearchResultItem {
   sortLabel?: string;
   /** The file's front matter tags, for the tag category columns (set only when the search has some). */
   tags?: string[];
+  /** The file's parsed front matter, for the property columns (set only when the search has some). */
+  frontMatter?: Record<string, unknown>;
 }
 
 /**

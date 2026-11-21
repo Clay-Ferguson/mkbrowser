@@ -7,7 +7,7 @@ import JsCodeInput from './common/JsCodeInput';
 import type { SearchDefinition, SearchMatchType, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import * as globalHighlight from '../../renderer/globalHighlight';
 import { api } from '../../renderer/api';
-import { initialSearchDefinition, isSearchDefinitionDirty, parseTagCategoryCols, unknownTagCategories } from '../../shared/searchHelpers';
+import { initialSearchDefinition, invalidPropertyCols, isSearchDefinitionDirty, parseTagCategoryCols, unknownTagCategories } from '../../shared/searchHelpers';
 import { useAS } from '../../store';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_SAVE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../renderer/styles';
 
@@ -24,6 +24,8 @@ const SORT_DIRECTION_HINTS: Record<SearchSortBy, { desc: string; asc: string }> 
 };
 
 const NO_SORT_EXPRESSION_TITLE = 'Enter a sort expression, or choose another Sort By.';
+
+const INVALID_PROPERTIES_TITLE = 'Fix the invalid names in Properties.';
 
 const FRONT_MATTER_NEEDS_CONTENTS_TITLE = "Tags and Type are read from file contents, so they need 'File Contents' checked.";
 
@@ -55,9 +57,10 @@ interface PendingConfirm {
  * saved search definitions (SearchDefinitionsPanel) and a right panel of search
  * options — the query, the front matter Tags and Type filters, the target (file contents and/or names), the match type
  * (literal/wildcard/advanced), the EXIF / recent-files toggles, result
- * sorting (including a Custom sort by a JavaScript expression), and the Tag
- * Category Columns the results view adds (with a warning naming any entry that
- * isn't a tags.yaml category).
+ * sorting (including a Custom sort by a JavaScript expression), and the
+ * Columns the results view adds: Tag Category Columns (with a warning naming any
+ * entry that isn't a tags.yaml category) and Properties (front matter property
+ * columns; an invalid name blocks Search and Save).
  *
  * The form edits one SearchDefinition. Selecting a row in the list loads that
  * saved definition (its name is shown above the form); with no row selected the
@@ -77,6 +80,7 @@ interface PendingConfirm {
  * See: (USER_GUIDE.md#saving-search-definitions)
  * See: (USER_GUIDE.md#custom-sort-order)
  * See: (USER_GUIDE.md#tag-category-columns)
+ * See: (USER_GUIDE.md#property-columns)
  */
 function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, onDeleteSearchDefinition, initialDefinition, searchDefinitions }: SearchDialogProps) {
   const [def, setDef] = useState(() =>
@@ -109,10 +113,16 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   const tagCategoryNames = useAS(s => s.tagCategoryNames);
   /** Entries in Tag Category Columns that aren't tags.yaml categories (likely typos). */
   const unknownTagCols = unknownTagCategories(parseTagCategoryCols(tagCategoryCols), tagCategoryNames);
+  const propertyCols = def.propertyCols ?? '';
+  /** Entries in Properties that aren't usable property names; Search and Save refuse them. */
+  const badPropertyCols = invalidPropertyCols(propertyCols);
+  const invalidProperties = badPropertyCols.length > 0;
   /** There is something to search for: a query, tags, a type, or the Recent Files listing. */
   const hasCriteria = searchQuery.trim().length > 0 || hasTags || hasType || mostRecent;
   /** Sort By is Custom but there is no expression to sort by. */
   const noSortExpression = sortBy === 'custom' && !sortExpression.trim();
+  /** A problem in the form that blocks both Search and Save, as the buttons' hover text. */
+  const blockedTitle = noSortExpression ? NO_SORT_EXPRESSION_TITLE : invalidProperties ? INVALID_PROPERTIES_TITLE : undefined;
   /** A change handler that sets one field of the definition being edited. */
   const set = <K extends keyof SearchDefinition>(key: K) => (value: SearchDefinition[K]) =>
     setDef((d) => ({ ...d, [key]: value }));
@@ -161,8 +171,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   };
 
   /** The form as a definition to search with or save: the query, tags, type, sort
-   *  expression, sort title and tag category columns trimmed, and an empty one
-   *  left out of the saved config. */
+   *  expression, sort title, tag category columns and properties trimmed, and an
+   *  empty one left out of the saved config. */
   const toDefinition = (name: string, query: string): SearchDefinition => ({
     ...def,
     name,
@@ -172,6 +182,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
     sortExpression: sortExpression.trim() || undefined,
     sortTitle: sortTitle.trim() || undefined,
     tagCategoryCols: tagCategoryCols.trim() || undefined,
+    propertyCols: propertyCols.trim() || undefined,
   });
 
   const handleCodeChange = (value: string) => {
@@ -186,7 +197,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
 
   const handleSearch = () => {
     const query = searchQuery.trim();
-    if (!hasCriteria || noTarget || noSortExpression) return;
+    if (!hasCriteria || noTarget || blockedTitle) return;
     void checkSyntax(query).then((ok) => {
       if (!ok) return;
       // The highlighter matches within single DOM text nodes, so it can't match
@@ -203,6 +214,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
       setSortError(NO_SORT_EXPRESSION_TITLE);
       return Promise.resolve(false);
     }
+    // The Properties field already shows its own error.
+    if (invalidProperties) return Promise.resolve(false);
     const query = searchQuery.trim();
     return checkSyntax(query).then((ok) => {
       if (!ok) return false;
@@ -229,7 +242,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
   };
 
   const handleSave = () => {
-    if (!saved || !dirty || noSortExpression) return;
+    if (!saved || !dirty || blockedTitle) return;
     const query = searchQuery.trim();
     void checkSyntax(query).then((ok) => {
       if (ok) onSave(toDefinition(saved.name, query));
@@ -483,29 +496,56 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
                 )}
               </fieldset>
 
-              {/* Tag Category Columns: extra results columns, one per tag category.
-                  Display only, so (unlike Tags and Type) it works without File Contents.
-                  See: (USER_GUIDE.md#tag-category-columns) */}
-              <div className="mb-3 shrink-0">
-                <label htmlFor="search-tag-category-cols-input" className={DLG_LABEL_CLASS}>
-                  Tag Category Columns (comma-separated tag categories, or ALL)
-                </label>
-                <input
-                  id="search-tag-category-cols-input"
-                  type="text"
-                  value={tagCategoryCols}
-                  onChange={(e) => set('tagCategoryCols')(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  data-testid="search-tag-category-cols-input"
-                  className={FRONT_MATTER_INPUT_CLASS}
-                  placeholder="e.g. priority, all"
-                />
-                {unknownTagCols.length > 0 && (
-                  <p className="text-xs text-amber-400 mt-1 break-words" data-testid="search-tag-category-cols-unknown">
-                    {unknownTagCols.length === 1 ? 'Not a tag category' : 'Not tag categories'}: {unknownTagCols.join(', ')}
-                  </p>
-                )}
-              </div>
+              {/* Columns: extra results columns. Display only, so (unlike Tags and
+                  Type) they work without File Contents. */}
+              <fieldset className="border border-slate-600 rounded-md p-3 mb-3 shrink-0">
+                <legend className="text-xs text-slate-400 px-2">Columns</legend>
+                {/* Tag Category Columns: one column per tag category.
+                    See: (USER_GUIDE.md#tag-category-columns) */}
+                <div>
+                  <label htmlFor="search-tag-category-cols-input" className={DLG_LABEL_CLASS}>
+                    Tag Category (comma-separated tag categories)
+                  </label>
+                  <input
+                    id="search-tag-category-cols-input"
+                    type="text"
+                    value={tagCategoryCols}
+                    onChange={(e) => set('tagCategoryCols')(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    data-testid="search-tag-category-cols-input"
+                    className={FRONT_MATTER_INPUT_CLASS}
+                    placeholder="e.g. priority, all"
+                  />
+                  {unknownTagCols.length > 0 && (
+                    <p className="text-xs text-amber-400 mt-1 break-words" data-testid="search-tag-category-cols-unknown">
+                      {unknownTagCols.length === 1 ? 'Not a tag category' : 'Not tag categories'}: {unknownTagCols.join(', ')}
+                    </p>
+                  )}
+                </div>
+
+                {/* Properties: one column per front matter property, or * for every
+                    property found. See: (USER_GUIDE.md#property-columns) */}
+                <div className="mt-3">
+                  <label htmlFor="search-property-cols-input" className={DLG_LABEL_CLASS}>
+                    Properties (comma-separated front matter properties, or *)
+                  </label>
+                  <input
+                    id="search-property-cols-input"
+                    type="text"
+                    value={propertyCols}
+                    onChange={(e) => set('propertyCols')(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    data-testid="search-property-cols-input"
+                    className={FRONT_MATTER_INPUT_CLASS}
+                    placeholder="e.g. type, due  or  *"
+                  />
+                  {invalidProperties && (
+                    <p className="text-xs text-red-400 mt-1 break-words" data-testid="search-property-cols-error">
+                      {badPropertyCols.length === 1 ? 'Invalid property name' : 'Invalid property names'}: {badPropertyCols.join(', ')}
+                    </p>
+                  )}
+                </div>
+              </fieldset>
 
               <div className="flex items-center gap-6">
                 <CheckboxField
@@ -556,10 +596,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
             <button
               type="button"
               onClick={handleSave}
-              disabled={!dirty || noSortExpression}
-              title={saved
-                ? (noSortExpression ? NO_SORT_EXPRESSION_TITLE : undefined)
-                : 'Click ＋ to save this as a new search'}
+              disabled={!dirty || !!blockedTitle}
+              title={saved ? blockedTitle : 'Click ＋ to save this as a new search'}
               data-testid="search-dialog-save-button"
               className={BUTTON_CLASS_DLG_SAVE}
             >
@@ -568,8 +606,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onRenameSearchDefinition, on
             <button
               type="button"
               onClick={handleSearch}
-              disabled={!hasCriteria || noTarget || noSortExpression}
-              title={noSortExpression ? NO_SORT_EXPRESSION_TITLE : undefined}
+              disabled={!hasCriteria || noTarget || !!blockedTitle}
+              title={blockedTitle}
               data-testid="execute-search-button"
               className={BUTTON_CLASS_DLG_BLUE}
             >

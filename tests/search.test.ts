@@ -1697,6 +1697,56 @@ describe('tag category columns (searchFolder tagCategoryCols option)', () => {
   });
 });
 
+describe('property columns (searchFolder propertyCols option)', () => {
+  let dir: string;
+  const fmByName = (results: { path: string; frontMatter?: Record<string, unknown> }[]): Record<string, Record<string, unknown> | undefined> =>
+    Object.fromEntries(results.map(r => [path.basename(r.path), r.frontMatter]));
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-prop-cols-'));
+    const write = (relPath: string, body: string) => {
+      const fp = path.join(dir, relPath);
+      fs.mkdirSync(path.dirname(fp), { recursive: true });
+      fs.writeFileSync(fp, body, 'utf-8');
+    };
+    write('task-one.md', '---\ntype: todo\ndue: 2026-03-01\nauthor:\n  name: Ann\n---\nTASKWORD one\n');
+    write('task-two.md', '---\ntype: note\n---\nnothing here\n');
+    write('plain.md', 'TASKWORD with no front matter\n');
+    write('scalar.md', '---\njust a string\n---\nTASKWORD scalar\n');
+    write('task-receipt.pdf', 'not readable');
+    fs.mkdirSync(path.join(dir, 'task-folder'));
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('leaves front matter off the results when no properties are requested', async () => {
+    const results = await searchFolder(dir, 'TASKWORD', {});
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.every(r => r.frontMatter === undefined)).toBe(true);
+    expect((await searchFolder(dir, 'TASKWORD', { propertyCols: '  ' })).every(r => r.frontMatter === undefined)).toBe(true);
+  });
+
+  it('adds each content match\'s parsed front matter ({} when it has none, or is not a mapping)', async () => {
+    expect(fmByName(await searchFolder(dir, 'TASKWORD', { propertyCols: 'type' }))).toEqual({
+      'task-one.md': { type: 'todo', due: '2026-03-01', author: { name: 'Ann' } },
+      'plain.md': {},
+      'scalar.md': {},
+    });
+  });
+
+  it('reads the front matter of files matched by name, never read by the search itself', async () => {
+    expect(fmByName(await searchFolder(dir, 'task', { searchNames: true, propertyCols: '*' })))
+      .toMatchObject({ 'task-two.md': { type: 'note' }, 'task-receipt.pdf': {} });
+  });
+
+  it('works in a names-only search, folders and other files getting {}', async () => {
+    expect(fmByName(await searchFolder(dir, 'task', { searchContents: false, searchNames: true, propertyCols: 'type' })))
+      .toMatchObject({ 'task-two.md': { type: 'note' }, 'task-receipt.pdf': {}, 'task-folder': {} });
+  });
+});
+
 describe('Type filter (searchFolder type option)', () => {
   let dir: string;
   const names = (results: { path: string }[]): string[] =>

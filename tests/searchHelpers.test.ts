@@ -5,7 +5,7 @@
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName, parseTagCategoryCols, unknownTagCategories, tagCategoryLookup, tagCategoryCellValue, priorityHighlight, sortByText } from '../src/shared/searchHelpers';
+import { compareSearchResults, formatOrderValue, parseTagFilter, matchesTagFilter, matchesTypeFilter, newSearchDefinition, recentFilesSearchDefinition, initialSearchDefinition, isSearchDefinitionDirty, validateSearchDefinitionName, parseTagCategoryCols, unknownTagCategories, tagCategoryLookup, tagCategoryCellValue, priorityHighlight, sortByText, parsePropertyCols, invalidPropertyCols, propertyValue, formatPropertyValue, discoverPropertyNames, ALL_PROPERTIES } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults, setSearchColumnSort } from '../src/store/search';
 import type { SearchDefinition, SortKey } from '../src/shared/shared';
@@ -221,6 +221,7 @@ describe('initialSearchDefinition', () => {
       tags: '',
       type: '',
       tagCategoryCols: '',
+      propertyCols: '',
       searchImageExif: false,
     });
   });
@@ -275,6 +276,102 @@ describe('isSearchDefinitionDirty — tag category columns', () => {
     expect(isSearchDefinitionDirty({ ...saved, tagCategoryCols: 'priority' }, saved)).toBe(true);
     const withCols = { ...saved, tagCategoryCols: 'priority, all' };
     expect(isSearchDefinitionDirty({ ...withCols, tagCategoryCols: ' priority, all ' }, withCols)).toBe(false);
+  });
+});
+
+describe('isSearchDefinitionDirty — property columns', () => {
+  const saved: SearchDefinition = { ...newSearchDefinition('foo'), name: 'saved' };
+
+  it('compares them trimmed, with a missing value equal to empty', () => {
+    const { propertyCols: _p, ...legacy } = saved;
+    expect(isSearchDefinitionDirty(legacy, saved)).toBe(false);
+    expect(isSearchDefinitionDirty({ ...saved, propertyCols: 'type' }, saved)).toBe(true);
+    const withCols = { ...saved, propertyCols: 'type, due' };
+    expect(isSearchDefinitionDirty({ ...withCols, propertyCols: ' type, due ' }, withCols)).toBe(false);
+  });
+});
+
+describe('parsePropertyCols', () => {
+  it('splits, trims, drops empties, and de-dupes case-sensitively', () => {
+    expect(parsePropertyCols(' type , ,due, type,Type, author.name ')).toEqual(['type', 'due', 'Type', 'author.name']);
+  });
+
+  it('returns [] for a missing or blank value', () => {
+    expect(parsePropertyCols(undefined)).toEqual([]);
+    expect(parsePropertyCols(' , ')).toEqual([]);
+  });
+
+  it('returns ALL_PROPERTIES for a lone *', () => {
+    expect(parsePropertyCols(' * ')).toBe(ALL_PROPERTIES);
+  });
+});
+
+describe('invalidPropertyCols', () => {
+  it('accepts names, dotted paths, and a lone *', () => {
+    expect(invalidPropertyCols('type, due, author.name, my-prop, _x, $y, prio2, café')).toEqual([]);
+    expect(invalidPropertyCols(' * ')).toEqual([]);
+    expect(invalidPropertyCols(undefined)).toEqual([]);
+    expect(invalidPropertyCols(' , ')).toEqual([]);
+  });
+
+  it('lists entries with illegal characters or empty path segments', () => {
+    expect(invalidPropertyCols('type, due date, a..b, .a, b., x/y, *')).toEqual(['due date', 'a..b', '.a', 'b.', 'x/y', '*']);
+  });
+});
+
+describe('propertyValue', () => {
+  const fm = { type: 'todo', author: { name: 'Ann', tags: ['a'] }, count: 0, nil: null };
+
+  it('reads top-level and dotted paths', () => {
+    expect(propertyValue(fm, 'type')).toBe('todo');
+    expect(propertyValue(fm, 'author.name')).toBe('Ann');
+    expect(propertyValue(fm, 'count')).toBe(0);
+    expect(propertyValue(fm, 'nil')).toBeNull();
+  });
+
+  it('is undefined for a missing key, a path through a non-object, or no front matter', () => {
+    expect(propertyValue(fm, 'due')).toBeUndefined();
+    expect(propertyValue(fm, 'type.length')).toBeUndefined();
+    expect(propertyValue(fm, 'author.tags.0')).toBeUndefined();
+    expect(propertyValue(fm, 'toString')).toBeUndefined();
+    expect(propertyValue(undefined, 'type')).toBeUndefined();
+  });
+});
+
+describe('formatPropertyValue', () => {
+  it('shows strings, numbers and booleans as they are', () => {
+    expect(formatPropertyValue('todo')).toBe('todo');
+    expect(formatPropertyValue('  two\n lines ')).toBe('two lines');
+    expect(formatPropertyValue(3)).toBe('3');
+    expect(formatPropertyValue(0)).toBe('0');
+    expect(formatPropertyValue(false)).toBe('false');
+  });
+
+  it('shows a date as YYYY-MM-DD, adding the time when it has one', () => {
+    expect(formatPropertyValue(new Date(Date.UTC(2026, 2, 1)))).toBe('2026-03-01');
+    expect(formatPropertyValue(new Date(Date.UTC(2026, 2, 1, 9, 5)))).toBe('2026-03-01 09:05');
+    expect(formatPropertyValue(new Date(NaN))).toBeNull();
+  });
+
+  it('shows lists and mappings as obj.', () => {
+    expect(formatPropertyValue(['a', 'b'])).toBe('obj.');
+    expect(formatPropertyValue({ a: 1 })).toBe('obj.');
+  });
+
+  it('is null for no value', () => {
+    expect(formatPropertyValue(undefined)).toBeNull();
+    expect(formatPropertyValue(null)).toBeNull();
+    expect(formatPropertyValue('  ')).toBeNull();
+  });
+});
+
+describe('discoverPropertyNames', () => {
+  it('collects top-level keys in first-seen order, skipping tags', () => {
+    expect(discoverPropertyNames([
+      { frontMatter: { type: 'todo', tags: ['p1'], due: '2026-03-01' } },
+      {},
+      { frontMatter: { status: 'open', type: 'note' } },
+    ])).toEqual(['type', 'due', 'status']);
   });
 });
 

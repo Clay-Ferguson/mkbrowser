@@ -151,6 +151,18 @@ export interface SearchDefinition {
    * See: (USER_GUIDE.md#tag-category-columns)
    */
   tagCategoryCols?: string;
+  /**
+   * Property columns for the Search Results view, as typed in the Search
+   * dialog's "Properties" field: a comma-delimited list of front matter
+   * property names (case-sensitive, like YAML keys; dotted paths such as
+   * `author.name` reach nested values), e.g. `type, due`. Each name adds a
+   * column showing that property's value. A lone `*` instead adds a column for
+   * every top-level property found in any result (except `tags`, which the tag
+   * category columns cover). Display only: it never filters or orders the results.
+   *
+   * See: (USER_GUIDE.md#property-columns)
+   */
+  propertyCols?: string;
   /** Whether to include image EXIF metadata in a content search. */
   searchImageExif?: boolean;
   /**
@@ -574,6 +586,12 @@ export interface SearchResult {
    * See: (USER_GUIDE.md#tag-category-columns)
    */
   tags?: string[];
+  /** The file's parsed front matter (`{}` when it has none or isn't a text
+   * file); set only when the search has property columns (`propertyCols`).
+   *
+   * See: (USER_GUIDE.md#property-columns)
+   */
+  frontMatter?: Record<string, unknown>;
 }
 
 /** What a folder search returns over IPC: the results (capped, and ordered by
