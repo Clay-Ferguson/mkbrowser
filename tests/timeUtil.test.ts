@@ -10,6 +10,7 @@ import {
   formatDaysDisplay,
   formatDateWithDelta,
   ymdPrefixDeltaString,
+  ymdPrefixDaysFromToday,
   generateTimestampFolderName,
   generateTimestampFileName,
   formatTimestamp,
@@ -508,6 +509,32 @@ describe('ymdPrefixDeltaString', () => {
     expect(ymdPrefixDeltaString('due 2026-10-15')).toBeUndefined();
     expect(ymdPrefixDeltaString('2026-10-150')).toBeUndefined();
     expect(ymdPrefixDeltaString('2026-02-31')).toBeUndefined();
+  });
+});
+
+describe('ymdPrefixDaysFromToday', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('gives 0 for today, negative for past and positive for future dates', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 15, 12, 0, 0));
+    expect(ymdPrefixDaysFromToday('2026-10-15')).toBe(0);
+    // A time earlier today is still today: only the calendar date counts.
+    expect(ymdPrefixDaysFromToday('2026-10-15 08:00 AM')).toBe(0);
+    expect(ymdPrefixDaysFromToday('2026-10-12 11:59 PM')).toBe(-3);
+    expect(ymdPrefixDaysFromToday('2026-10-14T23:30:00')).toBe(-1);
+    expect(ymdPrefixDaysFromToday('2026-10-16 00:01:02')).toBe(1);
+    expect(ymdPrefixDaysFromToday('2027-10-15')).toBe(365);
+  });
+
+  it('returns undefined when the value does not start with a real date', () => {
+    expect(ymdPrefixDaysFromToday('')).toBeUndefined();
+    expect(ymdPrefixDaysFromToday('—')).toBeUndefined();
+    expect(ymdPrefixDaysFromToday('high')).toBeUndefined();
+    expect(ymdPrefixDaysFromToday('due 2026-10-15')).toBeUndefined();
+    expect(ymdPrefixDaysFromToday('2026-02-30')).toBeUndefined();
   });
 });
 

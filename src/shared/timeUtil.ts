@@ -304,21 +304,34 @@ export function formatDateWithDelta(value: string): string {
 const YMD_PREFIX_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[\sT]|$)/;
 
 /**
- * The time delta string ("today", "3 days ago", "1y 2m 5d away", …) for a value
- * that starts with a `YYYY-MM-DD` date, alone or followed by a space or ISO 'T'
- * and more (such as a time, which is ignored — only the calendar date counts). Returns
- * undefined when the value doesn't start with a real calendar date.
+ * How many calendar days from today a value's leading `YYYY-MM-DD` date is
+ * (negative = past, 0 = today, positive = future). The date may stand alone or
+ * be followed by a space or ISO 'T' and more (such as a time, which is ignored —
+ * only the calendar date counts). Returns undefined when the value doesn't start
+ * with a real calendar date.
  *
  * See: (USER_GUIDE.md#search-results)
  */
-export function ymdPrefixDeltaString(value: string): string | undefined {
+export function ymdPrefixDaysFromToday(value: string): number | undefined {
   const match = value.match(YMD_PREFIX_RE);
   if (!match) return undefined;
   const timestamp = validatedTimestamp(
     parseInt(match[1] ?? '', 10), parseInt(match[2] ?? '', 10), parseInt(match[3] ?? '', 10), 0, 0, 0,
   );
   if (Number.isNaN(timestamp)) return undefined;
-  return formatDaysDisplay(getDaysFromToday(timestamp));
+  return getDaysFromToday(timestamp);
+}
+
+/**
+ * The time delta string ("today", "3 days ago", "1y 2m 5d away", …) for a value
+ * that starts with a `YYYY-MM-DD` date (see ymdPrefixDaysFromToday). Returns
+ * undefined when the value doesn't start with a real calendar date.
+ *
+ * See: (USER_GUIDE.md#search-results)
+ */
+export function ymdPrefixDeltaString(value: string): string | undefined {
+  const days = ymdPrefixDaysFromToday(value);
+  return days === undefined ? undefined : formatDaysDisplay(days);
 }
 
 /** Generates a folder name from the current date/time in `YYYY-MM-DD--HH-MM-SS-AM/PM` format. */

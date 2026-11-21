@@ -26,7 +26,7 @@ import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
 import { ALL_PROPERTIES, discoverPropertyNames, formatOrderValue, formatPropertyValue, parsePropertyCols, parseTagCategoryCols, propertyValue, sortByText, tagCategoryCellValue, tagCategoryLookup, priorityHighlight, type PriorityHighlight } from '../../shared/searchHelpers';
 import { toCalendarEvents } from '../../shared/calendarUtil';
-import { ymdPrefixDeltaString } from '../../shared/timeUtil';
+import { ymdPrefixDaysFromToday, ymdPrefixDeltaString } from '../../shared/timeUtil';
 import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
 import type { CalendarSource, SearchColumnSort, SearchResultItem, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import { BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, HOVER_REVEAL, getContentWidthClasses } from '../../renderer/styles';
@@ -84,6 +84,25 @@ const PRIORITY_CELL_CLASSES: Record<PriorityHighlight, { cell: string; text: str
   p1: { cell: 'bg-red-700', text: 'text-white font-semibold' },
   p2: { cell: 'bg-yellow-400', text: 'text-slate-900 font-semibold' },
 };
+/** Whether a date cell's value is before, on, or after today's calendar date. */
+type DateTense = 'past' | 'today' | 'future';
+/**
+ * Colors for a sort-value or property cell whose value starts with a
+ * `YYYY-MM-DD` date (see dateTense), so upcoming dates stand out while
+ * scanning down the list: future dates in green, past dates in the table's
+ * ordinary gray, and today's date as a filled blue cell with light gray text
+ * (the Name column's color). An empty `cell` leaves the cell unfilled. The text
+ * classes replace the cell's plain text color.
+ *
+ * See: (USER_GUIDE.md#search-results)
+ */
+const DATE_CELL_CLASSES: Record<DateTense, { cell: string; text: string }> = {
+  future: { cell: '', text: 'text-green-400' },
+  past: { cell: '', text: TAG_CELL_TEXT },
+  today: { cell: 'bg-blue-900', text: 'text-slate-200' },
+};
+/** The plain text color of a sort-value cell that holds no date. */
+const ORDER_CELL_TEXT = 'text-slate-400';
 const CELL_ACTIONS = `flex items-center px-2 ${COLUMN_DIVIDER}`;
 /** Horizontal lines between result rows, drawn as inset shadows rather than
  * borders so they take no layout space (keeping each row the height of a
@@ -95,6 +114,21 @@ const ROW_DIVIDERS = 'shadow-[inset_0_1px_0_var(--color-slate-700)] last:shadow-
  * last row's cells also draw its bottom edge. */
 const CELL_ROW_DIVIDER = 'shadow-[inset_0_1px_0_var(--color-slate-700)]';
 const CELL_ROW_DIVIDER_LAST = 'shadow-[inset_0_1px_0_var(--color-slate-700),inset_0_-1px_0_var(--color-slate-700)]';
+
+/** A cell's background classes plus the row lines it must then draw itself
+ * (see CELL_ROW_DIVIDER); empty when the cell has no background of its own. */
+function filledCellClass(cellClass: string | undefined, isLastRow: boolean): string {
+  if (!cellClass) return '';
+  return `${cellClass} ${isLastRow ? CELL_ROW_DIVIDER_LAST : CELL_ROW_DIVIDER}`;
+}
+
+/** The tense of a value that starts with a `YYYY-MM-DD` date, or undefined when it isn't a date. */
+function dateTense(value: string): DateTense | undefined {
+  const days = ymdPrefixDaysFromToday(value);
+  if (days === undefined) return undefined;
+  if (days === 0) return 'today';
+  return days < 0 ? 'past' : 'future';
+}
 
 /** The sort-value column's heading: what its values are, which depends on the
  * Sort By choice. A file-name sort has no such column — the Name column already
@@ -655,6 +689,10 @@ function SearchResultsView() {
               // Hover text: the value, plus how far away it is when it's a date.
               const orderDelta = ymdPrefixDeltaString(orderValue);
               const orderTitle = orderDelta ? `${orderValue}\n${orderDelta}` : orderValue;
+              // Date values are colored by whether they're past, today, or future.
+              const orderTense = dateTense(orderValue);
+              const orderColors = orderTense ? DATE_CELL_CLASSES[orderTense] : null;
+              const isLastRow = index === displayedResults.length - 1;
 
               return (
               <div
@@ -688,9 +726,9 @@ function SearchResultsView() {
                 {/* Sort value: the value this result was sorted by, shown whole
                     on one line (the column widens to fit it) */}
                 {showSortColumn && (
-                  <div className={`${CELL_ORDER} ${RESULT_CELL_PAD}`} role="cell">
+                  <div className={`${CELL_ORDER} ${RESULT_CELL_PAD} ${filledCellClass(orderColors?.cell, isLastRow)}`} role="cell" data-date-tense={orderTense}>
                     <span
-                      className="text-sm text-slate-400 font-mono"
+                      className={`text-sm font-mono ${orderColors?.text ?? ORDER_CELL_TEXT}`}
                       title={orderTitle}
                       data-testid="search-result-sort-value"
                     >
@@ -709,7 +747,7 @@ function SearchResultsView() {
                   return (
                     <div
                       key={name}
-                      className={`${CELL_TAG_CATEGORY} ${RESULT_CELL_PAD} ${colors ? `${colors.cell} ${index === displayedResults.length - 1 ? CELL_ROW_DIVIDER_LAST : CELL_ROW_DIVIDER}` : ''}`}
+                      className={`${CELL_TAG_CATEGORY} ${RESULT_CELL_PAD} ${filledCellClass(colors?.cell, isLastRow)}`}
                       role="cell"
                       data-priority={highlight ?? undefined}
                     >
@@ -723,10 +761,12 @@ function SearchResultsView() {
                 {propertyColumns.map((name) => {
                   const text = propertyCellText(result, name);
                   const delta = ymdPrefixDeltaString(text);
+                  const tense = dateTense(text);
+                  const dateColors = tense ? DATE_CELL_CLASSES[tense] : null;
                   return (
-                    <div key={name} className={`${CELL_PROPERTY} ${RESULT_CELL_PAD}`} role="cell">
+                    <div key={name} className={`${CELL_PROPERTY} ${RESULT_CELL_PAD} ${filledCellClass(dateColors?.cell, isLastRow)}`} role="cell" data-date-tense={tense}>
                       <span
-                        className={`text-sm font-mono ${TAG_CELL_TEXT}`}
+                        className={`text-sm font-mono ${dateColors?.text ?? TAG_CELL_TEXT}`}
                         title={delta ? `${text}\n${delta}` : text}
                         data-testid="search-result-property-cell"
                       >
