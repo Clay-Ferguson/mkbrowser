@@ -97,6 +97,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Syntax](#syntax)
   * [Examples](#examples)
   * [Creating Files from Wikilinks](#creating-files-from-wikilinks)
+* [Map Links](#map-links)
 * [LaTeX Math Support](#latex-math-support)
   * [Syntax](#syntax-1)
   * [Escaping Dollar Signs for Currency](#escaping-dollar-signs-for-currency)
@@ -1273,6 +1274,7 @@ MkBrowser renders Markdown using **GitHub Flavored Markdown (GFM)**, which inclu
 
 - **LaTeX math** — inline (`$...$`) and block (`$$...$$`) equations via KaTeX (see [LaTeX Math Support](#latex-math-support) below).
 - **Wikilinks** — `[[filename]]` and `[[filename|alias]]` syntax for linking between files (see [Wikilinks](#wikilinks) below).
+- **Map links** — `[address](<map:...>)` makes a clickable street address that opens a map search (see [Map Links](#map-links) below).
 - **Syntax highlighting** — fenced code blocks with a language tag (e.g., ` ```python `) are rendered with syntax colors.
 - **Mermaid diagrams** — fenced code blocks tagged ` ```mermaid ` are rendered as diagrams.
 - **Objects** — a file whose front matter has a `type:` naming one of your custom types shows that object as a card above its content (see [Objects and Custom Types](#objects-and-custom-types)).
@@ -1331,6 +1333,22 @@ A file is only created when the link is a plain file name in the current folder.
 - Names that start with `.`, `..`, `/` or `\`, such as `[[../other]]` or `[[.hidden]]`.
 - Names that point into another folder, such as `[[subfolder/note]]`.
 - Names containing a character that isn't allowed in file names on Windows (`< > : " | ? *`), or one with a special meaning in wikilinks (`#`, `^`, `[`, `]`).
+
+# Map Links
+
+To make a street address clickable, write it as a Markdown link whose destination is `map:`. Clicking the link opens a map search for the address in your web browser, the same way an **Address** property does on an object card (see [Property Types](#property-types)).
+
+There are two forms:
+
+| You type | You see | The map searches for |
+|----------|---------|----------------------|
+| `[123 Main St, Springfield, IL](map:)` | 123 Main St, Springfield, IL | The link text |
+| `[Mom's house](<map:123 Main St, Springfield, IL>)` | Mom's house | The address after `map:` |
+
+- With nothing after `map:`, the link text itself is the address.
+- To show different text, put the address after `map:`. Wrap the whole destination in `< >` when the address contains spaces, as in the second example, because a plain Markdown link destination can't contain spaces.
+
+Your file stores only the address, never a particular map website's URL. Map links also work in exported HTML (see [Exporting](#exporting)). Other Markdown viewers don't know the `map:` form, so they show the text but the link doesn't go anywhere.
 
 # LaTeX Math Support
 

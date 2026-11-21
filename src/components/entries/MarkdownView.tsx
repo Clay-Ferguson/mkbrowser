@@ -11,6 +11,7 @@ import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import { rehypeCallouts } from '../../shared/rehypeCallouts';
 import { rehypeDates } from '../../shared/rehypeDates';
+import { rehypeMapLinks } from '../../shared/rehypeMapLinks';
 import { lineAfterRemoveTOC, removeTOC, remarkTocList } from '../../shared/tocUtil';
 import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks, safeUrlTransform } from '../../shared/mkUtil';
 import { BlockClickContext, blockClickComponents } from '../blockClickComponents';
@@ -23,7 +24,8 @@ import CustomPre from '../CustomPre';
 // GFM, front matter, math, and TOC lists. See: (USER_GUIDE.md#markdown-support)
 const REMARK_PLUGINS: PluggableList = [remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }], remarkTocList];
 // rehypeDates runs before rehypeKatex so math is still a `code` element it skips.
-const REHYPE_PLUGINS: PluggableList = [rehypeDates, rehypeKatex, rehypeSlug, rehypeCallouts];
+// rehypeMapLinks turns `map:` links into map search URLs. See: (USER_GUIDE.md#map-links)
+const REHYPE_PLUGINS: PluggableList = [rehypeDates, rehypeKatex, rehypeSlug, rehypeCallouts, rehypeMapLinks];
 
 // Module-stable components so react-markdown reconciles in place instead of remounting the
 // whole block tree each render. Per-render inputs reach them through context: onEditClick and

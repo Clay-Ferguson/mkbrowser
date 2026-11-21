@@ -3,6 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { convertMDtoHTML } from '../src/shared/exportMDtoHTML';
+import { buildMapUrl } from '../src/shared/objects/objectUrls';
 
 describe('convertMDtoHTML columns', () => {
   it('renders a single chunk without a column row', async () => {
@@ -24,5 +25,13 @@ describe('convertMDtoHTML columns', () => {
     expect(html).toMatch(/\.col \{[^}]*flex: 1 1 100%;[^}]*max-width: 100%;/);
     expect(html).toMatch(/@media \(min-width: 640px\) \{\s*\.col \{ flex-basis: calc\(50% - 1rem\); \}/);
     expect(html).toMatch(/@media \(min-width: 1024px\) \{\s*\.col \{ flex-basis: 0; \}/);
+  });
+});
+
+describe('convertMDtoHTML map links', () => {
+  it('turns a map: link into a map search link', async () => {
+    const html = await convertMDtoHTML('[1 Elm St](map:)\n');
+    expect(html).toContain(buildMapUrl('1 Elm St').replace(/&/g, '&#x26;'));
+    expect(html).not.toContain('map:');
   });
 });

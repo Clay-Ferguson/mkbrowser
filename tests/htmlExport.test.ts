@@ -17,6 +17,7 @@ import {
   type PageLinkContext,
 } from '../src/main/htmlExport/exportPaths';
 import { renderMarkdownPage } from '../src/main/htmlExport/renderExportPage';
+import { buildMapUrl } from '../src/shared/objects/objectUrls';
 import { checkExportTarget, exportFolderToHtml } from '../src/main/htmlExport/folderHtmlExport';
 import { processTOC } from '../src/shared/tocUtil';
 
@@ -270,6 +271,13 @@ describe('renderMarkdownPage', () => {
     expect(html).not.toContain('id: X');
     expect(html).not.toContain('secret');
     expect(html).toContain('<math');
+  });
+
+  it('turns map: links into map search links that open in a new tab', async () => {
+    const html = await renderMarkdownPage('[Home](<map:1 Elm St, Springfield>)\n', ctx(p('index.md')), TYPE_DEFS);
+    expect(html).toContain(buildMapUrl('1 Elm St, Springfield').replace(/&/g, '&#x26;'));
+    expect(html).not.toContain('map:');
+    expect(html).toMatch(/<a href="https:\/\/www\.google\.com\/maps\/[^"]*" target="_blank"/);
   });
 
   it('adds a breadcrumb only when index pages are on', async () => {

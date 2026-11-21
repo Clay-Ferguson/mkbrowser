@@ -10,6 +10,7 @@ import rehypeStringify from 'rehype-stringify';
 import type { TypeDefinitions } from '../../shared/shared';
 import { preprocessMathEscapes, preprocessWikiLinks, splitOnColumnBreaks, stripHtmlComments } from '../../shared/mkUtil';
 import { rehypeCallouts } from '../../shared/rehypeCallouts';
+import { rehypeMapLinks } from '../../shared/rehypeMapLinks';
 import { remarkTocList } from '../../shared/tocUtil';
 import { isImageFile } from '../../shared/fileTypes';
 import { hrefBetween, isMarkdownPath, INDEX_PAGE_NAME } from './exportPaths';
@@ -117,6 +118,8 @@ async function renderChunk(markdown: string, ctx: PageLinkContext, object: Resol
     .use(rehypeHeadingIds)
     .use(rehypeCallouts)
     .use(rehypeObjectCard, object)
+    // Before rehypeExportLinks, which would drop the unknown `map:` scheme.
+    .use(rehypeMapLinks)
     .use(rehypeExportLinks, ctx)
     .use(rehypeStringify)
     .process(markdown);

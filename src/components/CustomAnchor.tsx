@@ -17,7 +17,7 @@ interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement
 
 /**
  * Custom <a> renderer for react-markdown that intercepts three link types:
- *   - External URLs (http/https, file://) — opened via the system default handler.
+ *   - External URLs (http/https, file://, mailto:) — opened via the system default handler.
  *   - In-page anchor links (#section) — scrolled inside the container since Electron
  *     SPAs don't use window-level scrolling.
  *   - Relative file paths — resolved against the markdown file's location and used
@@ -47,7 +47,8 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
 
     // Handle external (http/https) and file:// URLs — both open via the system
     // default handler (browser or associated app), so they share one branch.
-    if (/^(https?:|file:)\/\//.test(href)) {
+    // A mailto: link opens the system's mail client the same way.
+    if (/^(https?:|file:)\/\//.test(href) || href.startsWith('mailto:')) {
       e.preventDefault();
       void api.openExternalUrl(href);
       return;
@@ -65,9 +66,10 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
       return;
     }
 
-    // Handle relative links (./file.md, ../folder/file.md, or just file.md)
-    // Skip other protocols
-    if (!href.includes('://')) {
+    // Handle relative links (./file.md, ../folder/file.md, or just file.md).
+    // Skip any other URL scheme: a scheme-only URL like `mailto:` has no `://`,
+    // so testing for `://` alone would treat it as a file path.
+    if (isFileLinkHref(href)) {
       e.preventDefault();
 
       // Record the file containing the link before the target (which opening it

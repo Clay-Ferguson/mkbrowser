@@ -9,6 +9,7 @@ import rehypeStringify from 'rehype-stringify';
 import type { Root, Element, Nodes } from 'hast';
 import { splitOnColumnBreaks } from './mkUtil';
 import { rehypeCallouts } from './rehypeCallouts';
+import { rehypeMapLinks } from './rehypeMapLinks';
 
 // ---------------------------------------------------------------------------
 // Rehype plugin: add target="_blank" to all <a> tags
@@ -49,6 +50,7 @@ const processor = unified()
   .use(remarkMath)                    // $...$ and $$...$$ blocks
   .use(remarkRehype)
   .use(rehypeKatex, { output: 'mathml' }) // fully self-contained — no CDN link required
+  .use(rehypeMapLinks)                // `map:` links → map search URLs
   .use(rehypeTargetBlank)             // <-- add target="_blank" to all links
   .use(rehypeCallouts)                // GitHub-style `> [!NOTE]` alert boxes
   .use(rehypeStringify);
