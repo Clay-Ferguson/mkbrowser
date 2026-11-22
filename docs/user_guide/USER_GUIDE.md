@@ -14,6 +14,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Editing Files](#editing-files)
     * [Inserting Links to Other Files](#inserting-links-to-other-files)
     * [Inserting Objects](#inserting-objects)
+    * [Removing a Property or Tag](#removing-a-property-or-tag)
     * [Editor Keyboard Shortcuts](#editor-keyboard-shortcuts)
     * [Thesaurus](#thesaurus)
   * [Automatic Table of Contents Generation](#automatic-table-of-contents-generation)
@@ -304,6 +305,10 @@ If the path contains spaces, the link target is wrapped in angle brackets (stand
 ### Inserting Objects
 
 While editing a Markdown file, click the **Insert Object** button (the cube icon on the editor's toolbar, just left of the **Editing actions** menu button) and pick a type to turn the file into a record of one of your custom types (a contact, a book, …): the type's empty properties are added to the file's front matter. See [Objects and Custom Types](#objects-and-custom-types).
+
+### Removing a Property or Tag
+
+While editing a Markdown file, each property pill and tag pill shown above the editor ends in a small **×**. Click it to remove that property or tag from the file's front matter. It happens immediately, with no confirmation, and is part of your unsaved edit: **Save** writes it to the file, and closing the editor without saving puts it back. (While the [Tag Picker](#tag-picker) is open, the tag pills are hidden, so remove a tag there by un-checking it.)
 
 ### Editor Keyboard Shortcuts
 

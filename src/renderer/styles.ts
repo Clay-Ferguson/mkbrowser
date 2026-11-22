@@ -242,6 +242,15 @@ export const BUTTON_CLASS_ROW = `${BTN} w-full flex items-center justify-between
  */
 export const BUTTON_CLASS_CHIP = `${BTN} px-2 py-0.5 shrink-0 rounded-md text-sm leading-5 whitespace-nowrap select-none bg-btn-chip text-btn-label-hover border border-btn-border hover:border-btn-border-hover`;
 
+/**
+ * The "×" end-cap of a property/tag pill while its file is being edited (PropsDisplay):
+ * deletes that property or tag. It is a segment *inside* the pill, whose own rounded,
+ * overflow-hidden border shapes the corners — so `rounded-none` overrides the base `button`
+ * radius here, which would otherwise leave notches against the divider. Fills the pill's
+ * full height (`self-stretch`) and centers the icon in it.
+ */
+export const BUTTON_CLASS_PILL_DELETE = `${BTN} self-stretch flex items-center px-1.5 rounded-none bg-btn-neutral/60 text-btn-ghost hover:bg-btn-red hover:text-btn-fg`;
+
 // --- Editor context menu items -------------------------------------------
 const EDITOR_MENU_ITEM_BASE = 'w-full px-4 py-2 rounded text-left text-sm transition-colors';
 export const EDITOR_MENU_ITEM = `${EDITOR_MENU_ITEM_BASE} cursor-pointer text-btn-neutral-fg hover:bg-btn-menu-hover`;

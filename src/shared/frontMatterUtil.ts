@@ -154,6 +154,31 @@ export function setFrontMatterProperty(content: string, key: string, value: unkn
   return assembleFrontMatter(dumpYaml(yaml), parts.body);
 }
 
+/**
+ * Removes a single property from a markdown document's front matter (the counterpart of
+ * {@link setFrontMatterProperty}, with the same canonical re-serialization). When the
+ * property was the block's last one, the whole block — fences included — is dropped and only
+ * the body remains. Returns the content unchanged when there is no front matter, the
+ * property isn't there, or the YAML can't be parsed as a mapping (never risk data loss).
+ *
+ * See: (USER_GUIDE.md#removing-a-property-or-tag)
+ */
+export function removeFrontMatterProperty(content: string, key: string): string {
+  const parts = splitFrontMatter(content);
+  if (!parts) return content;
+  let parsed: unknown;
+  try {
+    parsed = loadYaml(parts.yamlStr);
+  } catch {
+    return content;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return content;
+  const yaml = parsed as Record<string, unknown>;
+  if (!Object.hasOwn(yaml, key)) return content;
+  delete yaml[key];
+  return assembleFrontMatter(Object.keys(yaml).length > 0 ? dumpYaml(yaml) : '', parts.body);
+}
+
 /** Returns all front matter properties except 'tags', preserving their parsed types. */
 export function getPropsFromYaml(yamlStr: string): Record<string, unknown> {
   try {

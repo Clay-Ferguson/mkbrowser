@@ -5,6 +5,7 @@ import {
   assembleFrontMatter,
   getPropsFromYaml,
   setFrontMatterProperty,
+  removeFrontMatterProperty,
   removeFrontMatterExceptId,
   getFrontMatterError,
 } from '../src/shared/frontMatterUtil';
@@ -322,6 +323,44 @@ describe('setFrontMatterProperty', () => {
     const long = 'x'.repeat(120) + ' ' + 'y'.repeat(120);
     const result = setFrontMatterProperty('---\ntitle: hi\n---\nBody.', 'note', long);
     expect(result).toContain(`note: ${long}\n`);
+  });
+});
+
+describe('removeFrontMatterProperty', () => {
+  it('removes the property and keeps the rest', () => {
+    const result = removeFrontMatterProperty('---\ndue: 5/1/2026\ntitle: hi\ntags:\n  - a\n---\nBody.', 'due');
+    expect(result).toBe('---\ntitle: hi\ntags:\n  - a\n---\nBody.');
+  });
+
+  it('drops the whole block when the last property is removed', () => {
+    expect(removeFrontMatterProperty('---\ndue: 5/1/2026\n---\nBody.', 'due')).toBe('Body.');
+  });
+
+  it('returns content unchanged when the property is not there', () => {
+    const content = '---\n# keep me\ntitle: hi\n---\nBody.';
+    expect(removeFrontMatterProperty(content, 'due')).toBe(content);
+  });
+
+  it('does not treat an inherited Object property as present', () => {
+    const content = '---\ntitle: hi\n---\nBody.';
+    expect(removeFrontMatterProperty(content, 'toString')).toBe(content);
+  });
+
+  it('returns content unchanged when there is no front matter', () => {
+    expect(removeFrontMatterProperty('due: 1/1/2027\nBody.', 'due')).toBe('due: 1/1/2027\nBody.');
+  });
+
+  it.each([
+    ['unparseable', '---\ndup: 1\ndup: 2\n---\nBody.'],
+    ['non-mapping', '---\n- just\n- a list\n---\nBody.'],
+    ['empty', '---\n\n---\nBody.'],
+  ])('returns content unchanged for %s YAML', (_label, content) => {
+    expect(removeFrontMatterProperty(content, 'dup')).toBe(content);
+  });
+
+  it('preserves a CRLF body', () => {
+    expect(removeFrontMatterProperty('---\r\na: 1\r\nb: 2\r\n---\r\nLine 1\r\nLine 2', 'a'))
+      .toBe('---\nb: 2\n---\nLine 1\r\nLine 2');
   });
 });
 

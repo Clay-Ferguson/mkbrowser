@@ -6,8 +6,8 @@ import { api, ipcErrorMessage } from '../../renderer/api';
 import { saveAiConfig, saveSettings } from '../../renderer/config';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../shared/types';
-import { splitFrontMatter, getPropsFromYaml, getFrontMatterError } from '../../shared/frontMatterUtil';
-import { getTagsFromYaml } from '../../shared/tagUtil';
+import { splitFrontMatter, getPropsFromYaml, getFrontMatterError, removeFrontMatterProperty } from '../../shared/frontMatterUtil';
+import { getTagsFromYaml, isYamlParseable, removeTagFromText } from '../../shared/tagUtil';
 import { CALENDAR_PROPS } from '../../shared/calendarUtil';
 import {
   useAS,
@@ -18,6 +18,7 @@ import {
   setPendingEditFile,
   setPendingThreadScrollToBottom,
   setItemContent,
+  getItemEditContent,
   setAppError,
   setShowPropsInEditor,
   toggleItemExpanded,
@@ -117,7 +118,8 @@ function propValueTitle(key: string, value: string): string | undefined {
 
 /**
  * Parses the tags/props that PropsDisplay renders out of raw markdown. Called only when the calendar
- * dialog saves during an edit: setItemEditContent just stores the text, so the store's
+ * dialog saves, or a pill's "×" deletes a property or tag, during an edit: setItemEditContent just
+ * stores the text, so the store's
  * item.tags/item.props would otherwise keep showing the last *saved* front matter. Deliberately not
  * run per keystroke — pills stay stale against hand-typed front matter until the file is saved.
  */
@@ -530,6 +532,40 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     })();
   };
 
+  /**
+   * Applies a front-matter edit (deleting a property or tag from its pill's "×") to the edit
+   * buffer, and re-parses the pills from the result as a calendar-dialog save does. Starts
+   * from the editor's live document, which includes keystrokes still inside its onChange
+   * debounce window, falling back to the store's buffer if the view is gone.
+   *
+   * See: (USER_GUIDE.md#removing-a-property-or-tag)
+   */
+  const editFrontMatter = (what: string, apply: (markdown: string) => string): void => {
+    const current = editorRef.current?.getDoc() ?? getItemEditContent(entry.path);
+    if (current === undefined || current === null) return;
+    const parts = splitFrontMatter(current);
+    // Front matter js-yaml can't parse would be rewritten as empty by the tag edit, so refuse
+    // (as TagsPicker does) rather than silently discard the rest of it.
+    if (parts && !isYamlParseable(parts.yamlStr)) {
+      setAppError(`Couldn't remove ${what}: this file's front matter couldn't be parsed. ` +
+        'Please fix the YAML front matter (for example, remove any duplicate keys) and try again.');
+      return;
+    }
+    // With no front matter left in the buffer (removed by hand since the last save) there is
+    // nothing to delete; re-parsing still clears the stale pill.
+    const updated = parts ? apply(current) : current;
+    if (updated !== current) edit.setEditContent(updated);
+    setEditedMeta(parseFrontMatterMeta(updated));
+  };
+
+  const deleteProp = (key: string): void => {
+    editFrontMatter(`property "${key}"`, (markdown) => removeFrontMatterProperty(markdown, key));
+  };
+
+  const deleteTag = (tag: string): void => {
+    editFrontMatter(`tag "${tag}"`, (markdown) => removeTagFromText(markdown, tag));
+  };
+
   // Pills come from the store (the last-saved front matter), shown above the rendered Markdown and
   // above the editor alike. editedMeta overrides that while editing, so a calendar-dialog save is
   // reflected immediately even though the edit buffer hasn't been written to disk yet.
@@ -555,6 +591,10 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       onPropClick={clickOnProp}
       onPropValueClick={clickOnPropValue}
       propValueTitle={propValueTitle}
+      // The "×" delete end-caps appear only while editing: the delete lands in the edit buffer
+      // and reaches disk with the user's Save (or is discarded with Cancel), like any other edit.
+      onPropDelete={edit.isEditing ? deleteProp : undefined}
+      onTagDelete={edit.isEditing ? deleteTag : undefined}
     />
   ) : null;
 
