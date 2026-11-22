@@ -1,8 +1,6 @@
 import { clsx } from 'clsx';
 import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../shared/timeUtil';
-import { useAS } from '../store';
-import { isAllTagCategory } from '../shared/tagUtil';
-import { MONO_FONT_STACK, TAG_PILL_BASE, TAG_PILL_SELECTED, TAG_PILL_HOVER } from '../renderer/styles';
+import { MONO_FONT_STACK, PILL_PAD_Y, PILL_TEXT_TRIM, TAG_PILL_BASE, TAG_PILL_SELECTED, TAG_PILL_HOVER } from '../renderer/styles';
 
 // Returns a human-readable relative-date tooltip ("N days ago", "today", etc.) for
 // date-like string values, or undefined if the string doesn't parse as a recognizable date.
@@ -14,10 +12,11 @@ function getDateTooltip(value: unknown): string | undefined {
   return "Date:\n\n"+formatDaysDisplay(days);
 }
 
-// Two-part "left | right" pill (property key | value, tag category | tag): the outer shell
-// and the amber left half. Each caller supplies its own right-half colors.
+// Two-part "key | value" property pill: the outer shell and the amber key half.
 const SPLIT_PILL = 'inline-flex shrink-0 items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden';
-const SPLIT_PILL_LEFT = 'px-2 py-0.5 bg-amber-700/50 text-amber-200';
+// Each half is a flex item (so text-box-trim applies) holding its text directly.
+const SPLIT_PILL_HALF = `px-2 ${PILL_PAD_Y} ${PILL_TEXT_TRIM}`;
+const SPLIT_PILL_LEFT = `${SPLIT_PILL_HALF} bg-amber-700/50 text-amber-200`;
 
 interface PropsDisplayProps {
   tags: string[];
@@ -44,9 +43,9 @@ interface PropsDisplayProps {
  *      Each pill shows "key | value" with the key in amber and the value in slate. The two
  *      halves are separately clickable: `onPropValueClick`, when supplied, owns the value
  *      half while `onPropClick` owns the rest of the pill.
- *   2. Hashtag pills — values from the front matter 'tags' array, shown in blue. A tag
- *      defined in a tags.yaml category other than "all" shows "category | tag", styled like
- *      a property pill but with the tag half in blue; "all" and undefined tags show the tag alone.
+ *   2. Hashtag pills — values from the front matter 'tags' array, each shown alone as a
+ *      single blue pill (a tag's tags.yaml category is deliberately not shown: it isn't a
+ *      property name, so a "category | tag" split pill read as one).
  *
  * Returns null when there is nothing to display.
  *
@@ -57,7 +56,6 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick, onP
   const propEntries = props
     ? Object.entries(props).filter(([key, value]) => key !== 'id' && typeof value !== 'object').sort(([a], [b]) => a.localeCompare(b))
     : [];
-  const tagCategoryByTag = useAS(s => s.tagCategoryByTag);
   const hasTags = tags.length > 0;
   const hasProps = propEntries.length > 0;
 
@@ -86,7 +84,7 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick, onP
         {/* The value half gets its own handler when one is given; stopPropagation keeps the
             pill's onPropClick from also firing as the event bubbles out. */}
         <span
-          className="px-2 py-0.5 bg-slate-600/50 text-slate-200"
+          className={`${SPLIT_PILL_HALF} bg-slate-600/50 text-slate-200`}
           onClick={onPropValueClick ? (e) => { e.stopPropagation(); onPropValueClick(key, valueStr); } : undefined}
           title={valueTooltip ?? dateTooltip}
         >
@@ -98,40 +96,20 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick, onP
 
   // Deduped: front matter like `tags: [a, a]` is legal YAML, and a repeated tag would
   // otherwise produce duplicate React keys.
-  const tagPills = [...new Set(tags)].sort((a, b) => a.localeCompare(b)).map((tag) => {
-    const category = tagCategoryByTag[tag];
-    if (category !== undefined && !isAllTagCategory(category)) {
-      return (
-        <span
-          key={tag}
-          onClick={onTagClick}
-          className={clsx(
-            SPLIT_PILL,
-            onTagClick && ['cursor-pointer hover:brightness-125', TAG_PILL_HOVER],
-          )}
-          style={{ fontFamily: MONO_FONT_STACK }}
-        >
-          <span className={SPLIT_PILL_LEFT}>{category}</span>
-          <span className="w-px bg-slate-400/60" />
-          <span className="px-2 py-0.5 bg-blue-600/50 text-blue-100">{tag}</span>
-        </span>
-      );
-    }
-    return (
-      <span
-        key={tag}
-        onClick={onTagClick}
-        className={clsx(
-          TAG_PILL_BASE,
-          TAG_PILL_SELECTED,
-          onTagClick && ['cursor-pointer hover:brightness-125', TAG_PILL_HOVER],
-        )}
-        style={{ fontFamily: MONO_FONT_STACK }}
-      >
-        {tag}
-      </span>
-    );
-  });
+  const tagPills = [...new Set(tags)].sort((a, b) => a.localeCompare(b)).map((tag) => (
+    <span
+      key={tag}
+      onClick={onTagClick}
+      className={clsx(
+        TAG_PILL_BASE,
+        TAG_PILL_SELECTED,
+        onTagClick && ['cursor-pointer hover:brightness-125', TAG_PILL_HOVER],
+      )}
+      style={{ fontFamily: MONO_FONT_STACK }}
+    >
+      {tag}
+    </span>
+  ));
 
   return (
     <div className="flex flex-wrap justify-end gap-2 mb-2">

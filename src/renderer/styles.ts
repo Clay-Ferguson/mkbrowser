@@ -28,12 +28,23 @@ export const CHECKBOX_CLASS = 'h-5 w-5 accent-blue-500 flex-shrink-0 cursor-poin
 // (PropsDisplay, TagsPicker) and CodeMirror editor themes (editorTheme, editorDateUtil).
 export const MONO_FONT_STACK = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
 
+// Vertical centering for pill text. A plain line box leaves the text visibly high in a pill:
+// the font's ascent/descent split puts more empty space below the baseline than above the
+// capitals (with Liberation Mono at 14px, 6px above vs 8px below). PILL_TEXT_TRIM trims the
+// text's box to exactly cap height → baseline, and PILL_PAD_Y then pads that equally on both
+// sides, so the capitals sit dead center for whatever font the MONO_FONT_STACK resolves to.
+// The padding keeps the pill's inner height at 1.5rem (the old 20px line + 2×2px padding).
+// text-box-trim applies only to block containers (a flex item counts, a flex container does
+// not), so PILL_TEXT_TRIM must sit on the element that directly holds the text.
+export const PILL_TEXT_TRIM = '[text-box:trim-both_cap_alphabetic]';
+export const PILL_PAD_Y = 'py-[calc((1.5rem_-_1cap)/2)]';
+
 // Hashtag pills, shared by the read-only pills atop markdown entries (PropsDisplay) and the
 // checkable pills in TagsPicker so the two can't drift apart. Compose TAG_PILL_BASE with
 // TAG_PILL_SELECTED (a tag the file has — always the case in PropsDisplay) or
 // TAG_PILL_UNSELECTED, plus TAG_PILL_HOVER when the pill is clickable. Pair with the
 // MONO_FONT_STACK font.
-export const TAG_PILL_BASE = 'px-2 py-0.5 shrink-0 rounded-md text-sm border select-none whitespace-nowrap';
+export const TAG_PILL_BASE = `px-2 ${PILL_PAD_Y} ${PILL_TEXT_TRIM} shrink-0 rounded-md text-sm border select-none whitespace-nowrap`;
 export const TAG_PILL_SELECTED = 'bg-blue-600/50 text-blue-100 border-slate-400/60';
 export const TAG_PILL_UNSELECTED = 'text-slate-300 hover:text-slate-100 border-transparent';
 // Draws (or, on a pill that already has one, brightens) the border on hover to signal the

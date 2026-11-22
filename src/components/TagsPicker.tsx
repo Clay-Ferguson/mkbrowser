@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { useAS, getItemEditContent, setItemEditContent } from '../store';
-import { MONO_FONT_STACK, TAG_PILL_BASE, TAG_PILL_SELECTED, TAG_PILL_UNSELECTED, TAG_PILL_HOVER } from '../renderer/styles';
+import { MONO_FONT_STACK, PILL_TEXT_TRIM, TAG_PILL_BASE, TAG_PILL_SELECTED, TAG_PILL_UNSELECTED, TAG_PILL_HOVER } from '../renderer/styles';
 import {
   type TagsLoadState, type TagCategory, type HashtagDefinition,
   getTagsFromYaml, isYamlParseable, isAllTagCategory,
@@ -136,7 +136,9 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
           className="sr-only"
           data-testid={`tags-picker-checkbox-${def.tag}`}
         />
-        <span>{def.tag}</span>
+        {/* The label is a flex container, where text-box-trim doesn't apply, so the trim
+            goes on this span (a flex item) that holds the text. */}
+        <span className={PILL_TEXT_TRIM}>{def.tag}</span>
       </label>
     );
   };
