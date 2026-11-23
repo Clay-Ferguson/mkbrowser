@@ -79,38 +79,6 @@ cleanup_test_artifacts() {
     rm -rf screenshots/$test_name/generated-wav
 }
 
-# Generate the video (kocreator) for a single test from its screenshots/wavs
-generate_video_for_test() {
-    local test_name="$1"
-    echo ""
-    echo "Generating video for $test_name..."
-    local current_folder="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local kocreator_dir="$current_folder/../kocreator"
-    if [ ! -f "$kocreator_dir/uv-env.sh" ]; then
-        echo "kocreator not found at $kocreator_dir — skipping video generation."
-        return 1
-    fi
-    if ! command -v uv >/dev/null 2>&1; then
-        echo "uv not found in PATH (kocreator requires it) — skipping video generation."
-        return 1
-    fi
-    # kocreator keeps a per-machine venv (.venv-<hostname>) so a host and a VM
-    # sharing the folder don't break each other's interpreter symlinks.
-    # Subshell so UV_PROJECT_ENVIRONMENT doesn't leak into the rest of this script.
-    (
-        source "$kocreator_dir/uv-env.sh"
-        uv run --directory "$kocreator_dir" python "$kocreator_dir/create-video.py" "$current_folder" "$test_name" --no-intro
-    )
-}
-
-# Open the generated test-videos folder in the file manager (Linux only)
-open_videos_folder() {
-    local current_folder="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        xdg-open "$current_folder/test-videos"
-    fi
-}
-
 # Optionally build the app so the Playwright fixture loads the latest code
 read -p "Build app before running tests? [Y/n]: " do_build
 if [[ ! "$do_build" =~ ^[Nn]$ ]]; then
@@ -142,9 +110,8 @@ echo "Select test scope:"
 echo "1) Run all tests (except private ones)"
 echo "2) Run all tests (including private ones)"
 echo "3) Run specific test"
-echo "4) Build Video from Existing Images/Wavs"
 echo ""
-read -p "Enter choice [1-4]: " choice
+read -p "Enter choice [1-3]: " choice
 
 # Options 1 and 2 both "run all"; option 2 also includes the private-* tests
 INCLUDE_PRIVATE=""
@@ -152,18 +119,6 @@ if [ "$choice" = "2" ]; then
     INCLUDE_PRIVATE="include-private"
 fi
 
-SPECIFIC_TEST=""
-GENERATE_VIDEO=""
-
-# For "run all" and "run specific", ask up front whether to also generate
-# video(s) so the user can start the run and walk away.
-if [ "$choice" = "1" ] || [ "$choice" = "2" ] || [ "$choice" = "3" ]; then
-    echo ""
-    read -p "Generate video(s) after running the test(s)? [y/N]: " gen_choice
-    if [[ "$gen_choice" =~ ^[Yy]$ ]]; then
-        GENERATE_VIDEO="yes"
-    fi
-fi
 
 case $choice in
     1|2)
@@ -178,14 +133,6 @@ case $choice in
         cleanup_test_artifacts "$SPECIFIC_TEST"
         echo "Running specific test: $SPECIFIC_TEST.spec.ts..."
         npx playwright test tests/e2e/$SPECIFIC_TEST.spec.ts
-        ;;
-    4)
-        SPECIFIC_TEST=$(select_specific_test)
-        if [ $? -ne 0 ] || [ -z "$SPECIFIC_TEST" ]; then
-            echo "Invalid test selection. Exiting."
-            exit 1
-        fi
-        echo "Selected $SPECIFIC_TEST. Skipping actual test run."
         ;;
     *)
         echo "Invalid choice."
@@ -207,31 +154,8 @@ else
 fi
 
 echo ""
-
-# Generate video(s) based on the choice and the up-front prompt
-if { [ "$choice" = "1" ] || [ "$choice" = "2" ]; } && [ -n "$GENERATE_VIDEO" ]; then
-    # Generate a video for every non-private E2E test that just ran (private-*
-    # tests are never demos, so they're skipped here even under option 2)
-    for file in $(all_test_files); do
-        test_name=$(basename "$file" .spec.ts)
-        generate_video_for_test "$test_name"
-        echo ""
-        echo "CPU Cooldown 90s..."
-        sleep 90
-    done
-    open_videos_folder
-elif [ "$choice" = "3" ] && [ -n "$GENERATE_VIDEO" ] && [ -n "$SPECIFIC_TEST" ]; then
-    generate_video_for_test "$SPECIFIC_TEST"
-    open_videos_folder
-elif [ "$choice" = "4" ] && [ -n "$SPECIFIC_TEST" ]; then
-    # Option 4 exists specifically to build a video from existing images/wavs
-    echo ""
-    read -p "Generate video from screenshots? [y/N]: " generate_video
-    if [[ "$generate_video" =~ ^[Yy]$ ]]; then
-        generate_video_for_test "$SPECIFIC_TEST"
-        open_videos_folder
-    fi
-fi
+echo "To build demo videos from these screenshots, run ./generate-demo-videos.sh"
+echo ""
 
 read -p "Open HTML report? [Y/n]: " show_report
 if [[ ! "$show_report" =~ ^[Nn]$ ]]; then

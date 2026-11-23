@@ -6,7 +6,7 @@ This is the pattern for writing Playwright E2E tests. Every test walks through a
 There are two flavors, and they share the same helpers, screenshot/narration cadence, and file layout:
 
 - **Demo tests** (`<name>-demo.spec.ts`, e.g. `create-file-demo.spec.ts`) — primarily for the tutorial videos. Read `create-file-demo.spec.ts` as the canonical example.
-- **Private tests** (`private-<feature>.spec.ts`, e.g. `private-rename.spec.ts`, `private-cut-and-paste.spec.ts`) — primarily automated verification of a feature, with the filesystem as the authority for assertions. They still write screenshots/narration by the same conventions, but `playwright-test.sh` skips them in its default "run all" option and never builds videos from them.
+- **Private tests** (`private-<feature>.spec.ts`, e.g. `private-rename.spec.ts`, `private-cut-and-paste.spec.ts`) — primarily automated verification of a feature, with the filesystem as the authority for assertions. They still write screenshots/narration by the same conventions, but `playwright-test.sh` skips them in its default "run all" option. `generate-demo-videos.sh` still lists their `screenshots/` folders, so they get a video only if you pick one (or choose `ALL`).
 
 When asked to create a test, decide which flavor fits (a "demonstrate feature X" request → demo; a "verify/prove feature X works" request → private), then follow the matching conventions below. **Study the named reference tests before writing** and copy their structure exactly — do not invent new patterns.
 

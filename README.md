@@ -304,7 +304,8 @@ To pick up later code changes, re-run `./build.sh` and `./install.sh`.
 | `build.sh` | Tests + lint, then builds the `.deb` package | Whenever you want an installable build |
 | `install.sh` | Installs the `.deb` built by `build.sh` | After each `build.sh` |
 | `pre-package.sh` | Runs unit tests + lint (the shared quality gate) | Called by `build.sh` and `playwright-test.sh`; can also be run on its own |
-| `playwright-test.sh` | Interactive menu to rebuild and run the Playwright e2e tests, optionally generating demo videos | When running e2e tests |
+| `playwright-test.sh` | Interactive menu to rebuild and run the Playwright e2e tests | When running e2e tests |
+| `generate-demo-videos.sh` | Interactive menu to build demo videos (via `../kocreator`) from the screenshots and narration the e2e tests left in `screenshots/` | After running e2e tests, to make demo videos |
 
 ### Everyday Commands
 
@@ -358,7 +359,7 @@ Or run them directly:
 npm run test:e2e
 ```
 
-The e2e tests need `ffmpeg` and `xdotool` from step 2. Generating the user-guide demo videos additionally requires the sibling `kocreator` project checked out at `../kocreator` and the [`uv`](https://docs.astral.sh/uv/) Python tool on your `PATH`; without them `playwright-test.sh` just skips video generation.
+The e2e tests need `ffmpeg` and `xdotool` from step 2. Generating the user-guide demo videos additionally requires the sibling `kocreator` project checked out at `../kocreator` and the [`uv`](https://docs.astral.sh/uv/) Python tool on your `PATH`; without them `generate-demo-videos.sh` just skips video generation.
 
 ## Key Packages
 

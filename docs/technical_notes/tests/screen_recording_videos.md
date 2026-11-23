@@ -18,7 +18,7 @@ For how to *write* the tests themselves (helpers, selectors, conventions), see `
   * [Essential Helper Functions (from `mediaUtils.ts`)](#essential-helper-functions-from-mediautilsts)
   * [Typical Test Structure](#typical-test-structure)
 * [System Components](#system-components)
-  * [1. Playwright Test Runner Script](#1-playwright-test-runner-script)
+  * [1. Test Runner and Demo Video Scripts](#1-test-runner-and-demo-video-scripts)
   * [2. Media Utilities Library](#2-media-utilities-library)
   * [3. Visual Indicators Library](#3-visual-indicators-library)
   * [4. Demo Test Specs](#4-demo-test-specs)
@@ -68,14 +68,17 @@ Playwright E2E tests (like `tests/e2e/create-file-demo.spec.ts`) generate:
 Both are saved to `screenshots/<test-name>/` (at the repo root, gitignored) with sequential 3-digit numbering (001, 002, 003...).
 
 ### 2. Test Runner → User Workflow
-`playwright-test.sh` (repo root) manages the complete workflow:
+Two separate interactive scripts at the repo root split the work:
+
+`playwright-test.sh` runs the tests:
 - Offers to build the app first (runs `pre-package.sh` — unit tests + lint — then `npm run package`)
-- Offers to run all demo tests, all tests including `private-*` ones, one specific test, or no test at all (just build a video from existing screenshots)
-- Asks **up front** whether to generate videos afterwards, so a long run can be left unattended
+- Offers to run all demo tests, all tests including `private-*` ones, or one specific test
 - Cleans the old screenshots, narration files, and `generated-wav/` cache of each test it is about to run
-- Executes the Playwright tests
-- If you asked for videos, runs KoCreator for each test, then opens the `test-videos/` folder
-- Finally offers to open the Playwright HTML report
+- Executes the Playwright tests, then offers to open the Playwright HTML report
+
+`generate-demo-videos.sh` builds videos from whatever the tests already left in `screenshots/`:
+- Shows a numbered menu of the `screenshots/` folders (one per test), plus an `ALL` option
+- Runs KoCreator for the chosen folder (or every folder), then opens the `test-videos/` folder
 
 ### 3. Video Generation → Final Output
 `../kocreator/create-video.py` converts test output to videos:
@@ -90,8 +93,10 @@ Both are saved to `screenshots/<test-name>/` (at the repo root, gitignored) with
 ./playwright-test.sh
 # → "Build app before running tests? [Y/n]" → Y
 # → Select option 3 (specific test), then pick create-file-demo from the list
-# → "Generate video(s) after running the test(s)? [y/N]" → y
 # → Test generates: screenshots/create-file-demo/*.png and *.txt files
+
+./generate-demo-videos.sh
+# → Enter the number next to create-file-demo (or the last number, ALL)
 # → Creates: test-videos/create-file-demo.mp4 and create-file-demo.gif
 ```
 
@@ -153,29 +158,33 @@ test('feature demo', async ({ mainWindow }) => {
 
 ## System Components
 
-### 1. Playwright Test Runner Script
-**Location**: `playwright-test.sh`
+### 1. Test Runner and Demo Video Scripts
 
-An interactive bash script that orchestrates the entire testing and video creation workflow.
+#### `playwright-test.sh` — runs the tests
 
-#### Prompts, in order:
+An interactive bash script that builds (optionally) and runs the Playwright tests. It does not generate videos; when the run finishes it prints a reminder to run `generate-demo-videos.sh`.
+
+Prompts, in order:
 1. **"Build app before running tests? [Y/n]"** — on yes, runs `pre-package.sh` (unit tests and lint) and then `npm run package`, aborting if either fails. The e2e tests run against the packaged `.vite/build/` output and never rebuild a stale one themselves, so say yes after any source change.
 2. **"Select test scope"**:
    - `1) Run all tests (except private ones)` — every `tests/e2e/*.spec.ts` not prefixed with `private-`
    - `2) Run all tests (including private ones)`
    - `3) Run specific test` — shows a numbered list of every spec file to choose from
-   - `4) Build Video from Existing Images/Wavs` — pick a test, skip running it, and (after a confirmation prompt) build its video from what is already in `screenshots/<test-name>/`
-3. **"Generate video(s) after running the test(s)? [y/N]"** — asked for options 1–3, before anything runs.
-4. **"Open HTML report? [Y/n]"** — at the end; kills any running report server and runs `npx playwright show-report`.
+3. **"Open HTML report? [Y/n]"** — at the end; kills any running report server and runs `npx playwright show-report`.
 
-#### Behavior details:
-- **Screenshot cleanup**: before running, removes `screenshots/<test>/*.png`, `*.txt`, and the `generated-wav/` folder for each test about to run. Other subfolders (such as `external/`) are kept.
-- **Video generation**: for each test, runs KoCreator as
-  `uv run --directory ../kocreator python ../kocreator/create-video.py <mkbrowser-root> <test-name> --no-intro`
+**Screenshot cleanup**: before running, removes `screenshots/<test>/*.png`, `*.txt`, and the `generated-wav/` folder for each test about to run. Other subfolders (such as `external/`) are kept.
+
+#### `generate-demo-videos.sh` — builds the videos
+
+An interactive bash script that assumes the tests have already run. It never runs a test itself.
+
+- **Menu**: lists every subfolder of `screenshots/` (sorted, excluding `intro/`) as a numbered choice, followed by a final `ALL` option. Enter one number. Because the list comes from the folders on disk, it includes `private-*` folders and any leftover folder whose spec no longer exists.
+- **Video generation**: for each chosen folder, runs KoCreator as
+  `uv run --directory ../kocreator python ../kocreator/create-video.py <mkbrowser-root> <folder-name> --no-intro`
   after sourcing `../kocreator/uv-env.sh` (which selects KoCreator's per-machine virtualenv). If `../kocreator/uv-env.sh` is missing or `uv` is not on `PATH`, it prints a message and skips the video.
-- **Run-all videos**: with option 1 or 2, a video is generated for every **non-private** spec (private tests are never demos), with a 90-second "CPU cooldown" pause after each one.
-- **No intro**: the script always passes `--no-intro`, so the shared `screenshots/intro/` splash is **not** prepended by this script. Run KoCreator by hand to include it (see [Customization Options](#customization-options)).
-- **Opening results**: on Linux, opens `test-videos/` with `xdg-open` after video generation.
+- **ALL**: builds a video for every listed folder, with a 90-second "CPU cooldown" pause between videos. A failed video does not stop the loop; a summary at the end names any that failed, and the script exits non-zero.
+- **No intro**: the script always passes `--no-intro`, so the shared `screenshots/intro/` splash is **not** prepended. Run KoCreator by hand to include it (see [Customization Options](#customization-options)).
+- **Opening results**: on Linux, opens `test-videos/` with `xdg-open` when done.
 
 ### 2. Media Utilities Library
 **Location**: `tests/e2e/helpers/mediaUtils.ts`
@@ -437,15 +446,13 @@ The complete workflow from test creation to video generation:
    ./playwright-test.sh
    # Build app? → Y (needed after any source change)
    # Select option 3, then pick feature-name-demo from the numbered list
-   # Generate video(s)? → y
    ```
    
    The script will:
    - Clean the old files out of `screenshots/feature-name-demo/`
    - Run the test, which writes numbered `.png` screenshots and `.txt` narration files
-   - Build the video with KoCreator and open the `test-videos/` folder
 
-6. **Or generate the video later**: rerun `./playwright-test.sh` and choose option 4 (build video from existing images/wavs), or run KoCreator directly:
+6. **Generate the video** with `./generate-demo-videos.sh` and enter the number next to `feature-name-demo`. It builds the video with KoCreator and opens the `test-videos/` folder. Or run KoCreator directly:
    ```bash
    cd ../kocreator && source uv-env.sh
    uv run create-video.py ../mkbrowser feature-name-demo --no-intro
@@ -546,7 +553,8 @@ mkbrowser/
 │   ├── create-file-demo.mp4             # Video with audio
 │   └── create-file-demo.gif             # Images only (no audio)
 ├── playwright.config.ts                 # Playwright config (single worker, HTML reporter)
-└── playwright-test.sh                   # Test runner with video generation
+├── playwright-test.sh                   # Test runner
+└── generate-demo-videos.sh              # Builds videos from screenshots/ via KoCreator
 
 kocreator/                               # Sibling project (separate repository)
 ├── create-video.py                      # Builds the MP4 and GIF
@@ -573,7 +581,7 @@ kocreator/                               # Sibling project (separate repository)
 ### KoCreator and Kokoro TTS (Required for Video Generation)
 - **Location**: `../kocreator` (a sibling folder to the mkbrowser project)
 - **Runtime**: a [uv](https://docs.astral.sh/uv/) Python project (Python 3.12) using the `kokoro` package from hexgrad (Apache 2.0). It runs offline on the CPU after setup.
-- **Virtualenv**: per machine, `.venv-<hostname>/`, selected by sourcing `uv-env.sh`. This lets a host and a VM share the folder without breaking each other's venv. `playwright-test.sh` sources it for you.
+- **Virtualenv**: per machine, `.venv-<hostname>/`, selected by sourcing `uv-env.sh`. This lets a host and a VM share the folder without breaking each other's venv. `generate-demo-videos.sh` sources it for you.
 - **Voice**: `am_liam` (set by `KOKORO_VOICE` in `create-video.py`)
 
 One-time setup:
@@ -614,7 +622,7 @@ The first run of `setup.sh` needs internet access to download the Kokoro model a
 
 ### 5. Test Independence
 - Demo tests are separate from verification tests: demos end with `-demo.spec.ts`, verification tests start with `private-`
-- `playwright-test.sh` generates videos only for non-private specs
+- `generate-demo-videos.sh` lists every `screenshots/` folder, including `private-*` ones, so pick demo folders from its menu (its `ALL` option builds them all)
 - Every test starts with `cleanupScreenshots`, `cleanupTestDataFiles`, and `resetSettings` (see `playwright.md`)
 - Include artificial delays where needed for better visual clarity
 
@@ -642,13 +650,13 @@ The first run of `setup.sh` needs internet access to download the Kokoro model a
 - **Solution**: Run `../kocreator/setup.sh`, `./install-prerequisites.sh`, or `sudo apt-get install ffmpeg`
 
 ### Video Generation Is Skipped
-- **Symptoms**: `playwright-test.sh` prints "kocreator not found at … — skipping video generation." or "uv not found in PATH (kocreator requires it) — skipping video generation."
+- **Symptoms**: `generate-demo-videos.sh` prints "kocreator not found at … — skipping video generation." or "uv not found in PATH (kocreator requires it) — skipping video generation."
 - **Solution**: Check out KoCreator into `../kocreator`, install uv, and run `../kocreator/setup.sh`
 - If `create-video.py` itself reports that the `kokoro` package is not installed, the venv for this machine hasn't been built: run `source uv-env.sh && uv sync --locked` in `../kocreator` (or rerun `setup.sh`)
 
 ### Generated Audio Sounds Wrong
 - **Cause**: Cached WAV file is stale or corrupted, or a word is mispronounced
-- **Solution**: Delete the `generated-wav/` folder to force regeneration, then rebuild the video (option 4 in `playwright-test.sh`). For mispronounced words, add a phonetic override (`[word](/phonemes/)`) to the narration:
+- **Solution**: Delete the `generated-wav/` folder to force regeneration, then rebuild the video with `generate-demo-videos.sh`. For mispronounced words, add a phonetic override (`[word](/phonemes/)`) to the narration:
   ```bash
   rm -rf screenshots/<test-name>/generated-wav
   ```
@@ -676,7 +684,7 @@ The first run of `setup.sh` needs internet access to download the Kokoro model a
 The screenshot-based approach with integrated narration generation provides a reliable, maintainable solution for creating user documentation videos. The workflow is fully integrated:
 
 1. **Test execution**: Playwright tests generate both screenshots and narration text files
-2. **Test runner**: `playwright-test.sh` builds the app, runs the tests, and generates the videos in one unattended pass
+2. **Test runner and video script**: `playwright-test.sh` builds the app and runs the tests; `generate-demo-videos.sh` then builds one video or all of them from the results
 3. **Video generation**: KoCreator's `create-video.py` converts text to speech via Kokoro TTS and produces the final MP4 and GIF
 
 **Key Benefits**:
