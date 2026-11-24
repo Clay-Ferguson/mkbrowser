@@ -104,7 +104,7 @@ test.describe('Private: Attach: Clipboard', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. Today we're looking at clipboard attachments — every markdown file has a shortcut to paste whatever is on your clipboard as an attachment stored right next to it.
+      `Welcome to this quick tour of MK Browser. Today we're looking at clipboard attachments. Every markdown file has a shortcut to paste whatever is on your clipboard as an attachment stored right next to it.
 Here is a single markdown file with no attachments yet; let's use it to attach some clipboard text.`
     );
 
@@ -116,7 +116,7 @@ Here is a single markdown file with no attachments yet; let's use it to attach s
     writeNarration(
       screenshotDir,
       step++,
-      `We've placed a short piece of markdown text on the system clipboard.
+      `We have placed a short piece of markdown text on the system clipboard.
 Now we'll paste it as an attachment under our file.`
     );
 
@@ -160,7 +160,7 @@ Now we'll paste it as an attachment under our file.`
       screenshotDir,
       step++,
       `The clipboard text has been saved as an attachment.
-Notice the new folder that appeared, named after the file with a ".attach" suffix — that's where this file's attachments live.`
+Notice the new folder that appeared, named after the file with a "dot attach" suffix. That is where this file's attachments live.`
     );
 
     // Navigate into the attachments folder and confirm the pasted markdown renders.
@@ -183,7 +183,7 @@ Notice the new folder that appeared, named after the file with a ".attach" suffi
       screenshotDir,
       step++,
       `Inside the attachments folder we find the pasted file, named with a timestamp.
-Its markdown renders just like any other file — here's the "Pasted Note One" heading we copied from the clipboard.`
+Its markdown renders just like any other file. Here is the "Pasted Note One" heading we copied from the clipboard.`
     );
 
     // Back up to the folder containing the host file.
@@ -224,7 +224,7 @@ This time the attachments folder already exists, so the new file simply joins th
       screenshotDir,
       step++,
       `The second paste reused the existing attachments folder, which now holds both pasted notes side by side.
-That's how the "Attach: Clipboard" feature collects clipboard content under any file.`
+That is how the "Attach: Clipboard" feature collects clipboard content under any file.`
     );
 
     // Cleanup: clear the clipboard so later tests aren't affected by our seeded

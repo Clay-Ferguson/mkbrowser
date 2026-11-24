@@ -115,9 +115,9 @@ test.describe('Private: Rename', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. Today we're looking at the rename feature.
-We've got a markdown file, a folder, and a note that has its own attachments folder.
-We'll rename each of them in turn, right from the file list.`
+      `Welcome to this quick tour of MK Browser. Today we're looking at the rename feature.
+We have a markdown file, a folder, and a note that has its own attachments folder.
+We will rename each of them in turn, right from the file list.`
     );
 
     // --- Phase 1: rename the file ------------------------------------------
@@ -134,8 +134,8 @@ We'll rename each of them in turn, right from the file list.`
       screenshotDir,
       step++,
       `We right clicked the file's name, and it turned into an editable text field.
-The base name is pre-selected while the extension is preserved.
-Let's type a new name and press Enter.`
+The base name is preselected while the extension is preserved.
+We will type a new name and press Enter.`
     );
 
     await renameInput.fill(renamedFileName);
@@ -199,9 +199,9 @@ Now for the most interesting case: renaming a note that owns an attachments fold
     writeNarration(
       screenshotDir,
       step++,
-      `This note has a companion attachments folder, named after it with a dot-attach suffix.
+      `This note has a companion attachments folder, named after it with a dot attach suffix.
 That folder holds any images or files the note references.
-When we rename the note, MkBrowser automatically renames the attachments folder to match, so the association is never broken. Let's rename the note and watch it happen.`
+When we rename the note, MK Browser automatically renames the attachments folder to match, so the association is never broken. We will rename the note and watch it happen.`
     );
 
     // Exact match is essential here: the attachments folder is named
@@ -232,7 +232,7 @@ When we rename the note, MkBrowser automatically renames the attachments folder 
     writeNarration(
       screenshotDir,
       step++,
-      `The note now has its new name, and behind the scenes the dot-attach folder was renamed right along with it.
+      `The note now has its new name, and behind the scenes the dot attach folder was renamed right along with it.
 The attachment file is still safely inside, so the note and its attachments stayed linked automatically.
 This is exactly what you want: renaming a note never orphans its attachments.`
     );
@@ -249,7 +249,7 @@ This is exactly what you want: renaming a note never orphans its attachments.`
       screenshotDir,
       step++,
       `One last thing: renames are easy to back out of.
-We've started renaming the note and typed a new name — but instead of saving, we'll press Escape.`
+We have started renaming the note and typed a new name. But instead of saving, we'll press Escape.`
     );
 
     await cancelRenameInput.press('Escape');
@@ -264,8 +264,8 @@ We've started renaming the note and typed a new name — but instead of saving, 
     writeNarration(
       screenshotDir,
       step++,
-      `Pressing Escape cancelled the rename — the note kept its original name, both on screen and on disk.
-So renaming files and folders in MkBrowser is quick, reversible, and keeps attachments attached.`
+      `Pressing Escape cancelled the rename. The note kept its original name, both on screen and on disk.
+So renaming files and folders in MK Browser is quick, reversible, and keeps attachments attached.`
     );
 
     // --- Cleanup -----------------------------------------------------------

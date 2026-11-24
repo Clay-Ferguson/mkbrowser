@@ -50,7 +50,7 @@ test.describe('AI Vision Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. 
+      `Welcome to this quick tour of MK Browser. 
       Today we'll demonstrate the AI Vision feature, which lets you ask an AI questions about images right from your file browser.`
     );
 
@@ -62,7 +62,7 @@ test.describe('AI Vision Demo', () => {
       screenshotDir,
       step++,
       `We can see the vision demo folder in our file list. 
-      Let's go into it to see the image we'll be asking about.`
+      We will go into it to see the image we'll be asking about.`
     );
 
     await demoClick(visionFolder);
@@ -74,7 +74,7 @@ test.describe('AI Vision Demo', () => {
       screenshotDir,
       step++,
       `Now we can see the image we're going to ask the AI about. 
-      Let's find out what this place is.`
+      Now we will find out what this place is.`
     );
 
     // ── 4. Silent validation — ensure folder is clean ─────────────────
@@ -108,7 +108,7 @@ test.describe('AI Vision Demo', () => {
       screenshotDir,
       step++,
       `The Tools menu is open. 
-      We'll click "New AI Chat" to start our vision query.`
+      We will click "New AI Chat" to start our vision query.`
     );
 
     await demoClick(newAiChatItem);
@@ -121,7 +121,7 @@ test.describe('AI Vision Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We're now on the Chat tab view with the editor open. 
+      `We are now on the Chat tab view with the editor open. 
       This is where we'll enter our question about the image.`
     );
 
@@ -133,7 +133,7 @@ test.describe('AI Vision Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've entered our prompt asking what's in the image and where it's located. 
+      `We have entered our prompt asking what's in the image and where it's located. 
       Notice the special hash file colon star directive at the end. This is called a file directive, and the asterisk is a wildcard that tells the AI to include all files in the current folder, which means the image we just saw will be sent along with our question.`
     );
 
@@ -163,7 +163,7 @@ test.describe('AI Vision Demo', () => {
       screenshotDir,
       step++,
       `We now have our answer. 
-      The AI identified the image as Mont Saint-Michel, the iconic tidal island in Normandy, France.`
+      The AI identified the image as Mont Saint Michel, the iconic tidal island in Normandy, France.`
     );
 
     // ── 12. Switch to Browse tab ──────────────────────────────────────
@@ -185,7 +185,7 @@ test.describe('AI Vision Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click the "Up Level" button to go back up one level in the folder hierarchy to see where we started.`
+      `We will click the "Up Level" button to go back up one level in the folder hierarchy to see where we started.`
     );
     await takeScreenshot(mainWindow, upLevelButton, screenshotDir, step++, 'highlight-up-level');
 
@@ -196,7 +196,7 @@ test.describe('AI Vision Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We're now back where we started, and we can see that the AI's answer folder has been created alongside our original image. From here, we can continue the conversation by branching at any point, and we can do it all from the Browse tab or from the Chat tab.`
+      `We are now back where we started, and we can see that the AI's answer folder has been created alongside our original image. From here, we can continue the conversation by branching at any point, and we can do it all from the Browse tab or from the Chat tab.`
     );
 
     logScreenshotSummary(screenshotDir);

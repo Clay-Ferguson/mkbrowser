@@ -89,9 +89,9 @@ test.describe('Private: Replace in Files', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser.
+      `Welcome to this quick tour of MK Browser.
 Today we're going to look at Replace in Files, which finds and replaces text across every markdown and text file in a folder and its subfolders.
-Let's open this folder to see what we're working with.`
+We will open this folder to see what we're working with.`
     );
 
     // Navigate into the demo folder and confirm its contents are visible.
@@ -127,7 +127,7 @@ Each of these files mentions the word "Widget", and we're going to rename that p
       screenshotDir,
       step++,
       `The Edit menu is open, and we can see the Replace in Files option.
-We'll click it to open the find-and-replace dialog.`
+We will click it to open the find and replace dialog.`
     );
 
     await demoClick(replaceMenuItem);
@@ -147,7 +147,7 @@ We'll click it to open the find-and-replace dialog.`
       screenshotDir,
       step++,
       `We type "Widget" as the text to find and "Gadget" as the replacement.
-This scans the current folder and all of its subfolders, and the match is case-sensitive — so a lowercase "widget" will be left exactly as it is.`
+This scans the current folder and all of its subfolders, and the match is case sensitive. So a lowercase "widget" will be left exactly as it is.`
     );
 
     // Execute the replace.
@@ -173,8 +173,8 @@ This scans the current folder and all of its subfolders, and the match is case-s
     writeNarration(
       screenshotDir,
       step++,
-      `A summary dialog confirms the result: 4 occurrences were replaced across 3 files.
-That's two in the first file, one in the second, and one in the file tucked away in the subfolder.
+      `A summary dialog confirms the result: four occurrences were replaced across three files.
+That is two in the first file, one in the second, and one in the file tucked away in the subfolder.
 We dismiss the dialog to continue.`
     );
 
@@ -195,7 +195,7 @@ We dismiss the dialog to continue.`
       screenshotDir,
       step++,
       `Back in the browser, every "Widget" now reads "Gadget".
-The replacement reached into the subfolder too, and the case-sensitive lowercase "widget" was left untouched.`
+The replacement reached into the subfolder too, and the case sensitive lowercase "widget" was left untouched.`
     );
 
     // Verify on disk: this is the authoritative check.
@@ -223,7 +223,7 @@ The replacement reached into the subfolder too, and the case-sensitive lowercase
       screenshotDir,
       step++,
       `Checking the files on disk confirms everything.
-The subfolder's file was updated too, so the operation truly recurses, and the lowercase "widget" is still there — case-sensitivity working exactly as documented.
+The subfolder's file was updated too, so the operation truly recurses, and the lowercase "widget" is still there. Case sensitivity is working exactly as documented.
 Replace in Files makes sweeping renames across a whole folder tree quick and safe.`
     );
 

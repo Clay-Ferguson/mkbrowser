@@ -43,7 +43,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome back to MkBrowser.
+      `Welcome back to MK Browser.
       In this demo we're going to look at how you can give your AI agent a custom personality, which we call a Persona.
       A Persona is just a text block containing instructions telling the AI how to behave, or what to do, during conversations.`
     );
@@ -56,7 +56,7 @@ test.describe('AI Chat Persona Demo', () => {
       screenshotDir,
       step++,
       `Here in the top right corner is the System Menu button.
-      Let's click it to open the System popup menu.`
+      We will click it to open the System popup menu.`
     );
 
     await demoClick(systemMenuButton);
@@ -68,7 +68,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Let's click the "AI Settings" option, to open the AI Settings view.`
+      `We will click the "AI Settings" option, to open the AI Settings view.`
     );
 
     await demoClick(aiSettingsItem);
@@ -79,7 +79,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We're now in the AI Settings view. Let's scroll down to the Persona Section`
+      `We are now in the AI Settings view. We will scroll down to the Persona Section.`
     );
 
     //==========
@@ -108,7 +108,7 @@ test.describe('AI Chat Persona Demo', () => {
       screenshotDir,
       step++,
       `The dropdown is open, showing the personas we've defined.
-      Let's select the "Pirate" persona.`
+      We will select the "Pirate" persona.`
     );
 
     await demoClick(pirateOption);
@@ -120,7 +120,7 @@ test.describe('AI Chat Persona Demo', () => {
       step++,
       `This persona tells the AI to behave like a pirate and to write like a pirate,
       so every answer it gives will be full of swashbuckling pirate talk. 
-      You can give any arbitrary instructions you want, and it doesn't have to be limited to describing personalities or role-playing like we're doing here.`
+      You can give any arbitrary instructions you want, and it doesn't have to be limited to describing personalities or role playing like we're doing here.`
     );
 
     // ── 6. Switch back to the Browse view ─────────────────────────────
@@ -151,7 +151,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We'll next click the Tools menu, which is the easiest way to start a new AI chat, rooted in our current folder.`
+      `We will next click the Tools menu, which is the easiest way to start a new AI chat, rooted in our current folder.`
     );
 
     await demoClick(toolsMenuButton);
@@ -165,7 +165,7 @@ test.describe('AI Chat Persona Demo', () => {
       step++,
       `The Tools menu is now open.
       We can see a "New AI Chat" option.
-      Let's click it to begin a fresh conversation with our Pirate persona.`
+      We will click it to begin a fresh conversation with our Pirate persona.`
     );
 
     await demoClick(newAiChatItem);
@@ -179,7 +179,7 @@ test.describe('AI Chat Persona Demo', () => {
       screenshotDir,
       step++,
       `A new chat has started, and here in the Chat tab we have an editor ready for our message.
-      Let's enter a prompt to begin a conversation with the Agent.`
+      We will enter a prompt to begin a conversation with the Agent.`
     );
 
     const firstPrompt = 'what do you usually do on a warm summer night?';
@@ -189,7 +189,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed our question: "what do you usually do on a warm summer night?".`
+      `We have typed our question: "What do you usually do on a warm summer night?"`
     );
 
     // ── 10. Queue the scripted pirate answer, then click "Ask AI" ─────
@@ -217,7 +217,7 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
     writeNarration(
       screenshotDir,
       step++,
-      `Let's click "Ask AI" to send our question off to the Pirate.`
+      `We will click "Ask AI" to send our question off to the Pirate.`
     );
 
     await demoClick(askAiButton);
@@ -230,8 +230,8 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
     writeNarration(
       screenshotDir,
       step++,
-      `And there's our answer — written entirely in pirate-speak.
-       We've learned a little something about pirate nightlife.`
+      `And there's our answer. It is written entirely in pirate speak.
+       We have learned a little something about pirate nightlife.`
     );
 
     // ── 12. Click the "Reply" button to continue the conversation ─────
@@ -242,7 +242,7 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
       screenshotDir,
       step++,
       `On the Pirate's answer file there's a "Reply" button.
-      Let's click it to ask a follow-up question.`
+      We will click it to ask a follow up question.`
     );
 
     await demoClick(replyButton);
@@ -260,7 +260,7 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
     writeNarration(
       screenshotDir,
       step++,
-      `We've entered a question asking about navigation technology.`
+      `We have entered a question asking about navigation technology.`
     );
 
     // ── 14. Queue the second scripted answer, then click "Ask AI" ─────
@@ -287,7 +287,7 @@ So keep yer glowin' boxes, matey. I'll take me sextant and a sky full o' stars a
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click "Ask AI" once more to hear what our seafaring friend has to say.`
+      `We will click "Ask AI" once more to hear what our seafaring friend has to say.`
     );
 
     await demoClick(askAiButton2);

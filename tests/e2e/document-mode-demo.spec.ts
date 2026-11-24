@@ -54,8 +54,7 @@ test.describe('Document Mode Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. In this demo we will be exploring the Document Mode feature using a folder that contains part of the Federalist Papers —
-       a collection of historical political essays.
+      `Welcome to this quick tour of MK Browser. In this demo we will be exploring the Document Mode feature using a folder that contains part of the Federalist Papers. The Federalist Papers are a collection of historical political essays.
        You can see the folder contents listed here, with each file and subfolder representing a section of the document.`
     );
 
@@ -65,7 +64,7 @@ test.describe('Document Mode Demo', () => {
       screenshotDir,
       step++,
       `At the top of the content area you can see the edit button.
-      This menu gives us access to file-level editing operations, and also a more powerful option at the bottom: enabling Document Mode. Let's click it to open the menu.`
+      This menu gives us access to file level editing operations, and also a more powerful option at the bottom: enabling Document Mode. We will click it to open the menu.`
     );
 
     await demoClick(editMenuButton);
@@ -79,7 +78,7 @@ test.describe('Document Mode Demo', () => {
       screenshotDir,
       step++,
       `At the bottom of the menu you can see the "Enable Document Mode" option. 
-      Clicking this will switch this folder into Document Mode, giving us full control over the order in which entries appear. Let's click it now.`
+      Clicking this will switch this folder into Document Mode, giving us full control over the order in which entries appear. We will click it now.`
     );
 
     await demoClick(enableDocumentModeItem);
@@ -89,9 +88,8 @@ test.describe('Document Mode Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Document Mode is now enabled for this folder. Notice that the sort button has disappeared from the toolbar — 
-      that's because in Document Mode the order of entries is fixed and controlled by you, not by any automatic sort. 
-      MkBrowser has created a hidden file named INDEX dot Y A M L in the folder to record and maintain the entry order.`
+      `Document Mode is now enabled for this folder. Notice that the sort button has disappeared from the toolbar. That is because in Document Mode the order of entries is fixed and controlled by you, not by any automatic sort. 
+      MK Browser has created a hidden file named index dot [YAML](/jˈæməl/) in the folder to record and maintain the entry order.`
     );
 
     // Hover over federalist-00.md to reveal its action bar
@@ -110,9 +108,9 @@ test.describe('Document Mode Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Hovering over a file header reveals a row of action icons on the right-hand side. 
-      Here we can see the "Move Down" arrow button highlighted for the file "federalist-00.md". 
-      Let's click it to move this file down one position in the document.`
+      `Hovering over a file header reveals a row of action icons on the right hand side. 
+      Here we can see the "Move Down" arrow button highlighted for the file "federalist zero zero dot MD". 
+      We will click it to move this file down one position in the document.`
     );
 
     await demoClick(moveDownButton, { force: true });
@@ -128,7 +126,7 @@ test.describe('Document Mode Demo', () => {
       screenshotDir,
       step++,
       `We can now see that the file has been moved down one position in the document. 
-      The file order in Document Mode is entirely under your control — just click the arrow buttons to move files and folders.`
+      The file order in Document Mode is entirely under your control. Just click the arrow buttons to move files and folders.`
     );
 
     // Hover again to reveal action buttons for the move-up operation
@@ -159,7 +157,7 @@ test.describe('Document Mode Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `And there we have it —  the file is back at the top where it started. 
+      `And there we have it. The file is back at the top where it started. 
       Document Mode gives you full, intuitive control over how your documents are ordered, by ordering individual files.`
     );
 
@@ -174,8 +172,8 @@ test.describe('Document Mode Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `You can see the "Insert File" buttons scattered throughout the document — one between each entry. 
-      Let's click the second one to insert a brand new file right here at this specific position in the document.`
+      `You can see the "Insert File" buttons scattered throughout the document, one between each entry. 
+      We will click the second one to insert a brand new file right here at this specific position in the document.`
     );
 
     await demoClick(secondInsertFileButton);
@@ -187,7 +185,7 @@ test.describe('Document Mode Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `The editor is now open. Notice it was inserted exactly at the position we chose. Let's type some introductory content for this file.`
+      `The editor is now open. Notice it was inserted exactly at the position we chose. We will type some introductory content for this file.`
     );
 
     await insertText(mainWindow, `The Federalist Papers are a collection of 85 articles and essays written between 1787 and 1788 to promote the ratification of the United States Constitution. Authored by Alexander Hamilton, James Madison, and John Jay under the collective pseudonym "Publius," these documents served as a masterclass in political advocacy and constitutional theory. They were originally published in New York newspapers to convince skeptical citizens that a stronger central government was necessary to preserve the Union. Even today, the papers remain one of the most important sources for interpreting the original intent of the Framers and understanding the underlying logic of the American governing system. Because of their profound impact on legal and political thought, they are widely considered the most significant contribution to political science ever produced in the United States.
@@ -206,7 +204,7 @@ test.describe('Document Mode Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Let's now click the Save button to write our content to disk and close the editor.`
+      `We will now click the Save button to write our content to disk and close the editor.`
     );
 
     await demoClick(saveButton);
@@ -218,7 +216,7 @@ test.describe('Document Mode Demo', () => {
       step++,
       `The file has been saved and is now part of the document at exactly the position we specified. 
       That brings us to the end of this Document Mode demo. 
-      We have seen how to enable Document Mode, turn on Edit Mode, reorder files with the move buttons, and insert brand new files at precise locations within the document. Document Mode in MkBrowser gives you full editorial control over the structure and order of your content — making it an ideal tool for managing long-form documents, reference collections, or any set of Markdown files where order matters.`
+      We have seen how to enable Document Mode, turn on Edit Mode, reorder files with the move buttons, and insert brand new files at precise locations within the document. Document Mode in MK Browser gives you full editorial control over the structure and order of your content. This makes it an ideal tool for managing long form documents, reference collections, or any set of Markdown files where order matters.`
     );
 
     logScreenshotSummary(screenshotDir);

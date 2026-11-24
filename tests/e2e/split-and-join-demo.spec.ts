@@ -85,9 +85,9 @@ test.describe('Split and Join Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser.
+      `Welcome to this quick tour of MK Browser.
 Today we're going to look at the Split and Join features, which let you break a document apart into separate files, and put it back together again.
-We'll start by opening this folder, which contains a single markdown file.`
+We will start by opening this folder, which contains a single markdown file.`
     );
 
     // Navigate into the demo folder.
@@ -114,7 +114,7 @@ Since our paragraphs are set apart by blank lines, they make a natural dividing 
     writeNarration(
       screenshotDir,
       step++,
-      `We've selected the file using its checkbox.
+      `We have selected the file using its checkbox.
 Now let's open the Edit menu, where the Split option lives.`
     );
 
@@ -136,7 +136,7 @@ Now let's open the Edit menu, where the Split option lives.`
       screenshotDir,
       step++,
       `The Edit menu is open, and we can see both the Split and Join options.
-We'll click Split.`
+We will click Split.`
     );
 
     await demoClick(splitMenuItem);
@@ -151,7 +151,7 @@ We'll click Split.`
     writeNarration(
       screenshotDir,
       step++,
-      `Before splitting, MkBrowser shows the Split Options dialog.
+      `Before splitting, MK Browser shows the Split Options dialog.
 The Split Delimiter field holds whatever text you want the file cut apart at, so you can split on anything, like a line of three dashes or a special marker.
 A backslash n stands for a newline, so the default, backslash n backslash n, means a blank line.
 Because our file's paragraphs are separated by blank lines, the default is exactly what we need, so we'll keep it and click Split.`
@@ -195,7 +195,7 @@ This numbering keeps the pieces in their original order.`
       screenshotDir,
       step++,
       `Now let's reverse the operation.
-We've checked the checkboxes on all three files, and we'll head back into the Edit menu to join them.`
+We have checked the checkboxes on all three files, and we'll head back into the Edit menu to join them.`
     );
 
     await takeScreenshot(mainWindow, editMenuButton, screenshotDir, step++, 'about-to-open-edit-menu-again');
@@ -232,8 +232,8 @@ Join sorts the selected files alphabetically, merges their contents into the fir
     writeNarration(
       screenshotDir,
       step++,
-      `Before joining, MkBrowser shows the Join Options dialog.
-We've entered three dashes as the delimiter to go between each file, which Markdown renders as a horizontal line.`
+      `Before joining, MK Browser shows the Join Options dialog.
+We have entered three dashes as the delimiter to go between each file, which Markdown renders as a horizontal line.`
     );
 
     const includeFilenamesCheckbox = mainWindow.getByTestId('join-options-include-filenames');
@@ -244,7 +244,7 @@ We've entered three dashes as the delimiter to go between each file, which Markd
     writeNarration(
       screenshotDir,
       step++,
-      `We've also checked Include Filenames, which puts each file's name in bold above its content, so we'll be able to see which file each paragraph came from.
+      `We have also checked Include Filenames, which puts each file's name in bold above its content, so we'll be able to see which file each paragraph came from.
 Now we click Join.`
     );
 
@@ -287,7 +287,7 @@ Now we click Join.`
       screenshotDir,
       step++,
       `The three files have been merged back into a single document containing all three paragraphs, in the right order.
-Each paragraph is headed by the name of the file it came from, and a horizontal rule, drawn from our three-dash delimiter, separates each one from the next.`
+Each paragraph is headed by the name of the file it came from, and a horizontal rule, drawn from our three dash delimiter, separates each one from the next.`
     );
 
     // Cleanup: remove the joined file so the demo folder is left empty and

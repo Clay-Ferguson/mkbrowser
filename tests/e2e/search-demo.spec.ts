@@ -29,9 +29,9 @@ test.describe('Search Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser.
+      `Welcome to this quick tour of MK Browser.
 Today we'll be exploring the search feature by searching inside the Federalist Papers content.
-You can see the folder listing in front of us, including the federalist-papers folder.`
+You can see the folder listing in front of us, including the federalist papers folder.`
     );
 
     // Click the federalist-papers folder
@@ -40,7 +40,7 @@ You can see the folder listing in front of us, including the federalist-papers f
     writeNarration(
       screenshotDir,
       step++,
-      `Let's open the federalist-papers folder by clicking on it, so we can search within its contents.`
+      `We will open the federalist papers folder by clicking on it, so we can search within its contents.`
     );
 
     await demoClick(federalistFolder);
@@ -50,7 +50,7 @@ You can see the folder listing in front of us, including the federalist-papers f
     writeNarration(
       screenshotDir,
       step++,
-      `We're now inside the federalist-papers folder.
+      `We are now inside the federalist papers folder.
 We can see the documents listed here.
 Now let's use the search feature to find specific content across these files.`
     );
@@ -63,7 +63,7 @@ Now let's use the search feature to find specific content across these files.`
       screenshotDir,
       step++,
       `At the top of the window you can see the search icon.
-Let's click it to open the search menu.`
+We will click it to open the search menu.`
     );
 
     await demoClick(searchMenuButton);
@@ -76,7 +76,7 @@ Let's click it to open the search menu.`
       screenshotDir,
       step++,
       `The search menu has appeared.
-We'll click "New Search..." to open the search dialog and define a new query.`
+We will click "New Search" to open the search dialog and define a new query.`
     );
 
     await demoClick(newSearchOption);
@@ -90,7 +90,7 @@ We'll click "New Search..." to open the search dialog and define a new query.`
       step++,
       `The search dialog is now open.
 We can enter our search term here.
-Let's search for the word "political" to find references to that topic across the Federalist Papers.`
+We will search for the word "political" to find references to that topic across the Federalist Papers.`
     );
 
     await insertText(mainWindow, 'political', true, searchInput);
@@ -99,8 +99,8 @@ Let's search for the word "political" to find references to that topic across th
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed "political" into the search field.
-MkBrowser will search through the content of all files in the current folder.
+      `We have typed "political" into the search field.
+MK Browser will search through the content of all files in the current folder.
 Now let's run the search.`
     );
 
@@ -111,7 +111,7 @@ Now let's run the search.`
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click the Search button to execute the query and find all matching files.`
+      `We will click the Search button to execute the query and find all matching files.`
     );
 
     await demoClick(executeSearchButton);
@@ -122,9 +122,9 @@ Now let's run the search.`
       screenshotDir,
       step++,
       `The search results are now displayed.
-MkBrowser has found all the files containing the word "political" across the Federalist Papers.
+MK Browser has found all the files containing the word "political" across the Federalist Papers.
 Each result shows the file path and matching context.
-Let's click on one of the results to jump directly to that file.`
+We will click on one of the results to jump directly to that file.`
     );
 
     // Click the specific result to navigate to that file
@@ -134,7 +134,7 @@ Let's click on one of the results to jump directly to that file.`
     writeNarration(
       screenshotDir,
       step++,
-      `Let's click on the result for federalist-03-08.md to navigate directly to that file in the browser.`
+      `We will click on the result for federalist zero three zero eight dot MD to navigate directly to that file in the browser.`
     );
 
     await demoClick(targetResult);
@@ -151,10 +151,10 @@ Let's click on one of the results to jump directly to that file.`
     writeNarration(
       screenshotDir,
       step++,
-      `MkBrowser has jumped directly to the federalist-03-08.md file.
+      `MK Browser has jumped directly to the federalist zero three zero eight dot MD file.
 The file is now displayed on its own in the browser, so you can read just that search result without the rest of its folder around it.
 Clicking a different search result shows that file on its own instead.
-This is how easy it is to search and navigate to specific content in MkBrowser.`
+This is how easy it is to search and navigate to specific content in MK Browser.`
     );
 
     logScreenshotSummary(screenshotDir);

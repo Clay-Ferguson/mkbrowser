@@ -31,15 +31,15 @@ test.describe('Create LaTeX Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome back to MkBrowser.
-In this demo, we'll explore one of MkBrowser's powerful features: automatic [LaTeX](/lˈeɪtɛk/) rendering for mathematical formulas.
-Let's create a file with a math equation.`
+      `Welcome back to MK Browser.
+In this demo, we'll explore one of MK Browser's powerful features: automatic [LaTeX](/lˈeɪtɛk/) rendering for mathematical formulas.
+We will create a file with a math equation.`
     );
 
     // Click the create file button
     const createButton = mainWindow.getByTestId('create-file-button');
     await takeScreenshot(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create');
-    writeNarration(screenshotDir, step++, `We'll start by creating a new file.`);
+    writeNarration(screenshotDir, step++, `We will start by creating a new file.`);
 
     await demoClick(createButton);
 
@@ -48,7 +48,7 @@ Let's create a file with a math equation.`
       screenshotDir,
       step++,
       `The Create File dialog opens.
-Let's give our file a name.`
+We will give our file a name.`
     );
 
     // Type the filename
@@ -59,7 +59,7 @@ Let's give our file a name.`
     writeNarration(
       screenshotDir,
       step++,
-      `We've named it "my-latex-formula".
+      `We have named it "my [LaTeX](/lˈeɪtɛk/) formula".
 Now let's create the file and add a math formula.`
     );
 
@@ -76,7 +76,7 @@ Now let's create the file and add a math formula.`
       step++,
       `Great, our file has been created and the editor is ready.
 Now let's add some [LaTeX](/lˈeɪtɛk/) content.
-We'll start with a brief explanation, then include the quadratic formula.`
+We will start with a brief explanation, then include the quadratic formula.`
     );
 
     // Type the LaTeX content with explanation
@@ -92,8 +92,8 @@ $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$`;
     writeNarration(
       screenshotDir,
       step++,
-      `We've entered our explanation and the quadratic formula.
-Notice the [LaTeX](/lˈeɪtɛk/) code is surrounded by double dollar signs — this tells MkBrowser to render it as a math formula.
+      `We have entered our explanation and the quadratic formula.
+Notice the [LaTeX](/lˈeɪtɛk/) code is surrounded by double dollar signs. This tells MK Browser to render it as a math formula.
 The formula itself uses [LaTeX](/lˈeɪtɛk/) syntax with commands like "frac" for fractions and "sqrt" for square roots.
 Now watch what happens when we save.`
     );
@@ -104,7 +104,7 @@ Now watch what happens when we save.`
     writeNarration(
       screenshotDir,
       step++,
-      `Let's save the file and see the LaTeX magic happen.`
+      `We will save the file and see the [LaTeX](/lˈeɪtɛk/) magic happen.`
     );
 
     await demoClick(saveButton);
@@ -117,9 +117,9 @@ Now watch what happens when we save.`
       screenshotDir,
       step++,
       `Now that looks absolutely amazing! The [LaTeX](/lˈeɪtɛk/) code has been automatically rendered into a beautiful, properly formatted math formula.
-The quadratic formula is now displayed with professional typography — fractions, square roots, and math symbols are perfectly rendered.
-This makes MkBrowser ideal for taking notes on mathematics, physics, or any technical subject.
-No special tools needed — just write your [LaTeX](/lˈeɪtɛk/) between dollar sign delimiters and MkBrowser handles the rest.`
+The quadratic formula is now displayed with professional typography. Fractions, square roots, and math symbols are perfectly rendered.
+This makes MK Browser ideal for taking notes on mathematics, physics, or any technical subject.
+No special tools needed. Just write your [LaTeX](/lˈeɪtɛk/) between dollar sign delimiters and MK Browser handles the rest.`
     );
 
     // Verify save completed

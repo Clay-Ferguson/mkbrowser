@@ -111,8 +111,8 @@ test.describe('Private: Expanded Editing', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. We're looking at how the expanded — "maximized" — editor works.
-This folder holds two markdown files. Let's open one of them for editing.`
+      `Welcome to this quick tour of MK Browser. We are looking at how the expanded, or "maximized", editor works.
+This folder holds two markdown files. We will open one of them for editing.`
     );
 
     // --- Phase 1: editing inline, with the preference off -------------------
@@ -142,8 +142,8 @@ This folder holds two markdown files. Let's open one of them for editing.`
     writeNarration(
       screenshotDir,
       step++,
-      `The editor opened right inside the listing — the other file in the folder is still visible below it.
-We've typed a line without saving. Now let's maximize the editor.`
+      `The editor opened right inside the listing. The other file in the folder is still visible below it.
+We have typed a line without saving. Now let's maximize the editor.`
     );
 
     // --- Phase 2: expanding swaps in BrowseFile -----------------------------
@@ -203,7 +203,7 @@ The Expanded Editor menu item is still there whenever we want the folder listing
     writeNarration(
       screenshotDir,
       step++,
-      `Collapsing dropped us back into the folder listing with the editor — and our unsaved line — still open.`
+      `Collapsing dropped us back into the folder listing with the editor, and our unsaved line, still open.`
     );
 
     // Expand once more, then cancel from there. This discards the unsaved line
@@ -232,7 +232,7 @@ The Expanded Editor menu item is still there whenever we want the folder listing
     writeNarration(
       screenshotDir,
       step++,
-      `With the preference on, clicking a file's body opens it maximized straight away — no toggling needed.`
+      `With the preference on, clicking a file's body opens it maximized straight away. No toggling is needed.`
     );
 
     await demoClick(saveButton);
@@ -306,7 +306,7 @@ The Expanded Editor menu item is still there whenever we want the folder listing
     writeNarration(
       screenshotDir,
       step++,
-      `Browsing to the parent folder while the maximized editor was open took us to a listing that renders exactly as it should — rows stacked tightly, no leftover editor layout.`
+      `Browsing to the parent folder while the maximized editor was open took us to a listing that renders exactly as it should. The rows are stacked tightly, with no leftover editor layout.`
     );
 
     // --- Cleanup -----------------------------------------------------------

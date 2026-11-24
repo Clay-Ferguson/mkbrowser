@@ -56,9 +56,9 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. 
-      Today we're going to try out the built-in AI Chat feature. 
-      This lets you have a back-and-forth conversation with an AI, right inside your file browser.`
+      `Welcome to this quick tour of MK Browser. 
+      Today we're going to try out the built in AI Chat feature. 
+      This lets you have a back and forth conversation with an AI, right inside your file browser.`
     );
 
     // ── 2. Open Tools menu ────────────────────────────────────────────
@@ -82,7 +82,7 @@ test.describe('AI Chat Demo', () => {
       step++,
       `The Tools menu is open. 
       We can see a "New AI Chat" option. 
-      Let's click it to start a conversation.`
+      We will click it to start a conversation.`
     );
 
     await demoClick(newAiChatItem);
@@ -98,7 +98,7 @@ test.describe('AI Chat Demo', () => {
       screenshotDir,
       step++,
       `A new AI chat folder has been created, and the editor is open and ready for our question. 
-      Let's ask a question.`
+      We will ask a question.`
     );
 
     await insertText(mainWindow, humanMessage1, true);
@@ -107,8 +107,8 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed our question: we're in Tokyo, it's raining, we're tired of sushi, and we want something Cyberpunk. 
-      Let's ask the AI for a recommendation.`
+      `We have typed our question: we're in Tokyo, it's raining, we're tired of sushi, and we want something Cyberpunk. 
+      We will ask the AI for a recommendation.`
     );
 
     // ── 5. Queue scripted answer, then click "Ask AI" ─────────────────
@@ -136,9 +136,9 @@ test.describe('AI Chat Demo', () => {
       screenshotDir,
       step++,
       `The AI has responded. 
-      It suggests heading to Akihabara and visiting an upper-floor retro arcade. 
-      Neon reflections on wet pavement and 80s synth sounds — sounds like peak Cyberpunk. 
-      Now let's ask a follow-up question.`
+      It suggests heading to Akihabara and visiting an upper floor retro arcade. 
+      Neon reflections on wet pavement and eighties synth sounds. That sounds like peak Cyberpunk. 
+      Now let's ask a follow up question.`
     );
 
     // ── 7. Click the "Reply" button ───────────────────────────────────
@@ -148,7 +148,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Above the AI's answer, there's a Reply button. We'll click it to continue the conversation.`
+      `Above the AI's answer, there's a Reply button. We will click it to continue the conversation.`
     );
 
     await demoClick(replyButton);
@@ -163,8 +163,8 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `A new editor has opened for our follow-up message. 
-      Let's ask about a place to grab a drink afterward.`
+      `A new editor has opened for our follow up message. 
+      We will ask about a place to grab a drink afterward.`
     );
 
     await insertText(mainWindow, humanMessage2, true);
@@ -173,8 +173,8 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed our follow-up: is there a quiet spot nearby for a drink? 
-      Let's send this follow-up question off to the AI.`
+      `We have typed our follow up: is there a quiet spot nearby for a drink? 
+      We will send this follow up question off to the AI.`
     );
 
     // ── 9. Queue second scripted answer, then click "Ask AI" ──────────
@@ -188,7 +188,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click "Ask AI" one more time.`
+      `We will click "Ask AI" one more time.`
     );
 
     await demoClick(askAiButton2);
@@ -202,15 +202,15 @@ test.describe('AI Chat Demo', () => {
       screenshotDir,
       step++,
       `And there's our second answer. 
-      The AI recommends Bar Sekirei, a hidden gem with a library-like atmosphere — the perfect calm after the storm to end the trip. 
-      As you can see, having a multi-turn conversation with the AI is quick and seamless`
+      The AI recommends Bar Sekirei, a hidden gem with a library like atmosphere. It is the perfect calm after the storm to end the trip. 
+      As you can see, carrying on an ongoing conversation with the AI is quick and seamless.`
     );
 
     // ── 11. Explain Chat tab vs file system, highlight "Show in Browser" ──
     writeNarration(
       screenshotDir,
       step++,
-      `This entire conversation was conducted in the Chat tab, but under the hood MkBrowser stores each exchange in real file system folders. That means you can browse, edit, or add files to any part of the conversation. Let's click one of the "Show in Browse View" icons to jump into the underlying folders.`
+      `This entire conversation was conducted in the Chat tab, but under the hood MK Browser stores each exchange in real file system folders. That means you can browse, edit, or add files to any part of the conversation. We will click one of the "Show in Browse View" icons to jump into the underlying folders.`
     );
 
     const showInBrowserButton = activeView(mainWindow).getByTestId('show-in-browser-button').last();
@@ -219,7 +219,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Here's the "Show in Browser" button. Clicking it will take us from the Chat tab into the actual folder on disk where this part of the conversation lives.`
+      `Here is the "Show in Browser" button. Clicking it will take us from the Chat tab into the actual folder on disk where this part of the conversation lives.`
     );
 
     await demoClick(showInBrowserButton);
@@ -231,7 +231,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We're now in the Browser tab, looking at the actual files and folders that make up this conversation.`
+      `We are now in the Browser tab, looking at the actual files and folders that make up this conversation.`
     );
 
     // ── 13. Highlight "Up Level" and navigate up ──────────────────────
@@ -241,7 +241,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We can explore earlier parts of the conversation by navigating up through the folder hierarchy. Let's click the "Up Level" button to go to the parent folder.`
+      `We can explore earlier parts of the conversation by navigating up through the folder hierarchy. We will click the "Up Level" button to go to the parent folder.`
     );
 
     await demoClick(upLevelButton);
@@ -251,7 +251,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've moved up one level. Let's go up once more to see an earlier turn of the conversation.`
+      `We have moved up one level. We will go up once more to see an earlier turn of the conversation.`
     );
 
     // ── 14. Click "Up Level" again  ────────────
@@ -263,7 +263,7 @@ test.describe('AI Chat Demo', () => {
       screenshotDir,
       step++,
       `Here we can see another turn of the conversation. 
-      The ability to attach images, documents, or any other files alongside your chat makes MkBrowser's file-system-based conversation design uniquely powerful. Each exchange is a real folder you can organize, back up, share, and extend however you like.`
+      The ability to attach images, documents, or any other files alongside your chat makes MK Browser's file system based conversation design uniquely powerful. Each exchange is a real folder you can organize, back up, share, and extend however you like.`
     );
 
     logScreenshotSummary(screenshotDir);

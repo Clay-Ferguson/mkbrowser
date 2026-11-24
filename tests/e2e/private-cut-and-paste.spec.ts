@@ -78,8 +78,8 @@ test.describe('Private: Cut and Paste', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. Today we're looking at cutting and pasting files, which lets you move files from one folder into another.
-Here we have three markdown files and an empty destination folder — we'll select two of the files, cut them, and paste them into the folder.`
+      `Welcome to this quick tour of MK Browser. Today we're looking at cutting and pasting files, which lets you move files from one folder into another.
+Here we have three markdown files and an empty destination folder. We will select two of the files, cut them, and paste them into the folder.`
     );
 
     // Select the two files to cut using their selection checkboxes.
@@ -251,7 +251,7 @@ Now we'll head back up to the folder where we started.`
     writeNarration(
       screenshotDir,
       step++,
-      `We're back in the starting folder, where the file we never moved is still waiting.
+      `We are back in the starting folder, where the file we never moved is still waiting.
 This time, instead of using the selection checkboxes, we'll delete it with the trash icon right on the file's own header.`
     );
 

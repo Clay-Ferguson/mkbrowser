@@ -41,9 +41,9 @@ test.describe('Generate PDF Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser.
+      `Welcome to this quick tour of MK Browser.
 In this demo we will generate a PDF from the Federalist Papers content.
-You can see the folder listing in front of us, including the federalist-papers folder that holds all of the documents we want to export.`
+You can see the folder listing in front of us, including the federalist papers folder that holds all of the documents we want to export.`
     );
 
     // Highlight and click the federalist-papers folder
@@ -52,7 +52,7 @@ You can see the folder listing in front of us, including the federalist-papers f
     writeNarration(
       screenshotDir,
       step++,
-      `Let's open the federalist-papers folder by clicking on it.
+      `We will open the federalist papers folder by clicking on it.
 This will navigate into the folder so that our export covers just its contents.`
     );
 
@@ -63,9 +63,9 @@ This will navigate into the folder so that our export covers just its contents.`
     writeNarration(
       screenshotDir,
       step++,
-      `We are now inside the federalist-papers folder.
+      `We are now inside the federalist papers folder.
 You can see all of its documents listed here, including a glossary folder.
-Let's take a quick look inside the glossary before we export.`
+We will take a quick look inside the glossary before we export.`
     );
 
     // Highlight and click the glossary folder
@@ -75,7 +75,7 @@ Let's take a quick look inside the glossary before we export.`
       screenshotDir,
       step++,
       `Here is the glossary folder.
-Let's click on it to see what glossary items are defined inside.`
+We will click on it to see what glossary items are defined inside.`
     );
 
     await demoClick(glossaryFolder);
@@ -87,7 +87,7 @@ Let's click on it to see what glossary items are defined inside.`
       step++,
       `Inside the glossary folder we can see a glossary of terms file.
 These definitions will be included when we export the documents.
-Now let's navigate back to the federalist-papers folder.`
+Now let's navigate back to the federalist papers folder.`
     );
 
     // Highlight and click breadcrumb to navigate back to federalist-papers
@@ -97,7 +97,7 @@ Now let's navigate back to the federalist-papers folder.`
     writeNarration(
       screenshotDir,
       step++,
-      `To navigate back, we can click the federalist-papers breadcrumb at the top of the screen.`
+      `To navigate back, we can click the federalist papers breadcrumb at the top of the screen.`
     );
 
     await demoClick(federalistBreadcrumb);
@@ -112,7 +112,7 @@ Now let's navigate back to the federalist-papers folder.`
       screenshotDir,
       step++,
       `At the top of the window you can see the Tools menu button.
-Let's click it to open the available tools for this folder.`
+We will click it to open the available tools for this folder.`
     );
 
     await demoClick(toolsMenuButton);
@@ -126,7 +126,7 @@ Let's click it to open the available tools for this folder.`
       step++,
       `The Tools menu is open.
 We can see the Export option here.
-Let's click it to open the Export dialog where we can configure our output settings.`
+We will click it to open the Export dialog where we can configure our output settings.`
     );
 
     await demoClick(exportOption);
@@ -140,7 +140,7 @@ Let's click it to open the Export dialog where we can configure our output setti
       step++,
       `The Export dialog has appeared.
 Here we can configure where our output will be saved, the name of the file, 
-and several options that control how MkBrowser assembles the exported document.`
+and several options that control how MK Browser assembles the exported document.`
     );
 
     // Fill in the Output Folder field
@@ -149,7 +149,7 @@ and several options that control how MkBrowser assembles the exported document.`
       screenshotDir,
       step++,
       `First, let's set the output folder.
-We'll type a path where MkBrowser will write the exported files.`
+We will type a path where MK Browser will write the exported files.`
     );
 
     await insertText(mainWindow, exportDir, true, outputFolderInput);
@@ -158,7 +158,7 @@ We'll type a path where MkBrowser will write the exported files.`
     writeNarration(
       screenshotDir,
       step++,
-      `We've entered "${exportDir}" as the output folder.
+      `We have entered a temporary folder as the output folder.
 Next, let's enter a name for the exported file.`
     );
 
@@ -178,7 +178,7 @@ Next, let's enter a name for the exported file.`
     writeNarration(
       screenshotDir,
       step++,
-      `We've entered "federalist-papers" as the filename.`
+      `We have entered "federalist papers" as the filename.`
     );
 
     // Click all four checkboxes
@@ -194,7 +194,7 @@ Next, let's enter a name for the exported file.`
       screenshotDir,
       step++,
       `There are four checkboxes controlling extra export options.
-We'll click all four of them.`
+We will click all four of them.`
     );
 
     await setCheckbox(includeSubfolders, true);
@@ -203,7 +203,7 @@ We'll click all four of them.`
       screenshotDir,
       step++,
       `The first option, Include Subfolders, is now checked.
-MkBrowser will recurse into any subfolders when assembling the document.`
+MK Browser will recurse into any subfolders when assembling the document.`
     );
 
     await setCheckbox(includeFilenames, true);
@@ -221,7 +221,7 @@ Each file's name will appear as a heading in the exported document so readers ca
       screenshotDir,
       step++,
       `Include Dividers is now checked.
-Horizontal rules will be inserted between sections to give the document a clean, well-structured look.`
+Horizontal rules will be inserted between sections to give the document a clean, well structured look.`
     );
 
     await setCheckbox(exportToPdf, true);
@@ -230,11 +230,11 @@ Horizontal rules will be inserted between sections to give the document a clean,
       screenshotDir,
       step++,
       `Export to PDF is now checked.
-After assembling the Markdown, MkBrowser will automatically convert it to a polished PDF file.`
+After assembling the Markdown, MK Browser will automatically convert it to a polished PDF file.`
     );
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'checkboxes-selected');
-    writeNarration(screenshotDir, step++, `That's everything we need`);
+    writeNarration(screenshotDir, step++, `That is everything we need.`);
 
     // Click the Export button
     const exportSubmitButton = mainWindow.getByTestId('export-submit-button');
@@ -244,7 +244,7 @@ After assembling the Markdown, MkBrowser will automatically convert it to a poli
       screenshotDir,
       step++,
       `Everything is now configured just the way we want it.
-Let's click the Export button to kick off the export process.`
+We will click the Export button to kick off the export process.`
     );
 
     await demoClick(exportSubmitButton);
@@ -257,7 +257,7 @@ Let's click the Export button to kick off the export process.`
       screenshotDir,
       step++,
       `A terminal window will appear automatically.
-MkBrowser is running Pandoc behind the scenes to convert the assembled Markdown into a PDF.
+MK Browser is running Pandoc behind the scenes to convert the assembled Markdown into a PDF.
 You can see the progress as it processes each section of the Federalist Papers.`
     );
 

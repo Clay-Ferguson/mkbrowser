@@ -31,9 +31,9 @@ test.describe('Advanced Search Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser.
+      `Welcome to this quick tour of MK Browser.
 In this demo we will explore the advanced search feature by running a boolean query across the Federalist Papers content.
-You can see the folder listing in front of us, including the federalist-papers folder.`
+You can see the folder listing in front of us, including the federalist papers folder.`
     );
 
     // Highlight and click the federalist-papers folder
@@ -42,7 +42,7 @@ You can see the folder listing in front of us, including the federalist-papers f
     writeNarration(
       screenshotDir,
       step++,
-      `Let's open the federalist-papers folder by clicking on it so that our search will be scoped to its contents.`
+      `We will open the federalist papers folder by clicking on it so that our search will be scoped to its contents.`
     );
 
     await demoClick(federalistFolder);
@@ -52,7 +52,7 @@ You can see the folder listing in front of us, including the federalist-papers f
     writeNarration(
       screenshotDir,
       step++,
-      `We are now inside the federalist-papers folder and can see all of its documents.
+      `We are now inside the federalist papers folder and can see all of its documents.
 Now let's open the search menu to create a new advanced search.`
     );
 
@@ -64,7 +64,7 @@ Now let's open the search menu to create a new advanced search.`
       screenshotDir,
       step++,
       `At the top of the window you can see the search icon.
-Let's click it to open the search menu.`
+We will click it to open the search menu.`
     );
 
     await demoClick(searchMenuButton);
@@ -77,7 +77,7 @@ Let's click it to open the search menu.`
       screenshotDir,
       step++,
       `The search menu has appeared.
-We'll click "New Search..." to open the search dialog where we can configure our query.`
+We will click "New Search" to open the search dialog where we can configure our query.`
     );
 
     await demoClick(newSearchOption);
@@ -98,7 +98,7 @@ We need to switch to Advanced mode so that we can use boolean expressions in our
     writeNarration(
       screenshotDir,
       step++,
-      `We'll choose "Advanced" from the Mode drop-down to enable the full boolean query syntax.`
+      `We will choose "Advanced" from the Mode dropdown to enable the full boolean query syntax.`
     );
 
     await modeSelect.selectOption('advanced');
@@ -129,8 +129,8 @@ We will enter a boolean "and" expression that finds only the files containing bo
     writeNarration(
       screenshotDir,
       step++,
-      `We have typed the expression dollar-sign "political" and-and dollar-sign "free people".
-The double-ampersand operator means that both terms must appear in the same file for it to be included in the results.`
+      `We have typed the expression dollar sign "political", double ampersand, dollar sign "free people".
+The double ampersand operator means that both terms must appear in the same file for it to be included in the results.`
     );
 
     // Save the search under a name: the ＋ button above the saved-searches list
@@ -168,7 +168,7 @@ Pressing Enter saves it.`
       screenshotDir,
       step++,
       `The search definition is saved, and it is now selected in the list.
-MkBrowser will remember it so we can reuse it at any time without retyping the query.`
+MK Browser will remember it so we can reuse it at any time without retyping the query.`
     );
 
     // Execute the search
@@ -179,7 +179,7 @@ MkBrowser will remember it so we can reuse it at any time without retyping the q
       screenshotDir,
       step++,
       `Everything is set up.
-Let's click the Search button to run the boolean query across the Federalist Papers.`
+We will click the Search button to run the boolean query across the Federalist Papers.`
     );
 
     await demoClick(executeSearchButton);
@@ -190,7 +190,7 @@ Let's click the Search button to run the boolean query across the Federalist Pap
       screenshotDir,
       step++,
       `The search completed successfully.
-MkBrowser has identified all files in the federalist-papers folder that contain both "political" and "free people", 
+MK Browser has identified all files in the federalist papers folder that contain both "political" and "free people", 
 and the matching results are displayed here with their surrounding context.`
     );
 
@@ -225,7 +225,7 @@ The search icon is now visible at the top of the window.`
     writeNarration(
       screenshotDir,
       step++,
-      `Now let's click the search icon again to see something useful — the saved search definition we just created.`
+      `Now let's click the search icon again to see something useful. It shows the saved search definition we just created.`
     );
 
     await demoClick(searchMenuButton);
@@ -236,8 +236,8 @@ The search icon is now visible at the top of the window.`
       screenshotDir,
       step++,
       `The search menu now shows our saved "Political Free People Search" definition.
-Any time we want to run that same boolean query again, we can simply click its name in this menu and MkBrowser will re-execute it instantly.
-That is the power of the advanced search feature in MkBrowser.`
+Any time we want to run that same boolean query again, we can simply click its name in this menu and MK Browser will run it again instantly.
+That is the power of the advanced search feature in MK Browser.`
     );
 
     // Verify the saved search is present in the menu

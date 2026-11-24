@@ -87,8 +87,8 @@ test.describe('Private: Bookmarks', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. Today we're looking at bookmarks, which let you pin any folder or file so you can jump straight back to it later, no matter where you've navigated.
-Here we have a folder and a markdown file in our workspace — let's create a couple of bookmarks.`
+      `Welcome to this quick tour of MK Browser. Today we're looking at bookmarks, which let you pin any folder or file so you can jump straight back to it later, no matter where you've navigated.
+Here we have a folder and a markdown file in our workspace. We will create a couple of bookmarks.`
     );
 
     // --- Bookmark the folder ---
@@ -106,7 +106,7 @@ Here we have a folder and a markdown file in our workspace — let's create a co
       screenshotDir,
       step++,
       `Hovering over the folder reveals a row of action icons, ending in a hamburger button that opens this menu.
-"Add Bookmark" is the item we want. Let's click it to bookmark this folder.`
+"Add Bookmark" is the item we want. We will click it to bookmark this folder.`
     );
 
     await demoClick(folderBookmarkMenuItem);
@@ -120,7 +120,7 @@ Here we have a folder and a markdown file in our workspace — let's create a co
     writeNarration(
       screenshotDir,
       step++,
-      `A dialog asks what to call the bookmark, pre-filled with the folder's name.
+      `A dialog asks what to call the bookmark, prefilled with the folder's name.
 We can accept the default name or type our own. For the folder, we'll keep the default.`
     );
 
@@ -137,7 +137,7 @@ We can accept the default name or type our own. For the folder, we'll keep the d
     writeNarration(
       screenshotDir,
       step++,
-      `The folder is now bookmarked — the menu item has flipped to "Remove Bookmark".
+      `The folder is now bookmarked. The menu item has flipped to "Remove Bookmark".
 That label is how you tell, at a glance, that an item is already bookmarked.`
     );
 
@@ -154,7 +154,7 @@ That label is how you tell, at a glance, that an item is already bookmarked.`
     writeNarration(
       screenshotDir,
       step++,
-      `Now let's bookmark the markdown file the same way, from "Add Bookmark" in its own action-bar menu.`
+      `Now let's bookmark the markdown file the same way, from "Add Bookmark" in its own action bar menu.`
     );
 
     await demoClick(fileBookmarkMenuItem);
@@ -168,7 +168,7 @@ That label is how you tell, at a glance, that an item is already bookmarked.`
       screenshotDir,
       step++,
       `This time we'll give the bookmark a custom display name instead of the raw filename.
-We've typed "${fileBookmarkName}" — a bookmark's name is just a friendly label and doesn't rename the file itself.`
+We have typed "${fileBookmarkName}". A bookmark's name is just a friendly label and doesn't rename the file itself.`
     );
 
     await demoClick(mainWindow.getByTestId('bookmark-dialog-save-button'));
@@ -196,8 +196,8 @@ We've typed "${fileBookmarkName}" — a bookmark's name is just a friendly label
     writeNarration(
       screenshotDir,
       step++,
-      `We've navigated into the folder, and we can see the note that lives inside it.
-Now we're somewhere other than where we started — the perfect moment to use a bookmark to jump elsewhere.`
+      `We have navigated into the folder, and we can see the note that lives inside it.
+Now we're somewhere other than where we started. This is the perfect moment to use a bookmark to jump elsewhere.`
     );
 
     // --- Open the bookmarks menu from the Index Tree panel ---
@@ -214,7 +214,7 @@ Now we're somewhere other than where we started — the perfect moment to use a 
       screenshotDir,
       step++,
       `The bookmarks menu, opened from the top of the file tree panel, lists both of our bookmarks.
-They're sorted alphabetically by their display name, so you can always find them in a predictable order.`
+They are sorted alphabetically by their display name, so you can always find them in a predictable order.`
     );
 
     // --- Navigate via the file bookmark (jumps back out to the root) ---
@@ -222,7 +222,7 @@ They're sorted alphabetically by their display name, so you can always find them
     writeNarration(
       screenshotDir,
       step++,
-      `Let's click the "${fileBookmarkName}" bookmark to jump straight to that file, even though we're currently inside a different folder.`
+      `We will click the "${fileBookmarkName}" bookmark to jump straight to that file, even though we're currently inside a different folder.`
     );
 
     await demoClick(fileBookmarkItem);
@@ -266,7 +266,7 @@ Bookmarks are a fast way to teleport around your workspace. Right click the file
       screenshotDir,
       step++,
       `Bookmarks can be renamed at any time. Hovering a row reveals a pencil and a trash icon.
-Let's click the pencil on the folder bookmark to rename it.`
+We will click the pencil on the folder bookmark to rename it.`
     );
 
     await demoClick(folderEditButton, { force: true });
@@ -280,7 +280,7 @@ Let's click the pencil on the folder bookmark to rename it.`
     writeNarration(
       screenshotDir,
       step++,
-      `The edit dialog opens with the current name. We'll change it to "${renamedFolderBookmark}" and save.`
+      `The edit dialog opens with the current name. We will change it to "${renamedFolderBookmark}" and save.`
     );
 
     await demoClick(mainWindow.getByTestId('bookmark-dialog-save-button'));
@@ -294,7 +294,7 @@ Let's click the pencil on the folder bookmark to rename it.`
       screenshotDir,
       step++,
       `The folder bookmark now shows as "${renamedFolderBookmark}" in the menu.
-The folder on disk is untouched — only the bookmark's label changed.`
+The folder on disk is untouched. Only the bookmark's label changed.`
     );
 
     // --- Delete the renamed bookmark from the menu ---
@@ -320,7 +320,7 @@ The folder on disk is untouched — only the bookmark's label changed.`
       screenshotDir,
       step++,
       `The bookmark is gone from the menu, while our file bookmark is still there.
-Deleting a bookmark never touches the underlying file or folder — it only removes the shortcut.`
+Deleting a bookmark never touches the underlying file or folder. It only removes the shortcut.`
     );
 
     // Close the menu before interacting with the entry action bar.
@@ -335,8 +335,8 @@ Deleting a bookmark never touches the underlying file or folder — it only remo
     writeNarration(
       screenshotDir,
       step++,
-      `Finally, we can remove a bookmark right from the item's own action-bar menu.
-Clicking "Remove Bookmark" removes it immediately — no dialog, no confirmation.`
+      `Finally, we can remove a bookmark right from the item's own action bar menu.
+Clicking "Remove Bookmark" removes it immediately. There is no dialog and no confirmation.`
     );
 
     await demoClick(fileBookmarkMenuItem);
@@ -361,7 +361,7 @@ Clicking "Remove Bookmark" removes it immediately — no dialog, no confirmation
       screenshotDir,
       step++,
       `The entry's menu item reads "Add Bookmark" again, and the bookmarks menu shows "No bookmarks".
-We've now added, navigated, renamed, and deleted bookmarks — the full lifecycle.`
+We have now added, navigated, renamed, and deleted bookmarks, covering the full lifecycle.`
     );
 
     // Close the menu.

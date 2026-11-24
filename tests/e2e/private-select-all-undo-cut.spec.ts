@@ -88,7 +88,7 @@ test.describe('Private: Select All, Unselect All, and Undo Cut', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. Today we'll explore the selection tools in the Edit menu — Select All and Unselect All — and the Undo Cut button that cancels a pending move.
+      `Welcome to this quick tour of MK Browser. Today we'll explore the Select All and Unselect All tools in the Edit menu, and the Undo Cut button that cancels a pending move.
 Here is our folder, holding three markdown files and an empty destination folder called "dest".`
     );
 
@@ -124,8 +124,8 @@ It only appears once we've cut something and might want to change our minds.`
     writeNarration(
       screenshotDir,
       step++,
-      `Select All checks every item in the current folder at once — files and folders alike.
-Let's click Select All and see what happens.`
+      `Select All checks every item in the current folder at once, files and folders alike.
+We will click Select All and see what happens.`
     );
 
     await demoClick(selectAllItem);
@@ -148,7 +148,7 @@ Let's click Select All and see what happens.`
     writeNarration(
       screenshotDir,
       step++,
-      `Every checkbox is now ticked — all three files plus the "dest" folder.
+      `Every checkbox is now ticked, covering all three files plus the "dest" folder.
 Because items are selected, the Cut and Delete buttons have appeared in the header, ready to act on the whole selection.`
     );
 
@@ -168,7 +168,7 @@ Because items are selected, the Cut and Delete buttons have appeared in the head
     writeNarration(
       screenshotDir,
       step++,
-      `Unselect All is the mirror image of Select All — it clears every checkbox in one click.`
+      `Unselect All is the mirror image of Select All. It clears every checkbox in one click.`
     );
 
     await demoClick(unselectAllItem);
@@ -223,7 +223,7 @@ Because items are selected, the Cut and Delete buttons have appeared in the head
       screenshotDir,
       step++,
       `The two cut files have vanished from the list, while the third file stays put.
-The "dest" folder now shows a paste button — this is the point where we would normally choose a destination. But instead, we're going to change our minds.`
+The "dest" folder now shows a paste button. This is the point where we would normally choose a destination. But instead, we're going to change our minds.`
     );
 
     // --- Step: Undo Cut --------------------------------------------------
@@ -271,7 +271,7 @@ The "dest" folder now shows a paste button — this is the point where we would 
     writeNarration(
       screenshotDir,
       step++,
-      `Both files are back in the list and the paste buttons are gone — the pending move has been cancelled.
+      `Both files are back in the list and the paste buttons are gone. The pending move has been cancelled.
 Crucially, nothing ever moved on disk: all three files are still right here, and the "dest" folder is still completely empty. Undo Cut is a true safety net.`
     );
 
@@ -283,7 +283,7 @@ Crucially, nothing ever moved on disk: all three files are still right here, and
     writeNarration(
       screenshotDir,
       step++,
-      `With nothing cut anymore, the Undo Cut button has disappeared from the header once again — exactly where we started.`
+      `With nothing cut anymore, the Undo Cut button has disappeared from the header once again, exactly where we started.`
     );
 
     // Cleanup: remove the demo folder so nothing this test created lingers.

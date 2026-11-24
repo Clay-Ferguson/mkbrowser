@@ -43,10 +43,10 @@ test.describe('AI Rewrite Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome back to MkBrowser.
+      `Welcome back to MK Browser.
       In this demo we're going to look at how you can define a personality for your AI agent, which we call a Persona,
       and then have that agent rewrite text for you using the "AI Rewrite" feature.
-      Let's start by opening the System Menu to get to the AI Settings view.`
+      We will start by opening the System Menu to get to the AI Settings view.`
     );
 
     // ── 2. Open the System popup menu ─────────────────────────────────
@@ -57,7 +57,7 @@ test.describe('AI Rewrite Persona Demo', () => {
       screenshotDir,
       step++,
       `Here in the top right corner is the System Menu button.
-      Let's click it to open the System popup menu.`
+      We will click it to open the System popup menu.`
     );
 
     await demoClick(systemMenuButton);
@@ -70,7 +70,7 @@ test.describe('AI Rewrite Persona Demo', () => {
       screenshotDir,
       step++,
       `The System menu is open.
-      Let's click the "AI Settings" option to open the AI Settings view.`
+      We will click the "AI Settings" option to open the AI Settings view.`
     );
 
     await demoClick(aiSettingsItem);
@@ -86,9 +86,9 @@ test.describe('AI Rewrite Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We're now in the AI Settings view.
+      `We are now in the AI Settings view.
       Down here in the AI Personas section is where we can define our personas and select the active one.
-      Let's open it to see the personas we have defined.`
+      We will open it to see the personas we have defined.`
     );
 
     // ── 5. Open the dropdown and select the "Hemingway" persona ───────
@@ -101,7 +101,7 @@ test.describe('AI Rewrite Persona Demo', () => {
       screenshotDir,
       step++,
       `The dropdown is open, showing the personas we've defined.
-      Let's select the "Hemingway" persona.`
+      We will select the "Hemingway" persona.`
     );
 
     await demoClick(hemingwayOption);
@@ -152,7 +152,7 @@ test.describe('AI Rewrite Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've also enabled "Rewrite using Full Doc Context", which is now checked too.
+      `We have also enabled "Rewrite using Full Doc Context", which is now checked too.
       This lets the agent see the entire document when it rewrites, instead of just a selection.`
     );
 
@@ -181,9 +181,9 @@ test.describe('AI Rewrite Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We're back in the Browse view.
-      Let's create a new file and then let our agent help us write some content into it.
-      This is what we mean by co-authoring a document.`
+      `We are back in the Browse view.
+      We will create a new file and then let our agent help us write some content into it.
+      This is what we mean by writing a document together with AI.`
     );
 
     // ── 8. Create a new file named "scary-novel" ──────────────────────
@@ -193,7 +193,7 @@ test.describe('AI Rewrite Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click the "Create File" button at the top of the window to add a new file to our folder.`
+      `We will click the "Create File" button at the top of the window to add a new file to our folder.`
     );
 
     await demoClick(createButton);
@@ -206,8 +206,8 @@ test.describe('AI Rewrite Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've named the file "scary-novel".
-      MkBrowser will automatically add the ".md" extension for us.`
+      `We have named the file "scary novel".
+      MK Browser will automatically add the "dot MD" extension for us.`
     );
 
     const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
@@ -229,7 +229,7 @@ test.describe('AI Rewrite Persona Demo', () => {
       screenshotDir,
       step++,
       `The file is open in the editor.
-      Let's type out a rough draft of the opening to a scary story.`
+      We will type out a rough draft of the opening to a scary story.`
     );
 
     const draft = `Then he heard the sound again outside the cottage door. It was a creepy sound. Not a scraping and not a thump, but a little of both. The hairs stood up on the back of his neck and his arms, and suddenly he was sure there was something out there.
@@ -251,7 +251,7 @@ Slowly he got up from the chair reaching for his...`;
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed our rough draft.
+      `We have typed our rough draft.
       This is the text we want the AI to rewrite for us.`
     );
 
@@ -282,7 +282,7 @@ With a deliberate, agonizing slowness, he rose from the chair. His movements wer
       step++,
       `Because we enabled rewrite mode, the editor now has an "AI Rewrite" button.
       Since nothing is selected, clicking it will rewrite the entire file in the style of Hemingway.
-      Let's click it now.`
+      We will click it now.`
     );
 
     await demoClick(aiRewriteButton);
@@ -310,7 +310,7 @@ With a deliberate, agonizing slowness, he rose from the chair. His movements wer
       screenshotDir,
       step++,
       `The agent has rewritten our draft, and we're now looking at a diff review.
-      Our original lines are shown struck through, with the new Hemingway-style version in their place.
+      Our original lines are shown struck through, with the new Hemingway style version in their place.
       From here we can accept or reject the changes before anything is saved.`
     );
 
@@ -328,7 +328,7 @@ With a deliberate, agonizing slowness, he rose from the chair. His movements wer
     writeNarration(
       screenshotDir,
       step++,
-      `We're happy with the rewrite, so let's click "Accept All" to apply every change and return to the editor.`
+      `We are happy with the rewrite, so let's click "Accept All" to apply every change and return to the editor.`
     );
 
     await demoClick(acceptAllButton);
@@ -364,7 +364,7 @@ With a deliberate, agonizing slowness, he rose from the chair. His movements wer
     writeNarration(
       screenshotDir,
       step++,
-      `We're back in the editor, and our document now holds the rewritten, Hemingway-style passage.
+      `We are back in the editor, and our document now holds the rewritten, Hemingway style passage.
       All that's left is to save it.`
     );
 
@@ -374,7 +374,7 @@ With a deliberate, agonizing slowness, he rose from the chair. His movements wer
     writeNarration(
       screenshotDir,
       step++,
-      `Let's click "Save" to write the rewritten document to disk.`
+      `We will click "Save" to write the rewritten document to disk.`
     );
 
     await demoClick(saveButton);
@@ -394,7 +394,7 @@ With a deliberate, agonizing slowness, he rose from the chair. His movements wer
       screenshotDir,
       step++,
       `The file is saved, and our rewritten passage is now rendered right here in the document.
-      Our agent has co-authored this draft with us, rewriting it in the style of Hemingway.`
+      Our agent has helped us write this draft, rewriting it in the style of Hemingway.`
     );
 
     logScreenshotSummary(screenshotDir);

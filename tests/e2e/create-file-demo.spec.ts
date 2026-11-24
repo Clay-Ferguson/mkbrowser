@@ -32,10 +32,10 @@ test.describe('Create File Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser.
+      `Welcome to this quick tour of MK Browser.
 Here we can see our files displayed in a browsable list.
 Markdown files are rendered inline, and we can create, edit, and organize files right from this interface.
-Let's create a new file to see how it works.`
+We will create a new file to see how it works.`
     );
 
     // Demonstrate clicking the create file button
@@ -46,7 +46,7 @@ Let's create a new file to see how it works.`
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click the Create File button at the top of the window to add a new file to our folder.`
+      `We will click the Create File button at the top of the window to add a new file to our folder.`
     );
 
     await demoClick(createButton);
@@ -57,7 +57,7 @@ Let's create a new file to see how it works.`
       step++,
       `The Create File dialog has appeared.
 We can enter a custom filename here.
-Let's type a descriptive name for our new file.`
+We will type a descriptive name for our new file.`
     );
 
     // Demonstrate typing a filename
@@ -68,8 +68,8 @@ Let's type a descriptive name for our new file.`
     writeNarration(
       screenshotDir,
       step++,
-      `We've entered "my-journal-entry" as the filename.
-Notice we didn't include a file extension — MkBrowser will automatically add ".md" to make it a Markdown file.`
+      `We have entered "my journal entry" as the filename.
+Notice we didn't include a file extension. MK Browser will automatically add "dot MD" to make it a Markdown file.`
     );
 
     // Demonstrate clicking the Create button in dialog
@@ -88,7 +88,7 @@ Notice we didn't include a file extension — MkBrowser will automatically add "
       screenshotDir,
       step++,
       `Our new file has been created and is now open in edit mode.
-Notice the text editor that appeared — this is a full-featured code editor where we can write Markdown content.`
+Notice the text editor that appeared. This is a full featured code editor where we can write Markdown content.`
     );
 
     // Demonstrate typing with visual highlight on the focused input area
@@ -100,8 +100,8 @@ Notice the text editor that appeared — this is a full-featured code editor whe
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed some content into the editor.
-MkBrowser supports full Markdown syntax, so you can add headings, lists, links, and more.
+      `We have typed some content into the editor.
+MK Browser supports full Markdown syntax, so you can add headings, lists, links, and more.
 Now let's save our work.`
     );
 
@@ -111,7 +111,7 @@ Now let's save our work.`
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click the Save button to write our changes to disk.`
+      `We will click the Save button to write our changes to disk.`
     );
 
     await demoClick(saveButton);
@@ -122,7 +122,7 @@ Now let's save our work.`
       step++,
       `The file has been saved and the editor has closed.
 Our content is now rendered as formatted Markdown right in the file list.
-That's the basic workflow to create, edit, and save files, all from within MkBrowser.`
+That is the basic workflow to create, edit, and save files, all from within MK Browser.`
     );
 
     // Verify save completed

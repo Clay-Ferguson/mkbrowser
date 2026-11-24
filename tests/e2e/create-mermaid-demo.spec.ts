@@ -31,10 +31,10 @@ test.describe('Create Mermaid Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome back to MkBrowser.
+      `Welcome back to MK Browser.
 In this demo, we'll explore another powerful feature: automatic Mermaid diagram rendering.
-Mermaid lets you create professional diagrams using simple text-based syntax.
-Let's create a software architecture diagram to see this in action.`
+Mermaid lets you create professional diagrams using simple text based syntax.
+We will create a software architecture diagram to see this in action.`
     );
 
     // Click the create file button
@@ -43,7 +43,7 @@ Let's create a software architecture diagram to see this in action.`
     writeNarration(
       screenshotDir,
       step++,
-      `We'll start by creating a new file for our architecture diagram.`
+      `We will start by creating a new file for our architecture diagram.`
     );
 
     await demoClick(createButton);
@@ -53,7 +53,7 @@ Let's create a software architecture diagram to see this in action.`
       screenshotDir,
       step++,
       `The Create File dialog opens.
-Let's give our file a descriptive name that reflects its content.`
+We will give our file a descriptive name that reflects its content.`
     );
 
     // Type the filename
@@ -64,7 +64,7 @@ Let's give our file a descriptive name that reflects its content.`
     writeNarration(
       screenshotDir,
       step++,
-      `We've named it "my-architecture-diagram".
+      `We have named it "my architecture diagram".
 Now let's create the file and add our diagram content.`
     );
 
@@ -81,7 +81,7 @@ Now let's create the file and add our diagram content.`
       step++,
       `Perfect, our file has been created and the editor is ready.
 Now let's add a Mermaid diagram.
-We'll create a diagram showing a modern web application architecture with multiple interconnected components.`
+We will create a diagram showing a modern web application architecture with multiple interconnected components.`
     );
 
     // Type the Mermaid diagram content with explanation
@@ -122,10 +122,10 @@ graph TB
     writeNarration(
       screenshotDir,
       step++,
-      `We've entered our diagram description and the Mermaid code.
-Notice the code is surrounded by triple backticks with "mermaid" as the language identifier — this tells MkBrowser to render it as a diagram.
+      `We have entered our diagram description and the Mermaid code.
+Notice the code is surrounded by triple backticks with "mermaid" as the language identifier. This tells MK Browser to render it as a diagram.
 The code itself uses simple text syntax: nodes in brackets, arrows for connections, and optional styling.
-It's much easier than drawing diagrams manually!
+It is much easier than drawing diagrams manually!
 Now watch what happens when we save.`
     );
 
@@ -135,7 +135,7 @@ Now watch what happens when we save.`
     writeNarration(
       screenshotDir,
       step++,
-      `Let's save the file and see the Mermaid magic happen.`
+      `We will save the file and see the Mermaid magic happen.`
     );
 
     await demoClick(saveButton);
@@ -148,11 +148,10 @@ Now watch what happens when we save.`
       screenshotDir,
       step++,
       `Just look at how incredible that is! The simple text code has been transformed into a beautiful, professional diagram.
-You can see all the components of our web application — the browser, frontend React app, backend API, database, cache, message queue, 
-and background worker — all connected with labeled arrows showing how data flows through the system.
-The color-coded components make it even easier to understand.
-This makes MkBrowser perfect for documenting system architectures, planning new features, or explaining technical designs to your team.
-No special diagram tools needed — just write your Mermaid code and MkBrowser handles the rest.`
+You can see all the components of our web application. The browser, frontend React app, backend API, database, cache, message queue, and background worker are all connected with labeled arrows showing how data flows through the system.
+The color coded components make it even easier to understand.
+This makes MK Browser perfect for documenting system architectures, planning new features, or explaining technical designs to your team.
+No special diagram tools needed. Just write your Mermaid code and MK Browser handles the rest.`
     );
 
     // Verify save completed

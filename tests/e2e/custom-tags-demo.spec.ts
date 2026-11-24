@@ -39,10 +39,10 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser.
+      `Welcome to this quick tour of MK Browser.
       In this demo we'll look at how you can define your own custom hashtags and then attach them to your files.
-      Hashtags give you a simple, consistent way to label notes — for things like priority, type, or category — so they're easy to find later.
-      Let's start by opening the System Menu so we can take a look at where our hashtags are defined.`
+      Hashtags give you a simple, consistent way to label notes, for things like priority, type, or category, so they're easy to find later.
+      We will start by opening the System Menu so we can take a look at where our hashtags are defined.`
     );
 
     // ── 2. Open the System popup menu ─────────────────────────────────
@@ -53,7 +53,7 @@ test.describe('Custom Hashtags Demo', () => {
       screenshotDir,
       step++,
       `Here in the top right corner is the System Menu button.
-      Let's click it to open the System popup menu.`
+      We will click it to open the System popup menu.`
     );
 
     await demoClick(systemMenuButton);
@@ -67,7 +67,7 @@ test.describe('Custom Hashtags Demo', () => {
       step++,
       `The System menu is open.
       This is where we manage the full library of hashtags that are available across all of our files.
-      Let's click the "Tags" option to open the hashtag editor.`
+      We will click the "Tags" option to open the hashtag editor.`
     );
 
     await demoClick(editHashtagsItem);
@@ -82,10 +82,10 @@ test.describe('Custom Hashtags Demo', () => {
       screenshotDir,
       step++,
       `Here is the hashtag editor, which opens in its own "Tags" tab.
-      On the left we have our categories — things like priority and type — and on the right are the individual tags that belong to the selected category.
+      On the left we have our categories, things like priority and type, and on the right are the individual tags that belong to the selected category.
       From here you can rename categories, add new ones, and create or edit tags along with a short description for each.
-      We won't make any changes right now — we just wanted to show you where your hashtags live.
-      Let's go put some of these tags to use.`
+      We won't make any changes right now. We just wanted to show you where your hashtags live.
+      Now we will put some of these tags to use.`
     );
 
     // ── 5. Switch back to the Browse view ─────────────────────────────
@@ -106,8 +106,8 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We're back in the Browse view.
-      Let's create a brand new file and then tag it using the hashtags we just looked at.`
+      `We are back in the Browse view.
+      We will create a brand new file and then tag it using the hashtags we just looked at.`
     );
 
     // ── 6. Create a new file named "my-weekend-tasks" ─────────────────
@@ -117,7 +117,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click the "Create File" button at the top of the window to add a new file to our folder.`
+      `We will click the "Create File" button at the top of the window to add a new file to our folder.`
     );
 
     await demoClick(createButton);
@@ -130,8 +130,8 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've named the file "my-weekend-tasks".
-      MkBrowser will automatically add the ".md" extension for us.`
+      `We have named the file "my weekend tasks".
+      MK Browser will automatically add the "dot MD" extension for us.`
     );
 
     const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
@@ -154,7 +154,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed a quick note into the editor.
+      `We have typed a quick note into the editor.
       Now let's tag this file so it's easy to find later.`
     );
 
@@ -175,7 +175,7 @@ test.describe('Custom Hashtags Demo', () => {
       step++,
       `Up here in the editor toolbar is a tag button.
       Clicking it reveals the tag picker, which lets us add or remove hashtags without typing them by hand.
-      Let's click it now.`
+      We will click it now.`
     );
 
     await demoClick(tagToggle);
@@ -187,7 +187,7 @@ test.describe('Custom Hashtags Demo', () => {
       step++,
       `The tag picker is now showing, just above the editor.
       Our hashtags are grouped by category, exactly the way we saw them in the Tags tab.
-      Let's check a couple of them to attach them to this file.`
+      We will check a couple of them to attach them to this file.`
     );
 
     // ── 9. Check the "p1" priority tag ──────────────────────────────
@@ -197,7 +197,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `First, let's mark this as high priority by checking the "p1" tag in the priority category.`
+      `First, let's mark this as high priority by checking the "P one" tag in the priority category.`
     );
 
     await demoClick(p1Tag);
@@ -221,7 +221,7 @@ test.describe('Custom Hashtags Demo', () => {
       screenshotDir,
       step++,
       `Both tags are now checked, and they're highlighted in blue to show they've been applied.
-      Behind the scenes, MkBrowser has added these hashtags to the file's front matter for us.
+      Behind the scenes, MK Browser has added these hashtags to the file's front matter for us.
       Now let's save the file.`
     );
 
@@ -232,7 +232,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Let's click "Save" to write our changes to disk.`
+      `We will click "Save" to write our changes to disk.`
     );
 
     await demoClick(saveButton);
@@ -253,7 +253,7 @@ test.describe('Custom Hashtags Demo', () => {
       screenshotDir,
       step++,
       `The file is saved, and we can now see our two hashtags displayed as pills right above the file's content.
-      That's all there is to it — define your hashtags once, then apply them to any file with a couple of clicks to keep your notes organized and easy to search.`
+      That is all there is to it. Define your hashtags once, then apply them to any file with a couple of clicks to keep your notes organized and easy to search.`
     );
 
     logScreenshotSummary(screenshotDir);

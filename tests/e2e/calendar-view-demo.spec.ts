@@ -59,7 +59,7 @@ test.describe('Calendar View Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser.
+      `Welcome to this quick tour of MK Browser.
 In this demo we are going to create a repeating, weekly calendar item.
 We are currently inside a folder named "calendar", which we created to hold our calendar entries.
 Right now the folder is empty, so let's open the Calendar View to get started.`
@@ -73,7 +73,7 @@ Right now the folder is empty, so let's open the Calendar View to get started.`
       screenshotDir,
       step++,
       `At the top of the window you can see the "Show Calendar" button.
-Let's click it to switch this folder into the Calendar View.`
+We will click it to switch this folder into the Calendar View.`
     );
 
     await demoClick(calendarButton);
@@ -128,7 +128,7 @@ From here we'll be able to view our calendar by month, by week, or by work week,
       screenshotDir,
       step++,
       `Creating a calendar entry is as easy as clicking on the day you want it to fall on.
-Let's click right in the middle of the first day of the month to add a new item there.`
+We will click right in the middle of the first day of the month to add a new item there.`
     );
 
     // Locate the "01" date label for the first of the month. The date number sits in
@@ -155,7 +155,7 @@ Let's click right in the middle of the first day of the month to add a new item 
       step++,
       `The "New Calendar Item" dialog has appeared.
 Here we can enter a file name for our new calendar item.
-Let's name it "bi-weekly-reports.md".`
+We will name it "biweekly reports dot MD".`
     );
 
     // Enter the file name for the new calendar item.
@@ -167,7 +167,7 @@ Let's name it "bi-weekly-reports.md".`
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed in the file name "bi-weekly-reports.md".
+      `We have typed in the file name "biweekly reports dot MD".
 Now we'll click the "Create File" button to create this calendar item.`
     );
 
@@ -188,7 +188,7 @@ Now we'll click the "Create File" button to create this calendar item.`
     writeNarration(
       screenshotDir,
       step++,
-      `The file has been created, and MkBrowser has taken us to the Browse Tab where the new file is already open and ready to edit.
+      `The file has been created, and MK Browser has taken us to the Browse Tab where the new file is already open and ready to edit.
 At the top of the file you can see its properties, including a property named "due" that holds the date we picked on the calendar.`
     );
 
@@ -207,7 +207,7 @@ At the top of the file you can see its properties, including a property named "d
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed the title of our entry, "Bi-Weekly Reports Due", below the properties.
+      `We have typed the title of our entry, "Biweekly Reports Due", below the properties.
 Now let's save our work.`
     );
 
@@ -218,7 +218,7 @@ Now let's save our work.`
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click the Save button to write our changes to disk.`
+      `We will click the Save button to write our changes to disk.`
     );
 
     await demoClick(saveButton);
@@ -256,7 +256,7 @@ Notice that the date is displayed right above the file content, which lets us re
     writeNarration(
       screenshotDir,
       step++,
-      `We're back in the Calendar View, and you can now see our "bi-weekly-reports" item sitting right there on the calendar.
+      `We are back in the Calendar View, and you can now see our "biweekly reports" item sitting right there on the calendar.
 We can click on the calendar item to go back and edit it again.`
     );
 
@@ -272,8 +272,8 @@ We can click on the calendar item to go back and edit it again.`
     writeNarration(
       screenshotDir,
       step++,
-      `Clicking the item brought us back to the Browse Tab, where our calendar file is shown again — though it isn't in edit mode yet.
-Let's click on the file content to start editing it.`
+      `Clicking the item brought us back to the Browse Tab, where our calendar file is shown again. However, it is not in edit mode yet.
+We will click on the file content to start editing it.`
     );
 
     // Click the file body text to enter edit mode.
@@ -288,7 +288,7 @@ Let's click on the file content to start editing it.`
     writeNarration(
       screenshotDir,
       step++,
-      `We're now editing the file again.
+      `We are now editing the file again.
 Next, let's use the calendar dialog to modify the time options for this calendar item.`
     );
 
@@ -317,8 +317,8 @@ Here we'll be able to adjust the timing options for this calendar item.`
     writeNarration(
       screenshotDir,
       step++,
-      `Let's set up this calendar item to repeat bi-weekly.
-We'll start by changing the "Repeat" option, which is currently set to "No repeat", over to "Weekly".`
+      `Now we will set up this calendar item to repeat biweekly.
+We will start by changing the "Repeat" option, which is currently set to "No repeat", over to "Weekly".`
     );
 
     // Change the "Repeat" frequency combobox from "No repeat" to "Weekly".
@@ -331,8 +331,8 @@ We'll start by changing the "Repeat" option, which is currently set to "No repea
     writeNarration(
       screenshotDir,
       step++,
-      `We've set the item to repeat "Weekly".
-But we want it to repeat every two weeks instead, so let's change the "Every" value from 1 to 2 to make it bi-weekly.`
+      `We have set the item to repeat "Weekly".
+But we want it to repeat every two weeks instead, so let's change the "Every" value from one to two to make it biweekly.`
     );
 
     // Change the "Every" interval to 2 to make the repeat bi-weekly.
@@ -345,7 +345,7 @@ But we want it to repeat every two weeks instead, so let's change the "Every" va
       screenshotDir,
       step++,
       `The item is now set to repeat every two weeks.
-Let's save these settings to make this a bi-weekly calendar item.`
+We will save these settings to make this a biweekly calendar item.`
     );
 
     // Save the Calendar Info dialog.
@@ -359,8 +359,8 @@ Let's save these settings to make this a bi-weekly calendar item.`
     writeNarration(
       screenshotDir,
       step++,
-      `We're back at the markdown editor again.
-Let's click "Save" to save our changes and close the editor.`
+      `We are back at the markdown editor again.
+We will click "Save" to save our changes and close the editor.`
     );
 
     // Save the markdown editor (close CodeMirror).
@@ -376,7 +376,7 @@ Let's click "Save" to save our changes and close the editor.`
     writeNarration(
       screenshotDir,
       step++,
-      `Now let's switch back over to the Calendar View one more time to verify that our item is now repeating bi-weekly.`
+      `Now let's switch back over to the Calendar View one more time to verify that our item is now repeating biweekly.`
     );
 
     // Switch back to the Calendar View by clicking the "Calendar" tab again.
@@ -395,8 +395,8 @@ Let's click "Save" to save our changes and close the editor.`
     writeNarration(
       screenshotDir,
       step++,
-      `And there it is — our "bi-weekly-reports" item now appears multiple times across the calendar, repeating every two weeks just as we set it up.
-That's how easy it is to create and schedule a repeating calendar item in MkBrowser.`
+      `And there it is. Our "biweekly reports" item now appears multiple times across the calendar, repeating every two weeks just as we set it up.
+That is how easy it is to create and schedule a repeating calendar item in MK Browser.`
     );
 
     // End of demo.

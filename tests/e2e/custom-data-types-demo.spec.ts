@@ -43,7 +43,7 @@ A date is shown on the card along with how long ago, or how far away, it is.`,
     name: 'cell_phone',
     description: 'Mobile number',
     type: 'phone',
-    narration: `Then "cell_phone", with the type set to Phone, so the number becomes a link that dials it.`,
+    narration: `Then "cell phone", with the type set to Phone, so the number becomes a link that dials it.`,
   },
   {
     name: 'email',
@@ -126,9 +126,9 @@ test.describe('Custom Data Types Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this MkBrowser feature demo.
+      `Welcome to this MK Browser feature demo.
 In this demo we'll look at custom data types, which let you turn a Markdown note into a structured record, like a contact, a book, or a piece of equipment.
-We'll define our own "contact" type, and then use it to create a contact card inside a note.`
+We will define our own "contact" type, and then use it to create a contact card inside a note.`
     );
 
     // ── 2. Open the System popup menu ─────────────────────────────────
@@ -150,7 +150,7 @@ We'll define our own "contact" type, and then use it to create a contact card in
     writeNarration(
       screenshotDir,
       step++,
-      `Let's click "Types" to open the Types Editor.`
+      `We will click "Types" to open the Types Editor.`
     );
 
     await demoClick(typesMenuItem);
@@ -174,7 +174,7 @@ Nothing is built in, so the list starts out empty.`
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click the plus button next to the "Object Types" heading to add a new type.`
+      `We will click the plus button next to the "Object Types" heading to add a new type.`
     );
 
     await demoClick(addTypeButton);
@@ -187,7 +187,7 @@ Nothing is built in, so the list starts out empty.`
     writeNarration(
       screenshotDir,
       step++,
-      `We've named the type "contact".
+      `We have named the type "contact".
 Type names can use letters, digits, and underscores.
 Pressing Enter saves the new type.`
     );
@@ -205,7 +205,7 @@ Pressing Enter saves the new type.`
     writeNarration(
       screenshotDir,
       step++,
-      `We'll give the type a description of "Contact".
+      `We will give the type a description of "Contact".
 This description is the name we'll see for this type in the editor's Insert Object menu.`
     );
 
@@ -249,7 +249,7 @@ Each click of this plus button adds a property, with a name, a short description
       screenshotDir,
       step++,
       `Notice the "Unsaved changes" note at the bottom.
-Let's click "Save" to store our new type.`
+We will click "Save" to store our new type.`
     );
 
     await demoClick(saveTypesButton);
@@ -277,7 +277,7 @@ Now let's put it to use in a note.`
     writeNarration(
       screenshotDir,
       step++,
-      `Back in the Browse view, we'll quickly create a new Markdown file named "my-contact" to hold our contact.`
+      `Back in the Browse view, we'll quickly create a new Markdown file named "my contact" to hold our contact.`
     );
 
     await demoClick(createButton);
@@ -298,7 +298,7 @@ Now let's put it to use in a note.`
       screenshotDir,
       step++,
       `The new file is open in the editor.
-Rather than typing the contact's properties by hand, we'll let MkBrowser insert them for us.`
+Rather than typing the contact's properties by hand, we'll let MK Browser insert them for us.`
     );
 
     const insertObjectButton = mainWindow.getByTestId('insert-object-menu-button');
@@ -308,7 +308,7 @@ Rather than typing the contact's properties by hand, we'll let MkBrowser insert 
       screenshotDir,
       step++,
       `The editor's toolbar has an "Insert Object" button, the cube icon just left of the menu button.
-Let's click it to see our types.`
+We will click it to see our types.`
     );
 
     await demoClick(insertObjectButton);
@@ -320,7 +320,7 @@ Let's click it to see our types.`
       screenshotDir,
       step++,
       `The menu now lists our types by their descriptions.
-We'll choose "Contact" to insert a new contact.`
+We will choose "Contact" to insert a new contact.`
     );
 
     await demoClick(insertContactItem);
@@ -331,8 +331,8 @@ We'll choose "Contact" to insert a new contact.`
     writeNarration(
       screenshotDir,
       step++,
-      `MkBrowser has added the contact to the file's front matter, the [YAML](/jˈæməl/) block at the very top of the file.
-There's a "type" line naming the type, followed by each of its properties in the order we defined them.
+      `MK Browser has added the contact to the file's front matter, the [YAML](/jˈæməl/) block at the very top of the file.
+There is a "type" line naming the type, followed by each of its properties in the order we defined them.
 The birthday starts out as today's date, and the other values are empty, ready for us to fill in.`
     );
 
@@ -356,7 +356,7 @@ The birthday starts out as today's date, and the other values are empty, ready f
     writeNarration(
       screenshotDir,
       step++,
-      `Below the front matter, the rest of the note is free-form, so we've added a short note about this contact.`
+      `Below the front matter, the rest of the note is free form, so we've added a short note about this contact.`
     );
 
     // ── 14. Save the file ─────────────────────────────────────────────
@@ -366,7 +366,7 @@ The birthday starts out as today's date, and the other values are empty, ready f
     writeNarration(
       screenshotDir,
       step++,
-      `Let's click "Save" to write the file to disk.`
+      `We will click "Save" to write the file to disk.`
     );
 
     await demoClick(saveButton);
@@ -400,7 +400,7 @@ Clicking anywhere else on the card opens the editor again.`
       screenshotDir,
       step++,
       `Because every contact is marked with its type, we can also search for all of our contacts at once.
-Let's click the search icon to open the search menu.`
+We will click the search icon to open the search menu.`
     );
 
     await demoClick(searchMenuButton);
@@ -411,7 +411,7 @@ Let's click the search icon to open the search menu.`
     writeNarration(
       screenshotDir,
       step++,
-      `We'll click "New Search..." to open the search dialog.`
+      `We will click "New Search" to open the search dialog.`
     );
 
     await demoClick(newSearchItem);
@@ -422,7 +422,7 @@ Let's click the search icon to open the search menu.`
     writeNarration(
       screenshotDir,
       step++,
-      `We'll select "Advanced" from the Mode drop-down, which lets us search with a JavaScript expression.`
+      `We will select "Advanced" from the Mode dropdown, which lets us search with a JavaScript expression.`
     );
 
     await modeSelect.selectOption('advanced');
@@ -436,7 +436,7 @@ Let's click the search icon to open the search menu.`
       screenshotDir,
       step++,
       `In an advanced search, a file's front matter properties can always be referenced through a variable named "p".
-So the expression p dot type, double-equals, "contact", matches every file whose object is a contact.`
+So the expression p dot type, double equals, "contact", matches every file whose object is a contact.`
     );
 
     // Save the query as a named search definition (the ＋ button saves the current search)
@@ -452,7 +452,7 @@ So the expression p dot type, double-equals, "contact", matches every file whose
     writeNarration(
       screenshotDir,
       step++,
-      `We'll save this as a search named "Contacts", so we can run it again any time from the search menu.`
+      `We will save this as a search named "Contacts", so we can run it again any time from the search menu.`
     );
 
     await searchNameInput.press('Enter');
@@ -482,7 +482,7 @@ So the expression p dot type, double-equals, "contact", matches every file whose
       screenshotDir,
       step++,
       `The search results list exactly one file, our new contact, since it's the only contact we've created so far.
-That's all it takes to use custom types. Define a type once in the Types Editor, then insert it into any note to turn it into a structured, easy to read record that you can search for, while your file stays plain, portable Markdown.`
+That is all it takes to use custom types. Define a type once in the Types Editor, then insert it into any note to turn it into a structured, easy to read record that you can search for, while your file stays plain, portable Markdown.`
     );
 
     // ── 18. Disk check: the object was written to the file's front matter ──

@@ -95,9 +95,9 @@ test.describe('Private: Browse File', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. We're looking at single-file browsing.
-Right now the right-hand pane shows the whole folder listing — two markdown files among them.
-Let's pull one of them up on its own.`
+      `Welcome to this quick tour of MK Browser. We are looking at single file browsing.
+Right now the right hand pane shows the whole folder listing, which includes two markdown files.
+We will pull one of them up on its own.`
     );
 
     // --- Phase 1: click a file in the tree ---------------------------------
@@ -114,7 +114,7 @@ Let's pull one of them up on its own.`
     writeNarration(
       screenshotDir,
       step++,
-      `Clicking a file in the tree opens it on its own — no menu needed.`
+      `Clicking a file in the tree opens it on its own. No menu is needed.`
     );
 
     await demoClick(treeTarget);
@@ -156,7 +156,7 @@ Let's pull one of them up on its own.`
       screenshotDir,
       step++,
       `The pane now shows just this one file, already expanded so its content is right there.
-The other file in the folder is gone from view, but the breadcrumb path stays at the top — click any part of it to jump straight to that folder.
+The other file in the folder is gone from view, but the breadcrumb path stays at the top. Click any part of it to jump straight to that folder.
 Over on the right, "Listing Hidden" reminds you that you're looking at one file rather than the folder's contents.`
     );
 
@@ -185,7 +185,7 @@ Over on the right, "Listing Hidden" reminds you that you're looking at one file 
       screenshotDir,
       step++,
       `Clicking the file's body opened the editor, just like it does in the folder listing.
-We've typed a new line at the end, and in a moment we'll save it.`
+We have typed a new line at the end, and in a moment we'll save it.`
     );
 
     // The editor is ALWAYS maximized here — no toggling required. The
@@ -211,7 +211,7 @@ We've typed a new line at the end, and in a moment we'll save it.`
     writeNarration(
       screenshotDir,
       step++,
-      `The editor fills the whole pane automatically — single-file mode is always expanded, so there's no expand/collapse button to bother with.
+      `The editor fills the whole pane automatically. Single file mode is always expanded, so there's no expand or collapse button to bother with.
 The breadcrumb path stays at the top so you can confirm which file you're editing; only the "Listing Hidden" note steps aside.`
     );
 
@@ -232,7 +232,7 @@ The breadcrumb path stays at the top so you can confirm which file you're editin
     writeNarration(
       screenshotDir,
       step++,
-      `Saved — the new line is on disk. Editing a file works the same whether you reached it through the folder listing or on its own.`
+      `Saved. The new line is on disk. Editing a file works the same whether you reached it through the folder listing or on its own.`
     );
 
     // --- Phase 3: the breadcrumb's own folder segment exits -----------------
@@ -275,7 +275,7 @@ The breadcrumb path stays at the top so you can confirm which file you're editin
     writeNarration(
       screenshotDir,
       step++,
-      `The breadcrumb works from single-file mode as well: clicking the home icon took us straight out to the top folder, skipping the folder the file was in.`
+      `The breadcrumb works from single file mode as well: clicking the home icon took us straight out to the top folder, skipping the folder the file was in.`
     );
 
     // --- Phase 4: "Browse" exits too; clicking a FOLDER does not enter ------
@@ -301,8 +301,8 @@ The breadcrumb path stays at the top so you can confirm which file you're editin
     writeNarration(
       screenshotDir,
       step++,
-      `Clicking a folder in the tree behaves as it always has — it expands and collapses, and never takes over the pane.
-Single-file browsing is a file-only gesture, and right clicking a file and choosing "Browse" is the other way back to the folder listing.`
+      `Clicking a folder in the tree behaves as it always has. It expands and collapses, and never takes over the pane.
+Single file browsing is a file only gesture, and right clicking a file and choosing "Browse" is the other way back to the folder listing.`
     );
 
     // --- Phase 5: the folder listing kept its own editor preference ---------

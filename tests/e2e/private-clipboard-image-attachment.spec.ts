@@ -130,7 +130,7 @@ test.describe('Private: Attach Image from Clipboard', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. Today we're looking at pasting images from your clipboard — every markdown file can attach whatever image you've copied, stored right next to the file.
+      `Welcome to this quick tour of MK Browser. Today we're looking at pasting images from your clipboard. Every markdown file can attach whatever image you've copied, stored right next to the file.
 Here is a single markdown file with no attachments yet; imagine you've just taken a screenshot, and let's attach it straight from the clipboard.`
     );
 
@@ -146,7 +146,7 @@ Here is a single markdown file with no attachments yet; imagine you've just take
     writeNarration(
       screenshotDir,
       step++,
-      `We've placed an image on the system clipboard, as if we had just taken a screenshot.
+      `We have placed an image on the system clipboard, as if we had just taken a screenshot.
 Now we'll paste it as an attachment under our file.`
     );
 
@@ -188,7 +188,7 @@ Now we'll paste it as an attachment under our file.`
       screenshotDir,
       step++,
       `The clipboard image has been saved as an attachment.
-Notice the new folder that appeared, named after the file with a ".attach" suffix — the app automatically detected the clipboard held an image and saved it as a .png there.`
+Notice the new folder that appeared, named after the file with a "dot attach" suffix. The app automatically detected the clipboard held an image and saved it as a PNG image there.`
     );
 
     // Capture the first attachment's filename so we can identify the second
@@ -217,7 +217,7 @@ Notice the new folder that appeared, named after the file with a ".attach" suffi
       screenshotDir,
       step++,
       `Inside the attachments folder we find the pasted image, named with a timestamp.
-It renders inline just like any other image in MkBrowser — here's the picture we copied from the clipboard.`
+It renders inline just like any other image in MK Browser. Here is the picture we copied from the clipboard.`
     );
 
     // Back up to the folder containing the host file.
@@ -265,7 +265,7 @@ This time the attachments folder already exists, so the new image simply joins t
       screenshotDir,
       step++,
       `The second paste reused the existing attachments folder, which now holds both pasted images side by side.
-That's how the "Attach: Clipboard" feature collects clipboard images under any file.`
+That is how the "Attach: Clipboard" feature collects clipboard images under any file.`
     );
 
     // Cleanup: clear the clipboard so later tests aren't affected by our seeded

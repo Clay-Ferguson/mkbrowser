@@ -35,8 +35,8 @@ test.describe('File Explorer Tree Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to this quick tour of MkBrowser. In this demo we'll look at how the File Explorer Tree works.
-The tree panel on the left-hand side of the app shows your file system as a navigable hierarchy of folders and files.`
+      `Welcome to this quick tour of MK Browser. In this demo we'll look at how the File Explorer Tree works.
+The tree panel on the left hand side of the app shows your file system as a navigable hierarchy of folders and files.`
     );
 
     // --- Click the "docs" folder ---
@@ -47,7 +47,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
       screenshotDir,
       step++,
       `Any folder in the tree can be expanded with a single click.
-Here we can see the docs folder. Let's click to expand it.`
+Here we can see the docs folder. We will click to expand it.`
     );
 
     await demoClick(docsFolder);
@@ -60,7 +60,7 @@ Here we can see the docs folder. Let's click to expand it.`
     writeNarration(
       screenshotDir,
       step++,
-      `Inside docs is the user_guide folder. Let's expand it too.`
+      `Inside docs is the user guide folder. We will expand it too.`
     );
 
     await demoClick(userGuideFolder);
@@ -70,7 +70,7 @@ Here we can see the docs folder. Let's click to expand it.`
     writeNarration(
       screenshotDir,
       step++,
-      `One of the files listed is the User Guide. Let's click on it to open it.`
+      `One of the files listed is the User Guide. We will click on it to open it.`
     );
 
     // --- Click the "USER_GUIDE.md" file ---
@@ -81,7 +81,7 @@ Here we can see the docs folder. Let's click to expand it.`
       screenshotDir,
       step++,
       `Here is the user guide file in the explorer tree.
-Let's click on it to open it on its own in the right-hand panel.`
+We will click on it to open it on its own in the right hand panel.`
     );
 
     await demoClick(userGuideFile);
@@ -91,7 +91,7 @@ Let's click on it to open it on its own in the right-hand panel.`
     writeNarration(
       screenshotDir,
       step++,
-      `The user guide is now open by itself in the right-hand panel, ready to read.`
+      `The user guide is now open by itself in the right hand panel, ready to read.`
     );
 
     // --- Phase 2 ---
@@ -127,7 +127,7 @@ To open the file's containing folder in the main content area, we'll click the "
     writeNarration(
       screenshotDir,
       step++,
-      `Let's click the "Browse to File" menu item to navigate to the folder that contains the user guide.`
+      `We will click the "Browse to File" menu item to navigate to the folder that contains the user guide.`
     );
 
     await demoClick(userGuideBrowseItem);
@@ -137,8 +137,8 @@ To open the file's containing folder in the main content area, we'll click the "
     writeNarration(
       screenshotDir,
       step++,
-      `The right-hand panel has navigated to the folder containing the user guide.
-You can see the file listing for the user_guide folder on the right side.`
+      `The right hand panel has navigated to the folder containing the user guide.
+You can see the file listing for the user guide folder on the right side.`
     );
 
     // --- Phase 3 ---
@@ -150,7 +150,7 @@ You can see the file listing for the user_guide folder on the right side.`
     writeNarration(
       screenshotDir,
       step++,
-      `Navigation also works in reverse — from any document on the right, you can jump back to find it in the tree.
+      `Navigation also works in reverse. From any document on the right, you can jump back to find it in the tree.
 First, let's collapse the tree completely by clicking the collapse button at the top of the tree panel.`
     );
 
@@ -162,7 +162,7 @@ First, let's collapse the tree completely by clicking the collapse button at the
       screenshotDir,
       step++,
       `The File Explorer Tree is now fully collapsed and out of the way.
-In the user_guide folder listing on the right, hovering over a file title reveals a row of action icons. Let's click the "Reveal in Folder Tree" icon on the user guide to locate it in the tree.`
+In the user guide folder listing on the right, hovering over a file title reveals a row of action icons. We will click the "Reveal in Folder Tree" icon on the user guide to locate it in the tree.`
     );
 
     // --- Click the "Reveal in Folder Tree" button for USER_GUIDE.md ---
@@ -177,9 +177,9 @@ In the user_guide folder listing on the right, hovering over a file title reveal
     writeNarration(
       screenshotDir,
       step++,
-      `The File Explorer Tree has re-opened and scrolled to show the user guide file.
+      `The File Explorer Tree has reopened and scrolled to show the user guide file.
 Notice that all of the parent folders leading to this file are highlighted in purple in the tree.
-This purple coloring always indicates the current item on the right-hand side of the app, giving you an instant visual anchor no matter how deeply nested your file is.`
+This purple coloring always indicates the current item on the right hand side of the app, giving you an instant visual anchor no matter how deeply nested your file is.`
     );
 
     logScreenshotSummary(screenshotDir);
