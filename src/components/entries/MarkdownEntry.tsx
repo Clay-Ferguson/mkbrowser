@@ -567,7 +567,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   };
 
   // Pills come from the store (the last-saved front matter), shown above the rendered Markdown and
-  // above the editor alike. editedMeta overrides that while editing, so a calendar-dialog save is
+  // above the editor alike (unless the editor shows the front matter — see editPills). editedMeta overrides that while editing, so a calendar-dialog save is
   // reflected immediately even though the edit buffer hasn't been written to disk yet.
   const meta = (edit.isEditing && editedMeta) ? editedMeta : { tags: item?.tags ?? [], props: item?.props ?? {} };
   // While TagsPicker is showing it already displays the file's tags as selected pills, so the
@@ -597,6 +597,10 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       onTagDelete={edit.isEditing ? deleteTag : undefined}
     />
   ) : null;
+
+  // Above the editor the pills are dropped whenever the editor itself shows the front matter
+  // (Show Properties on, or a review diff), so the same properties/tags aren't shown twice.
+  const editPills = (reviewing || showPropsInEditor) ? null : propsDisplay;
 
   // A click on the object's card (other than on a link) opens the editor with the front matter
   // shown and the cursor on the card's title property, as a click on its pill would.
@@ -676,9 +680,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             <div className={ENTRY_LOADING}>Loading...</div>
           ) : edit.isEditing ? (
             <>
-              {((!reviewing && propsDisplay) || pickerShowing) && (
+              {(editPills || pickerShowing) && (
                 <div className={MARKDOWN_EDIT_HEADER}>
-                  {!reviewing && propsDisplay}
+                  {editPills}
                   {pickerShowing && <TagsPicker filePath={entry.path} />}
                 </div>
               )}

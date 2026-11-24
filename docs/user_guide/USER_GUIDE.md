@@ -308,7 +308,7 @@ While editing a Markdown file, click the **Insert Object** button (the cube icon
 
 ### Removing a Property or Tag
 
-While editing a Markdown file, each property pill and tag pill shown above the editor ends in a small **×**. Click it to remove that property or tag from the file's front matter. It happens immediately, with no confirmation, and is part of your unsaved edit: **Save** writes it to the file, and closing the editor without saving puts it back. (While the [Tag Picker](#tag-picker) is open, the tag pills are hidden, so remove a tag there by un-checking it.)
+While editing a Markdown file, each property pill and tag pill shown above the editor ends in a small **×**. Click it to remove that property or tag from the file's front matter. It happens immediately, with no confirmation, and is part of your unsaved edit: **Save** writes it to the file, and closing the editor without saving puts it back. (While the [Tag Picker](#tag-picker) is open, the tag pills are hidden, so remove a tag there by un-checking it. And while **Show Properties** is on, no pills are shown above the editor at all, since the front matter is right there in the editor to edit directly.)
 
 ### Editor Keyboard Shortcuts
 
