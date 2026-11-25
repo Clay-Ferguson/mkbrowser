@@ -296,6 +296,13 @@ html[data-font-size="xlarge"] {
   font-size: 1.05em;
 }
 
+/* Mermaid label text sits in <p> tags inside the SVG. Mermaid sizes each label's box
+   while rendering off-page, before `.prose p` above can enlarge the text, so without this
+   the text shown in the page is 5% bigger than its box and the label is clipped. */
+.prose .mermaid-diagram p {
+  font-size: inherit;
+}
+
 /* Markdown colours and heading sizes — the single source of truth shared by the
    CodeMirror editor (editorMarkdownHighlight.ts and editorHeadingUtil.ts reference these
    via var()) and the rendered Markdown (.prose rules below), so both views style headings

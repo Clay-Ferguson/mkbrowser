@@ -88,6 +88,14 @@ We will create a diagram showing a modern web application architecture with mult
     const mermaidContent = `A modern web application typically has several interconnected components:
 
 \`\`\`mermaid
+---
+config:
+  flowchart:
+    padding: 20
+  themeCSS: |
+    .labelBkg { padding: 4px 10px; border: 1px solid #94a3b8; border-radius: 6px; background-color: #1e293b; }
+    .labelBkg .edgeLabel, .labelBkg .edgeLabel p { background-color: transparent; }
+---
 graph TB
     Client[Web Browser]
     FE[Frontend<br/>React App]
@@ -104,7 +112,8 @@ graph TB
     API -->|Publish Jobs| Queue
     Queue -->|Process| Worker
     Worker -->|Update| DB
-    
+
+    classDef default stroke:#cbd5e1,stroke-width:2px,color:#f8fafc
     style Client fill:#3d2473
     style FE fill:#0a6e8f
     style API fill:#1e5c1e

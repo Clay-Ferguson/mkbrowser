@@ -99,20 +99,9 @@ export function MermaidDiagram({ code }: { code: string }) {
         const result = await mermaid.render(safeId, code);
 
         if (isMounted) {
-          // HACK_BEGIN
-          // Mermaid's text-width measurement tends to run slightly narrow,
-          // causing foreignObject labels to clip on the right edge.
-          // Widen every foreignObject by 15% to give text room to breathe.
-          const fixedSvg = result.svg.replace(
-            /(<foreignObject\b[^>]*?\bwidth=")([^"]+)(")/g,
-            (_match, prefix, widthStr, suffix) => {
-              const newWidth = parseFloat(widthStr) * 1.15;
-              return `${prefix}${newWidth}${suffix}`;
-            }
-          );
-          setSvg(fixedSvg);
-          // HACK_END
-
+          // Labels fit their measured boxes as-is: `.prose .mermaid-diagram p` in
+          // index.css keeps label text at the size Mermaid measured it at.
+          setSvg(result.svg);
           setError('');
           setLoading(false);
         }
