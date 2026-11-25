@@ -64,7 +64,8 @@ test.describe('Document Mode Demo', () => {
       screenshotDir,
       step++,
       `At the top of the content area you can see the edit button.
-      This menu gives us access to file level editing operations, and also a more powerful option at the bottom: enabling Document Mode. We will click it to open the menu.`
+      This menu gives us access to file level editing operations, and also a more powerful option at the bottom: enabling Document Mode. 
+      We will click it to open the menu.`
     );
 
     await demoClick(editMenuButton);
@@ -77,8 +78,9 @@ test.describe('Document Mode Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `At the bottom of the menu you can see the "Enable Document Mode" option. 
-      Clicking this will switch this folder into Document Mode, giving us full control over the order in which entries appear. We will click it now.`
+      `At the bottom of the menu you can see the Enable Document Mode option. 
+      Clicking this will switch this folder into Document Mode, giving us full control over the order in which entries appear. 
+      We will click it now.`
     );
 
     await demoClick(enableDocumentModeItem);
@@ -88,7 +90,8 @@ test.describe('Document Mode Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Document Mode is now enabled for this folder. Notice that the sort button has disappeared from the toolbar. That is because in Document Mode the order of entries is fixed and controlled by you, not by any automatic sort. 
+      `Document Mode is now enabled for this folder. Notice that the sort button has disappeared from the toolbar. 
+      That is because in Document Mode the order of entries is fixed and controlled by you, not by any automatic sort. 
       MK Browser has created a hidden file named index dot YAML in the folder to record and maintain the entry order.`
     );
 
@@ -109,7 +112,7 @@ test.describe('Document Mode Demo', () => {
       screenshotDir,
       step++,
       `Hovering over a file header reveals a row of action icons on the right hand side. 
-      Here we can see the "Move Down" arrow button highlighted for the file "federalist zero zero dot MD". 
+      Here we can see the "Move Down" arrow button highlighted for the file federalist zero zero dot MD. 
       We will click it to move this file down one position in the document.`
     );
 
@@ -126,7 +129,8 @@ test.describe('Document Mode Demo', () => {
       screenshotDir,
       step++,
       `We can now see that the file has been moved down one position in the document. 
-      The file order in Document Mode is entirely under your control. Just click the arrow buttons to move files and folders.`
+      The file order in Document Mode is entirely under your control. 
+      Just click the arrow buttons to move files and folders.`
     );
 
     // Hover again to reveal action buttons for the move-up operation
@@ -216,7 +220,9 @@ test.describe('Document Mode Demo', () => {
       step++,
       `The file has been saved and is now part of the document at exactly the position we specified. 
       That brings us to the end of this Document Mode demo. 
-      We have seen how to enable Document Mode, turn on Edit Mode, reorder files with the move buttons, and insert brand new files at precise locations within the document. Document Mode in MK Browser gives you full editorial control over the structure and order of your content. This makes it an ideal tool for managing long form documents, reference collections, or any set of Markdown files where order matters.`
+      We have seen how to enable Document Mode, turn on Edit Mode, reorder files with the move buttons, and insert brand new files at precise locations within the document. 
+      Document Mode in MK Browser gives you full editorial control over the structure and order of your content. 
+      This makes it an ideal tool for managing long form documents, reference collections, or any set of Markdown files where order matters.`
     );
 
     logScreenshotSummary(screenshotDir);

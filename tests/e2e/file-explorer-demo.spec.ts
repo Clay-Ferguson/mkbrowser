@@ -118,28 +118,24 @@ Right clicking a file in the tree opens a context menu with several actions you 
     writeNarration(
       screenshotDir,
       step++,
-      `A context menu has appeared. It offers actions for the selected item, such as renaming, deleting, or pasting.
-To open the file's containing folder in the main content area, we'll click the "Browse to File" item at the top of the menu.`
+      `A context menu has appeared. It offers actions for the selected item, such as renaming, deleting, or pasting.`
     );
 
-    // Highlight the menu item, then click it to actually browse.
-    await takeScreenshot(mainWindow, userGuideBrowseItem, screenshotDir, step++, 'about-to-click-browse-to-folder');
+    // Highlight the Browse item and mention it, but don't click it: USER_GUIDE.md
+    // sits alone in its folder, so browsing there would look the same as the
+    // single-file view already on screen.
+    await takeScreenshot(mainWindow, userGuideBrowseItem, screenshotDir, step++, 'browse-menu-item');
     writeNarration(
       screenshotDir,
       step++,
-      `We will click the "Browse to File" menu item to navigate to the folder that contains the user guide.`
+      `The Browse item at the top of the menu is another way to get to a folder listing.
+It shows the full contents of the folder containing the selected item in the right hand panel.`
     );
 
-    await demoClick(userGuideBrowseItem);
-    await mainWindow.waitForTimeout(1000);
-
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'right-click-user-guide-folder-opened');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `The right hand panel has navigated to the folder containing the user guide.
-You can see the file listing for the user guide folder on the right side.`
-    );
+    // Dismiss the menu without choosing anything.
+    await mainWindow.keyboard.press('Escape');
+    await expect(userGuideBrowseItem).toBeHidden({ timeout: 5000 });
+    await mainWindow.waitForTimeout(500);
 
     // --- Phase 3 ---
 
@@ -150,7 +146,7 @@ You can see the file listing for the user guide folder on the right side.`
     writeNarration(
       screenshotDir,
       step++,
-      `Navigation also works in reverse. From any document on the right, you can jump back to find it in the tree.
+      `Navigation also works in reverse. From any document on the right, you can click to reveal it in the tree.
 First, let's collapse the tree completely by clicking the collapse button at the top of the tree panel.`
     );
 
@@ -161,8 +157,8 @@ First, let's collapse the tree completely by clicking the collapse button at the
     writeNarration(
       screenshotDir,
       step++,
-      `The File Explorer Tree is now fully collapsed and out of the way.
-In the user guide folder listing on the right, hovering over a file title reveals a row of action icons. We will click the "Reveal in Folder Tree" icon on the user guide to locate it in the tree.`
+      `The File Explorer Tree is now fully collapsed.
+On the right hand side, hovering over a file title reveals a row of action icons. We will click the Reveal in Folder Tree icon on the user guide to locate it in the tree.`
     );
 
     // --- Click the "Reveal in Folder Tree" button for USER_GUIDE.md ---

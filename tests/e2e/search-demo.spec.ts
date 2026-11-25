@@ -76,7 +76,7 @@ We will click it to open the search menu.`
       screenshotDir,
       step++,
       `The search menu has appeared.
-We will click "New Search" to open the search dialog and define a new query.`
+We will click New Search to open the search dialog and define a new query.`
     );
 
     await demoClick(newSearchOption);
@@ -90,7 +90,7 @@ We will click "New Search" to open the search dialog and define a new query.`
       step++,
       `The search dialog is now open.
 We can enter our search term here.
-We will search for the word "political" to find references to that topic across the Federalist Papers.`
+We will search for the word political to find references to that topic across the Federalist Papers.`
     );
 
     await insertText(mainWindow, 'political', true, searchInput);
@@ -99,7 +99,7 @@ We will search for the word "political" to find references to that topic across 
     writeNarration(
       screenshotDir,
       step++,
-      `We have typed "political" into the search field.
+      `We have typed political into the search field.
 MK Browser will search through the content of all files in the current folder.
 Now let's run the search.`
     );
@@ -122,7 +122,7 @@ Now let's run the search.`
       screenshotDir,
       step++,
       `The search results are now displayed.
-MK Browser has found all the files containing the word "political" across the Federalist Papers.
+MK Browser has found all the files containing the word political across the Federalist Papers.
 Each result shows the file path and matching context.
 We will click on one of the results to jump directly to that file.`
     );
