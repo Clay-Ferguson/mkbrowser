@@ -131,7 +131,9 @@ test.describe('Private: Attach Image from Clipboard', () => {
       screenshotDir,
       step++,
       `Welcome to this quick tour of MK Browser. Today we're looking at pasting images from your clipboard. Every markdown file can attach whatever image you've copied, stored right next to the file.
-Here is a single markdown file with no attachments yet; imagine you've just taken a screenshot, and let's attach it straight from the clipboard.`
+Here is a single markdown file with no attachments yet; imagine you've just taken a screenshot, and let's attach it straight from the clipboard.
+We have placed an image on the system clipboard, as if we had just taken a screenshot.
+Now we'll paste it as an attachment under our file.`
     );
 
     // Seed the OS clipboard with a real PNG image via Electron's main-process
@@ -142,13 +144,6 @@ Here is a single markdown file with no attachments yet; imagine you've just take
       return !clipboard.readImage().isEmpty();
     }, image1Path);
     expect(seeded1).toBe(true);
-
-    writeNarration(
-      screenshotDir,
-      step++,
-      `We have placed an image on the system clipboard, as if we had just taken a screenshot.
-Now we'll paste it as an attachment under our file.`
-    );
 
     // Locate the file's hover-revealed action bar and open its hamburger menu,
     // where the paste-clipboard action now lives.

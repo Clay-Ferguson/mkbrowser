@@ -77,6 +77,15 @@ export async function showHighlightOverlay(
       target = (target.closest('label') ?? target) as HTMLElement;
     }
 
+    // A test id on a CodeMirror editor lands on its inner `.cm-content`, which
+    // can be much taller than the visible field: when the editor box is squeezed
+    // (e.g. JsCodeInput in a cramped flex column) the content overflows inside
+    // `.cm-scroller` and is clipped. Box the visible `.cm-editor` instead.
+    const cmEditorAncestor = target.closest('.cm-editor');
+    if (cmEditorAncestor) {
+      target = cmEditorAncestor as HTMLElement;
+    }
+
     const rect = target.getBoundingClientRect();
 
     // Expand outward: 2px breathing room + 2px border width.

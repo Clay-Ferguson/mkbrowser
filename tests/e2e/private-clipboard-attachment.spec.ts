@@ -105,20 +105,15 @@ test.describe('Private: Attach: Clipboard', () => {
       screenshotDir,
       step++,
       `Welcome to this quick tour of MK Browser. Today we're looking at clipboard attachments. Every markdown file has a shortcut to paste whatever is on your clipboard as an attachment stored right next to it.
-Here is a single markdown file with no attachments yet; let's use it to attach some clipboard text.`
+Here is a single markdown file with no attachments yet; let's use it to attach some clipboard text.
+We have placed a short piece of markdown text on the system clipboard.
+Now we'll paste it as an attachment under our file.`
     );
 
     // Seed the OS clipboard with the first payload via Electron's main-process
     // clipboard module (the renderer's navigator.clipboard.read() reads the same
     // OS clipboard).
     await electronApp.evaluate(({ clipboard }, text) => clipboard.writeText(text), clipText1);
-
-    writeNarration(
-      screenshotDir,
-      step++,
-      `We have placed a short piece of markdown text on the system clipboard.
-Now we'll paste it as an attachment under our file.`
-    );
 
     // Locate the file's hover-revealed action bar and open its hamburger menu,
     // where the paste-clipboard action now lives.

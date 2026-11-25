@@ -108,7 +108,7 @@ test.describe('AI Chat Persona Demo', () => {
       screenshotDir,
       step++,
       `The dropdown is open, showing the personas we've defined.
-      We will select the "Pirate" persona.`
+      We will select the Pirate persona.`
     );
 
     await demoClick(pirateOption);
@@ -241,8 +241,8 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
     writeNarration(
       screenshotDir,
       step++,
-      `On the Pirate's answer file there's a "Reply" button.
-      We will click it to ask a follow up question.`
+      `On the Pirate's answer file there's a reply button.
+      We will click it to ask a follow-up question.`
     );
 
     await demoClick(replyButton);

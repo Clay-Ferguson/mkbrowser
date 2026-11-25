@@ -32,7 +32,7 @@ test.describe('Calendar View Demo', () => {
     // run always starts from a clean state and the New Calendar Item dialog can
     // create the file without colliding with a leftover from a previous run.
     const createdCalendarFile = path.resolve(
-      path.join(__dirname, '../../mkbrowser-test/calendar/bi-weekly-reports.md')
+      path.join(__dirname, '../../mkbrowser-test/calendar/weekly-reports.md')
     );
     if (fs.existsSync(createdCalendarFile)) {
       fs.unlinkSync(createdCalendarFile);
@@ -100,7 +100,8 @@ We will click it to switch this folder into the Calendar View.`
       step++,
       `The app has switched to the Calendar View.
 Because our folder doesn't contain any entries yet, the calendar is currently empty.
-From here we'll be able to view our calendar by month, by week, or by work week, and create new entries directly on the calendar.`
+From here we'll be able to view our calendar by month, by week, or by work week, and create new entries directly on the calendar.
+Creating a calendar entry is as easy as clicking on the day you want it to fall on.`
     );
 
     // Internal check (not narrated): confirm the calendar toolbar buttons are present,
@@ -124,13 +125,6 @@ From here we'll be able to view our calendar by month, by week, or by work week,
       ts.setCalendarItemsFolder(folder);
     }, demoCalendarFolder);
 
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Creating a calendar entry is as easy as clicking on the day you want it to fall on.
-We will click right in the middle of the first day of the month to add a new item there.`
-    );
-
     // Locate the "01" date label for the first of the month. The date number sits in
     // the top-right corner of its day cell, so clicking 20px down and 20px to the
     // left of it lands roughly in the middle of that day's block, which opens the
@@ -141,6 +135,11 @@ We will click right in the middle of the first day of the month to add a new ite
     if (!box) throw new Error('Could not locate the bounding box for the first day of the month.');
 
     await takeScreenshot(mainWindow, firstDayLabel, screenshotDir, step++, 'about-to-click-first-day');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We will click right in the middle of the first day of the month to add a new item there.`
+    );
 
     await mainWindow.mouse.click(box.x - 20, box.y + 20);
     await mainWindow.waitForTimeout(1000);
@@ -155,27 +154,31 @@ We will click right in the middle of the first day of the month to add a new ite
       step++,
       `The "New Calendar Item" dialog has appeared.
 Here we can enter a file name for our new calendar item.
-We will name it "biweekly reports dot MD".`
+We will name it weekly reports dot MD.`
     );
 
     // Enter the file name for the new calendar item.
     const fileNameInput = mainWindow.getByTestId('new-calendar-item-dlg-filename');
     await expect(fileNameInput).toBeVisible({ timeout: 5000 });
-    await insertText(mainWindow, 'bi-weekly-reports.md', true, fileNameInput);
+    await insertText(mainWindow, 'weekly-reports.md', true, fileNameInput);
 
     await takeScreenshot(mainWindow, fileNameInput, screenshotDir, step++, 'filename-entered');
     writeNarration(
       screenshotDir,
       step++,
-      `We have typed in the file name "biweekly reports dot MD".
-Now we'll click the "Create File" button to create this calendar item.`
+      `We have typed in the file name "weekly reports dot MD".`
     );
 
-    // Highlight the "Create File" button (snapshot only — the click itself, and
-    // everything that follows from it, belongs to the next phase).
+    // Highlight the "Create File" button (the click itself, and everything that
+    // follows from it, belongs to the next phase).
     const createFileButton = mainWindow.getByTestId('new-calendar-item-dlg-create');
     await expect(createFileButton).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, createFileButton, screenshotDir, step++, 'about-to-click-create-file');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Next we'll click the "Create File" button to create this calendar item.`
+    );
 
     // --- Phase 4: create the file, edit it in the Browse Tab, and save it ---
 
@@ -201,13 +204,13 @@ At the top of the file you can see its properties, including a property named "d
 
     // Insert the body text at the end (no focusTarget, so the existing properties
     // are preserved rather than selected-and-overwritten).
-    await insertText(mainWindow, 'Bi-Weekly Reports Due', true);
+    await insertText(mainWindow, 'Weekly Reports Due', true);
 
     await takeScreenshot(mainWindow, cmEditor, screenshotDir, step++, 'content-typed');
     writeNarration(
       screenshotDir,
       step++,
-      `We have typed the title of our entry, "Biweekly Reports Due", below the properties.
+      `We have typed the title of our entry, "Weekly Reports Due", below the properties.
 Now let's save our work.`
     );
 
@@ -237,17 +240,16 @@ Notice that the date is displayed right above the file content, which lets us re
 
     // --- Phase 5: switch back to the calendar, reopen the item, and open the Calendar Info dialog ---
 
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Now let's switch back over to the Calendar View to see our new calendar item appear.`
-    );
-
     // Switch back to the Calendar View by clicking the "Calendar" tab in the app tab bar.
     const tabButtons = mainWindow.getByTestId('app-tab-buttons');
     const calendarTab = tabButtons.getByText('Calendar', { exact: true }).first();
     await expect(calendarTab).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, calendarTab, screenshotDir, step++, 'about-to-click-calendar-tab');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Now let's click the "Calendar" tab to switch back over to the Calendar View and see our new calendar item appear.`
+    );
 
     await demoClick(calendarTab);
     await mainWindow.waitForTimeout(1500);
@@ -256,14 +258,18 @@ Notice that the date is displayed right above the file content, which lets us re
     writeNarration(
       screenshotDir,
       step++,
-      `We are back in the Calendar View, and you can now see our "biweekly reports" item sitting right there on the calendar.
-We can click on the calendar item to go back and edit it again.`
+      `We are back in the Calendar View, and you can see our "weekly reports" item sitting right there on the calendar.`
     );
 
     // Click the calendar item to navigate back to the file in the Browse Tab.
-    const calendarItem = mainWindow.getByText('bi-weekly-reports').first();
+    const calendarItem = mainWindow.getByText('weekly-reports').first();
     await expect(calendarItem).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, calendarItem, screenshotDir, step++, 'about-to-click-calendar-item');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We can click on the calendar item to go back and edit it again.`
+    );
 
     await demoClick(calendarItem);
     await mainWindow.waitForTimeout(1500);
@@ -272,14 +278,18 @@ We can click on the calendar item to go back and edit it again.`
     writeNarration(
       screenshotDir,
       step++,
-      `Clicking the item brought us back to the Browse Tab, where our calendar file is shown again. However, it is not in edit mode yet.
-We will click on the file content to start editing it.`
+      `Clicking the item brought us back to the Browse Tab, where our calendar file is shown again. However, it is not in edit mode yet.`
     );
 
     // Click the file body text to enter edit mode.
-    const bodyText = mainWindow.getByText('Bi-Weekly Reports Due').first();
+    const bodyText = mainWindow.getByText('Weekly Reports Due').first();
     await expect(bodyText).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, bodyText, screenshotDir, step++, 'about-to-click-file-content');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We will click on the file content to start editing it.`
+    );
 
     await demoClick(bodyText);
     await mainWindow.waitForTimeout(1000);
@@ -288,18 +298,29 @@ We will click on the file content to start editing it.`
     writeNarration(
       screenshotDir,
       step++,
-      `We are now editing the file again.
-Next, let's use the calendar dialog to modify the time options for this calendar item.`
+      `We are editing the file again.
+Next, let's use the Calendar Info dialog to modify the timing options for this calendar item.`
     );
 
     // Open the Calendar Info dialog via the editor's "Editing actions" hamburger menu.
     const editMenuButton = mainWindow.getByTestId('active-edit-menu-button');
     await expect(editMenuButton).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, editMenuButton, screenshotDir, step++, 'about-to-click-edit-menu');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We will open the editor's "Editing actions" menu, found in the upper right corner of the editor.`
+    );
     await demoClick(editMenuButton);
 
     const editCalendarInfoItem = mainWindow.getByTestId('menu-active-edit-calendar-info');
     await expect(editCalendarInfoItem).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, editCalendarInfoItem, screenshotDir, step++, 'about-to-click-edit-calendar-info');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `From the menu, we will click "Calendar Info".`
+    );
 
     await demoClick(editCalendarInfoItem);
     await mainWindow.waitForTimeout(1000);
@@ -309,15 +330,8 @@ Next, let's use the calendar dialog to modify the time options for this calendar
       screenshotDir,
       step++,
       `The Calendar Info dialog has appeared.
-Here we'll be able to adjust the timing options for this calendar item.`
-    );
-
-    // --- Phase 6: set the item to repeat bi-weekly, save, and save the editor ---
-
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Now we will set up this calendar item to repeat biweekly.
+Here we'll be able to adjust the timing options for this calendar item.
+Now we will set up this calendar item to repeat every two weeks.
 We will start by changing the "Repeat" option, which is currently set to "No repeat", over to "Weekly".`
     );
 
@@ -332,7 +346,7 @@ We will start by changing the "Repeat" option, which is currently set to "No rep
       screenshotDir,
       step++,
       `We have set the item to repeat "Weekly".
-But we want it to repeat every two weeks instead, so let's change the "Every" value from one to two to make it biweekly.`
+But we want it to repeat every two weeks instead, so let's change the "Every" value from one to two to make it every other week.`
     );
 
     // Change the "Every" interval to 2 to make the repeat bi-weekly.
@@ -344,18 +358,31 @@ But we want it to repeat every two weeks instead, so let's change the "Every" va
     writeNarration(
       screenshotDir,
       step++,
-      `The item is now set to repeat every two weeks.
-We will save these settings to make this a biweekly calendar item.`
+      `The item is set to repeat every two weeks.`
     );
 
     // Save the Calendar Info dialog.
     const calendarInfoSave = mainWindow.getByTestId('calendar-info-save');
     await expect(calendarInfoSave).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, calendarInfoSave, screenshotDir, step++, 'about-to-save-calendar-info');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We will click "Save" to save these settings and update the calendar item.`
+    );
 
     await demoClick(calendarInfoSave);
     await mainWindow.waitForTimeout(1000);
 
+    // Silently verify (not narrated) that the Calendar Info dialog has closed, so the
+    // next screenshot shows the markdown editor rather than the dialog.
+    await expect(calendarInfoSave).not.toBeVisible({ timeout: 5000 });
+
+    // Save the markdown editor (close CodeMirror). This highlight screenshot is taken
+    // after the dialog has closed, so it shows us back at the markdown editor.
+    const editorSaveButton = mainWindow.getByTestId('entry-save-button');
+    await expect(editorSaveButton).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, editorSaveButton, screenshotDir, step++, 'about-to-save-editor-again');
     writeNarration(
       screenshotDir,
       step++,
@@ -363,39 +390,37 @@ We will save these settings to make this a biweekly calendar item.`
 We will click "Save" to save our changes and close the editor.`
     );
 
-    // Save the markdown editor (close CodeMirror).
-    const editorSaveButton = mainWindow.getByTestId('entry-save-button');
-    await expect(editorSaveButton).toBeVisible({ timeout: 5000 });
-    await takeScreenshot(mainWindow, editorSaveButton, screenshotDir, step++, 'about-to-save-editor-again');
-
     await demoClick(editorSaveButton);
     await mainWindow.waitForTimeout(1000);
 
-    // --- Phase 7: switch back to the calendar and verify the bi-weekly recurrences ---
+    // Verify the editor closed (silent check).
+    await expect(editorSaveButton).not.toBeVisible({ timeout: 5000 });
 
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Now let's switch back over to the Calendar View one more time to verify that our item is now repeating biweekly.`
-    );
+    // --- Phase 7: switch back to the calendar and verify the bi-weekly recurrences ---
 
     // Switch back to the Calendar View by clicking the "Calendar" tab again.
     const calendarTabFinal = mainWindow.getByTestId('app-tab-buttons').getByText('Calendar', { exact: true }).first();
     await expect(calendarTabFinal).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, calendarTabFinal, screenshotDir, step++, 'about-to-click-calendar-tab-final');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Our changes are saved.
+Let's switch back over to the Calendar View one more time to verify that our item is repeating every two weeks.`
+    );
 
     await demoClick(calendarTabFinal);
     await mainWindow.waitForTimeout(1500);
 
     // Confirm the recurring item now appears in more than one place on the calendar.
-    const recurringItems = mainWindow.getByText('bi-weekly-reports');
+    const recurringItems = mainWindow.getByText('weekly-reports');
     await expect(recurringItems.first()).toBeVisible({ timeout: 5000 });
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'bi-weekly-recurrences-on-calendar');
     writeNarration(
       screenshotDir,
       step++,
-      `And there it is. Our "biweekly reports" item now appears multiple times across the calendar, repeating every two weeks just as we set it up.
+      `And there it is. Our "weekly reports" item now appears multiple times across the calendar, repeating every two weeks just as we set it up.
 That is how easy it is to create and schedule a repeating calendar item in MK Browser.`
     );
 

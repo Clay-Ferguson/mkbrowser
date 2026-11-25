@@ -120,7 +120,7 @@ We can enter a boolean expression that will be evaluated against each file in th
       screenshotDir,
       step++,
       `Here is the search query field.
-We will enter a boolean "and" expression that finds only the files containing both the word "political" and the phrase "free people" at the same time.`
+We will enter a boolean expression that finds only the files containing both the word "political" and the phrase "free people".`
     );
 
     await insertText(mainWindow, '$("political") && $("free people")', true, searchInput);
@@ -129,8 +129,8 @@ We will enter a boolean "and" expression that finds only the files containing bo
     writeNarration(
       screenshotDir,
       step++,
-      `We have typed the expression dollar sign "political", double ampersand, dollar sign "free people".
-The double ampersand operator means that both terms must appear in the same file for it to be included in the results.`
+      `We have typed the expression dollar sign "political", and, dollar sign "free people".
+This expression requires that both terms must appear in the same file for it to be included in the results.`
     );
 
     // Save the search under a name: the ＋ button above the saved-searches list
@@ -225,7 +225,7 @@ The search icon is now visible at the top of the window.`
     writeNarration(
       screenshotDir,
       step++,
-      `Now let's click the search icon again to see something useful. It shows the saved search definition we just created.`
+      `Now let's click the search icon, to open the search menu again.`
     );
 
     await demoClick(searchMenuButton);
@@ -236,8 +236,7 @@ The search icon is now visible at the top of the window.`
       screenshotDir,
       step++,
       `The search menu now shows our saved "Political Free People Search" definition.
-Any time we want to run that same boolean query again, we can simply click its name in this menu and MK Browser will run it again instantly.
-That is the power of the advanced search feature in MK Browser.`
+Any time we want to run that same search again, we can simply click this menu item.`
     );
 
     // Verify the saved search is present in the menu

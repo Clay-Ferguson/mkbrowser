@@ -57,8 +57,8 @@ test.describe('AI Chat Demo', () => {
       screenshotDir,
       step++,
       `Welcome to this quick tour of MK Browser. 
-      Today we're going to try out the built in AI Chat feature. 
-      This lets you have a back and forth conversation with an AI, right inside your file browser.`
+      Today we're going to try out the AI Chat feature. 
+      This lets you have a back and forth conversation with an AI, where each question and response is stored in it's own file.`
     );
 
     // ── 2. Open Tools menu ────────────────────────────────────────────
@@ -97,8 +97,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `A new AI chat folder has been created, and the editor is open and ready for our question. 
-      We will ask a question.`
+      `A new AI chat folder has been created, and the editor is open and ready for our question.`
     );
 
     await insertText(mainWindow, humanMessage1, true);
@@ -137,7 +136,7 @@ test.describe('AI Chat Demo', () => {
       step++,
       `The AI has responded. 
       It suggests heading to Akihabara and visiting an upper floor retro arcade. 
-      Neon reflections on wet pavement and eighties synth sounds. That sounds like peak Cyberpunk. 
+      Neon reflections on wet pavement and eighties synth sounds. Sounds like peak Cyberpunk. 
       Now let's ask a follow up question.`
     );
 
@@ -148,7 +147,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Above the AI's answer, there's a Reply button. We will click it to continue the conversation.`
+      `Above the AI's answer, there's a Reply button, so we'll click it to continue the conversation.`
     );
 
     await demoClick(replyButton);
@@ -203,14 +202,10 @@ test.describe('AI Chat Demo', () => {
       step++,
       `And there's our second answer. 
       The AI recommends Bar Sekirei, a hidden gem with a library like atmosphere. It is the perfect calm after the storm to end the trip. 
-      As you can see, carrying on an ongoing conversation with the AI is quick and seamless.`
-    );
-
-    // ── 11. Explain Chat tab vs file system, highlight "Show in Browser" ──
-    writeNarration(
-      screenshotDir,
-      step++,
-      `This entire conversation was conducted in the Chat tab, but under the hood MK Browser stores each exchange in real file system folders. That means you can browse, edit, or add files to any part of the conversation. We will click one of the "Show in Browse View" icons to jump into the underlying folders.`
+      As you can see, carrying on an ongoing conversation with the AI is quick and seamless.
+      This entire conversation was conducted in the Chat tab, but under the hood MK Browser stores each exchange in real file system folders. 
+      That means you can browse, edit, or add files to any part of the conversation. 
+      We will click one of the "Show in Browse View" icons to jump into the underlying folders.`
     );
 
     const showInBrowserButton = activeView(mainWindow).getByTestId('show-in-browser-button').last();
@@ -219,7 +214,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Here is the "Show in Browser" button. Clicking it will take us from the Chat tab into the actual folder on disk where this part of the conversation lives.`
+      `Here is the "Show in Browser" button. Clicking it will take us from the Chat tab into the actual file itself.`
     );
 
     await demoClick(showInBrowserButton);
@@ -241,7 +236,8 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We can explore earlier parts of the conversation by navigating up through the folder hierarchy. We will click the "Up Level" button to go to the parent folder.`
+      `We can explore earlier parts of the conversation by navigating up through the folder hierarchy. 
+      We will click the "Up Level" button to go to the parent folder.`
     );
 
     await demoClick(upLevelButton);
@@ -263,7 +259,8 @@ test.describe('AI Chat Demo', () => {
       screenshotDir,
       step++,
       `Here we can see another turn of the conversation. 
-      The ability to attach images, documents, or any other files alongside your chat makes MK Browser's file system based conversation design uniquely powerful. Each exchange is a real folder you can organize, back up, share, and extend however you like.`
+      The ability to attach images, documents, or any other files alongside your chat makes MK Browser's file system based conversation design uniquely powerful. 
+      Each exchange is a real folder you can organize, back up, share, and extend however you like.`
     );
 
     logScreenshotSummary(screenshotDir);

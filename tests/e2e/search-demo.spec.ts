@@ -127,8 +127,13 @@ Each result shows the file path and matching context.
 We will click on one of the results to jump directly to that file.`
     );
 
-    // Click the specific result to navigate to that file
-    const targetResult = mainWindow.getByText('federalist-03/federalist-03-08.md');
+    // Click the specific result to navigate to that file. The results table
+    // shows the folder (PATH) and file name (NAME) in separate columns, and the
+    // PATH cell has its own click handler, so target the NAME cell; a click
+    // there bubbles to the row, which opens the file.
+    const targetResult = mainWindow
+      .getByTestId('search-result-name')
+      .getByText('federalist-03-08.md', { exact: true });
     await expect(targetResult).toBeVisible({ timeout: 10000 });
     await takeScreenshot(mainWindow, targetResult, screenshotDir, step++, 'about-to-click-result');
     writeNarration(

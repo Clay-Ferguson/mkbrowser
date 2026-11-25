@@ -331,7 +331,7 @@ We will choose "Contact" to insert a new contact.`
     writeNarration(
       screenshotDir,
       step++,
-      `MK Browser has added the contact to the file's front matter, the [YAML](/jˈæməl/) block at the very top of the file.
+      `MK Browser has added the contact to the file's front matter, the YAML block at the very top of the file.
 There is a "type" line naming the type, followed by each of its properties in the order we defined them.
 The birthday starts out as today's date, and the other values are empty, ready for us to fill in.`
     );
@@ -384,7 +384,7 @@ The birthday starts out as today's date, and the other values are empty, ready f
     writeNarration(
       screenshotDir,
       step++,
-      `The file is saved, and instead of raw [YAML](/jˈæməl/) we now see a contact card at the top of the note.
+      `The file is saved, and instead of raw YAML we now see a contact card at the top of the note.
 The type name appears in the top right corner, and the name is the card's bold title.
 Each other property has its own line with an icon, the phone, email, address, and website are clickable links, and the birthday shows how long ago it was.
 Clicking anywhere else on the card opens the editor again.`

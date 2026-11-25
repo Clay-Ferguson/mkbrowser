@@ -89,7 +89,7 @@ test.describe('Document Mode Demo', () => {
       screenshotDir,
       step++,
       `Document Mode is now enabled for this folder. Notice that the sort button has disappeared from the toolbar. That is because in Document Mode the order of entries is fixed and controlled by you, not by any automatic sort. 
-      MK Browser has created a hidden file named index dot [YAML](/jˈæməl/) in the folder to record and maintain the entry order.`
+      MK Browser has created a hidden file named index dot YAML in the folder to record and maintain the entry order.`
     );
 
     // Hover over federalist-00.md to reveal its action bar

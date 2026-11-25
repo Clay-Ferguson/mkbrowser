@@ -32,7 +32,7 @@ test.describe('Create LaTeX Demo', () => {
       screenshotDir,
       step++,
       `Welcome back to MK Browser.
-In this demo, we'll explore one of MK Browser's powerful features: automatic [LaTeX](/lˈeɪtɛk/) rendering for mathematical formulas.
+In this demo, we'll explore one of MK Browser's powerful features: automatic LaTeX rendering for mathematical formulas.
 We will create a file with a math equation.`
     );
 
@@ -59,7 +59,7 @@ We will give our file a name.`
     writeNarration(
       screenshotDir,
       step++,
-      `We have named it "my [LaTeX](/lˈeɪtɛk/) formula".
+      `We have named it "my LaTeX formula".
 Now let's create the file and add a math formula.`
     );
 
@@ -75,7 +75,7 @@ Now let's create the file and add a math formula.`
       screenshotDir,
       step++,
       `Great, our file has been created and the editor is ready.
-Now let's add some [LaTeX](/lˈeɪtɛk/) content.
+Now let's add some LaTeX content.
 We will start with a brief explanation, then include the quadratic formula.`
     );
 
@@ -93,8 +93,8 @@ $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$`;
       screenshotDir,
       step++,
       `We have entered our explanation and the quadratic formula.
-Notice the [LaTeX](/lˈeɪtɛk/) code is surrounded by double dollar signs. This tells MK Browser to render it as a math formula.
-The formula itself uses [LaTeX](/lˈeɪtɛk/) syntax with commands like "frac" for fractions and "sqrt" for square roots.
+Notice the LaTeX code is surrounded by double dollar signs. This tells MK Browser to render it as a math formula.
+The formula itself uses LaTeX syntax.
 Now watch what happens when we save.`
     );
 
@@ -104,7 +104,7 @@ Now watch what happens when we save.`
     writeNarration(
       screenshotDir,
       step++,
-      `We will save the file and see the [LaTeX](/lˈeɪtɛk/) magic happen.`
+      `We will save the file and see the LaTeX magic happen.`
     );
 
     await demoClick(saveButton);
@@ -116,10 +116,8 @@ Now watch what happens when we save.`
     writeNarration(
       screenshotDir,
       step++,
-      `Now that looks absolutely amazing! The [LaTeX](/lˈeɪtɛk/) code has been automatically rendered into a beautiful, properly formatted math formula.
-The quadratic formula is now displayed with professional typography. Fractions, square roots, and math symbols are perfectly rendered.
-This makes MK Browser ideal for taking notes on mathematics, physics, or any technical subject.
-No special tools needed. Just write your [LaTeX](/lˈeɪtɛk/) between dollar sign delimiters and MK Browser handles the rest.`
+      `Now that looks absolutely amazing! The LaTeX code has been automatically rendered into a beautiful, properly formatted math formula.
+The quadratic formula is now displayed with professional typography. Fractions, square roots, and all math symbols are perfectly rendered as mathematical expressions.`
     );
 
     // Verify save completed

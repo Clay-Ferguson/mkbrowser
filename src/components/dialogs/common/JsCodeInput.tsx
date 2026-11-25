@@ -24,11 +24,11 @@ interface JsCodeInputProps {
 // `maxLines`, then scrolls.
 //
 // The editor element is itself the form's flex item (the host div is
-// `display: contents`), so `floorLines` is the least a cramped flex column (the
-// Search dialog's options panel, in a small window) can squeeze it to; between
-// that and `lines` its scroller scrolls. The floor adds the content's 4px top
-// and bottom padding and the 1px border, so `floorLines` lines stay fully visible.
-function makeInputTheme(floorLines: number, lines: number, maxLines: number) {
+// `display: contents`), so it is `flex-shrink: 0`: in a height-limited flex
+// column (the Search dialog's scrolling options panel) it keeps its full
+// `lines` height and the panel scrolls, rather than being squeezed into a short
+// box that scrolls inside a panel that also scrolls.
+function makeInputTheme(lines: number, maxLines: number) {
   return EditorView.theme({
     '&': {
       backgroundColor: 'rgb(15 23 42)',
@@ -37,15 +37,15 @@ function makeInputTheme(floorLines: number, lines: number, maxLines: number) {
       border: '1px solid var(--color-slate-600)',
       borderRadius: '0.25rem',
       overflow: 'hidden',
-      minHeight: `calc(${floorLines}lh + 10px)`,
+      flexShrink: 0,
     },
     '&.cm-focused': { outline: 'none' },
     '.cm-scroller': { fontFamily: MONO_FONT_STACK, maxHeight: `${maxLines}lh` },
     '.cm-content': { minHeight: `${lines}lh` },
   });
 }
-const inputTheme = makeInputTheme(3, 8, 16);
-const compactInputTheme = makeInputTheme(1, 1, 4);
+const inputTheme = makeInputTheme(8, 16);
+const compactInputTheme = makeInputTheme(1, 4);
 
 /**
  * A plain, minimal CodeMirror editor with JavaScript syntax highlighting, used as a

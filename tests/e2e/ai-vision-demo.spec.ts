@@ -73,8 +73,8 @@ test.describe('AI Vision Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Now we can see the image we're going to ask the AI about. 
-      Now we will find out what this place is.`
+      `Here is the image we're going to ask the AI about. 
+      Let's find out what this place is.`
     );
 
     // ── 4. Silent validation — ensure folder is clean ─────────────────
@@ -95,7 +95,7 @@ test.describe('AI Vision Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Now let's click the Tools menu to start a new AI chat.`
+      `Next, let's click the Tools menu to start a new AI chat.`
     );
 
     await demoClick(toolsMenuButton);
@@ -121,7 +121,7 @@ test.describe('AI Vision Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We are now on the Chat tab view with the editor open. 
+      `This is the Chat tab, with the editor open and ready. 
       This is where we'll enter our question about the image.`
     );
 
@@ -156,13 +156,16 @@ test.describe('AI Vision Demo', () => {
     await demoClick(askAiButton);
 
     // ── 11. Wait for the AI response ──────────────────────────────────
+    // Wait until the answer is actually rendered, so the screenshot below shows
+    // the response the narration describes.
+    await expect(activeView(mainWindow).getByText('the iconic tidal island').first()).toBeVisible({ timeout: 30000 });
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'ai-response-visible');
     writeNarration(
       screenshotDir,
       step++,
-      `We now have our answer. 
+      `And there's our answer. 
       The AI identified the image as Mont Saint Michel, the iconic tidal island in Normandy, France.`
     );
 
@@ -182,12 +185,13 @@ test.describe('AI Vision Demo', () => {
     // ── 13. Navigate up one level ─────────────────────────────────────
     const upLevelButton = mainWindow.getByTestId('navigate-up-button');
     await expect(upLevelButton).toBeVisible({ timeout: 5000 });
+    await takeScreenshot(mainWindow, upLevelButton, screenshotDir, step++, 'highlight-up-level');
     writeNarration(
       screenshotDir,
       step++,
-      `We will click the "Up Level" button to go back up one level in the folder hierarchy to see where we started.`
+      `We're back on the Browse tab.
+      We will click the "Up Level" button to go back up one level in the folder hierarchy to see where we started.`
     );
-    await takeScreenshot(mainWindow, upLevelButton, screenshotDir, step++, 'highlight-up-level');
 
     await demoClick(upLevelButton);
     await mainWindow.waitForTimeout(1000);
@@ -196,7 +200,7 @@ test.describe('AI Vision Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We are now back where we started, and we can see that the AI's answer folder has been created alongside our original image. From here, we can continue the conversation by branching at any point, and we can do it all from the Browse tab or from the Chat tab.`
+      `This is the folder where we started, and we can see that the AI's answer folder has been created alongside our original image. From here, we can continue the conversation by branching at any point, and we can do it all from the Browse tab or from the Chat tab.`
     );
 
     logScreenshotSummary(screenshotDir);
