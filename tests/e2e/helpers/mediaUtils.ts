@@ -417,6 +417,38 @@ export async function demoRefresh(mainWindow: Page): Promise<void> {
 }
 
 /**
+ * Scrolls `scrollContainer` vertically so the top edge of `target` sits at the
+ * top of the container (less `marginPx`), showing as much of `target` as
+ * possible. The browser clamps the scroll, so near the end of the content the
+ * target simply ends up as high as it can go.
+ *
+ * Unlike `scrollIntoViewIfNeeded()`, which stops as soon as any part of the
+ * element is visible (leaving a tall element clipped at the bottom), this
+ * always aligns the element's top with the container's top.
+ *
+ * @param scrollContainer - The scrolling element (e.g. `browser-main-content`)
+ * @param target - The element to bring to the top of the container
+ * @param marginPx - Gap to leave above the target
+ *
+ * @example
+ * await scrollToTopOf(mainContent, mainContent.locator('.mermaid-diagram').first());
+ */
+export async function scrollToTopOf(
+  scrollContainer: Locator,
+  target: Locator,
+  marginPx = 8
+): Promise<void> {
+  const containerBox = await scrollContainer.boundingBox();
+  const targetBox = await target.boundingBox();
+  if (!containerBox || !targetBox) {
+    throw new Error('scrollToTopOf: container or target is not visible');
+  }
+  const delta = targetBox.y - containerBox.y - marginPx;
+  await scrollContainer.evaluate((el, dy) => { el.scrollTop += dy; }, delta);
+  await scrollContainer.page().waitForTimeout(500);
+}
+
+/**
  * Ensures a checkbox or radio button is in the specified checked state for demo recordings.
  * Highlights the element with a red border, then clicks it only if its current state
  * differs from the desired state. Works identically for both checkboxes and radio buttons.

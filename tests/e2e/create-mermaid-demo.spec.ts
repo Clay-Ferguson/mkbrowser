@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings, scrollToTopOf } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test - Mermaid Diagram Rendering
@@ -140,8 +140,18 @@ Now watch what happens when we save.`
 
     await demoClick(saveButton);
 
-    // Wait a moment for the rendering to complete
-    await mainWindow.waitForTimeout(1000);
+    // Other files in the folder may also render Mermaid diagrams, so locate *our*
+    // entry by its unique file name. Wait for its diagram to finish rendering (it
+    // shows a "Rendering diagram..." spinner first), then scroll the entry's header
+    // bar to the top of the browse pane so as much of the diagram as possible is
+    // on screen instead of clipped off the bottom.
+    const diagramEntry = mainContent
+      .getByTestId('browser-entry-markdown')
+      .filter({ has: mainWindow.locator('text="my-architecture-diagram.md"') })
+      .first();
+    await expect(diagramEntry.locator('.mermaid-diagram svg').first()).toBeVisible({ timeout: 10000 });
+    await mainWindow.waitForTimeout(500);
+    await scrollToTopOf(mainContent, diagramEntry);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'diagram-rendered');
     writeNarration(
