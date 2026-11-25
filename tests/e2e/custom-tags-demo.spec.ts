@@ -40,7 +40,7 @@ test.describe('Custom Hashtags Demo', () => {
       screenshotDir,
       step++,
       `Welcome to this quick tour of MK Browser.
-      In this demo we'll look at how you can define your own custom hashtags and then attach them to your files.
+      In this demo we'll look at how you can define your own custom hashtags and then attach them to files.
       Hashtags give you a simple, consistent way to label notes, for things like priority, type, or category, so they're easy to find later.
       We will start by opening the System Menu so we can take a look at where our hashtags are defined.`
     );
@@ -67,7 +67,7 @@ test.describe('Custom Hashtags Demo', () => {
       step++,
       `The System menu is open.
       This is where we manage the full library of hashtags that are available across all of our files.
-      We will click the "Tags" option to open the hashtag editor.`
+      We will click the tags option to open the hashtag editor.`
     );
 
     await demoClick(editHashtagsItem);
@@ -81,7 +81,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Here is the hashtag editor, which opens in its own "Tags" tab.
+      `Here is the hashtag editor, which opens in its own tags tab.
       On the left we have our categories, things like priority and type, and on the right are the individual tags that belong to the selected category.
       From here you can rename categories, add new ones, and create or edit tags along with a short description for each.
       We won't make any changes right now. We just wanted to show you where your hashtags live.
@@ -96,7 +96,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Now we'll click the "Browse" tab to switch back to the Browse view.`
+      `Now we'll click the Browse tab to switch back to the Browse view.`
     );
 
     await demoClick(browseTab);
@@ -117,7 +117,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We will click the "Create File" button at the top of the window to add a new file to our folder.`
+      `We will click the Create File button at the top of the window to add a new file to our folder.`
     );
 
     await demoClick(createButton);
@@ -130,7 +130,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We have named the file "my weekend tasks".
+      `We have named the file my weekend tasks.
       MK Browser will automatically add the "dot MD" extension for us.`
     );
 
@@ -139,7 +139,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Now we'll click the "Create" button to confirm and open the new file in the editor.`
+      `Now we'll click the Create button to confirm and open the new file in the editor.`
     );
 
     await demoClick(createDialogButton);
@@ -197,7 +197,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `First, let's mark this as high priority by checking the "P one" tag in the priority category.`
+      `First, let's mark this as high priority by checking the P1 tag in the priority category.`
     );
 
     await demoClick(p1Tag);
@@ -210,7 +210,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Next, let's classify it by checking the "note" tag in the type category.`
+      `Next, let's classify it by checking the note tag in the type category.`
     );
 
     await demoClick(noteTag);
@@ -232,7 +232,7 @@ test.describe('Custom Hashtags Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We will click "Save" to write our changes to disk.`
+      `We will click Save to write our changes to disk.`
     );
 
     await demoClick(saveButton);
