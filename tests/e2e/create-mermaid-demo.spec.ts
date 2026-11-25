@@ -91,7 +91,7 @@ We will create a diagram showing a modern web application architecture with mult
 ---
 config:
   flowchart:
-    padding: 20
+    padding: 10
   themeCSS: |
     .labelBkg { padding: 4px 10px; border: 1px solid #94a3b8; border-radius: 6px; background-color: #1e293b; }
     .labelBkg .edgeLabel, .labelBkg .edgeLabel p { background-color: transparent; }
