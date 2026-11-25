@@ -16,8 +16,8 @@ import { takeScreenshot, writeNarration, demoClick, insertText, activeView, logS
  *   4. Click the editor toolbar's Insert Object (cube) button and choose Contact, then fill
  *      in each property's value in the front matter YAML.
  *   5. Save the file and show the rendered object card.
- *   6. Run an Advanced search for `p.type=='contact'`, saved as "Contacts",
- *      and show the Search Results listing the one contact.
+ *   6. Search for "contact" in the search dialog's Types field, saved as
+ *      "Contacts", and show the Search Results listing the one contact.
  *
  * The seed config defines no types, so the "contact" name is always free, and
  * the type lives only in the test's throwaway user-data dir.
@@ -65,32 +65,14 @@ A date is shown on the card along with how long ago, or how far away, it is.`,
   },
 ];
 
-// Values typed into the inserted front matter, one line each, in the same order as PROPERTIES.
-const VALUES = [
-  {
-    line: 'name: Clay Ferguson',
-    narration: `The cursor is already waiting on the name line, so we'll type the contact's name.`,
-  },
-  {
-    line: 'birthday: 1980-05-12',
-    narration: `Next we replace today's date with the contact's real birthday.`,
-  },
-  {
-    line: 'cell_phone: 555-123-4567',
-    narration: `Then we'll enter the contact's cell phone number.`,
-  },
-  {
-    line: 'email: clay@example.com',
-    narration: `Next comes the contact's email address.`,
-  },
-  {
-    line: 'address: 1 Main St, Dallas, TX 75001',
-    narration: `Then we'll enter the contact's mailing address.`,
-  },
-  {
-    line: 'website: https://clay-ferguson.github.io',
-    narration: `And finally, we'll enter the address of the contact's website.`,
-  },
+// Front matter lines typed into the inserted object, in the same order as PROPERTIES.
+const VALUE_LINES = [
+  'name: Clay Ferguson',
+  'birthday: 1980-05-12',
+  'cell_phone: 555-123-4567',
+  'email: clay@example.com',
+  'address: 1 Main St, Dallas, TX 75001',
+  'website: https://clay-ferguson.github.io',
 ];
 
 /**
@@ -331,32 +313,32 @@ We will choose "Contact" to insert a new contact.`
     writeNarration(
       screenshotDir,
       step++,
-      `MK Browser has added the contact to the file's front matter, the YAML block at the very top of the file.
+      `MK Browser has added the contact to the file's property section at the very top of the file.
 There is a "type" line naming the type, followed by each of its properties in the order we defined them.
 The birthday starts out as today's date, and the other values are empty, ready for us to fill in.`
     );
 
     // ── 13. Fill in the property values ───────────────────────────────
-    // The cursor starts at the end of the `name:` line. Each value rewrites its
-    // whole line (Home, Shift+End, insert), which also replaces the pre-filled date.
-    for (const [index, value] of VALUES.entries()) {
+    // Filled in all at once with a single screenshot afterward: watching each
+    // value get typed would only drag the video out. The cursor starts at the
+    // end of the `name:` line. Each value rewrites its whole line (Home,
+    // Shift+End, insert), which also replaces the pre-filled date.
+    for (const [index, line] of VALUE_LINES.entries()) {
       if (index > 0) await mainWindow.keyboard.press('ArrowDown');
       await mainWindow.keyboard.press('Home');
       await mainWindow.keyboard.press('Shift+End');
-      await insertText(mainWindow, value.line, true);
-
-      await takeScreenshot(mainWindow, cmEditor, screenshotDir, step++, `value-${PROPERTIES[index]!.name}-entered`);
-      writeNarration(screenshotDir, step++, value.narration);
+      await insertText(mainWindow, line, true);
     }
 
     await mainWindow.keyboard.press('Control+End');
     await insertText(mainWindow, 'Met at the 2024 conference. Prefers email.', true);
 
-    await takeScreenshot(mainWindow, cmEditor, screenshotDir, step++, 'body-entered');
+    await takeScreenshot(mainWindow, cmEditor, screenshotDir, step++, 'values-entered');
     writeNarration(
       screenshotDir,
       step++,
-      `Below the front matter, the rest of the note is free form, so we've added a short note about this contact.`
+      `We've filled in all of the contact's properties.
+Below the front matter, the rest of the note is free form, so we've also added a short note about this contact.`
     );
 
     // ── 14. Save the file ─────────────────────────────────────────────
@@ -384,9 +366,9 @@ The birthday starts out as today's date, and the other values are empty, ready f
     writeNarration(
       screenshotDir,
       step++,
-      `The file is saved, and instead of raw YAML we now see a contact card at the top of the note.
+      `The file is saved, and we now see a contact card at the top of the file.
 The type name appears in the top right corner, and the name is the card's bold title.
-Each other property has its own line with an icon, the phone, email, address, and website are clickable links, and the birthday shows how long ago it was.
+Each other property has its own line with an icon, the phone, email, address, and website are clickable links.
 Clicking anywhere else on the card opens the editor again.`
     );
 
@@ -416,27 +398,29 @@ We will click the search icon to open the search menu.`
 
     await demoClick(newSearchItem);
 
-    const modeSelect = mainWindow.getByTestId('search-mode-select');
-    await expect(modeSelect).toBeVisible({ timeout: 5000 });
-    await takeScreenshot(mainWindow, modeSelect, screenshotDir, step++, 'highlight-advanced-mode');
+    // No search text is needed: the Types field alone is enough to search with,
+    // so the query box must start out empty or it would narrow the results.
+    await expect(mainWindow.getByTestId('search-query-input')).toHaveValue('', { timeout: 5000 });
+
+    const typesInput = mainWindow.getByTestId('search-type-input');
+    await expect(typesInput).toBeVisible({ timeout: 5000 });
+    await expect(typesInput).toBeEnabled();
+    await takeScreenshot(mainWindow, typesInput, screenshotDir, step++, 'highlight-types-field');
     writeNarration(
       screenshotDir,
       step++,
-      `We will select "Advanced" from the Mode dropdown, which lets us search with a JavaScript expression.`
+      `The search dialog has a "Types" field, which finds files by the type of object they hold.
+We don't need any search text at all, just the name of the type.`
     );
 
-    await modeSelect.selectOption('advanced');
+    await insertText(mainWindow, 'contact', true, typesInput);
 
-    const searchInput = mainWindow.getByTestId('search-query-input');
-    await expect(searchInput).toBeVisible({ timeout: 5000 });
-    await insertText(mainWindow, `p.type=='contact'`, true, searchInput);
-
-    await takeScreenshot(mainWindow, searchInput, screenshotDir, step++, 'contact-query-entered');
+    await takeScreenshot(mainWindow, typesInput, screenshotDir, step++, 'contact-type-entered');
     writeNarration(
       screenshotDir,
       step++,
-      `In an advanced search, a file's front matter properties can always be referenced through a variable named "p".
-So the expression p dot type, double equals, "contact", matches every file whose object is a contact.`
+      `We have entered "contact" into the Types field, which matches every file whose object is a contact.
+To find several kinds of objects at once, you can list more than one type, separated by commas.`
     );
 
     // Save the query as a named search definition (the ＋ button saves the current search)
@@ -465,7 +449,7 @@ So the expression p dot type, double equals, "contact", matches every file whose
     writeNarration(
       screenshotDir,
       step++,
-      `Now let's click the "Search" button to find our contacts.`
+      `Now let's click the search button to find our contacts.`
     );
 
     await demoClick(executeSearchButton);
