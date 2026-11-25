@@ -115,7 +115,7 @@ Since our paragraphs are set apart by blank lines, they make a natural dividing 
       screenshotDir,
       step++,
       `We have selected the file using its checkbox.
-Now let's open the Edit menu, where the Split option lives.`
+Now let's open the Edit menu, where the Split option is located.`
     );
 
     // Open the Edit menu and click Split.
@@ -244,7 +244,7 @@ We have entered three dashes as the delimiter to go between each file, which Mar
     writeNarration(
       screenshotDir,
       step++,
-      `We have also checked Include Filenames, which puts each file's name in bold above its content, so we'll be able to see which file each paragraph came from.
+      `We have also checked Include File names, which puts each file's name in bold above its content, so we'll be able to see which file each paragraph came from.
 Now we click Join.`
     );
 
