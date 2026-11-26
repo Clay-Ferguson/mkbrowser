@@ -1,0 +1,1 @@
+Ahoy! I've heard there's a newfangled device sailors put on their ships nowadays to navigate better. Have you heard of it?

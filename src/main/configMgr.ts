@@ -12,10 +12,8 @@ import fs from 'node:fs';
 import { app } from 'electron';
 import * as yaml from 'js-yaml';
 import { loadYaml } from '../shared/yamlUtil';
-import { enforceDefaultAIModels } from './ai/aiModel';
-import { defaultSettings, cloneDefaultSettings, parseConfigYaml, parseAIModelCatalog, coerceNonNegativeNumber } from './configSchema';
-import aiModelsYaml from './ai/ai-models.yaml?raw';
-import type { AppConfig, AIModelConfig } from '../shared/shared';
+import { defaultSettings, cloneDefaultSettings, parseConfigYaml, coerceNonNegativeNumber } from './configSchema';
+import type { AppConfig } from '../shared/shared';
 import { logger } from '../shared/logUtil';
 import { writeFileAtomic } from './atomicWrite';
 
@@ -31,60 +29,50 @@ export { defaultSettings };
 // AI defaults
 // ---------------------------------------------------------------------------
 
-// The built-in model catalog lives in `ai/ai-models.yaml` rather than in code —
-// a model list is data, and YAML keeps it readable and diffable without a
-// TypeScript edit per pricing change.
-//
-// Vite's `?raw` suffix inlines the file's *text* into the main-process bundle at
-// build time, so there is no file read, no path to resolve across
-// dev/packaged/vitest, and no way for the asset to go missing from the asar —
-// the failure mode AGENTS.md warns about, where a packaging mistake is invisible
-// to lint, unit tests, and `npm run package` alike. Parsing still happens at
-// runtime, so the YAML remains the single source of truth.
-const catalog = parseAIModelCatalog(loadYaml(aiModelsYaml));
+// There are deliberately NO built-in AI models: a fresh install has an empty
+// `aiModels`, and the user defines every model themselves in the AI Models tab.
+// See: (USER_GUIDE.md#configuring-ai-models)
 
-const DEFAULT_AI_MODELS: AIModelConfig[] = catalog.models;
-const DEFAULT_AI_MODEL = catalog.defaultModel;
-
+/** Trim and lowercase a model name for case-insensitive matching. */
+function modelKey(name: string): string {
+  return name.trim().toLowerCase();
+}
 
 /**
  * Return a new AppConfig with AI-related fields populated to sensible defaults.
  * The input object is never modified. `changed` is true when any field was added
  * or normalised (caller should persist when true).
+ *
+ * The active model (`aiModel`) is canonicalized to the exact name of the model it
+ * matches (case-insensitively); when it names no model it falls back to the first
+ * model, or '' when there are none. `aiModels` is left absent when absent — there
+ * is nothing to default it to.
  */
 export function withDefaultAISettings(config: AppConfig): { config: AppConfig; changed: boolean } {
   let changed = false;
   const next = { ...config };
 
-  // Always enforce built-in default models (case-insensitive name matching).
-  // Defaults overwrite any user-defined model with the same name.
-  const enforced = enforceDefaultAIModels<AIModelConfig>({
-    existingModels: next.aiModels,
-    defaultModels: DEFAULT_AI_MODELS,
-    selectedModelName: next.aiModel,
-    defaultSelectedModelName: DEFAULT_AI_MODEL,
-  });
-
-  if (enforced.changed) {
-    changed = true;
+  if (next.aiModels) {
+    // Ensure pricing fields are valid non-negative numbers.
+    next.aiModels = next.aiModels.map((m) => {
+      const inputPer1M = coerceNonNegativeNumber(m.inputPer1M) ?? 0;
+      const outputPer1M = coerceNonNegativeNumber(m.outputPer1M) ?? 0;
+      if (m.inputPer1M !== inputPer1M || m.outputPer1M !== outputPer1M) {
+        changed = true;
+        return { ...m, inputPer1M, outputPer1M };
+      }
+      return m;
+    });
   }
 
-  next.aiModels = enforced.models;
-  next.aiModel = enforced.selectedModel;
-
-  // Ensure pricing fields exist and are valid numbers for all models.
-  // Older configs won't have these fields; we normalize and persist once.
-  next.aiModels = next.aiModels.map((m) => {
-    const inputPer1M = coerceNonNegativeNumber(m.inputPer1M) ?? 0;
-    const outputPer1M = coerceNonNegativeNumber(m.outputPer1M) ?? 0;
-
-    if (m.inputPer1M !== inputPer1M || m.outputPer1M !== outputPer1M) {
-      changed = true;
-      return { ...m, inputPer1M, outputPer1M };
-    }
-
-    return m;
-  });
+  const models = next.aiModels ?? [];
+  const selectedKey = modelKey(next.aiModel ?? '');
+  const match = selectedKey ? models.find((m) => modelKey(m.name) === selectedKey) : undefined;
+  const aiModel = match ? match.name : (models[0]?.name ?? '');
+  if (next.aiModel !== aiModel) {
+    next.aiModel = aiModel;
+    changed = true;
+  }
 
   if (next.aiEnabled === undefined) {
     next.aiEnabled = false;
@@ -147,26 +135,6 @@ function ensureConfigDir(): void {
 let _writeChain: Promise<void> = Promise.resolve();
 
 /**
- * Project the in-memory config to the shape that belongs on disk.
- *
- * In memory, `aiModels` is the merged list: the built-in catalog from
- * ai-models.yaml (`readonly: true`) followed by the user's own models
- * (`readonly: false`). Only the latter are the user's data. The built-ins are
- * re-merged from the catalog on every load by withDefaultAISettings(), so
- * writing them out is at best dead weight and at worst misleading — a copy of
- * our catalog frozen into the user's file, showing prices and model IDs that no
- * longer match the ones the app actually uses after a catalog update.
- *
- * Dropping them is lossless: nothing reads a built-in back from config.yaml.
- * `aiModel` (the selection) is stored as a name, so it can still name a
- * built-in without that entry being present here.
- */
-function toPersistedConfig(config: AppConfig): AppConfig {
-  if (!config.aiModels) return config;
-  return { ...config, aiModels: config.aiModels.filter((m) => !m.readonly) };
-}
-
-/**
  * Snapshot the current config and enqueue an atomic, fsync'd write to disk.
  * Returns a promise that resolves once THIS snapshot has been persisted (or
  * rejects if its write failed). The stored chain tail swallows errors so a
@@ -175,7 +143,7 @@ function toPersistedConfig(config: AppConfig): AppConfig {
 function persistConfig(): Promise<void> {
   // Snapshot synchronously at call time so the queued write reflects the config
   // as of this call, regardless of later mutations.
-  const data = yaml.dump(toPersistedConfig(_config));
+  const data = yaml.dump(_config);
   const run = _writeChain.then(async () => {
     await fs.promises.mkdir(configDir(), { recursive: true });
     await writeFileAtomic(configFile(), data);
@@ -332,7 +300,7 @@ export function getConfig(): Readonly<AppConfig> {
 }
 
 // Keys that withDefaultAISettings reads or writes. Used to skip the
-// enforcement pass when an unrelated key is the only thing changing.
+// normalization pass when an unrelated key is the only thing changing.
 const AI_KEYS: ReadonlyArray<keyof AppConfig> = [
   'aiEnabled',
   'aiModels',
@@ -361,9 +329,9 @@ export function updateConfig(updates: Partial<AppConfig>): Promise<void> {
     }
   }
 
-  // Only run the AI-default enforcement pass when the update touches an
-  // AI-related key. Non-AI writes (e.g. curSubFolder, settings) must not
-  // silently mutate aiModels/aiModel as a side-effect.
+  // Only run the AI normalization pass when the update touches an AI-related
+  // key. Non-AI writes (e.g. curSubFolder, settings) must not silently mutate
+  // aiModels/aiModel as a side-effect.
   if (AI_KEYS.some((k) => k in updates)) {
     _config = withDefaultAISettings(_config).config;
   }

@@ -23,7 +23,7 @@ test.describe('AI Chat Persona Demo', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
-    await resetSettings(mainWindow, { aiEnabled: true });
+    await resetSettings(mainWindow, { aiEnabled: true, seedModel: true });
 
     // Delete any leftover HUMAN.md in the folder we start out in (mkbrowser-test).
     // If it already exists, starting a new chat warns that the file is present,
@@ -75,11 +75,13 @@ test.describe('AI Chat Persona Demo', () => {
 
     //==========
     await mainWindow.waitForTimeout(500);
+    await expect(mainWindow.getByTestId('ai-model-select')).toHaveValue('Local Llama');
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'ai-settings-view');
     writeNarration(
       screenshotDir,
       step++,
-      `We are now in the AI Settings view. We will scroll down to the Persona Section.`
+      `We are now in the AI Settings view. Up top is the AI Model we've chosen to chat with.
+      We will scroll down to the Persona Section.`
     );
 
     //==========

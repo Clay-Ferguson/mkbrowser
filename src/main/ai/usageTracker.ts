@@ -1,8 +1,9 @@
 /**
  * usageTracker.ts — AI Token Usage Tracking (main process only)
  *
- * Persists cumulative token usage to ~/.config/mk-browser/ai-usage.json.
- * Provides estimated cost calculations based on known per-token pricing.
+ * Persists cumulative token usage and estimated cost, per model, to
+ * ~/.config/mk-browser/ai-usage.json. Costs come from each model's own
+ * $/1M-token prices (AI Models tab).
  *
  * See: (USER_GUIDE.md#ai-usage-statistics)
  */
@@ -11,55 +12,22 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { app } from 'electron';
 import { logger } from '../../shared/logUtil';
+import type { AIModelConfig, AIUsageWithCosts, ModelUsage } from '../../shared/shared';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-/** Per-provider cumulative usage. */
-export interface ProviderUsage {
-  inputTokens: number;
-  outputTokens: number;
-  requests: number;
-}
-
-/** Root shape of the ai-usage.json file. */
-export interface AIUsageData {
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  totalRequests: number;
-  byProvider: Record<string, ProviderUsage>;
-}
-
-/** Usage data enriched with estimated costs. */
-export interface AIUsageWithCosts extends AIUsageData {
-  estimatedCosts: Record<string, number>;   // provider → USD
-  totalEstimatedCost: number;
-}
-
-// ---------------------------------------------------------------------------
-// Pricing table (USD per 1 million tokens)
-// ---------------------------------------------------------------------------
-
-interface PricingEntry {
-  inputPer1M: number;   // USD per 1M input tokens
-  outputPer1M: number;  // USD per 1M output tokens 
-}
-
 /**
- * Per-provider pricing used for cost estimation. Cumulative usage isn't tracked
- * per-model, so each provider's cheapest tier is applied as a conservative
- * default.
+ * Root shape of the ai-usage.json file. Usage is keyed by model *name*, and each
+ * request's cost is computed from that model's own $/1M prices at the moment it
+ * is recorded, so renaming, repricing, or deleting a model later never rewrites
+ * history.
  */
-/** Fallback pricing for unknown providers (also used for local llama.cpp). */
-const DEFAULT_PRICING: PricingEntry = { inputPer1M: 0, outputPer1M: 0 };
+export type AIUsageData = AIUsageWithCosts;
 
-const PROVIDER_DEFAULT_PRICING: Record<string, PricingEntry> = {
-  ANTHROPIC: { inputPer1M: 0.25,  outputPer1M: 1.25 },
-  OPENAI:    { inputPer1M: 0.10,  outputPer1M: 0.40 },
-  GOOGLE:    { inputPer1M: 0.075, outputPer1M: 0.30 },
-  LLAMACPP:  DEFAULT_PRICING,
-};
+/** Bucket used when a request completes with no resolvable active model. */
+const UNKNOWN_MODEL = '(unknown)';
 
 // ---------------------------------------------------------------------------
 // File I/O
@@ -74,21 +42,43 @@ function defaultUsage(): AIUsageData {
     totalInputTokens: 0,
     totalOutputTokens: 0,
     totalRequests: 0,
-    byProvider: {},
+    totalCost: 0,
+    byModel: {},
   };
 }
 
-/** Read and parse ai-usage.json, returning defaults if it doesn't exist. */
+/** A finite number, or 0. */
+function num(v: unknown): number {
+  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
+}
+
+/**
+ * Read and parse ai-usage.json, returning defaults if it doesn't exist or is
+ * unreadable. Fields are coerced individually, so a file in an older shape just
+ * reads as zeros rather than failing.
+ */
 export async function loadUsage(): Promise<AIUsageData> {
   try {
     const raw = await fs.promises.readFile(USAGE_FILE, 'utf-8');
-    const parsed = JSON.parse(raw) as AIUsageData;
-    // Ensure all expected fields exist (forward-compatible with older files)
+    const parsed = JSON.parse(raw) as Partial<AIUsageData> | null;
+    const byModel: Record<string, ModelUsage> = {};
+    const rawByModel = parsed?.byModel;
+    if (rawByModel && typeof rawByModel === 'object') {
+      for (const [name, u] of Object.entries(rawByModel)) {
+        byModel[name] = {
+          inputTokens: num(u?.inputTokens),
+          outputTokens: num(u?.outputTokens),
+          requests: num(u?.requests),
+          cost: num(u?.cost),
+        };
+      }
+    }
     return {
-      totalInputTokens: parsed.totalInputTokens ?? 0, 
-      totalOutputTokens: parsed.totalOutputTokens ?? 0, 
-      totalRequests: parsed.totalRequests ?? 0, 
-      byProvider: parsed.byProvider ?? {}, 
+      totalInputTokens: num(parsed?.totalInputTokens),
+      totalOutputTokens: num(parsed?.totalOutputTokens),
+      totalRequests: num(parsed?.totalRequests),
+      totalCost: num(parsed?.totalCost),
+      byModel,
     };
   } catch {
     // Missing or corrupt file — fall through to defaults
@@ -122,28 +112,39 @@ function enqueueUsageWrite(task: () => Promise<void>, label: string): Promise<vo
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Estimated USD cost of a request at the given model's prices (0 when the model is unknown). */
+export function estimateCost(model: AIModelConfig | undefined, inputTokens: number, outputTokens: number): number {
+  if (!model) return 0;
+  return (inputTokens / 1_000_000) * model.inputPer1M
+       + (outputTokens / 1_000_000) * model.outputPer1M;
+}
+
 /**
- * Record token usage from a single AI request. Loads current totals,
- * increments, and persists back to disk.
+ * Record token usage from a single AI request against the model that served it.
+ * Loads current totals, increments, and persists back to disk.
  */
 export function recordUsage(
-  provider: string,
+  model: AIModelConfig | undefined,
   inputTokens: number,
   outputTokens: number
 ): Promise<void> {
+  const name = model?.name ?? UNKNOWN_MODEL;
+  const cost = estimateCost(model, inputTokens, outputTokens);
   return enqueueUsageWrite(async () => {
     const data = await loadUsage();
 
     data.totalInputTokens += inputTokens;
     data.totalOutputTokens += outputTokens;
     data.totalRequests += 1;
+    data.totalCost += cost;
 
-    if (!data.byProvider[provider]) {
-      data.byProvider[provider] = { inputTokens: 0, outputTokens: 0, requests: 0 };
-    }
-    data.byProvider[provider].inputTokens += inputTokens;
-    data.byProvider[provider].outputTokens += outputTokens;
-    data.byProvider[provider].requests += 1;
+    const entry = data.byModel[name] ?? { inputTokens: 0, outputTokens: 0, requests: 0, cost: 0 };
+    data.byModel[name] = {
+      inputTokens: entry.inputTokens + inputTokens,
+      outputTokens: entry.outputTokens + outputTokens,
+      requests: entry.requests + 1,
+      cost: entry.cost + cost,
+    };
 
     await saveUsage(data);
   }, 'Failed to record AI usage');
@@ -159,35 +160,10 @@ export function resetUsage(): Promise<void> {
 }
 
 /**
- * Estimate the USD cost for a number of tokens at a provider's default pricing.
- */
-export function estimateCost(
-  provider: string,
-  inputTokens: number,
-  outputTokens: number
-): number {
-  const pricing = PROVIDER_DEFAULT_PRICING[provider] ?? DEFAULT_PRICING;
-  return (inputTokens / 1_000_000) * pricing.inputPer1M
-       + (outputTokens / 1_000_000) * pricing.outputPer1M;
-}
-
-/**
- * Load usage data and compute estimated costs per provider.
- * Uses provider default pricing for cost estimation (since we don't
- * track which specific model was used per-request in cumulative mode).
+ * Load usage data (totals and per-model breakdown, with costs).
  *
  * See: (USER_GUIDE.md#ai-usage-statistics)
  */
-export async function getUsageWithCosts(): Promise<AIUsageWithCosts> {
-  const data = await loadUsage();
-  const estimatedCosts: Record<string, number> = {};
-  let totalEstimatedCost = 0;
-
-  for (const [provider, usage] of Object.entries(data.byProvider)) {
-    const cost = estimateCost(provider, usage.inputTokens, usage.outputTokens);
-    estimatedCosts[provider] = cost;
-    totalEstimatedCost += cost;
-  }
-
-  return { ...data, estimatedCosts, totalEstimatedCost };
+export function getUsageWithCosts(): Promise<AIUsageWithCosts> {
+  return loadUsage();
 }

@@ -22,7 +22,7 @@ interface AppTabButtonsProps {
   onOpenRecentFolder: (folder: string) => void;
 }
 
-// Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings, AI Settings, Types, Tags, Calendar, Help
+// Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings, AI Settings, AI Models, Types, Tags, Calendar, Help
 // See: (application_tabs.md#which-tabs-are-shown)
 // See: (USER_GUIDE.md#tab-bar)
 const allTabs: TabConfig[] = [
@@ -33,6 +33,8 @@ const allTabs: TabConfig[] = [
   { id: 'folder-graph', label: 'Graph' },
   { id: 'settings', label: 'Settings' },
   { id: 'ai-settings', label: 'AI Settings' },
+  // Opened only by AI Settings' "Configure Models" button (no menu item). See: (USER_GUIDE.md#configuring-ai-models)
+  { id: 'ai-models', label: 'AI Models' },
   { id: 'types-editor', label: 'Types' },
   { id: 'tags-editor', label: 'Tags' },
   { id: 'calendar', label: 'Calendar' },
@@ -108,6 +110,7 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
     'folder-graph': makeCloseHandler('folder-graph', () => setFolderGraph(null)),
     'settings': makeCloseHandler('settings', () => hideTab('settings')),
     'ai-settings': makeCloseHandler('ai-settings', () => hideTab('ai-settings')),
+    'ai-models': makeCloseHandler('ai-models', () => hideTab('ai-models')),
     'types-editor': makeCloseHandler('types-editor', () => hideTab('types-editor')),
     'tags-editor': makeCloseHandler('tags-editor', () => hideTab('tags-editor')),
     'calendar': makeCloseHandler('calendar', () => hideTab('calendar')),

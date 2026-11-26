@@ -139,8 +139,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [AI Settings](#ai-settings)
     * [Enable AI Features](#enable-ai-features)
     * [AI Model](#ai-model)
-      * [Create / Edit / Delete models](#create--edit--delete-models)
-    * [llama.cpp Base URL](#llamacpp-base-url)
+    * [Configuring AI Models](#configuring-ai-models)
     * [Using LM Studio](#using-lm-studio)
     * [Using llama.cpp Directly](#using-llamacpp-directly)
     * [Agentic Mode](#agentic-mode)
@@ -190,7 +189,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
 
 # Tab Bar
 
-MkBrowser uses a tab bar at the top of the window to switch between views: **Browse**, **AI Chat**, **Search**, **Analysis**, **Graph**, **Settings**, **AI Settings**, **Types**, **Tags**, **Calendar**, and **Help**. The Browse tab is always present. The others appear only when they are active (e.g. Search appears after you run a search; AI Chat appears when you navigate into an AI conversation folder).
+MkBrowser uses a tab bar at the top of the window to switch between views: **Browse**, **AI Chat**, **Search**, **Analysis**, **Graph**, **Settings**, **AI Settings**, **AI Models**, **Types**, **Tags**, **Calendar**, and **Help**. The Browse tab is always present. The others appear only when they are active (e.g. Search appears after you run a search; AI Chat appears when you navigate into an AI conversation folder).
 
 Every tab except Browse and AI Chat has an **×** button next to its label. Clicking it closes the tab and returns you to the Browse view. Closing a tab also discards its associated state (e.g. closing Search clears the results; closing Analysis clears the analysis data). The AI Chat tab has no **×**: it follows the folder you are browsing, and goes away when you leave the conversation.
 
@@ -1687,7 +1686,7 @@ A flattener can walk the folder tree and produce a single Markdown document (for
 
 ## AI Settings
 
-All AI-related configuration lives in **Settings → AI Settings**.
+All AI-related configuration lives in **AI Settings** (System menu → **AI Settings**), plus the [AI Models tab](#configuring-ai-models) it opens.
 
 ### Enable AI Features
 
@@ -1696,54 +1695,35 @@ Turn on **Enable AI Features** to show AI chat features in the UI.
 If this is off:
 
 - AI chat features are hidden/disabled.
-- Agentic Mode, model selection, and usage statistics are not shown.
+- Agentic Mode, model selection, personas, and usage statistics are not shown.
 
 ### AI Model
 
-Use the **AI Model** dropdown to pick which model MkBrowser will use for chat.
+MkBrowser has **no built-in AI models**. Until you define at least one, the **AI Model** section of AI Settings says *No AI models are defined yet*, and any AI request fails with a message telling you to add one.
 
-MkBrowser stores a list of named model entries; each entry has:
+Once you have defined models, the **AI Model** dropdown lists them by name; the one selected is the model every AI feature uses. The first model you define is selected automatically.
 
-- **Name**: A friendly label shown in the dropdown (e.g. “Claude Haiku”).
-- **Provider**: One of `ANTHROPIC`, `OPENAI`, `GOOGLE`, or `LLAMACPP`.
-- **Model**: The provider's model identifier string (e.g. `claude-3-haiku-20240307`, `gpt-4.1-nano`, `gemini-2.0-flash-lite`, or a llama.cpp model name).
+Click **Configure Models** (next to the dropdown) to open the [AI Models tab](#configuring-ai-models), where models are added, changed, and deleted. That button is the only way to open the AI Models tab — there is no menu item for it.
 
-#### Create / Edit / Delete models
+### Configuring AI Models
 
-Next to the model dropdown are three small icon buttons:
+The **AI Models** tab is laid out like the [Types Editor](#defining-your-own-types-types-editor): the list of your models, by name, on the left, and the details of the selected model on the right.
 
-- **Create** (plus icon): Create a new model entry.
-- **Edit** (pencil icon): Edit the currently selected model entry.
-- **Delete** (trash icon): Delete the currently selected model entry.
+- **＋** (next to the **AI Models** heading) adds a model and puts its name in edit mode — type a name and press Enter.
+- Hover a model to show **✎** (rename) and **✕** (delete, after a confirmation).
+- The active model (the one selected on AI Settings) is marked **Active**.
 
-When you create or edit a model, you’ll be asked for:
+Each model has these details:
 
-- **Name**
-- **Provider**
-- **Model**
+- **Provider** — the kind of API the model speaks: **Anthropic**, **OpenAI / OpenAI-compatible**, or **Google**. Use *OpenAI-compatible* for local servers such as [LM Studio](#using-lm-studio) and [llama.cpp](#using-llamacpp-directly), and for any hosted service that offers an OpenAI-compatible API.
+- **Model ID** — the identifier the provider expects, e.g. `claude-haiku-4-5`, `gpt-4.1-mini`, `gemini-2.5-flash`, or a local model name.
+- **Base URL** — where the API lives. Leave it **blank** to use the provider's standard endpoint (shown as the field's placeholder). For a local server, enter its address, e.g. `http://localhost:8080/v1` for llama.cpp or `http://localhost:1234/v1` for LM Studio.
+- **Vision** — check this if the model accepts images. Prompts containing images are refused for a model without it.
+- **Input $/1M** and **Output $/1M** — the price per million input and output tokens, in US dollars. These are used for the estimated costs in [AI Usage Statistics](#ai-usage-statistics). Use `0` for a free or local model.
 
-If you try to create a new entry with the same **Name** as an existing entry, MkBrowser will prompt you to confirm overwriting the existing one.
+Changes are kept as a draft (the footer says *Unsaved changes*) until you click **Save**; **Revert** discards them. Save checks that every model has a unique name (upper/lower case is ignored), a Model ID, valid prices, and either a blank Base URL or one starting with `http://` or `https://`. If the active model was renamed, it stays active under its new name; if it was deleted, the first remaining model becomes active.
 
-The model table also shows two columns that are useful for cost planning:
-
-- **Vision** — a checkmark (✓) indicates the model supports image inputs (multimodal prompts).
-- **Input $/1M / Output $/1M** — the estimated cost per million input and output tokens, respectively. These are used to compute the figures shown in AI Usage Statistics.
-
-### llama.cpp Base URL
-
-The **Base URL** field (under **llama.cpp Server**) is only shown when the selected model's **Provider** is `LLAMACPP`.
-
-The `LLAMACPP` provider works with any local server that speaks the OpenAI-compatible chat API. The two common choices are [LM Studio](#using-lm-studio) and a plain [llama.cpp `llama-server`](#using-llamacpp-directly); both are covered below.
-
-- Default: `http://localhost:8080/v1` (llama.cpp's default port)
-- For LM Studio, use `http://localhost:1234/v1`
-- Change this if your server is running on a different host or port.
-
-This setting is saved when the field loses focus (click away / tab out).
-
-MkBrowser does **not** start, stop, or otherwise manage the local server process — it only sends requests to whatever is already listening at this URL. Running the server is entirely up to you; start it before selecting a `LLAMACPP` model, and if it isn't reachable, AI requests will simply fail with a connection error.
-
-No API key is needed for local servers.
+MkBrowser does **not** start, stop, or otherwise manage a local model server — it only sends requests to whatever is already listening at the model's Base URL. If nothing is listening there, AI requests fail with a connection error. No API key is needed for a local server.
 
 ### Using LM Studio
 
@@ -1775,13 +1755,14 @@ Note that starting the server with `lms server start` does **not** turn on the s
 
 **3. Point MkBrowser at LM Studio**
 
-1. In **Settings → AI Settings**, select a model whose **Provider** is `LLAMACPP` (the built-in **Local LLAMA.CPP** entry works).
-2. Set **Base URL** to `http://localhost:1234/v1` (LM Studio's default port is `1234`; if you changed it in LM Studio, use that port).
+1. In **AI Settings**, click **Configure Models** and add a model whose **Provider** is **OpenAI / OpenAI-compatible**.
+2. Set its **Base URL** to `http://localhost:1234/v1` (LM Studio's default port is `1234`; if you changed it in LM Studio, use that port), then **Save**.
+3. Back in **AI Settings**, select the model in the **AI Model** dropdown (the first model you define is selected automatically).
 
 **Choosing the model**
 
-- With the built-in entry (model name `local`), LM Studio answers with whichever model is currently loaded.
-- To use a specific model, create a `LLAMACPP` model entry whose **Model** is LM Studio's model identifier (for example `google/gemma-4-e2b`). You can see the identifiers in LM Studio or by opening `http://localhost:1234/v1/models` in a browser. LM Studio's just-in-time model loading (on by default) loads that model on request if it isn't loaded yet.
+- With a **Model ID** of `local`, LM Studio answers with whichever model is currently loaded.
+- To use a specific model, set the **Model ID** to LM Studio's model identifier (for example `google/gemma-4-e2b`). You can see the identifiers in LM Studio or by opening `http://localhost:1234/v1/models` in a browser. LM Studio's just-in-time model loading (on by default) loads that model on request if it isn't loaded yet.
 
 **Context length**
 
@@ -1820,10 +1801,11 @@ The server listens only on `localhost` by default. Leave the terminal open while
 
 **2. Point MkBrowser at it**
 
-1. In **Settings → AI Settings**, select a model whose **Provider** is `LLAMACPP` (the built-in **Local LLAMA.CPP** entry works).
-2. Set **Base URL** to `http://localhost:8080/v1` (this is already the default). If you used a different `--port`, change the port in the URL to match.
+1. In **AI Settings**, click **Configure Models** and add a model whose **Provider** is **OpenAI / OpenAI-compatible**.
+2. Set its **Base URL** to `http://localhost:8080/v1`. If you used a different `--port`, change the port in the URL to match. Then **Save**.
+3. Back in **AI Settings**, select the model in the **AI Model** dropdown (the first model you define is selected automatically).
 
-`llama-server` serves exactly one model — the one you started it with — so the **Model** name in your MkBrowser entry doesn't matter; `local` is fine.
+`llama-server` serves exactly one model — the one you started it with — so the **Model ID** in your MkBrowser entry doesn't matter; `local` is fine.
 
 **Thinking models**
 
@@ -1863,15 +1845,15 @@ Notes:
 
 ### API keys for cloud providers
 
-For cloud providers (`ANTHROPIC`, `OPENAI`, `GOOGLE`), authentication is done via environment variables at app launch.
+For cloud providers, authentication is done via environment variables set before the app launches. Each model uses its **Provider**'s variable:
 
-Common environment variables:
+- **Anthropic** — `ANTHROPIC_API_KEY`
+- **OpenAI / OpenAI-compatible** — `OPENAI_API_KEY`
+- **Google** — `GOOGLE_API_KEY`
 
-- `ANTHROPIC_API_KEY`
-- `OPENAI_API_KEY`
-- `GOOGLE_API_KEY`
+An OpenAI-compatible model with a **Base URL** set doesn't need `OPENAI_API_KEY` (local servers ignore the key); if the variable is set, it is sent to that URL.
 
-MkBrowser does not currently provide UI fields for entering API keys.
+MkBrowser does not provide UI fields for entering API keys, and never stores them in its config file.
 
 ### AI Usage Statistics
 
@@ -1882,7 +1864,9 @@ It shows:
 - **Total Requests**
 - **Total Tokens** (input + output)
 - **Estimated Total Cost**
-- A per-provider breakdown of requests, tokens, and estimated cost
+- A per-model breakdown of requests, tokens, and estimated cost
+
+Each request's cost is computed when it is made, from the **Input $/1M** and **Output $/1M** prices of the model that served it (see [Configuring AI Models](#configuring-ai-models)). Changing a model's prices later doesn't change past costs, and usage stays listed under the name the model had at the time.
 
 Use **Reset** to clear the saved usage stats. This cannot be undone.
 

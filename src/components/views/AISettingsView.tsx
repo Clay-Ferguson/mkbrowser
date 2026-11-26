@@ -1,26 +1,21 @@
 import { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
-import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { saveAiConfig } from '../../renderer/config';
 import { runOp } from '../../renderer/runOp';
 import { logger } from '../../shared/logUtil';
-import { useAS, useIsActiveView } from '../../store';
-import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../shared/shared';
+import { setCurrentView, showTab, useAS, useIsActiveView } from '../../store';
+import type { AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../shared/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../shared/ai/aiPrompts';
-import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import AlertDialog from '../dialogs/AlertDialog';
 import CheckboxField from '../dialogs/common/CheckboxField';
 import NameInputDialog from '../dialogs/common/NameInputDialog';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_SAVE, BUTTON_CLASS_DLG_RED, BUTTON_CLASS_GREEN, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_RED, BUTTON_CLASS_RED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_SAVE, BUTTON_CLASS_DLG_RED, BUTTON_CLASS_LINK_RED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
 
 // The built-in persona: selectable, but not editable. See: (USER_GUIDE.md#ai-personas)
 const DEFAULT_PERSONA_NAME = '[Default Agent]';
-
-/** Model names are matched case-insensitively and ignoring surrounding whitespace. */
-const normalizeModelKey = (name: string) => name.trim().toLowerCase();
 
 /** The saved prompt text for a persona: the built-in default, or the stored prompt ('' if missing). */
 function personaPrompt(name: string, prompts: AIRewritePromptDef[]): string {
@@ -114,9 +109,10 @@ function PersonaEditor({ personaName, aiRewritePrompts, onSelect, onNew, onSave,
 }
 
 /**
- * Settings page for all AI-related configuration: enabling AI, selecting and
- * managing model configs, pointing at a local llama.cpp server, editing
- * rewrite personas, and viewing per-provider usage statistics.
+ * Settings page for all AI-related configuration: enabling AI, choosing the
+ * active model (models themselves are defined on the AI Models tab, opened by
+ * the "Configure Models" button here), editing rewrite personas, and viewing
+ * per-model usage statistics.
  *
  * AI config lives on AppConfig (not AppSettings), so it is mirrored into the
  * store via `saveAiConfig` to keep the editor, ThreadView, and this form in sync
@@ -137,7 +133,6 @@ function AISettingsView() {
     aiRewriteMode,
     aiRewritePrompt,
     aiRewritePrompts,
-    llamacppBaseUrl: storedLlamacppBaseUrl,
     agenticAllowedFolders: storedAgenticAllowedFolders,
   } = useAS(s => s.aiConfig);
   // The active persona is always read from the store (ThreadView can change it
@@ -145,16 +140,15 @@ function AISettingsView() {
   // See: (ai_chat.md#what-the-view-shows)
   const personaName = aiRewritePrompt || DEFAULT_PERSONA_NAME;
 
-  // Text fields keep a local draft for keystroke responsiveness, persisted on
-  // blur. The store stays the source of truth: when its value changes under us
-  // (e.g. saveAiConfig rolling back a failed write) the draft is resynced.
-  const [llamacppBaseUrl, setLlamacppBaseUrl] = useState(storedLlamacppBaseUrl);
+  // The Allowed Folders textarea keeps a local draft for keystroke
+  // responsiveness, persisted on blur. The store stays the source of truth: when
+  // its value changes under us (e.g. saveAiConfig rolling back a failed write)
+  // the draft is resynced.
   const [agenticAllowedFolders, setAgenticAllowedFolders] = useState(storedAgenticAllowedFolders);
-  const [prevStored, setPrevStored] = useState({ url: storedLlamacppBaseUrl, folders: storedAgenticAllowedFolders });
-  if (prevStored.url !== storedLlamacppBaseUrl || prevStored.folders !== storedAgenticAllowedFolders) {
-    setPrevStored({ url: storedLlamacppBaseUrl, folders: storedAgenticAllowedFolders });
-    if (prevStored.url !== storedLlamacppBaseUrl) setLlamacppBaseUrl(storedLlamacppBaseUrl);
-    if (prevStored.folders !== storedAgenticAllowedFolders) setAgenticAllowedFolders(storedAgenticAllowedFolders);
+  const [prevStoredFolders, setPrevStoredFolders] = useState(storedAgenticAllowedFolders);
+  if (prevStoredFolders !== storedAgenticAllowedFolders) {
+    setPrevStoredFolders(storedAgenticAllowedFolders);
+    setAgenticAllowedFolders(storedAgenticAllowedFolders);
   }
 
   const [showPromptDeleteConfirm, setShowPromptDeleteConfirm] = useState(false);
@@ -163,20 +157,9 @@ function AISettingsView() {
   const [showNewPersonaDialog, setShowNewPersonaDialog] = useState(false);
   const [personaNameMessage, setPersonaNameMessage] = useState<string | null>(null);
 
-  // AI model CRUD dialog state
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editingModel, setEditingModel] = useState<AIModelConfig | undefined>(undefined);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
-  const [pendingSaveModel, setPendingSaveModel] = useState<AIModelConfig | null>(null);
-  const [readonlyNameMessage, setReadonlyNameMessage] = useState<string | null>(null);
-
   // AI usage stats state
   const [usageData, setUsageData] = useState<AIUsageWithCosts | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-
-  // Model table expand/collapse
-  const [modelTableExpanded, setModelTableExpanded] = useState(false);
 
   // AI config is read reactively from the store (seeded at startup by
   // loadConfig); only the non-config usage stats need fetching here. Views
@@ -210,112 +193,15 @@ function AISettingsView() {
     saveAiConfigField({ aiEnabled: enabled });
   };
 
-  // AI Model dropdown. See: (USER_GUIDE.md#ai-model)
+  // Active model dropdown. See: (USER_GUIDE.md#ai-model)
   const handleAiModelChange = (modelName: string) => {
     saveAiConfigField({ aiModel: modelName });
   };
 
-  // llama.cpp Base URL, saved when the field loses focus. See: (USER_GUIDE.md#llamacpp-base-url)
-  const handleLlamacppBaseUrlBlur = () => {
-    saveAiConfigField({ llamacppBaseUrl });
-  };
-
-  // --- AI Model CRUD handlers ---
-
-  const selectedModelKey = normalizeModelKey(selectedAiModel);
-
-  const selectedModel = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
-  const selectedModelIsReadonly = Boolean(selectedModel?.readonly);
-
-  // Create / Edit / Delete buttons beside the AI Model dropdown. See: (USER_GUIDE.md#create--edit--delete-models)
-  const handleCreateModel = () => {
-    setEditingModel(undefined);
-    setShowEditDialog(true);
-  };
-
-  const handleEditModel = () => {
-    const current = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
-    if (current) {
-      setEditingModel(current);
-      setShowEditDialog(true);
-    }
-  };
-
-  const applyModelSave = (model: AIModelConfig) => {
-    const modelKey = normalizeModelKey(model.name);
-    const idx = aiModels.findIndex((m) => normalizeModelKey(m.name) === modelKey);
-    const updated = idx >= 0
-      ? aiModels.map((m, i) => (i === idx ? model : m))
-      : [...aiModels, model];
-    saveAiConfigField({ aiModels: updated, aiModel: model.name });
-    setShowEditDialog(false);
-    setPendingSaveModel(null);
-  };
-
-  /**
-   * Validates a model save from EditAIModelDialog and either applies it immediately
-   * or routes through a confirmation dialog when the chosen name already exists.
-   * Built-in (readonly) models can never be overwritten — an alert is shown instead.
-   *
-   * See: (USER_GUIDE.md#create--edit--delete-models)
-   */
-  const handleDialogSave = (model: AIModelConfig) => {
-    // Check for name collision (only matters if it's a different entry than what we're editing)
-    const isCreate = !editingModel;
-    const nameChanged = editingModel && editingModel.name !== model.name;
-    const modelKey = normalizeModelKey(model.name);
-    const existingMatch = aiModels.find((m) => normalizeModelKey(m.name) === modelKey);
-    const nameExists = Boolean(existingMatch);
-
-    // Never allow overwriting a readonly (built-in) model via the UI.
-    if (existingMatch?.readonly && (isCreate || nameChanged)) {
-      setReadonlyNameMessage(
-        `A built-in model named "${existingMatch.name}" already exists and cannot be overwritten.\n\nChoose a different name.`
-      );
-      return;
-    }
-
-    if (nameExists && (isCreate || nameChanged)) {
-      // Duplicate name — ask for overwrite confirmation
-      setPendingSaveModel(model);
-      setShowOverwriteConfirm(true);
-      return;
-    }
-
-    // If editing and keeping the same name, just update in place
-    if (editingModel && !nameChanged) {
-      applyModelSave(model);
-      return;
-    }
-
-    applyModelSave(model);
-  };
-
-  const handleOverwriteConfirm = () => {
-    if (pendingSaveModel) {
-      applyModelSave(pendingSaveModel);
-    }
-    setShowOverwriteConfirm(false);
-  };
-
-  const handleOverwriteCancel = () => {
-    setShowOverwriteConfirm(false);
-    setPendingSaveModel(null);
-    // Re-open the edit dialog so the user can change the name
-    setShowEditDialog(true);
-  };
-
-  // Deletes the selected model entry. See: (USER_GUIDE.md#create--edit--delete-models)
-  const handleDeleteModel = () => {
-    const current = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
-    if (current?.readonly) {
-      setShowDeleteConfirm(false);
-      return;
-    }
-    const updated = aiModels.filter((m) => normalizeModelKey(m.name) !== selectedModelKey);
-    const newSelected = updated.length > 0 ? updated[0]!.name : ''; 
-    saveAiConfigField({ aiModels: updated, aiModel: newSelected });
-    setShowDeleteConfirm(false);
+  // Opens the AI Models tab — its only entry point. See: (USER_GUIDE.md#configuring-ai-models)
+  const handleConfigureModels = () => {
+    showTab('ai-models');
+    setCurrentView('ai-models');
   };
 
   // --- Persona CRUD handlers ---
@@ -424,19 +310,19 @@ function AISettingsView() {
                     <div className="text-xs text-slate-400 mt-1">Total Tokens</div>
                   </div>
                   <div className="bg-slate-750 rounded-lg p-3 border border-slate-600">
-                    <div className="text-2xl font-bold text-green-400">${usageData.totalEstimatedCost.toFixed(4)}</div>
+                    <div className="text-2xl font-bold text-green-400">${usageData.totalCost.toFixed(4)}</div>
                     <div className="text-xs text-slate-400 mt-1">Est. Total Cost</div>
                   </div>
                 </div>
 
-                {/* Per-provider breakdown */}
-                {Object.keys(usageData.byProvider).length > 0 && (
+                {/* Per-model breakdown */}
+                {Object.keys(usageData.byModel).length > 0 && (
                   <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-slate-300 mb-2">By Provider</h3>
+                    <h3 className="text-sm font-medium text-slate-300 mb-2">By Model</h3>
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-slate-400 text-left">
-                          <th className="pb-2 font-medium">Provider</th>
+                          <th className="pb-2 font-medium">Model</th>
                           <th className="pb-2 font-medium text-right">Requests</th>
                           <th className="pb-2 font-medium text-right">Input Tokens</th>
                           <th className="pb-2 font-medium text-right">Output Tokens</th>
@@ -444,14 +330,14 @@ function AISettingsView() {
                         </tr>
                       </thead>
                       <tbody>
-                        {Object.entries(usageData.byProvider).map(([provider, usage]) => (
-                          <tr key={provider} className="text-slate-200 border-t border-slate-700">
-                            <td className="py-2 font-mono text-xs">{provider}</td>
+                        {Object.entries(usageData.byModel).map(([modelName, usage]) => (
+                          <tr key={modelName} className="text-slate-200 border-t border-slate-700">
+                            <td className="py-2 font-mono text-xs">{modelName}</td>
                             <td className="py-2 text-right">{usage.requests.toLocaleString()}</td>
                             <td className="py-2 text-right">{usage.inputTokens.toLocaleString()}</td>
                             <td className="py-2 text-right">{usage.outputTokens.toLocaleString()}</td>
                             <td className="py-2 text-right text-green-400">
-                              ${(usageData.estimatedCosts[provider] ?? 0).toFixed(4)}
+                              ${usage.cost.toFixed(4)}
                             </td>
                           </tr>
                         ))}
@@ -466,6 +352,37 @@ function AISettingsView() {
             {aiEnabled && (
               <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
                 <div className="space-y-4">
+                  {/* Active model + entry point to the AI Models tab. See: (USER_GUIDE.md#ai-model) */}
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-100 mb-3">AI Model</h2>
+                    <div className="flex items-center gap-3">
+                      {aiModels.length > 0 ? (
+                        <select
+                          value={selectedAiModel}
+                          onChange={(e) => handleAiModelChange(e.target.value)}
+                          className="flex-1 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                          data-testid="ai-model-select"
+                        >
+                          {aiModels.map((m) => (
+                            <option key={m.name} value={m.name}>{m.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="flex-1 text-amber-400 text-sm" data-testid="ai-no-models-notice">
+                          No AI models are defined yet. AI features won&rsquo;t work until you add one.
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleConfigureModels}
+                        className={clsx(BUTTON_CLASS_DLG_BLUE, 'whitespace-nowrap')}
+                        data-testid="ai-settings-configure-models-button"
+                      >
+                        Configure Models
+                      </button>
+                    </div>
+                  </div>
+
                   {agenticMode && (
                     <div>
                       <label className="text-slate-300 text-sm block mb-1">Allowed Folders (one absolute path per line):</label>
@@ -478,125 +395,6 @@ function AISettingsView() {
                         className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
                         data-testid="ai-agentic-allowed-folders-textarea"
                       />
-                    </div>
-                  )}
-
-                  {/* AI Model — collapsed: show selected name; expanded: full table */}
-                  <div>
-                    {!modelTableExpanded && selectedAiModel && (
-                      <div className="text-lg font-semibold text-slate-100 mb-1">AI Model: {selectedAiModel}</div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setModelTableExpanded((v) => !v)}
-                      className={`${BUTTON_CLASS_LINK} flex items-center gap-2 text-sm font-medium`}
-                    >
-                      <ChevronRightIcon
-                        className={clsx('w-4 h-4 transition-transform', modelTableExpanded && 'rotate-90')}
-                      />
-                      <span>{modelTableExpanded ? 'Hide models' : 'Change model'}</span>
-                    </button>
-                  </div>
-
-                  {modelTableExpanded && (
-                    <div className="space-y-2">
-                      {/* Action buttons */}
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={handleCreateModel}
-                          title="Create new model"
-                          className={BUTTON_CLASS_GREEN}
-                          data-testid="ai-settings-create-model-button"
-                        >
-                          <PlusIcon className="w-5 h-5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleEditModel}
-                          title="Edit selected model"
-                          disabled={aiModels.length === 0}
-                          className={BUTTON_CLASS_BLUE}
-                          data-testid="ai-settings-edit-model-button"
-                        >
-                          <PencilIcon className="w-5 h-5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!selectedModelIsReadonly) setShowDeleteConfirm(true);
-                          }}
-                          title="Delete selected model"
-                          disabled={aiModels.length === 0 || selectedModelIsReadonly}
-                          className={BUTTON_CLASS_RED}
-                          data-testid="ai-settings-delete-model-button"
-                        >
-                          <TrashIcon className="w-5 h-5" />
-                        </button>
-                      </div>
-
-                      {/* AI Models table with radio selection */}
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-slate-400 text-left">
-                            <th className="pb-2 w-8"></th>
-                            <th className="pb-2 font-medium">Name</th>
-                            <th className="pb-2 font-medium">Provider</th>
-                            <th className="pb-2 font-medium">Model</th>
-                            <th className="pb-2 font-medium text-center">Vision</th>
-                            <th className="pb-2 font-medium text-right">Input $/1M</th>
-                            <th className="pb-2 font-medium text-right">Output $/1M</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {aiModels.map((m) => {
-                            const isSelected = normalizeModelKey(m.name) === selectedModelKey;
-                            return (
-                              <tr
-                                key={m.name}
-                                onClick={() => handleAiModelChange(m.name)}
-                                className={clsx('text-slate-200 border-t border-slate-700 cursor-pointer transition-colors hover:bg-slate-700/30', isSelected && 'bg-slate-700/50')}
-                              >
-                                <td className="py-2 text-center">
-                                  <input
-                                    type="radio"
-                                    name="ai-model-select"
-                                    checked={isSelected}
-                                    onChange={() => handleAiModelChange(m.name)}
-                                    className="w-5 h-5 cursor-pointer accent-blue-500"
-                                    data-testid={`ai-model-radio-${m.name}`}
-                                  />
-                                </td>
-                                <td className="py-2 font-mono text-xs">{m.name}</td>
-                                <td className="py-2 font-mono text-xs">{m.provider}</td>
-                                <td className="py-2 font-mono text-xs">{m.model}</td>
-                                <td className="py-2 text-center text-green-400">{m.vision ? '✓' : ''}</td>
-                                <td className="py-2 text-right text-green-400">${m.inputPer1M.toFixed(2)}</td>
-                                <td className="py-2 text-right text-green-400">${m.outputPer1M.toFixed(2)}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {selectedModel?.provider === 'LLAMACPP' && (
-                    <div className="space-y-3 bg-slate-750 rounded-lg p-4 border border-slate-600">
-                      <h3 className="text-sm font-medium text-slate-300">llama.cpp Server</h3>
-
-                      {/* Base URL */}
-                      <div className="flex items-center gap-2">
-                        <label className="text-slate-300 text-sm whitespace-nowrap">Base URL:</label>
-                        <input
-                          type="text"
-                          value={llamacppBaseUrl}
-                          onChange={(e) => setLlamacppBaseUrl(e.target.value)}
-                          onBlur={handleLlamacppBaseUrlBlur}
-                          className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
-                          data-testid="llamacpp-base-url-input"
-                        />
-                      </div>
                     </div>
                   )}
                 </div>
@@ -652,43 +450,6 @@ function AISettingsView() {
           </div>
         </div>
       </main>
-
-      {/* Edit / Create AI Model dialog */}
-      {showEditDialog && (
-        <EditAIModelDialog
-          initialModel={editingModel}
-          onSave={handleDialogSave}
-          onCancel={() => setShowEditDialog(false)}
-        />
-      )}
-
-      {/* Readonly name collision message */}
-      {readonlyNameMessage && (
-        <AlertDialog
-          preserveWhitespace
-          title="Cannot Overwrite Model"
-          message={readonlyNameMessage}
-          onClose={() => setReadonlyNameMessage(null)}
-        />
-      )}
-
-      {/* Delete confirmation */}
-      {showDeleteConfirm && (
-        <ConfirmDialog
-          message={`Delete model "${selectedAiModel}"?`}
-          onConfirm={handleDeleteModel}
-          onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {/* Overwrite confirmation (duplicate name) */}
-      {showOverwriteConfirm && pendingSaveModel && (
-        <ConfirmDialog
-          message={`A model named "${pendingSaveModel.name}" already exists. Overwrite it?`}
-          onConfirm={handleOverwriteConfirm}
-          onCancel={handleOverwriteCancel}
-        />
-      )}
 
       {/* Reset usage confirmation */}
       {showResetConfirm && (

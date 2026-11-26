@@ -17,7 +17,6 @@ vi.mock('../src/store', () => ({
     fullDocContext: false,
     aiModels: [],
     aiModel: '',
-    llamacppBaseUrl: 'http://localhost:8080/v1',
     agenticMode: false,
     agenticAllowedFolders: '',
   },

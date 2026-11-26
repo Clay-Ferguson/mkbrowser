@@ -363,10 +363,10 @@ describe('parseConfigYaml — aiModels tolerance', () => {
     // Regression: an unsupported `provider` must NOT drop the whole model (its
     // name/model id/pricing) — same data-loss class as the legacy `sortBy` bug.
     // The bad enum degrades to AI_PROVIDERS[0] instead.
-    const valid = { name: 'M', provider: 'OPENAI', model: 'gpt-x', inputPer1M: 1, outputPer1M: 2, vision: true, readonly: false };
+    const valid = { name: 'M', provider: 'OPENAI', model: 'gpt-x', inputPer1M: 1, outputPer1M: 2, vision: true };
     const cfg = parseConfigYaml({
       browseFolder: '/x',
-      aiModels: [valid, { name: 'Bad', provider: 'NOPE', model: 'y', inputPer1M: 1, outputPer1M: 2, vision: false, readonly: false }],
+      aiModels: [valid, { name: 'Bad', provider: 'NOPE', model: 'y', inputPer1M: 1, outputPer1M: 2, vision: false }],
     });
     expect(cfg?.aiModels).toHaveLength(2);
     expect(cfg?.aiModels?.[0]).toEqual(valid);
@@ -374,7 +374,7 @@ describe('parseConfigYaml — aiModels tolerance', () => {
   });
 
   it('still drops a model that is missing required string fields', () => {
-    const valid = { name: 'M', provider: 'OPENAI', model: 'gpt-x', inputPer1M: 1, outputPer1M: 2, vision: true, readonly: false };
+    const valid = { name: 'M', provider: 'OPENAI', model: 'gpt-x', inputPer1M: 1, outputPer1M: 2, vision: true };
     const cfg = parseConfigYaml({
       browseFolder: '/x',
       aiModels: [valid, { provider: 'OPENAI' /* no name/model */ }, { not: 'a model' }],
@@ -385,7 +385,7 @@ describe('parseConfigYaml — aiModels tolerance', () => {
   it('preserves unknown forward-compat keys on a model (loose element schema)', () => {
     const cfg = parseConfigYaml({
       browseFolder: '/x',
-      aiModels: [{ name: 'M', provider: 'OPENAI', model: 'm', inputPer1M: 1, outputPer1M: 2, vision: false, readonly: false, futureField: 'keep-me' }],
+      aiModels: [{ name: 'M', provider: 'OPENAI', model: 'm', inputPer1M: 1, outputPer1M: 2, vision: false, futureField: 'keep-me' }],
     });
     expect((cfg?.aiModels?.[0] as unknown as Record<string, unknown>).futureField).toBe('keep-me');
   });
@@ -393,10 +393,30 @@ describe('parseConfigYaml — aiModels tolerance', () => {
   it('coerces numeric-string prices and defaults bad prices to 0', () => {
     const cfg = parseConfigYaml({
       browseFolder: '/x',
-      aiModels: [{ name: 'M', provider: 'OPENAI', model: 'm', inputPer1M: '3.50', outputPer1M: 'bad', vision: false, readonly: false }],
+      aiModels: [{ name: 'M', provider: 'OPENAI', model: 'm', inputPer1M: '3.50', outputPer1M: 'bad', vision: false }],
     });
     expect(cfg?.aiModels?.[0].inputPer1M).toBe(3.5);
     expect(cfg?.aiModels?.[0].outputPer1M).toBe(0);
+  });
+
+  it('keeps an optional baseUrl and drops a non-string one', () => {
+    const cfg = parseConfigYaml({
+      browseFolder: '/x',
+      aiModels: [
+        { name: 'Local', provider: 'OPENAI', model: 'local', baseUrl: 'http://localhost:8080/v1', inputPer1M: 0, outputPer1M: 0, vision: false },
+        { name: 'Bad URL', provider: 'OPENAI', model: 'm', baseUrl: 42, inputPer1M: 0, outputPer1M: 0, vision: false },
+      ],
+    });
+    expect(cfg?.aiModels?.[0]?.baseUrl).toBe('http://localhost:8080/v1');
+    expect(cfg?.aiModels?.[1]?.baseUrl).toBeUndefined();
+  });
+
+  it('coerces the removed LLAMACPP provider to the default provider', () => {
+    const cfg = parseConfigYaml({
+      browseFolder: '/x',
+      aiModels: [{ name: 'Old', provider: 'LLAMACPP', model: 'local', inputPer1M: 0, outputPer1M: 0, vision: false }],
+    });
+    expect(cfg?.aiModels?.[0]?.provider).toBe('ANTHROPIC');
   });
 
   it('falls back to an empty list when aiModels is not an array', () => {

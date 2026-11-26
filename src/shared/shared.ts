@@ -297,27 +297,59 @@ export interface AppSettings {
 /** Command-line switch main passes to the renderer (via `additionalArguments`) when unpackaged; see ElectronAPI.testHooksEnabled. */
 export const TEST_HOOKS_ARG = '--mkb-test-hooks';
 
-/** Supported AI providers. Single source of truth for both the {@link AIProvider}
- *  union type and any UI that lists providers (e.g. the model editor dropdown).
+/**
+ * Supported AI API types. The provider picks which LangChain client is built
+ * (each speaks a different wire protocol) and which API-key environment variable
+ * it reads. A local server (llama.cpp, LM Studio) is just `OPENAI` with a
+ * localhost Base URL. Single source of truth for both the {@link AIProvider}
+ * union type and the AI Models tab's Provider dropdown.
  *
- * See: (USER_GUIDE.md#ai-model)
+ * See: (USER_GUIDE.md#configuring-ai-models)
  */
-export const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
+export const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE'] as const;
 export type AIProvider = typeof AI_PROVIDERS[number];
 
-// A named entry in the AI Model dropdown. See: (USER_GUIDE.md#ai-model)
+/** Display labels for the Provider dropdown. */
+export const AI_PROVIDER_LABELS: Record<AIProvider, string> = {
+  ANTHROPIC: 'Anthropic',
+  OPENAI: 'OpenAI / OpenAI-compatible',
+  GOOGLE: 'Google',
+};
+
+/** Each provider's standard endpoint, used when a model's Base URL is blank (shown as the field's placeholder). */
+export const AI_PROVIDER_DEFAULT_URLS: Record<AIProvider, string> = {
+  ANTHROPIC: 'https://api.anthropic.com',
+  OPENAI: 'https://api.openai.com/v1',
+  GOOGLE: 'https://generativelanguage.googleapis.com',
+};
+
+/** Example model IDs, shown as the Model ID field's placeholder. */
+export const AI_PROVIDER_MODEL_EXAMPLES: Record<AIProvider, string> = {
+  ANTHROPIC: 'e.g. claude-haiku-4-5',
+  OPENAI: 'e.g. gpt-4.1-mini (or a local model name)',
+  GOOGLE: 'e.g. gemini-2.5-flash',
+};
+
+/**
+ * One user-defined AI model (AI Models tab). There are no built-in models: a
+ * fresh install has none, and AI requests fail until the user adds one.
+ *
+ * See: (USER_GUIDE.md#configuring-ai-models)
+ */
 export interface AIModelConfig {
+  /** User-chosen display name; unique (case-insensitive). The active model is referenced by this name. */
   name: string;
   provider: AIProvider;
+  /** The provider's model identifier sent with each request. */
   model: string;
+  /** Endpoint override (e.g. `http://localhost:8080/v1` for a local server). Absent = the provider's standard endpoint. */
+  baseUrl?: string;
   /** USD per 1M input tokens */
   inputPer1M: number;
   /** USD per 1M output tokens */
   outputPer1M: number;
   /** Whether the model supports image/vision input. */
   vision: boolean;
-  /** Built-in model that cannot be edited or deleted in the UI. */
-  readonly: boolean;
 }
 
 // A named AI Persona (Settings → AI Settings → Personas). See: (USER_GUIDE.md#ai-personas)
@@ -373,11 +405,9 @@ export interface AppConfig {
   // "Enable AI": gates every AI Chat button and menu item. See: (ai_chat.md#overview)
   // See: (USER_GUIDE.md#enable-ai-features)
   aiEnabled?: boolean;
-  // The AI Model dropdown's entries and the selected entry's name. See: (USER_GUIDE.md#ai-model)
+  // The user's model definitions (AI Models tab) and the active one's name. See: (USER_GUIDE.md#ai-model)
   aiModels?: AIModelConfig[];
   aiModel?: string;
-  // Base URL of the local OpenAI-compatible server (LLAMACPP provider). See: (USER_GUIDE.md#llamacpp-base-url)
-  llamacppBaseUrl?: string;
   // Routes Ask AI through the deep agent instead of a plain LLM call. See: (ai_chat.md#what-gets-sent-to-the-model)
   // See: (USER_GUIDE.md#agentic-mode)
   agenticMode?: boolean;
@@ -722,20 +752,24 @@ export interface FolderGraphScanResult {
   foldersOnly: boolean;
 }
 
-export interface ProviderUsage {
+/** Cumulative usage for one model. `cost` is accumulated at request time from the model's own prices. */
+export interface ModelUsage {
   inputTokens: number;
   outputTokens: number;
   requests: number;
+  /** Estimated USD cost. */
+  cost: number;
 }
 
-// Totals and per-provider breakdown shown in AI Usage Statistics. See: (USER_GUIDE.md#ai-usage-statistics)
+// Totals and per-model breakdown shown in AI Usage Statistics. See: (USER_GUIDE.md#ai-usage-statistics)
 export interface AIUsageWithCosts {
   totalInputTokens: number;
   totalOutputTokens: number;
   totalRequests: number;
-  byProvider: Record<string, ProviderUsage>;
-  estimatedCosts: Record<string, number>;
-  totalEstimatedCost: number;
+  /** Estimated USD cost across all models. */
+  totalCost: number;
+  /** Keyed by model name at the time of the request. */
+  byModel: Record<string, ModelUsage>;
 }
 
 /**

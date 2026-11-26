@@ -20,7 +20,7 @@ export type {
   FolderAnalysisResult,
   CalendarEventResult,
   FolderGraphScanResult,
-  ProviderUsage,
+  ModelUsage,
   AIUsageWithCosts,
   ElectronAPI,
 } from './shared/shared';

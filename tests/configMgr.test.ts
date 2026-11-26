@@ -18,7 +18,7 @@ const { tmpHome } = vi.hoisted(() => {
 vi.mock('electron', () => ({ app: { getPath: () => tmpHome } }));
 
 import { initConfig, getConfig, getConfigLoadError, updateConfig, withDefaultAISettings } from '../src/main/configMgr';
-import { defaultSettings, cloneDefaultSettings, parseAIModelCatalog } from '../src/main/configSchema';
+import { defaultSettings, cloneDefaultSettings } from '../src/main/configSchema';
 import type { AIModelConfig, AppConfig } from '../src/shared/shared';
 
 // configMgr uses app.getPath('userData') directly as CONFIG_DIR, so tmpHome IS the dir.
@@ -59,9 +59,10 @@ describe('initConfig — schema-validated load', () => {
     // Bad enum reverted to default; valid override preserved.
     expect(cfg.settings?.fontSize).toBe(defaultSettings.fontSize);
     expect(cfg.settings?.foldersOnTop).toBe(false);
-    // withDefaultAISettings still runs over the validated config.
-    expect(Array.isArray(cfg.aiModels)).toBe(true);
-    expect(cfg.aiModels?.length).toBeGreaterThan(0);
+    // withDefaultAISettings still runs over the validated config (no built-in models).
+    expect(cfg.aiModels).toBeUndefined();
+    expect(cfg.aiModel).toBe('');
+    expect(cfg.aiEnabled).toBe(false);
     expect(getConfigLoadError()).toBeNull();
   });
 
@@ -136,7 +137,7 @@ describe('initConfig — resilience to persist failures', () => {
     await expect(initConfig()).resolves.toBeUndefined();
     const cfg = getConfig();
     expect(cfg.browseFolder).toBe('');
-    expect(Array.isArray(cfg.aiModels)).toBe(true);
+    expect(cfg.aiEnabled).toBe(false);
     // A write failure is not a *load* error — nothing to surface to the user here.
     expect(getConfigLoadError()).toBeNull();
   });
@@ -150,7 +151,7 @@ describe('initConfig — resilience to persist failures', () => {
     await expect(initConfig()).resolves.toBeUndefined();
     // In-memory config is the loaded file plus AI defaults.
     expect(getConfig().browseFolder).toBe('/keep');
-    expect(getConfig().aiModels?.length ?? 0).toBeGreaterThan(0);
+    expect(getConfig().aiEnabled).toBe(false);
     expect(getConfigLoadError()).toBeNull();
     // The failed atomic write must not have touched the original file.
     expect(fs.readFileSync(CONFIG_FILE, 'utf-8')).toBe(yaml.dump({ browseFolder: '/keep' }));
@@ -259,8 +260,9 @@ describe('withDefaultAISettings — pure function, no mutation', () => {
     const input = { browseFolder: '/test', settings: cloneDefaultSettings() };
     const { config: result, changed } = withDefaultAISettings(input);
     expect(result).not.toBe(input);
-    expect(Array.isArray(result.aiModels)).toBe(true);
-    expect(result.aiModels?.length).toBeGreaterThan(0);
+    // There are no built-in models to inject.
+    expect(result.aiModels).toBeUndefined();
+    expect(result.aiModel).toBe('');
     expect(result.aiEnabled).toBe(false);
     expect(result.agenticMode).toBe(false);
     expect(result.agenticAllowedFolders).toBe('');
@@ -290,7 +292,6 @@ describe('withDefaultAISettings — pure function, no mutation', () => {
       inputPer1M: -5,
       outputPer1M: NaN,
       vision: false,
-      readonly: false,
     };
     const input = { browseFolder: '', settings: cloneDefaultSettings(), aiModels: [badModel], aiModel: badModel.name };
     const { config: result, changed } = withDefaultAISettings(input);
@@ -309,10 +310,8 @@ describe('withDefaultAISettings — pure function, no mutation', () => {
       inputPer1M: 1.5,
       outputPer1M: 2.0,
       vision: false,
-      readonly: false,
     };
-    const { config: populated } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
-    const input = { ...populated, aiModels: [...(populated.aiModels ?? []), goodModel] };
+    const input = { browseFolder: '', settings: cloneDefaultSettings(), aiModels: [goodModel] };
     const { config: result } = withDefaultAISettings(input);
     const custom = result.aiModels?.find((m) => m.name === 'My Custom Model');
     expect(custom?.inputPer1M).toBe(1.5);
@@ -320,11 +319,47 @@ describe('withDefaultAISettings — pure function, no mutation', () => {
   });
 });
 
+describe('withDefaultAISettings — active model (aiModel) canonicalization', () => {
+  function m(name: string): AIModelConfig {
+    return { name, provider: 'OPENAI', model: `${name}-id`, inputPer1M: 0, outputPer1M: 0, vision: false };
+  }
+  const base = { browseFolder: '', settings: cloneDefaultSettings(), aiEnabled: false, agenticMode: false, agenticAllowedFolders: '' };
+
+  it('keeps a selection that names an existing model', () => {
+    const { config, changed } = withDefaultAISettings({ ...base, aiModels: [m('A'), m('B')], aiModel: 'B' });
+    expect(config.aiModel).toBe('B');
+    expect(changed).toBe(false);
+  });
+
+  it('canonicalizes a case/whitespace-different selection to the model\'s exact name', () => {
+    const { config, changed } = withDefaultAISettings({ ...base, aiModels: [m('Local Llama')], aiModel: ' local llama ' });
+    expect(config.aiModel).toBe('Local Llama');
+    expect(changed).toBe(true);
+  });
+
+  it('falls back to the first model when the selection names no model', () => {
+    const { config } = withDefaultAISettings({ ...base, aiModels: [m('A'), m('B')], aiModel: 'Gone' });
+    expect(config.aiModel).toBe('A');
+  });
+
+  it('falls back to the first model when nothing is selected', () => {
+    const { config } = withDefaultAISettings({ ...base, aiModels: [m('A')] });
+    expect(config.aiModel).toBe('A');
+  });
+
+  it("is '' when there are no models", () => {
+    const { config } = withDefaultAISettings({ ...base, aiModels: [], aiModel: 'Gone' });
+    expect(config.aiModel).toBe('');
+  });
+});
+
 describe('updateConfig — AI enforcement gating (issue 007)', () => {
   it('does not alter aiModels/aiModel when only a non-AI key is updated', async () => {
     await initConfig();
+    const model: AIModelConfig = { name: 'Mine', provider: 'ANTHROPIC', model: 'x', inputPer1M: 0, outputPer1M: 0, vision: false };
+    await updateConfig({ aiModels: [model], aiModel: 'Mine' });
     const before = getConfig();
-    const modelsBefore = before.aiModels ? [...before.aiModels] : [];
+    const modelsBefore = before.aiModels;
     const aiModelBefore = before.aiModel;
 
     await updateConfig({ curSubFolder: '/some/path' });
@@ -334,13 +369,14 @@ describe('updateConfig — AI enforcement gating (issue 007)', () => {
     expect(after.aiModels).toEqual(modelsBefore);
   });
 
-  it('still enforces AI defaults when an AI key is updated', async () => {
+  it('re-resolves the active model when an AI key is updated', async () => {
     await initConfig();
-    // Wipe aiModels to simulate a partial config; updating aiEnabled should re-inject them.
-    await updateConfig({ aiEnabled: true, aiModels: undefined });
-    const after = getConfig();
-    expect(Array.isArray(after.aiModels)).toBe(true);
-    expect((after.aiModels?.length ?? 0)).toBeGreaterThan(0);
+    const model: AIModelConfig = { name: 'Mine', provider: 'ANTHROPIC', model: 'x', inputPer1M: 0, outputPer1M: 0, vision: false };
+    await updateConfig({ aiModels: [model], aiModel: 'mine' });
+    expect(getConfig().aiModel).toBe('Mine');
+    // Deleting every model clears the selection.
+    await updateConfig({ aiModels: [] });
+    expect(getConfig().aiModel).toBe('');
   });
 });
 
@@ -384,146 +420,47 @@ describe('updateConfig — atomic, durable writes (issue 002)', () => {
   });
 });
 
-describe('DEFAULT_AI_MODELS catalog integrity', () => {
-  it('contains no two entries with the same model ID', () => {
-    const { config } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
-    const modelIds = (config.aiModels ?? []).map((m) => m.model);
-    const unique = new Set(modelIds);
-    expect(unique.size).toBe(modelIds.length);
-  });
-
-  it('DEFAULT_AI_MODEL refers to an entry that exists in the catalog', () => {
-    const { config } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
-    const names = new Set((config.aiModels ?? []).map((m) => m.name));
-    expect(names.has(config.aiModel ?? '')).toBe(true);
-  });
-
-  it('default selected model is Claude Haiku 4.5', () => {
-    const { config } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
-    expect(config.aiModel).toBe('Claude Haiku 4.5');
-  });
-
-  it('the shipped ai-models.yaml is the source of the catalog', () => {
-    // Guards against the catalog silently reverting to a hard-coded array: the
-    // config the app hands out must contain exactly the YAML's models.
-    const catalog = parseAIModelCatalog(
-      yaml.load(fs.readFileSync(path.join(__dirname, '../src/main/ai/ai-models.yaml'), 'utf-8')),
-    );
-    const { config } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
-    expect(config.aiModels).toEqual(catalog.models);
-    expect(config.aiModel).toBe(catalog.defaultModel);
-  });
-});
-
-// config.yaml is the user's file, so it holds only the user's models. The
-// built-in catalog is re-merged from ai-models.yaml on every load, and writing
-// a copy of it into config.yaml would leave stale prices/model IDs sitting in
-// the user's file after any catalog update.
-describe('persisted aiModels — built-in models are never written to config.yaml', () => {
+// There are no built-in models: config.yaml holds exactly the user's models.
+describe('persisted aiModels — exactly the user\'s models', () => {
   const userModel: AIModelConfig = {
     name: 'My Custom Model',
     provider: 'OPENAI',
     model: 'gpt-custom',
+    baseUrl: 'http://localhost:8080/v1',
     inputPer1M: 1,
     outputPer1M: 2,
     vision: false,
-    readonly: false,
   };
 
-  it('writes only readonly=false models while keeping the merged list in memory', async () => {
+  it('first run writes no models', async () => {
     await initConfig();
-    await updateConfig({ aiModels: [...(getConfig().aiModels ?? []), userModel] });
+    const onDisk = yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')) as AppConfig;
+    expect(onDisk.aiModels).toBeUndefined();
+    expect(onDisk.aiModel).toBe('');
+  });
+
+  it('writes the user models (with baseUrl) as given, and round-trips them', async () => {
+    await initConfig();
+    await updateConfig({ aiModels: [userModel], aiModel: userModel.name });
 
     const onDisk = yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')) as AppConfig;
     expect(onDisk.aiModels).toEqual([userModel]);
 
-    // In memory the built-ins are still present and still selectable.
-    const inMemory = getConfig().aiModels ?? [];
-    expect(inMemory.some((m) => m.readonly)).toBe(true);
-    expect(inMemory.at(-1)).toEqual(userModel);
-  });
-
-  it('round-trips: reloading rebuilds the built-ins and preserves the user model', async () => {
     await initConfig();
-    await updateConfig({ aiModels: [...(getConfig().aiModels ?? []), userModel] });
-    const before = getConfig().aiModels;
-
-    await initConfig();
-    expect(getConfig().aiModels).toEqual(before);
+    expect(getConfig().aiModels).toEqual([userModel]);
+    expect(getConfig().aiModel).toBe(userModel.name);
   });
 
   it('does not rewrite the file on a restart that changes nothing', async () => {
-    // Merging the built-in catalog back in on load must not count as a change:
-    // the built-ins are not persisted, so the projection that would be written
-    // is identical to what is already on disk. A trailing comment is valid YAML
-    // that parses to the same config, so it survives iff no write happened.
+    // A trailing comment is valid YAML that parses to the same config, so it
+    // survives iff no write happened.
     await initConfig();
-    await updateConfig({ aiModels: [...(getConfig().aiModels ?? []), userModel] });
+    await updateConfig({ aiModels: [userModel], aiModel: userModel.name });
     fs.appendFileSync(CONFIG_FILE, '\n# sentinel-not-rewritten\n', 'utf-8');
 
     await initConfig();
 
     expect(fs.readFileSync(CONFIG_FILE, 'utf-8')).toContain('# sentinel-not-rewritten');
-    // …and the restart still produced the full merged list in memory.
-    expect(getConfig().aiModels?.some((m) => m.readonly)).toBe(true);
-  });
-
-  it('writes an empty list when the user has no models of their own', async () => {
-    await initConfig();
-    const onDisk = yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')) as AppConfig;
-    expect(onDisk.aiModels).toEqual([]);
-  });
-});
-
-// The catalog is our own shipped asset, so parseAIModelCatalog is strict where
-// parseConfigYaml is forgiving — a malformed entry must fail loudly instead of
-// degrading to a default that silently mis-prices or mis-routes a model.
-describe('parseAIModelCatalog — strict validation of the shipped catalog', () => {
-  const validModel = {
-    name: 'Test Model',
-    provider: 'ANTHROPIC',
-    model: 'test-model-1',
-    inputPer1M: 1,
-    outputPer1M: 2,
-    vision: true,
-  };
-  const validCatalog = { defaultModel: 'Test Model', models: [validModel] };
-
-  it('accepts a well-formed catalog and stamps every entry readonly', () => {
-    // `readonly` is not a YAML field — the catalog is built-in by definition, so
-    // the parser sets it rather than each entry repeating it.
-    expect(parseAIModelCatalog(validCatalog).models).toEqual([{ ...validModel, readonly: true }]);
-  });
-
-  it.each([
-    ['defaultModel naming no existing model', { ...validCatalog, defaultModel: 'Nope' }],
-    ['a duplicate model ID', {
-      defaultModel: 'Test Model',
-      models: [validModel, { ...validModel, name: 'Other' }],
-    }],
-    ['a duplicate name differing only in case', {
-      defaultModel: 'Test Model',
-      models: [validModel, { ...validModel, name: 'TEST MODEL', model: 'test-model-2' }],
-    }],
-    ['an unknown provider', {
-      ...validCatalog,
-      models: [{ ...validModel, provider: 'OPENAI_TYPO' }],
-    }],
-    // The likeliest real typo: a misspelled key would leave the real field
-    // missing, so it must be an error rather than silently ignored extra data.
-    ['a misspelled pricing key', {
-      ...validCatalog,
-      models: [{ ...validModel, inputPer1m: 1, inputPer1M: undefined }],
-    }],
-    // `readonly` is stamped on by the parser; a YAML entry declaring its own is
-    // redundant at best and contradictory at worst, so it is rejected outright.
-    ['an explicit readonly key', { ...validCatalog, models: [{ ...validModel, readonly: true }] }],
-    ['a negative price', { ...validCatalog, models: [{ ...validModel, inputPer1M: -1 }] }],
-    ['a price given as a string', { ...validCatalog, models: [{ ...validModel, inputPer1M: '1.0' }] }],
-    ['an empty model list', { defaultModel: 'Test Model', models: [] }],
-    ['a non-object top level', 'just a string'],
-  ])('throws on %s', (_label, input) => {
-    expect(() => parseAIModelCatalog(input)).toThrow(/ai-models\.yaml is malformed/);
   });
 });
 

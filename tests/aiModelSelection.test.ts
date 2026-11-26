@@ -1,10 +1,11 @@
 /**
  * Unit tests for the active-model helpers in src/main/ai/aiModel.ts:
- * getActiveModel and getActiveProvider.
+ * getActiveModel and getActiveModelConfig.
  *
- * These resolve the user's selected model from config — pure selection/fallback
- * logic, no LLM call. We mock configMgr (to control the config) so nothing
- * touches disk or a network.
+ * These resolve the user's selected model from config — pure selection logic,
+ * no LLM call. There is no fallback model: with nothing configured,
+ * getActiveModelConfig throws. We mock configMgr (to control the config) so
+ * nothing touches disk or a network.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { AIModelConfig } from '../src/shared/shared';
@@ -18,21 +19,21 @@ vi.mock('../src/main/configMgr', () => ({
   getConfig: (...args: unknown[]) => mockGetConfig(...args),
 }));
 
-import { getActiveModel, getActiveProvider } from '../src/main/ai/aiModel';
+import { getActiveModel, getActiveModelConfig, NO_MODEL_CONFIGURED_MESSAGE } from '../src/main/ai/aiModel';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /** Build a minimal AIModelConfig entry. */
-function model(name: string, provider: AIModelConfig['provider']): AIModelConfig {
-  return { name, provider, model: `${name}-id`, inputPer1M: 0, outputPer1M: 0, vision: true, readonly: false };
+function model(name: string, provider: AIModelConfig['provider'], baseUrl?: string): AIModelConfig {
+  return { name, provider, model: `${name}-id`, ...(baseUrl ? { baseUrl } : {}), inputPer1M: 0, outputPer1M: 0, vision: true };
 }
 
 const MODELS: AIModelConfig[] = [
   model('Claude Haiku', 'ANTHROPIC'),
   model('GPT-4o', 'OPENAI'),
-  model('Local LLAMA.CPP', 'LLAMACPP'),
+  model('Local Llama', 'OPENAI', 'http://localhost:8080/v1'),
 ];
 
 /** Point getConfig at the given selection over the standard MODELS list. */
@@ -54,6 +55,11 @@ describe('getActiveModel', () => {
     expect(getActiveModel()).toEqual(model('GPT-4o', 'OPENAI'));
   });
 
+  it('matches the name case-insensitively, ignoring surrounding whitespace', () => {
+    selectModel('  local LLAMA ');
+    expect(getActiveModel()?.name).toBe('Local Llama');
+  });
+
   it('returns undefined when no model is selected', () => {
     selectModel(undefined);
     expect(getActiveModel()).toBeUndefined();
@@ -71,22 +77,22 @@ describe('getActiveModel', () => {
 });
 
 // ---------------------------------------------------------------------------
-// getActiveProvider
+// getActiveModelConfig
 // ---------------------------------------------------------------------------
 
-describe('getActiveProvider', () => {
-  it('returns the provider of the active model', () => {
-    selectModel('Local LLAMA.CPP');
-    expect(getActiveProvider()).toBe('LLAMACPP');
+describe('getActiveModelConfig', () => {
+  it('returns the active model, including its Base URL', () => {
+    selectModel('Local Llama');
+    expect(getActiveModelConfig()).toEqual(model('Local Llama', 'OPENAI', 'http://localhost:8080/v1'));
   });
 
-  it('falls back to ANTHROPIC when nothing is selected', () => {
-    selectModel(undefined);
-    expect(getActiveProvider()).toBe('ANTHROPIC');
+  it('throws a configure-a-model error when no models are defined', () => {
+    mockGetConfig.mockReturnValue({ aiModel: '', aiModels: [] });
+    expect(() => getActiveModelConfig()).toThrow(NO_MODEL_CONFIGURED_MESSAGE);
   });
 
-  it('falls back to ANTHROPIC when the selection does not resolve', () => {
+  it('throws when the selection does not resolve (no fallback model)', () => {
     selectModel('Nonexistent');
-    expect(getActiveProvider()).toBe('ANTHROPIC');
+    expect(() => getActiveModelConfig()).toThrow(NO_MODEL_CONFIGURED_MESSAGE);
   });
 });

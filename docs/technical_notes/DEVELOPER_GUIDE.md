@@ -336,7 +336,7 @@ To add a new field to the global store:
 
 ### Local AI Model Inference Troubleshooting
 
-Local inference runs against a `llama-server` that **you** start and manage yourself, outside of MkBrowser. The app has no control over that process — it only sends requests to the **llama.cpp Base URL** configured in AI Settings. If you happen to be running on extremely limited hardware these are the two settings you can change to turn off some advanced reasoning and agent of capabilities, to run just a minimalist chatbot:
+Local inference runs against a `llama-server` that **you** start and manage yourself, outside of MkBrowser. The app has no control over that process — it only sends requests to the **Base URL** of the active model (an OpenAI-compatible model defined on the AI Models tab). If you happen to be running on extremely limited hardware these are the two settings you can change to turn off some advanced reasoning and agent of capabilities, to run just a minimalist chatbot:
 
 1) In `deepAgents.ts` set `USE_DEEP_AGENTS` variable to false. There's currently no way to alter this without an app rebuild.
 2) Launch `llama-server` with `--reasoning off`, which makes the model run without reasoniong and so it's tryign to do less and can therefore complete inference in a shorter amount of time with less GPU/CPU power.

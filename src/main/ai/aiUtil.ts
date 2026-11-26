@@ -13,7 +13,7 @@ import { fdir } from 'fdir';
 import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
 import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
-import { getActiveModel, getActiveProvider } from './aiModel';
+import { getActiveModel } from './aiModel';
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT, AI_REWRITE_CONTEXT_NOTE } from '../../shared/ai/aiPrompts';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
@@ -295,7 +295,7 @@ export async function handleAskAI(
 
   // Record token usage if available
   if (usage) {
-    await recordUsage(getActiveProvider(), usage.input_tokens, usage.output_tokens);
+    await recordUsage(getActiveModel(), usage.input_tokens, usage.output_tokens);
   }
 
   // Write the response
@@ -482,7 +482,7 @@ async function runRewrite(
 
   // Record token usage if available
   if (result.usage) {
-    await recordUsage(getActiveProvider(), result.usage.input_tokens, result.usage.output_tokens);
+    await recordUsage(getActiveModel(), result.usage.input_tokens, result.usage.output_tokens);
   }
 
   return { content: result.content, usage: result.usage };

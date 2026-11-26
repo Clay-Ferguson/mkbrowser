@@ -12,6 +12,7 @@ import CalendarView from './components/views/CalendarView';
 import AISettingsView from './components/views/AISettingsView';
 import TypesEditorView from './components/views/TypesEditorView';
 import TagsEditorView from './components/views/TagsEditorView';
+import AIModelsView from './components/views/AIModelsView';
 import HelpView from './components/views/HelpView';
 import ThreadView from './components/views/ThreadView';
 import BrowseView from './components/views/BrowseView';
@@ -433,6 +434,14 @@ function App() {
           <div {...viewProps('ai-settings')}>
             <ErrorBoundary>
               <AISettingsView />
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {visitedViews.has('ai-models') && (
+          <div {...viewProps('ai-models')}>
+            <ErrorBoundary>
+              <AIModelsView />
             </ErrorBoundary>
           </div>
         )}

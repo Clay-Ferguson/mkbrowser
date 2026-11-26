@@ -118,6 +118,10 @@ export function removeUserDataDir(userDataDir: string): void {
  * @param options.aiEnabled - When true, enable AI features for this test
  * @param options.expandedEditor - Edit in the maximized editor (default true);
  *   pass false for tests that exercise inline editing in the folder listing
+ * @param options.seedModel - When true, define one (local, never-contacted) AI
+ *   model and make it active. The app ships with no models, so demos that show
+ *   the AI Settings view use this to avoid its "no models defined" notice.
+ *   Scripted answers never reach a model, so it needn't be running.
  *
  * @example
  * await resetSettings(mainWindow);
@@ -125,9 +129,9 @@ export function removeUserDataDir(userDataDir: string): void {
  */
 export async function resetSettings(
   mainWindow: Page,
-  { aiEnabled = false, expandedEditor = true }: { aiEnabled?: boolean; expandedEditor?: boolean } = {}
+  { aiEnabled = false, expandedEditor = true, seedModel = false }: { aiEnabled?: boolean; expandedEditor?: boolean; seedModel?: boolean } = {}
 ): Promise<void> {
-  await mainWindow.evaluate(async ({ aiEnabled, expandedEditor }) => {
+  await mainWindow.evaluate(async ({ aiEnabled, expandedEditor, seedModel }) => {
     const api = (window as unknown as { electronAPI: {
       getConfig: () => Promise<{ settings?: Record<string, unknown> }>;
       updateConfig: (updates: Record<string, unknown>) => Promise<void>;
@@ -137,8 +141,20 @@ export async function resetSettings(
       tagsPanelVisible: false,
       aiEnabled,
       settings: { ...(config.settings ?? {}), showPropsInEditor: false, expandedEditor },
+      ...(seedModel ? {
+        aiModels: [{
+          name: 'Local Llama',
+          provider: 'OPENAI',
+          model: 'local',
+          baseUrl: 'http://localhost:8080/v1',
+          inputPer1M: 0,
+          outputPer1M: 0,
+          vision: true,
+        }],
+        aiModel: 'Local Llama',
+      } : {}),
     });
-  }, { aiEnabled, expandedEditor });
+  }, { aiEnabled, expandedEditor, seedModel });
   await mainWindow.reload();
   await mainWindow.waitForLoadState('domcontentloaded');
 }

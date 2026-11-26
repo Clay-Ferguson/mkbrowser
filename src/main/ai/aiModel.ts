@@ -8,167 +8,36 @@ import { aiFileLogCallbacks } from "./aiFileLog";
 
 const debugLog = createDebugLog('aiModel');
 
-export type AIProvider = 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
+/** Shown (via the thrown error) when an AI request is made before any model is defined/selected. */
+export const NO_MODEL_CONFIGURED_MESSAGE =
+  'No AI model is configured. Open AI Settings → Configure Models to add one.';
 
-export interface AIModelConfigLike {
-  name: string;
-  provider: AIProvider;
-  model: string;
-  readonly?: boolean;
-}
-
-interface EnforceDefaultModelsResult<T extends AIModelConfigLike> {
-  models: Array<Omit<T, 'readonly'> & { readonly: boolean }>;
-  selectedModel: string;
-  changed: boolean;
-}
-
-/** Trim and lowercase a model name for case-insensitive map lookups. */
+/** Trim and lowercase a model name for case-insensitive lookups. */
 function normalizeKey(name: string): string {
   return name.trim().toLowerCase();
 }
 
-/** Return a copy of `model` with whitespace-trimmed name/model fields and an explicit `readonly` value. */
-function normalizeModel<T extends AIModelConfigLike>(model: T, readonly: boolean): Omit<T, 'readonly'> & { readonly: boolean } {
-  return {
-    ...model,
-    name: model.name.trim(),
-    model: model.model.trim(),
-    readonly,
-  };
-}
-
-/** Deep-equal check for model config entries (name, provider, model string, and readonly flag). */
-function modelsEqual(a: AIModelConfigLike, b: AIModelConfigLike): boolean {
-  return (
-    a.name === b.name &&
-    a.provider === b.provider &&
-    a.model === b.model &&
-    Boolean(a.readonly) === Boolean(b.readonly)
-  );
-}
+// NOTE: Local inference is served by a llama.cpp `llama-server` (or LM Studio)
+// the user runs themselves, configured as an OpenAI-compatible model with a
+// localhost Base URL. MkBrowser never starts, stops, or otherwise manages that
+// process — it only talks to whatever is listening at the model's Base URL.
+// See: (USER_GUIDE.md#configuring-ai-models)
 
 /**
- * Enforce that all default AI models are present and take precedence.
- *
- * - Name matching is case-insensitive.
- * - Any user model colliding with a default model name is overwritten by the default.
- * - Non-default models are normalized to `readonly: false`.
- * - Defaults appear first (in the order provided), then remaining user models in original order.
- * - The selected model name is canonicalized to the matched model's `name`, or set to the provided default.
- */
-export function enforceDefaultAIModels<T extends AIModelConfigLike>(args: {
-  existingModels?: T[];
-  defaultModels: Array<Omit<T, 'readonly'> & { readonly: boolean }>;
-  selectedModelName?: string;
-  defaultSelectedModelName: string;
-}): EnforceDefaultModelsResult<T> {
-  const existingModels = args.existingModels ?? [];
-
-  const defaultByKey = new Map<string, Omit<T, 'readonly'> & { readonly: boolean }>();
-  for (const d of args.defaultModels) {
-    defaultByKey.set(normalizeKey(d.name), d);
-  }
-
-  // Keep user models in original order, deduped case-insensitively, excluding any that collide with defaults.
-  const seenUserKeys = new Set<string>();
-  const userModels: Array<Omit<T, 'readonly'> & { readonly: boolean }> = [];
-
-  for (const m of existingModels) {
-    const key = normalizeKey(m.name);
-    if (!key) continue;
-
-    // Defaults always win, so drop any colliding entry.
-    if (defaultByKey.has(key)) continue;
-
-    if (seenUserKeys.has(key)) continue;
-    seenUserKeys.add(key);
-
-    userModels.push(normalizeModel(m, false));
-  }
-
-  const enforcedModels: Array<Omit<T, 'readonly'> & { readonly: boolean }> = [
-    ...args.defaultModels.map((d) => normalizeModel(d as unknown as T, true)),
-    ...userModels,
-  ];
-
-  // Canonicalize selection.
-  const selectedKey = args.selectedModelName ? normalizeKey(args.selectedModelName) : '';
-  const selectedMatch = selectedKey
-    ? enforcedModels.find((m) => normalizeKey(m.name) === selectedKey)
-    : undefined;
-  const selectedModel = selectedMatch ? selectedMatch.name : args.defaultSelectedModelName;
-
-  // Detect whether anything changed.
-  //
-  // `changed` drives persistence, and only the user's own models are persisted —
-  // configMgr's toPersistedConfig() drops the built-ins, which are re-merged
-  // from the catalog on every load. So this compares the *persisted projection*
-  // of the input against that of the output (userModels), rather than the merged
-  // lists. Comparing merged lists would report a change on every startup, since
-  // a config read off disk can never contain the built-ins about to be merged
-  // in — a pointless write per app launch.
-  //
-  // Projecting the input too (rather than using existingModels raw) keeps the
-  // function idempotent for both shapes of input: a config straight from disk
-  // (no built-ins, so the filter is a no-op) and one already enforced in memory
-  // (built-ins present, and correctly ignored).
-  const existingUserModels = existingModels.filter((m) => !m.readonly);
-
-  // Index alignment is sound: userModels is built by walking existingModels in
-  // order and keeping a subset of that same non-readonly set, so equal lengths
-  // imply nothing was dropped and position i refers to the same entry in both.
-  let changed = existingUserModels.length !== userModels.length;
-
-  if (!changed) {
-    for (let i = 0; i < userModels.length; i++) {
-      if (!modelsEqual(existingUserModels[i]!, userModels[i]!)) {
-        changed = true;
-        break;
-      }
-    }
-  }
-
-  if (args.selectedModelName !== selectedModel) {
-    changed = true;
-  }
-
-  // If aiModels was missing/undefined and we produced models, that is a change.
-  if (args.existingModels === undefined && enforcedModels.length > 0) {
-    changed = true;
-  }
-
-  return { models: enforcedModels, selectedModel, changed };
-}
-
-// NOTE: Local inference is served by a llama.cpp `llama-server` the user runs
-// themselves. MkBrowser never starts, stops, or otherwise manages that process —
-// it only talks to whatever is listening at the configured base URL.
-// See: (USER_GUIDE.md#llamacpp-base-url)
-
-/**
- * Resolve the active AI provider and model name from the config.
- * Falls back to Anthropic Claude Haiku if nothing is configured.
+ * Resolve the active model definition from config, or throw when none is
+ * configured. There is no fallback model: the user must define one in the
+ * AI Models tab before AI works.
  *
  * See: (USER_GUIDE.md#ai-model)
  */
-
-export function getActiveModelConfig(): { provider: AIProvider; model: string; llamacppBaseUrl: string; } {
-    const config = getConfig();
-    const llamacppBaseUrl = config.llamacppBaseUrl || 'http://localhost:8080/v1';
-
-    if (config.aiModel && config.aiModels) {
-        const selectedKey = normalizeKey(config.aiModel);
-        const entry = config.aiModels.find((m) => normalizeKey(m.name) === selectedKey);
-        if (entry) {
-            debugLog('getActiveModelConfig → provider:', entry.provider, 'model:', entry.model);
-            return { provider: entry.provider, model: entry.model, llamacppBaseUrl };
-        }
-    }
-
-    // Fallback defaults
-    debugLog('getActiveModelConfig → using fallback: ANTHROPIC / claude-haiku-4-5-20251001');
-    return { provider: 'ANTHROPIC', model: 'claude-haiku-4-5-20251001', llamacppBaseUrl };
+export function getActiveModelConfig(): AIModelConfig {
+  const model = getActiveModel();
+  if (!model) {
+    debugLog('getActiveModelConfig → no active model configured');
+    throw new Error(NO_MODEL_CONFIGURED_MESSAGE);
+  }
+  debugLog('getActiveModelConfig → provider:', model.provider, 'model:', model.model, 'baseUrl:', model.baseUrl ?? '(default)');
+  return model;
 }
 
 /**
@@ -184,24 +53,30 @@ export function getActiveModelConfig(): { provider: AIProvider; model: string; l
  * See: (USER_GUIDE.md#ai-model)
  */
 export function createChatModel() {
-  const { provider, model, llamacppBaseUrl } = getActiveModelConfig();
+  const { provider, model, baseUrl } = getActiveModelConfig();
   debugLog('createChatModel → provider:', provider, 'model:', model);
-  if (provider === 'LLAMACPP') {
-    // Local server (llama.cpp, LM Studio) ignores the key, but ChatOpenAI throws
-    // "Missing credentials" without one, so pass a placeholder.
-    return new ChatOpenAI({ model, apiKey: 'local-no-key', configuration: { baseURL: llamacppBaseUrl }, callbacks: aiFileLogCallbacks });
-  }
   if (provider === 'OPENAI') {
+    if (baseUrl) {
+      // OpenAI-compatible endpoint (often a local llama.cpp / LM Studio server,
+      // which ignores the key). ChatOpenAI throws "Missing credentials" without
+      // one, so fall back to a placeholder when OPENAI_API_KEY isn't set.
+      return new ChatOpenAI({
+        model,
+        apiKey: process.env['OPENAI_API_KEY'] || 'no-key',
+        configuration: { baseURL: baseUrl },
+        callbacks: aiFileLogCallbacks,
+      });
+    }
     warnIfApiKeyMissing('OPENAI_API_KEY');
     return new ChatOpenAI({ model, callbacks: aiFileLogCallbacks });
   }
   if (provider === 'GOOGLE') {
     warnIfApiKeyMissing('GOOGLE_API_KEY');
     // maxRetries: 2 to fail faster on quota/auth errors instead of silently retrying many times
-    return new ChatGoogleGenerativeAI({ model, maxRetries: 2, callbacks: aiFileLogCallbacks });
+    return new ChatGoogleGenerativeAI({ model, maxRetries: 2, ...(baseUrl ? { baseUrl } : {}), callbacks: aiFileLogCallbacks });
   }
   warnIfApiKeyMissing('ANTHROPIC_API_KEY');
-  return new ChatAnthropic({ model, callbacks: aiFileLogCallbacks });
+  return new ChatAnthropic({ model, ...(baseUrl ? { anthropicApiUrl: baseUrl } : {}), callbacks: aiFileLogCallbacks });
 }
 
 /**
@@ -218,21 +93,13 @@ function warnIfApiKeyMissing(envVar: string): void {
 }
 
 /**
- * Resolve the user's currently-selected model entry from config, matched by
- * `config.aiModel` name. Returns undefined when nothing matches (no selection,
- * or the selected name isn't present in `config.aiModels`).
+ * Resolve the user's currently-selected model entry from config, matched
+ * case-insensitively by `config.aiModel` name. Returns undefined when nothing
+ * matches (no models defined, no selection, or a stale name).
  */
 export function getActiveModel(): AIModelConfig | undefined {
   const config = getConfig();
-  return config.aiModels?.find((m) => m.name === config.aiModel);
+  const selectedKey = normalizeKey(config.aiModel ?? '');
+  if (!selectedKey) return undefined;
+  return config.aiModels?.find((m) => normalizeKey(m.name) === selectedKey);
 }
-
-/**
- * Provider of the active model, falling back to 'ANTHROPIC' (the default
- * provider) when no model is resolved. Used for usage accounting.
- */
-export function getActiveProvider(): AIProvider {
-  return getActiveModel()?.provider ?? 'ANTHROPIC';
-}
-
-

@@ -69,8 +69,8 @@ export const defaultSettings: AppSettings = {
 
 /**
  * Default AI config mirror. Kept here (next to `defaultSettings`) so the store
- * core owns its own defaults without importing a slice. `llamacppBaseUrl`
- * defaults to the local llama.cpp server URL the settings form has always shown.
+ * core owns its own defaults without importing a slice. There are no default
+ * AI models: the user defines them all in the AI Models tab.
  */
 export const defaultAiConfig: AiConfigState = {
   aiEnabled: false,
@@ -81,7 +81,6 @@ export const defaultAiConfig: AiConfigState = {
   fullDocContext: false,
   aiModels: [],
   aiModel: '',
-  llamacppBaseUrl: 'http://localhost:8080/v1',
   agenticMode: false,
   agenticAllowedFolders: '',
 };

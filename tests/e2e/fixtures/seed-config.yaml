@@ -10,9 +10,11 @@
 #                          "Political Free People Search": advanced-search-demo
 #                          creates it, and a duplicate name makes that step fail.
 #   - baseline settings   → a known starting state
-# aiModels are intentionally omitted: configMgr always enforces DEFAULT_AI_MODELS,
-# so they are auto-populated on load. API keys come from *_API_KEY env vars, not
-# this file. browseFolder is set at launch from the folder argv the fixture passes.
+# aiModels are intentionally omitted: the app has no built-in models, so the
+# e2e runs start with none (as a fresh install does). The AI demos use scripted
+# answers, which bypass the model entirely; ai-models-demo defines a model
+# through the UI. API keys come from *_API_KEY env vars, not this file.
+# browseFolder is set at launch from the folder argv the fixture passes.
 browseFolder: ''
 settings:
   fontSize: medium
