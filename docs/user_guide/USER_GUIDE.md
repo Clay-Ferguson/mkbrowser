@@ -161,10 +161,8 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
       * [Enabling Full Document Context](#enabling-full-document-context)
     * [Expand Editor](#expand-editor)
   * [AI Personas](#ai-personas)
-    * [Creating a new prompt](#creating-a-new-prompt)
-    * [Selecting the active prompt](#selecting-the-active-prompt)
-    * [Editing an existing prompt](#editing-an-existing-prompt)
-    * [Deleting a prompt](#deleting-a-prompt)
+    * [Configuring Personas](#configuring-personas)
+    * [Selecting the Active Persona](#selecting-the-active-persona)
 * [Settings](#settings)
   * [Appearance](#appearance)
   * [Files to Ignore](#files-to-ignore)
@@ -189,7 +187,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
 
 # Tab Bar
 
-MkBrowser uses a tab bar at the top of the window to switch between views: **Browse**, **AI Chat**, **Search**, **Analysis**, **Graph**, **Settings**, **AI Settings**, **AI Models**, **Types**, **Tags**, **Calendar**, and **Help**. The Browse tab is always present. The others appear only when they are active (e.g. Search appears after you run a search; AI Chat appears when you navigate into an AI conversation folder).
+MkBrowser uses a tab bar at the top of the window to switch between views: **Browse**, **AI Chat**, **Search**, **Analysis**, **Graph**, **Settings**, **AI Settings**, **AI Models**, **AI Personas**, **Types**, **Tags**, **Calendar**, and **Help**. The Browse tab is always present. The others appear only when they are active (e.g. Search appears after you run a search; AI Chat appears when you navigate into an AI conversation folder).
 
 Every tab except Browse and AI Chat has an **×** button next to its label. Clicking it closes the tab and returns you to the Browse view. Closing a tab also discards its associated state (e.g. closing Search clears the results; closing Analysis clears the analysis data). The AI Chat tab has no **×**: it follows the folder you are browsing, and goes away when you leave the conversation.
 
@@ -1686,7 +1684,7 @@ A flattener can walk the folder tree and produce a single Markdown document (for
 
 ## AI Settings
 
-All AI-related configuration lives in **AI Settings** (System menu → **AI Settings**), plus the [AI Models tab](#configuring-ai-models) it opens.
+All AI-related configuration lives in **AI Settings** (System menu → **AI Settings**), plus the [AI Models](#configuring-ai-models) and [AI Personas](#configuring-personas) tabs it opens.
 
 ### Enable AI Features
 
@@ -2019,33 +2017,28 @@ This is especially useful when working on long files or when you need to see as 
 
 **🎬 [Demo Video (with Audio): AI Personas (User-Customized AI Agent)](https://clay-ferguson.github.io/videos/chat-persona-demo/)**
 
-You can create multiple named **AI Personas** in the AI Settings View. Personas are how you describe to the AI what role you want it to play in chat conversations (or when using the "AI Rewrite" feature)
+You can create multiple named **AI Personas**. Personas are how you describe to the AI what role you want it to play in chat conversations (or when using the "AI Rewrite" feature). The active persona's instructions are added to the AI's system prompt.
 
 An example of a "Persona" would be something you could name "Hemmingway" which would contain this text: "You write very elaborately in the style of Ernest Hemmingway, adding your own flair and significantly lengthening the text, by adding your own creative (even if fictitious) ideas."
 
-Personas are managed in **Settings → AI Settings** under the **AI Personas** section. The built-in **[Default Agent]** persona is always available; it can be selected, but not edited or deleted.
+The built-in **[Default Agent]** persona is always available in the persona dropdowns and means "no custom persona". It can be selected, but not edited or deleted, and it isn't listed on the AI Personas tab.
 
-### Creating a new prompt
+### Configuring Personas
 
-1. Open **Settings → AI Settings** and scroll to the **AI Personas** section.
-2. Click **New** and type a name (e.g. `Academic`, `Casual`, `Concise`). Names must be unique. The new persona is created empty and becomes the selected one.
-3. Type your instructions into the textarea below.
-4. Click **Save**.
+Personas are defined on the **AI Personas** tab. To open it, go to **AI Settings** (System menu → **AI Settings**) and click **Configure Personas** next to the persona dropdown — that button is the only way to open the tab.
 
-### Selecting the active prompt
+The tab is laid out like the [AI Models tab](#configuring-ai-models): your personas, by name, on the left, and the selected persona's **Persona Instructions** on the right.
 
-Open the persona dropdown to see your saved personas, and select one — its text loads into the textarea and it becomes the active persona used by the **Rewrite** button and by AI Chat. You can also pick the persona from the header of the AI Chat tab.
+- **＋** (next to the **AI Personas** heading) adds a persona and puts its name in edit mode — type a name (e.g. `Academic`, `Casual`, `Concise`) and press Enter. Then type its instructions in the **Persona Instructions** box.
+- Click a persona to see and edit its instructions.
+- Hover a persona to show **✎** (rename) and **✕** (delete, after a confirmation).
+- The active persona is marked **Active**.
 
-### Editing an existing prompt
+Changes are kept as a draft (the footer says *Unsaved changes*) until you click **Save**; **Revert** discards them. Persona names must be unique (upper/lower case is ignored), and `[Default Agent]` is reserved. If you rename the active persona it stays active under its new name; if you delete it, the active persona goes back to **[Default Agent]**.
 
-1. Select the persona you want to change from the dropdown.
-2. Edit the text in the textarea.
-3. Click **Save** to update it.
+### Selecting the Active Persona
 
-### Deleting a prompt
-
-1. Select the persona you want to remove.
-2. Click **Delete** and confirm.
+Pick the active persona from the persona dropdown in **AI Settings**, or from the **Chat with Persona** box in the header of the AI Chat tab — both change the same setting. The active persona is used by AI Chat and by the **Rewrite** button.
 
 **Tip:** Create a persona for each writing context you work in — for example, a formal academic tone, plain language for a general audience, or a structured bullet-point format. Switch between them from the dropdown without leaving your document.
 

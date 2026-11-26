@@ -87,8 +87,9 @@ test.describe('AI Rewrite Persona Demo', () => {
       screenshotDir,
       step++,
       `We are now in the AI Settings view.
-      Down here in the AI Personas section is where we can define our personas and select the active one.
-      We will open it to see the personas we have defined.`
+      Down here in the AI Persona section is where we select the active persona.
+      Personas themselves are defined on the AI Personas tab, which the "Configure Personas" button opens.
+      We will open the dropdown to see the personas we have defined.`
     );
 
     // ── 5. Open the dropdown and select the "Hemingway" persona ───────

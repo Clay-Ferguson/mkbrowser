@@ -352,7 +352,7 @@ export interface AIModelConfig {
   vision: boolean;
 }
 
-// A named AI Persona (Settings → AI Settings → Personas). See: (USER_GUIDE.md#ai-personas)
+// A named AI Persona (defined on the AI Personas tab). See: (USER_GUIDE.md#configuring-personas)
 export interface AIRewritePromptDef {
   name: string;
   prompt: string;
@@ -418,7 +418,7 @@ export interface AppConfig {
    * the AI Chat tab's "Chat with Persona" box selects.
    *
    * See: (ai_chat.md#what-the-view-shows)
-   * See: (USER_GUIDE.md#selecting-the-active-prompt)
+   * See: (USER_GUIDE.md#selecting-the-active-persona)
    */
   aiRewritePrompt?: string;
   /**

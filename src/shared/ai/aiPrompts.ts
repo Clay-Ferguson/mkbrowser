@@ -16,6 +16,15 @@ export const DEFAULT_AI_REWRITE_PERSONA = //
 `You are a helpful agent.`;
 
 /**
+ * Name of the built-in persona shown first in the persona dropdowns (AI Settings
+ * and the AI Chat header). Selecting it means "no custom persona"; it can't be
+ * edited, isn't listed in the AI Personas tab, and is reserved as a name.
+ *
+ * See: (USER_GUIDE.md#selecting-the-active-persona)
+ */
+export const DEFAULT_PERSONA_NAME = '[Default Agent]';
+
+/**
  * Build the system prompt for an AI invocation, optionally prefixing the
  * user's selected persona. The persona is woven into the system prompt so it
  * stays operative across every interaction — both conversational "Ask AI"

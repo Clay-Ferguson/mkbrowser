@@ -96,8 +96,9 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Down here in the AI Personas section is where we can define our personas, and select the active one.
-      We can open it to see what personas are defined.`
+      `Down here in the AI Persona section is where we select the active persona.
+      Personas themselves are defined on the AI Personas tab, which the "Configure Personas" button opens.
+      We can open the dropdown to see what personas are defined.`
     );
 
     // ── 5. Open the dropdown and select the "Pirate" persona ──────────

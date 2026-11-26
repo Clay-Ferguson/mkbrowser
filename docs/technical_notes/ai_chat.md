@@ -92,7 +92,7 @@ The thread is always built relative to the folder currently shown in the Browse 
 - Each turn is a fully interactive `MarkdownEntry` (so turns can be edited, renamed, deleted, etc. right in the thread), with an avatar and a colored left border: blue for human turns, green for AI turns.
 - The turn belonging to the folder the Browse View is focused on is drawn with a purple border, so it's easy to see where you are in the conversation.
 - Each turn has a "Show in Browse View" button that jumps to that file in the Browse View.
-- The header holds a breadcrumb of the current path (clicking it navigates in the Browse View) and a **"Chat with Persona"** combobox for choosing which persona the AI uses. Personas are created in AI Settings; this box only selects one, and the choice is saved as the same `aiRewritePrompt` setting that AI Rewrite uses.
+- The header holds a breadcrumb of the current path (clicking it navigates in the Browse View) and a **"Chat with Persona"** combobox for choosing which persona the AI uses. Personas are defined in the AI Personas tab (opened from AI Settings' **Configure Personas** button); this box only selects one, and the choice is saved as the same `aiRewritePrompt` setting that AI Rewrite uses.
 
 ## Code Map
 

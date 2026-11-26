@@ -24,8 +24,7 @@ import ErrorBoundary from '../ErrorBoundary';
 import ThreadAvatar, { ThreadAvatarDefs } from '../ThreadAvatar';
 import { logger } from '../../shared/logUtil';
 import PathBreadcrumb from '../PathBreadcrumb';
-
-const DEFAULT_PERSONA_NAME = '[Default Agent]';
+import { DEFAULT_PERSONA_NAME } from '../../shared/ai/aiPrompts';
 
 /**
  * Monotonic token identifying the most recent thread-load run. Two gathers of
@@ -90,10 +89,11 @@ function ThreadView() {
   const [isThread, setIsThread] = useState(true);
 
   // The persona name and the list of personas both come from the store mirror,
-  // so a persona created/renamed/selected in AISettingsView is reflected here
-  // without a remount. The displayed name is read straight from the store (no
-  // local draft), so the header can never claim a persona that isn't the active
-  // one — personas are created in AISettingsView, never typed in here.
+  // so a persona created/renamed in the AI Personas tab (or selected in AI
+  // Settings) is reflected here without a remount. The displayed name is read
+  // straight from the store (no local draft), so the header can never claim a
+  // persona that isn't the active one — personas are defined in the AI Personas
+  // tab, never typed in here.
   // See: (ai_chat.md#what-the-view-shows)
   const aiRewritePrompt = useAS(s => s.aiConfig.aiRewritePrompt);
   const aiRewritePrompts = useAS(s => s.aiConfig.aiRewritePrompts);
@@ -105,7 +105,7 @@ function ThreadView() {
    * same store mirror) picks it up immediately.
    *
    * See: (ai_chat.md#what-the-view-shows)
-   * See: (USER_GUIDE.md#selecting-the-active-prompt)
+   * See: (USER_GUIDE.md#selecting-the-active-persona)
    */
   const handlePersonaSelect = (name: string) => {
     runOp(() => saveAiConfig({ aiRewritePrompt: name }), 'Failed to save persona: ');
@@ -257,7 +257,7 @@ function ThreadView() {
       </div>
       <div className="ml-auto text-sm text-slate-400 flex items-center gap-2">
         <span className="whitespace-nowrap">Chat with Persona:</span>
-        {/* Select-only (no onChange): personas are created in AISettingsView. */}
+        {/* Select-only (no onChange): personas are defined in the AI Personas tab. */}
         <EditableCombobox
           data-testid="thread-persona-combobox"
           value={personaName}

@@ -5,7 +5,7 @@
 This application uses a tab layout where each tab is one of the top-level views (aka panels or pages) that we display. The set of views is the `AppView` union type in `src/shared/types.ts`:
 
 ```ts
-export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'ai-models' | 'thread' | 'folder-graph' | 'calendar' | 'types-editor' | 'tags-editor' | 'help';
+export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'ai-models' | 'ai-personas' | 'thread' | 'folder-graph' | 'calendar' | 'types-editor' | 'tags-editor' | 'help';
 ```
 
 Each view is a component in `src/components/views/`:
@@ -20,6 +20,7 @@ Each view is a component in `src/components/views/`:
 | `settings` | Settings | `SettingsView` |
 | `ai-settings` | AI Settings | `AISettingsView` |
 | `ai-models` | AI Models | `AIModelsView` |
+| `ai-personas` | AI Personas | `AIPersonasView` |
 | `types-editor` | Types | `TypesEditorView` |
 | `tags-editor` | Tags | `TagsEditorView` |
 | `calendar` | Calendar | `CalendarView` |
@@ -35,9 +36,9 @@ The active tab is `currentView` in the single Zustand store (the view slice, `sr
 
 ### Which tabs are shown
 
-Not every tab is always in the tab bar. The `allTabs` array in `AppTabButtons` defines the canonical order (Browse, AI Chat, Search, Analysis, Graph, Settings, AI Settings, AI Models, Types, Tags, Calendar, Help), and it is filtered down to the tabs that should currently be visible. A tab is visible for one of two reasons:
+Not every tab is always in the tab bar. The `allTabs` array in `AppTabButtons` defines the canonical order (Browse, AI Chat, Search, Analysis, Graph, Settings, AI Settings, AI Models, AI Personas, Types, Tags, Calendar, Help), and it is filtered down to the tabs that should currently be visible. A tab is visible for one of two reasons:
 
-- **Explicitly shown.** The store's `visibleTabs` set (initially just `browser`) is changed with `showTab(tab)` / `hideTab(tab)`. The System menu opens Settings, AI Settings, Types, Tags, and Help this way (`showTab` then `setCurrentView`). AI Models has no menu item: it is opened only by the **Configure Models** button on the AI Settings tab, the same way. The Calendar tab is shown the same way, by `showCalendarForFolder` in the calendar slice, by `src/renderer/calendarNav.ts`, and by `SearchResultsView`. `visibleTabs` is not persisted, so it resets on restart.
+- **Explicitly shown.** The store's `visibleTabs` set (initially just `browser`) is changed with `showTab(tab)` / `hideTab(tab)`. The System menu opens Settings, AI Settings, Types, Tags, and Help this way (`showTab` then `setCurrentView`). AI Models and AI Personas have no menu items: they are opened only by the **Configure Models** and **Configure Personas** buttons on the AI Settings tab, the same way. The Calendar tab is shown the same way, by `showCalendarForFolder` in the calendar slice, by `src/renderer/calendarNav.ts`, and by `SearchResultsView`. `visibleTabs` is not persisted, so it resets on restart.
 - **Derived from data.** These tabs appear whenever their data exists:
   - Search: `lastSearchDefinition !== null`. It is set as soon as any search runs, so a search with no results still shows the tab.
   - Analysis: `folderAnalysis !== null`.

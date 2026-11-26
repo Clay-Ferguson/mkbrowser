@@ -131,7 +131,7 @@ export interface ItemData {
  *
  * See: (application_tabs.md#overview)
  */
-export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'ai-models' | 'thread' | 'folder-graph' | 'calendar' | 'types-editor' | 'tags-editor' | 'help';
+export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'ai-models' | 'ai-personas' | 'thread' | 'folder-graph' | 'calendar' | 'types-editor' | 'tags-editor' | 'help';
 
 /**
  * Why the browser view is showing a single file instead of the folder listing.
