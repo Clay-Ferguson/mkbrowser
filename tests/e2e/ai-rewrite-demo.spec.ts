@@ -134,7 +134,7 @@ test.describe('AI Rewrite Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Down in the AI Rewrite Options section we've turned on the "AI Rewrite" feature.
+      `Up in the top section of AI Settings we've turned on the "AI Rewrite" feature.
       You can see its checkbox is now checked.`
     );
 

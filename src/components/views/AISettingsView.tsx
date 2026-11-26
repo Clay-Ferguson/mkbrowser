@@ -136,7 +136,7 @@ function AISettingsView() {
             {/* AI Settings */}
             <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
               <h2 className="text-lg font-semibold text-slate-100 mb-4">AI Settings</h2>
-              <div className="flex items-center gap-6">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                 <CheckboxField
                   label="Enable AI"
                   checked={aiEnabled}
@@ -153,6 +153,31 @@ function AISettingsView() {
                     }}
                     inputClassName={SETTINGS_CHECKBOX_CLASS}
                     spanClassName="text-slate-200"
+                  />
+                )}
+                {/* AI Rewrite options. See: (USER_GUIDE.md#enabling-ai-rewrite) */}
+                {aiEnabled && (
+                  <CheckboxField
+                    label="Enable AI Rewrite"
+                    checked={aiRewriteMode}
+                    onChange={(checked) => {
+                      saveAiConfigField({ aiRewriteMode: checked });
+                    }}
+                    inputClassName={SETTINGS_CHECKBOX_CLASS}
+                    spanClassName="text-slate-200"
+                    testId="enable-ai-rewrite"
+                  />
+                )}
+                {aiEnabled && aiRewriteMode && (
+                  <CheckboxField
+                    label="Rewrite using Full Doc Context (Document-Type Folders Only)"
+                    checked={fullDocContext}
+                    onChange={(checked) => {
+                      saveAiConfigField({ fullDocContext: checked });
+                    }}
+                    inputClassName={SETTINGS_CHECKBOX_CLASS}
+                    spanClassName="text-slate-200"
+                    testId="rewrite-using-full-doc-context"
                   />
                 )}
               </div>
@@ -221,10 +246,10 @@ function AISettingsView() {
               </section>
             )}
 
-            {/* AI Model */}
+            {/* AI Model + AI Persona */}
             {aiEnabled && (
               <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* Active model + entry point to the AI Models tab. See: (USER_GUIDE.md#ai-model) */}
                   <div>
                     <h2 className="text-lg font-semibold text-slate-100 mb-3">AI Model</h2>
@@ -256,6 +281,35 @@ function AISettingsView() {
                     </div>
                   </div>
 
+                  {/* Active persona + entry point to the AI Personas tab. See: (USER_GUIDE.md#selecting-the-active-persona) */}
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-100 mb-3">AI Persona</h2>
+                    <div className="flex items-center gap-3">
+                      {/* Select-only (no onChange): personas are defined on the AI Personas tab. */}
+                      <EditableCombobox
+                        data-testid="ai-persona-combobox"
+                        value={personaName}
+                        onSelect={(option: ComboboxOption) => handlePersonaSelect(option.value)}
+                        options={[
+                          { value: DEFAULT_PERSONA_NAME, label: DEFAULT_PERSONA_NAME },
+                          ...[...aiRewritePrompts]
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map((p) => ({ value: p.name, label: p.name })),
+                        ]}
+                        placeholder="Select a persona..."
+                        className="flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleConfigurePersonas}
+                        className={clsx(BUTTON_CLASS_DLG_BLUE, 'whitespace-nowrap')}
+                        data-testid="ai-settings-configure-personas-button"
+                      >
+                        Configure Personas
+                      </button>
+                    </div>
+                  </div>
+
                   {agenticMode && (
                     <div>
                       <label className="text-slate-300 text-sm block mb-1">Allowed Folders (one absolute path per line):</label>
@@ -269,68 +323,6 @@ function AISettingsView() {
                         data-testid="ai-agentic-allowed-folders-textarea"
                       />
                     </div>
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* Personas */}
-            {aiEnabled && (
-              <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-                <h2 className="text-lg font-semibold text-slate-100 mb-3">AI Persona</h2>
-                <div className="flex items-center gap-3">
-                  {/* Select-only (no onChange): personas are defined on the AI Personas tab. */}
-                  <EditableCombobox
-                    data-testid="ai-persona-combobox"
-                    value={personaName}
-                    onSelect={(option: ComboboxOption) => handlePersonaSelect(option.value)}
-                    options={[
-                      { value: DEFAULT_PERSONA_NAME, label: DEFAULT_PERSONA_NAME },
-                      ...[...aiRewritePrompts]
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map((p) => ({ value: p.name, label: p.name })),
-                    ]}
-                    placeholder="Select a persona..."
-                    className="flex-1"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleConfigurePersonas}
-                    className={clsx(BUTTON_CLASS_DLG_BLUE, 'whitespace-nowrap')}
-                    data-testid="ai-settings-configure-personas-button"
-                  >
-                    Configure Personas
-                  </button>
-                </div>
-              </section>
-            )}
-
-            {/* AI Rewrite Options */}
-            {aiEnabled && (
-              <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-                <h2 className="text-lg font-semibold text-slate-100 mb-4">AI Rewrite Options</h2>
-                <div className="flex items-center gap-6">
-                  <CheckboxField
-                    label="Enable AI Rewrite"
-                    checked={aiRewriteMode}
-                    onChange={(checked) => {
-                      saveAiConfigField({ aiRewriteMode: checked });
-                    }}
-                    inputClassName={SETTINGS_CHECKBOX_CLASS}
-                    spanClassName="text-slate-200"
-                    testId="enable-ai-rewrite"
-                  />
-                  {aiRewriteMode && (
-                    <CheckboxField
-                      label="Rewrite using Full Doc Context (Document-Type Folders Only)"
-                      checked={fullDocContext}
-                      onChange={(checked) => {
-                        saveAiConfigField({ fullDocContext: checked });
-                      }}
-                      inputClassName={SETTINGS_CHECKBOX_CLASS}
-                      spanClassName="text-slate-200"
-                      testId="rewrite-using-full-doc-context"
-                    />
                   )}
                 </div>
               </section>

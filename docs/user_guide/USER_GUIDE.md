@@ -1920,9 +1920,8 @@ MkBrowser includes an AI-powered **Rewrite** feature that can improve the conten
 
 The Rewrite feature is disabled by default. To turn it on:
 
-1. Open **Settings → AI Settings**.
-2. Scroll to the **AI Rewrite Options** section.
-3. Check the **Enable AI Rewrite** checkbox.
+1. Open **AI Settings** (System menu → **AI Settings**).
+2. Check the **Enable AI Rewrite** checkbox in the top section, next to **Enable AI**.
 
 Once enabled, the **Rewrite** button appears in the editor toolbar whenever you open a file for editing.
 
@@ -1999,9 +1998,8 @@ The same context is applied whether you are rewriting an entire file or just a s
 
 #### Enabling Full Document Context
 
-1. Open **Settings → AI Settings**.
-2. Scroll to the **AI Rewrite Options** section. (The option appears only while **Enable AI Rewrite** is checked.)
-3. Check **Rewrite using Full Doc Context (Document-Type Folders Only)**.
+1. Open **AI Settings** (System menu → **AI Settings**).
+2. In the top section, check **Rewrite using Full Doc Context (Document-Type Folders Only)**. (The option appears only while **Enable AI Rewrite** is checked.)
 
 The setting is saved automatically. It remains active across sessions until you uncheck it.
 
