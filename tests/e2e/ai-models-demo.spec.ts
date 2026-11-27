@@ -44,7 +44,7 @@ test.describe('AI Models Demo', () => {
       step++,
       `Welcome to this MK Browser feature demo.
 In this demo we'll set up an AI model.
-MK Browser doesn't come with any AI models built in, so before you can use any AI feature you define at least one model yourself.
+MK Browser doesn't come with any AI models built in, so before you can use any AI feature, you define at least one model yourself.
 We will start by opening the System Menu to get to the AI Settings view.`
     );
 
@@ -67,7 +67,7 @@ We will start by opening the System Menu to get to the AI Settings view.`
     writeNarration(
       screenshotDir,
       step++,
-      `We will click "AI Settings" to open the AI Settings view.`
+      `We will click AI Settings to open the AI Settings view.`
     );
 
     await demoClick(aiSettingsItem);
@@ -81,7 +81,7 @@ We will start by opening the System Menu to get to the AI Settings view.`
       screenshotDir,
       step++,
       `In the AI Model section we're told that no AI models are defined yet.
-We will click "Configure Models" to open the AI Models tab, where models are defined.`
+We will click the Configure Models button to open the AI Models tab, where models are defined.`
     );
 
     await demoClick(configureButton);
@@ -131,8 +131,8 @@ The list starts out empty.`
     writeNarration(
       screenshotDir,
       step++,
-      `For the provider we choose "OpenAI / OpenAI-compatible".
-Local model servers like llama.cpp and LM Studio speak the same protocol as OpenAI, so they use this provider too.`
+      `For the provider we choose Open AI compatible".
+Local model servers like Llama and LM Studio speak the same protocol as Open AI, so they use this provider too.`
     );
 
     // ── 8. Model ID ───────────────────────────────────────────────────
@@ -143,7 +143,7 @@ Local model servers like llama.cpp and LM Studio speak the same protocol as Open
       screenshotDir,
       step++,
       `The Model ID is the model name the server expects.
-A llama.cpp server runs just one model, so any name works here; we use "local".`
+For a local model, we can just use the word local here.`
     );
 
     // ── 9. Base URL ───────────────────────────────────────────────────
@@ -154,7 +154,7 @@ A llama.cpp server runs just one model, so any name works here; we use "local".`
       screenshotDir,
       step++,
       `The Base URL is where the model's API lives. For a cloud provider you can leave it blank to use the provider's standard address.
-Our llama.cpp server is running on this computer, so we enter its local address.`
+Our local LLM server is running on this computer, so we enter its local address.`
     );
 
     // ── 10. Prices ────────────────────────────────────────────────────
@@ -177,7 +177,7 @@ A local model is free, so both are zero.`
     writeNarration(
       screenshotDir,
       step++,
-      `We will click "Save" to store the model.`
+      `We will click Save to store the model definition.`
     );
 
     await demoClick(saveButton);
@@ -190,7 +190,7 @@ A local model is free, so both are zero.`
     writeNarration(
       screenshotDir,
       step++,
-      `The model is saved. Since it's our first model, it automatically became the active one, as the "Active" label shows.`
+      `The model is saved. Since it's our first model, it automatically became the active one, as the Active label now shows.`
     );
 
     // ── 12. Back on AI Settings, the model is selected ────────────────
@@ -203,7 +203,8 @@ A local model is free, so both are zero.`
       screenshotDir,
       step++,
       `Back on the AI Settings tab, the AI Model dropdown now shows "${MODEL_NAME}".
-When you've defined several models, this dropdown is where you choose which one MK Browser uses.`
+When you've defined several models, this dropdown is where you choose which one MK Browser uses.
+So any AI features we now use in the application will be using this currently selected model.`
     );
 
     logScreenshotSummary(screenshotDir);
